@@ -1,0 +1,450 @@
+[
+    {
+        "id": 36,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Bada\u2019a"
+    },
+    {
+        "id": 11,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Barsha"
+    },
+    {
+        "id": 57,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Barsha South"
+    },
+    {
+        "id": 34,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Habtoor Polo Resort And Club"
+    },
+    {
+        "id": 33,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Jadaf"
+    },
+    {
+        "id": 18,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Khalidia"
+    },
+    {
+        "id": 21,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Mamzar"
+    },
+    {
+        "id": 49,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Mankhool"
+    },
+    {
+        "id": 46,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Mina"
+    },
+    {
+        "id": 19,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Qusais"
+    },
+    {
+        "id": 58,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Satwa"
+    },
+    {
+        "id": 20,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Sufouh"
+    },
+    {
+        "id": 64,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Al Wasl"
+    },
+    {
+        "id": 16,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Arabian Ranches"
+    },
+    {
+        "id": 29,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Barsha Heights (Tecom)"
+    },
+    {
+        "id": 38,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Blue Waters Island"
+    },
+    {
+        "id": 1,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Bur Dubai Area"
+    },
+    {
+        "id": 26,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Business Bay"
+    },
+    {
+        "id": 44,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "DIFC"
+    },
+    {
+        "id": 2,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Deira"
+    },
+    {
+        "id": 23,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Downtown Dubai"
+    },
+    {
+        "id": 13,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Academic City"
+    },
+    {
+        "id": 3,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Creek"
+    },
+    {
+        "id": 4,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Desert"
+    },
+    {
+        "id": 7,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Festival City"
+    },
+    {
+        "id": 27,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Int. Media Production Zone"
+    },
+    {
+        "id": 8,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai International Airport"
+    },
+    {
+        "id": 41,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai International City"
+    },
+    {
+        "id": 39,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Internet City"
+    },
+    {
+        "id": 47,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Investments Park"
+    },
+    {
+        "id": 48,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Islands"
+    },
+    {
+        "id": 12,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Marina"
+    },
+    {
+        "id": 40,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Media City"
+    },
+    {
+        "id": 32,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Motor City"
+    },
+    {
+        "id": 59,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Parks"
+    },
+    {
+        "id": 31,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Production City"
+    },
+    {
+        "id": 43,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai South"
+    },
+    {
+        "id": 37,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai Sports City"
+    },
+    {
+        "id": 51,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Dubai World Islands"
+    },
+    {
+        "id": 25,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Emirates Hills"
+    },
+    {
+        "id": 60,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Expo City"
+    },
+    {
+        "id": 17,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Green Community Village"
+    },
+    {
+        "id": 9,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Hatta"
+    },
+    {
+        "id": 61,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Ibn Battuta"
+    },
+    {
+        "id": 10,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Jebel Ali"
+    },
+    {
+        "id": 45,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Jebel Ali Village"
+    },
+    {
+        "id": 5,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Jumeirah Beach"
+    },
+    {
+        "id": 50,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Jumeirah Beach Residence"
+    },
+    {
+        "id": 30,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Jumeirah Lakes Towers"
+    },
+    {
+        "id": 42,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Jumeirah Village Circle"
+    },
+    {
+        "id": 52,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Jumeirah Village Triangle"
+    },
+    {
+        "id": 53,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Mirdif"
+    },
+    {
+        "id": 63,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Muhaisnah"
+    },
+    {
+        "id": 24,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Nad Al Sheba"
+    },
+    {
+        "id": 28,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Palm Jumeirah"
+    },
+    {
+        "id": 35,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Pearl Jumeirah"
+    },
+    {
+        "id": 6,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Sheikh Zayed Road"
+    },
+    {
+        "id": 15,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Silicon Oasis"
+    },
+    {
+        "id": 22,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Trade Centre"
+    },
+    {
+        "id": 54,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Uptown Dubai"
+    },
+    {
+        "id": 62,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Wafi"
+    },
+    {
+        "id": 14,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Warisan"
+    },
+    {
+        "id": 55,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Za'abeel 1"
+    },
+    {
+        "id": 56,
+        "country_name": "United Arab Emirates",
+        "province_id": 1,
+        "province_name": "Dubai",
+        "name": "Za'abeel 2"
+    }
+]

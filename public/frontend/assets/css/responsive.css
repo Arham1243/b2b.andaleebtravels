@@ -1,0 +1,268 @@
+@media only screen and (max-width: 1400px) {
+}
+
+@media only screen and (max-width: 1200px) {
+}
+
+@media only screen and (max-width: 992px) {
+}
+
+@media only screen and (max-width: 768px) {
+    .first-section {
+        padding-top: 62px;
+    }
+    .banner {
+        padding: 0;
+    }
+    .banner__img {
+        border-radius: 0;
+    }
+    .footer-disclaimer {
+        padding-inline: 1rem;
+    }
+    .footer-social-icons {
+        justify-content: center;
+        margin: 1.5rem 0 1.25rem;
+    }
+    .footer-bottom {
+        padding-bottom: 0;
+    }
+    .copyright-text {
+        justify-content: center;
+        gap: 18px 10px;
+        text-align: center;
+    }
+    .footer::before {
+        top: 29%;
+        left: 66%;
+    }
+    .ts-side-title {
+        font-size: 0.9rem;
+    }
+    .ts-read-more,
+    .ts-side-desc {
+        font-size: 0.7rem;
+    }
+    .section-content .heading {
+        font-size: 1.25rem;
+    }
+    .pro-city {
+        font-size: 1.25rem;
+    }
+    .pro-cat {
+        font-size: 0.85rem;
+    }
+    .themeBtn {
+        font-size: 0.8rem;
+        padding: 10px 17px;
+    }
+    .pro-heading {
+        font-size: 1.8rem;
+    }
+    .pro-badge {
+        font-size: 0.75rem;
+        padding: 3px 8px;
+        letter-spacing: 1px;
+    }
+    .mh-contact-group {
+        display: none;
+    }
+    .mh-divider {
+        display: none;
+    }
+    .categories--padd {
+        padding: 2rem 0;
+    }
+    .mh-header .menu-btn {
+        display: block;
+    }
+    .search-box-wrapper.tight-width {
+        flex: 1;
+        width: 100%;
+    }
+    .global-search-content {
+        padding: 1.25rem;
+    }
+
+    .holidays-search-form__input {
+        flex: 1;
+    }
+
+    .holidays-search-form .search-button {
+        flex: 0.35;
+    }
+    .search-pills-wrapper > li {
+        width: 45%;
+    }
+    .auth-actions {
+        font-size: 13px;
+    }
+    .auth-header p {
+        font-size: 12px;
+    }
+    .auth-card {
+        padding: 25px;
+    }
+    .auth-header h2 {
+        font-size: 25px;
+    }
+    .faq-question {
+        font-size: 1rem;
+    }
+    .faq-content {
+        padding-left: 0;
+    }
+    .text-document {
+        font-size: 15px;
+    }
+    .faq-content ul li {
+        margin-bottom: 6px;
+    }
+    .faq-header {
+        padding: 1.25rem 0;
+    }
+    .explore-link-item,
+    .explore-tab-btn {
+        font-size: 0.85rem;
+    }
+    .explore-scroller {
+        gap: 0.5rem;
+    }
+    .explore-tab-btn {
+        padding: 0.6rem 0.75rem;
+    }
+    .cat-title {
+        font-size: 0.9rem;
+    }
+    .cat-content {
+        padding: 1rem;
+    }
+    .cat-count {
+        font-size: 0.75rem;
+    }
+    .btn-icon {
+        width: 29px;
+        height: 29px;
+        font-size: 0.95rem;
+    }
+    .expandable-title {
+        font-size: 21px;
+    }
+    .expand-btn {
+        font-size: 0.8rem;
+    }
+    .text-document h1 {
+        font-size: 1.75em;
+    }
+    .text-document h2 {
+        font-size: 1.4em;
+    }
+    .btn-primary-custom {
+        font-size: 14px;
+        padding: 12px 26px;
+    }
+    .value-item i {
+        font-size: 2rem !important;
+    }
+    .value-item .value-title {
+        font-size: 0.85rem;
+    }
+    .plan-title {
+        width: 90%;
+    }
+    .main-page-search .search-options-wrapper {
+        box-shadow: none;
+        border-radius: 10px;
+    }
+    .hotels-banner {
+        min-height: 80vh;
+    }
+
+    .flighs-banner {
+        min-height: 100vh;
+    }
+    .tour-header-title {
+        font-size: 23px;
+    }
+    .review-form-card {
+        background: #f8f9fa;
+        padding: 20px;
+    }
+    .details-tabs {
+        justify-content: space-between;
+    }
+    .details-tabs .nav-link {
+        font-size: 13px;
+        padding: 11px;
+    }
+    .notice-wrapper {
+        gap: 2rem;
+    }
+    .hotels-lg-img-item {
+        height: 250px;
+    }
+    .full-screen-enabled .hotels-lg-img-item {
+        padding: 0;
+    }
+    .hotels-sm-img-list-slider .slick-slide {
+        margin-inline: 1px;
+    }
+    .hotels-sm-img-item {
+        height: 60px;
+        border-radius: 0.25rem;
+    }
+    .hotels-sm-img-list {
+        margin: 2px 0;
+    }
+    .hotels-lg-img-item {
+        width: 100%;
+        border-radius: 0.5rem;
+    }
+    .hotels-lg-img-wrapper .action-btns .full-screen {
+        display: none;
+    }
+    .continue-bar .details-btn-wrapper {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    .continue-bar-padding {
+        padding-inline: 0;
+    }
+    .continue-bar .total {
+        font-size: 0.7rem;
+    }
+    .continue-bar .details span {
+        font-size: 20px !important;
+    }
+    .continue-bar {
+        position: fixed;
+        width: 100%;
+        bottom: 0;
+        left: 0;
+        z-index: 99;
+    }
+    section.page-header .search-button,
+    .holidays-search-form .search-button {
+        margin: 0;
+    }
+    .page-header {
+        height: auto !important;
+        padding: 2rem 0 !important;
+    }
+    div#hotels-search .search-options-wrapper {
+        margin-bottom: 0 !important;
+    }
+    .page-header--uae {
+        background-position: 13% !important;
+    }
+    .holidays-search-form .search-button .themeBtn {
+        height: 40px;
+        padding: 0 1.5rem;
+    }
+    body input.select2-search__field {
+        padding: 0 !important;
+    }
+    .holidays-search-form {
+        padding:  0.65rem;
+    }
+}
