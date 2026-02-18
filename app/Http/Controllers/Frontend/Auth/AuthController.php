@@ -28,7 +28,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255',
             'agent_code' => 'required',
-            'email' => 'required|email|unique:users,email|max:255',
+            'email' => 'required|email|unique:b2b_vendors,email|max:255',
             'password' => 'required|string|min:8',
         ]);
 

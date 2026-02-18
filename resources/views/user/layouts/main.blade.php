@@ -13,17 +13,10 @@
 
 
 <body class="responsive">
-    <div class="dashboard" id="main-dashboard-wrapper">
-        <div class="container-fluid p-0">
-            <div class="layout-sidebar">
-                @include('user.layouts.sidebar')
-            </div>
-            <div class="layout-content-wrapper">
-                <div class="row g-0">
-                    @include('user.layouts.header')
-                    @yield('content')
-                </div>
-            </div>
+    <div class="dashboard dashboard--topbar" id="main-dashboard-wrapper">
+        @include('user.layouts.header')
+        <div class="topbar-content-wrapper">
+            @yield('content')
         </div>
     </div>
     <div class="loader-mask" id="loader">
