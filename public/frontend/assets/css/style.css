@@ -320,6 +320,7 @@ i.bx {
 }
 
 .mh-balance-pill:hover {
+      color: #000;
     background: rgba(205, 27, 79, 0.1);
     border-color: rgba(205, 27, 79, 0.2);
     transform: translateY(-1px);

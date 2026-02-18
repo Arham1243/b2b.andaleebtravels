@@ -11,6 +11,7 @@
                         <div class="section-content">
                             <h3 class="heading">Change Password</h3>
                         </div>
+                        <button type="submit" class="themeBtn">Update Password</button>
                     </div>
                 </div>
                 <div class="row">
@@ -52,7 +53,6 @@
                                                 @enderror
                                             </div>
                                         </div>
-                                        <button class="themeBtn ms-auto mt-4">Update Password</button>
                                     </div>
                                 </div>
                             </div>

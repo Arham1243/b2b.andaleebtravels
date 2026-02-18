@@ -12,10 +12,11 @@
                         <div class="section-content">
                             <h3 class="heading">Edit: Personal Information</h3>
                         </div>
+                        <button type="submit" class="themeBtn">Save Changes</button>
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-9">
+                    <div class="col-md-12">
                         <div class="form-wrapper">
                             <div class="form-box">
                                 <div class="form-box__header">
@@ -69,19 +70,20 @@
                                             <div class="placeholder-user">
                                                 <label for="profile-img" class="placeholder-user__img">
                                                     <img src="{{ $user->avatar ? asset($user->avatar) : asset('admin/assets/images/placeholder.png') }}"
-                                                        alt="image" style=" object-fit: contain;" class="imgFluid" id="profile-preview" loading="lazy">
+                                                        alt="image" style=" object-fit: contain;" class="imgFluid"
+                                                        id="profile-preview" loading="lazy">
                                                 </label>
                                                 <input type="file" name="avatar" id="profile-img"
                                                     onchange="showImage(this, 'profile-preview', 'filename-preview');"
                                                     class="d-none" accept="image/*">
-                                                <div class="placeholder-user__name" id="filename-preview">Profile Image</div>
+                                                <div class="placeholder-user__name" id="filename-preview">Profile Image
+                                                </div>
                                                 @error('avatar')
                                                     <span class="text-danger">{{ $message }}</span>
                                                 @enderror
                                             </div>
                                         </div>
                                     </div>
-                                    <button class="themeBtn mx-auto mt-4">Save Changes</button>
                                 </div>
                             </div>
                         </div>
