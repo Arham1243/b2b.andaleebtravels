@@ -24,17 +24,6 @@
                             </div>
                         </a>
                     </div>
-                    <div class="col-md-6">
-                        <a href="{{ route('admin.tours.index') }}" class="revenue-card mt-0">
-                            <div class="revenue-card__icon">
-                                <i class='bx bx-lg bx-world'></i>
-                            </div>
-                            <div class="revenue-card__content">
-                                <div class="title">Active Tours</div>
-                                <div class="num">{{ $tours->count() }}</div>
-                            </div>
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>

@@ -7,17 +7,28 @@
 
                     <div class="auth-card">
                         <div class="auth-header">
-                            <h2 class="heading">Welcome Back</h2>
-                            <p>Login to access your bookings and profile</p>
+                            <h2 class="heading">Agent Login</h2>
+                            <p>Sign in to manage your bookings and account details</p>
                         </div>
+
                         <form action="{{ route('auth.login.perform', request()->query()) }}" method="POST">
                             @csrf
                             <!-- Email Field -->
                             <div class="form-group">
-                                <label class="form-label">Email Address</label>
-                                <input type="email" name="email" class="custom-input" required
-                                    value="{{ old('email') }}">
-                                @error('email')
+                                <label class="form-label">Agent Code</label>
+                                <input type="text" name="agent_code" class="custom-input" required
+                                    value="{{ old('agent_code') }}">
+                                @error('agent_code')
+                                    <span class="text-danger validation-error">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <!-- Email Field -->
+                            <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" name="username" class="custom-input" required
+                                    value="{{ old('username') }}">
+                                @error('username')
                                     <span class="text-danger validation-error">{{ $message }}</span>
                                 @enderror
                             </div>
@@ -51,27 +62,6 @@
                             <!-- Submit -->
                             <button type="submit" class="btn-primary-custom">Login</button>
                         </form>
-
-                        <!-- Divider -->
-                        <div class="auth-divider">
-                            <span>OR</span>
-                        </div>
-
-                        <!-- Google Button -->
-                        <a href="{{ route('frontend.socialite.redirect', 'google') }}" class="btn-google">
-                            <img src="{{ asset('frontend/assets/images/google.svg') }}" alt="Google Logo">
-                            Continue with Google
-                        </a>
-
-                        <!-- Footer -->
-                        <div class="auth-footer">
-                            <p class="mb-2">Don't have an account? <a href="{{ route('auth.signup') }}"
-                                    class="custom-link">Sign Up</a></p>
-
-                            <a href="{{ route('auth.my-booking') }}" class="custom-link">
-                                Find Your Booking
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>

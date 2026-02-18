@@ -20,6 +20,8 @@
     --color-primary-light: #1c4d9912;
     --text-color: #555256;
     --pcr-color: #fff;
+    --mh-primary: #cd1b4f;
+--mh-text: #2c2c2c;
     --sidebar-width: 16rem;
 }
 
@@ -2794,4 +2796,56 @@ ol.breadcrumb {
     color: var(--text-muted);
     margin-top: 4px;
     margin-left: 28px;
+}
+.mh-balance-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    padding: 6px 16px 6px 8px; 
+    border-radius: 50px;
+    background: rgba(205, 27, 79, 0.05); 
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.mh-balance-pill:hover {
+    background: rgba(205, 27, 79, 0.1);
+    border-color: rgba(205, 27, 79, 0.2);
+    transform: translateY(-1px);
+}
+
+.mh-balance-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--mh-primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(205, 27, 79, 0.3);
+}
+
+.mh-balance-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.mh-balance-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: var(--mh-text-light);
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.mh-balance-amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--mh-text);
+    line-height: 1;
 }

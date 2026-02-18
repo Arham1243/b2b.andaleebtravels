@@ -12,12 +12,12 @@ Breadcrumbs::for('admin.users.index', function (BreadcrumbTrail $trail) {
     $trail->push('Manage Users', route('admin.users.index'));
 });
 
-Breadcrumbs::for('admin.package-inquiries.index', function (BreadcrumbTrail $trail) {
+Breadcrumbs::for('admin.inquiries.index', function (BreadcrumbTrail $trail) {
     $trail->parent('admin.dashboard');
-    $trail->push('Package Inquiries', route('admin.package-inquiries.index'));
+    $trail->push('Inquiries', route('admin.inquiries.index'));
 });
 
-Breadcrumbs::for('admin.package-inquiries.show', function (BreadcrumbTrail $trail, $packageInquiry) {
-    $trail->parent('admin.package-inquiries.index');
-    $trail->push('Inquiry Details', route('admin.package-inquiries.show', $packageInquiry));
+Breadcrumbs::for('admin.inquiries.show', function (BreadcrumbTrail $trail, $inquiry) {
+    $trail->parent('admin.inquiries.index');
+    $trail->push('Inquiry Details', route('admin.inquiries.show', $inquiry));
 });

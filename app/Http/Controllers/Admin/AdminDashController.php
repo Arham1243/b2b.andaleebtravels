@@ -11,7 +11,6 @@ class AdminDashController extends Controller
     public function dashboard()
     {
         $users = User::where('status', 'active')->get();
-        $tours = Tour::where('status', 'active')->get();
-        return view('admin.dashboard', ['title' => 'Dashboard', 'users' => $users, 'tours' => $tours]);
+        return view('admin.dashboard', ['title' => 'Dashboard', 'users' => $users]);
     }
 }

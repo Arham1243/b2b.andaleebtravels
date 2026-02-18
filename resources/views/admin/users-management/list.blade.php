@@ -37,9 +37,10 @@
                                                     id="select-all">
                                             </div>
                                         </th>
-                                        <th>Full Name</th>
+                                        <th>Name</th>
                                         <th>Email</th>
-                                        <th>Signup Method</th>
+                                        <th>Username</th>
+                                        <th>Agent Code</th>
                                         <th>Status</th>
                                         <th>Registration Date</th>
                                         <th>Actions</th>
@@ -55,7 +56,8 @@
                                             </td>
                                             <td>{{ $user->name }}</td>
                                             <td>{{ $user->email }}</td>
-                                            <td><span class="capitalize">{{ $user->auth_provider }}</span></td>
+                                            <td>{{ $user->username }}</td>
+                                            <td>{{ $user->agent_code }}</td>
                                             <td>
                                                 <span
                                                     class="badge rounded-pill bg-{{ $user->status === 'active' ? 'success' : 'danger' }}">

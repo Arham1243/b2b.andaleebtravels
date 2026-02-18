@@ -28,6 +28,16 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <a href="#" class="mh-balance-pill">
+                                <div class="mh-balance-icon">
+                                    <i class='bx bxs-wallet'></i>
+                                </div>
+                                <div class="mh-balance-info">
+                                    <span class="mh-balance-label">Balance</span>
+                                    <span class="mh-balance-amount">{!! formatPrice(Auth::user()->main_balance) !!}</span>
+                                </div>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -43,7 +53,8 @@
                     <div class="user-image-icon dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"
                         role="button">
                         @if (Auth::user()->avatar)
-                            <img src="{{ Auth::user()->avatar }}" alt="{{ Auth::user()->full_name }}" class="imgFluid">
+                            <img src="{{ asset(Auth::user()->avatar) }}" alt="{{ Auth::user()->name }}"
+                                class="imgFluid">
                         @else
                             <i class='bx bxs-user-circle'></i>
                         @endif

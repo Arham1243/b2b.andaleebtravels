@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-    <!-- Google Tag Manager -->
     <script>
         (function(w, d, s, l, i) {
             w[l] = w[l] || [];
@@ -29,6 +28,7 @@
     @yield('css')
     @stack('css')
 
+    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7H70JZFY8M"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -39,6 +39,17 @@
         gtag('js', new Date());
 
         gtag('config', 'G-7H70JZFY8M');
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-331319408"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'AW-331319408');
     </script>
 
     <script>
@@ -78,6 +89,7 @@
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M4WGVM9N" height="0" width="0"
             style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager(noscript)-->
 
     @include('frontend.layouts.header')
     @yield('content')

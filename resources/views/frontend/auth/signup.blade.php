@@ -8,7 +8,7 @@
                     <div class="auth-card">
                         <div class="auth-header">
                             <h2 class="heading">Create Account</h2>
-                            <p>Start your journey with Andaleeb Travel</p>
+                            <p>Start your journey with Andaleeb Travel Agency</p>
                         </div>
 
                         <form action="{{ route('auth.signup.perform', request()->query()) }}" method="POST">
@@ -17,20 +17,20 @@
                             <div class="row">
                                 <div class="col-12 col-md-6">
                                     <div class="form-group">
-                                        <label class="form-label">First Name</label>
-                                        <input type="text" value="{{ old('first_name') }}" name="first_name"
+                                        <label class="form-label">Name</label>
+                                        <input type="text" value="{{ old('name') }}" name="name"
                                             class="custom-input" required>
-                                        @error('first_name')
+                                        @error('name')
                                             <span class="text-danger validation-error">{{ $message }}</span>
                                         @enderror
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="form-group">
-                                        <label class="form-label">Last Name</label>
-                                        <input type="text" value="{{ old('last_name') }}" name="last_name"
+                                        <label class="form-label">Username</label>
+                                        <input type="text" value="{{ old('username') }}" name="username"
                                             class="custom-input" required>
-                                        @error('last_name')
+                                        @error('username')
                                             <span class="text-danger validation-error">{{ $message }}</span>
                                         @enderror
                                     </div>
@@ -43,6 +43,15 @@
                                 <input type="email" value="{{ old('email') }}" name="email" class="custom-input"
                                     required>
                                 @error('email')
+                                    <span class="text-danger validation-error">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Agent Code</label>
+                                <input type="text" value="{{ old('agent_code') }}" name="agent_code" class="custom-input"
+                                    required>
+                                @error('agent_code')
                                     <span class="text-danger validation-error">{{ $message }}</span>
                                 @enderror
                             </div>
@@ -65,30 +74,12 @@
                             <!-- Submit -->
                             <button type="submit" class="btn-primary-custom">Sign Up</button>
                         </form>
-
-                        <!-- Divider -->
-                        <div class="auth-divider">
-                            <span>OR</span>
-                        </div>
-
-                        <!-- Google Button -->
-                        <a href="{{ route('frontend.socialite.redirect', 'google') }}" class="btn-google">
-                            <img src="{{ asset('frontend/assets/images/google.svg') }}" alt="Google Logo">
-                            Continue with Google
-                        </a>
-
-                        <!-- Footer -->
-                        <div class="auth-footer">
-                            Already have an account? <a href="{{ route('auth.login') }}" class="custom-link">Login</a>
-                        </div>
                     </div>
-
                 </div>
             </div>
-        </div>
     </section>
 @endsection
-
+{{-- 
 @push('js')
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
@@ -129,4 +120,4 @@
 
         });
     </script>
-@endpush
+@endpush --}}

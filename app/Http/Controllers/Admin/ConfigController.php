@@ -15,7 +15,7 @@ class ConfigController extends Controller
     {
         $title = 'Logo Management';
         $logo = Config::where('config_key', 'SITE_LOGO')->first();
-        return view('admin.site-settings.logo-management', compact('title', 'logo'));
+        return view('admin.site-settings.logo', compact('title', 'logo'));
     }
 
     public function saveLogo(Request $request)

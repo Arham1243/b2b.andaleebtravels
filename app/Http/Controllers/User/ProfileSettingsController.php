@@ -7,30 +7,29 @@ use App\Models\User;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class ProfileSettingsController extends Controller
 {
     use UploadImageTrait;
 
-    public function index()
+    public function personalInfo()
     {
         $user = Auth::user();
 
         return view('user.profile-settings.personal-info')->with('title', 'Personal Information')->with(compact('user'));
     }
 
-    public function update(Request $request)
+    public function updatePersonalInfo(Request $request)
     {
         $validatedData = $request->validate([
-            'full_name' => 'required|string|max:255',
-            'phone' => 'nullable|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-            'country' => 'nullable|string',
-            'city' => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
+            'agent_code' => 'required|string|max:255',
+            'avatar' => 'nullable|image|max:2048',
         ]);
 
         if ($request->hasFile('avatar')) {
-            $avatar = asset($this->simpleUploadImg($request->file('avatar'), 'Users/Avatar'));
+            $avatar = $this->uploadImage($request->file('avatar'), 'Users/Avatar');
         }
 
         $data = array_merge($validatedData, [
