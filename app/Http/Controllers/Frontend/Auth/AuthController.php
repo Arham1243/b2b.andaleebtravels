@@ -60,9 +60,6 @@ class AuthController extends Controller
             'password' => 'required|min:6',
         ]);
 
-        // Check if user exists and is Google-authenticated
-        $existingUser = B2bVendor::where('agent_code', $request->agent_code)->first();
-
         $remember = $request->boolean('remember');
 
         if (Auth::attempt(
@@ -84,7 +81,7 @@ class AuthController extends Controller
                     ->with('notify_success', 'Login Successfully');
             }
 
-            return redirect()->route('frontend.index')
+            return redirect()->route('user.dashboard')
                 ->with('notify_success', 'Login Successfully');
         }
 
