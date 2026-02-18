@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Frontend\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\B2bVendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -32,7 +32,7 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
-        $user = User::create([
+        $user = B2bVendor::create([
             'name' => $validatedData['name'],
             'username' => $validatedData['username'],
             'agent_code' => $validatedData['agent_code'],
@@ -61,7 +61,7 @@ class AuthController extends Controller
         ]);
 
         // Check if user exists and is Google-authenticated
-        $existingUser = User::where('agent_code', $request->agent_code)->first();
+        $existingUser = B2bVendor::where('agent_code', $request->agent_code)->first();
 
         $remember = $request->boolean('remember');
 

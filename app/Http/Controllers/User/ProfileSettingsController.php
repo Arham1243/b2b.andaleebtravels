@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\B2bVendor;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +36,7 @@ class ProfileSettingsController extends Controller
             'avatar' => $avatar,
         ]);
 
-        User::where('id', Auth::user()->id)->update($data);
+        B2bVendor::where('id', Auth::user()->id)->update($data);
 
         return redirect()->back()->with('notify_success', 'Information Updated Successfully');
     }
@@ -63,7 +63,7 @@ class ProfileSettingsController extends Controller
                 ->with('notify_error', 'This account uses Google sign-in. Password changes are managed by Google.');
         }
 
-        Auth::user()->update([
+        B2bVendor::where('id', Auth::user()->id)->update([
             'password' => bcrypt($validatedData['password']),
         ]);
 

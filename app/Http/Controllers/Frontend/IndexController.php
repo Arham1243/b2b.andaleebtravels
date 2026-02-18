@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Frontend;
 
-use App\Models\Inquiry;
+use App\Models\B2bInquiry;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 
@@ -23,7 +23,7 @@ class IndexController extends Controller
                 'message' => 'required|string',
             ]);
 
-            Inquiry::create([
+            B2bInquiry::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,

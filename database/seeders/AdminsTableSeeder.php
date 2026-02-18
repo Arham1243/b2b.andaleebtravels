@@ -13,7 +13,7 @@ class AdminsTableSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('admins')->updateOrInsert(
+        DB::table('b2b_admins')->updateOrInsert(
             ['email' => 'admin@andaleebtravels.com'],
             [
                 'name' => 'admin',

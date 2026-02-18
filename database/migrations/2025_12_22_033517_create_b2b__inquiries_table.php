@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('configs', function (Blueprint $table) {
+        Schema::create('b2b_inquiries', function (Blueprint $table) {
             $table->id();
-            $table->string('config_key')->nullable();
-            $table->string('config_value')->nullable();
+            $table->string('name')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->text('message')->nullable();
             $table->timestamps();
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('configs');
+        Schema::dropIfExists('inquiries');
     }
 };

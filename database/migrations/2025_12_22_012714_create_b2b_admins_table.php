@@ -11,12 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inquiries', function (Blueprint $table) {
+        Schema::create('b2b_admins', function (Blueprint $table) {
             $table->id();
             $table->string('name')->nullable();
-            $table->string('email')->nullable();
-            $table->string('phone')->nullable();
-            $table->text('message')->nullable();
+            $table->string('email')->unique();
+            $table->string('password')->nullable();
             $table->timestamps();
         });
     }
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inquiries');
+        Schema::dropIfExists('admins');
     }
 };
