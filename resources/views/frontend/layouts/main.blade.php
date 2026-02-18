@@ -23,7 +23,7 @@
     <meta name="keywords" content="Andaleeb Travel Agency">
     <meta name="description" content="Andaleeb Travel Agency">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Andaleeb Travel Agency</title>
+    <title>B2B - Andaleeb Travel Agency</title>
     @include('frontend.layouts.links')
     @yield('css')
     @stack('css')
