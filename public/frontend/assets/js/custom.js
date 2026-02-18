@@ -23,9 +23,8 @@ window.addEventListener("load", () => {
 document.addEventListener("click", function (e) {
     const sidebar = document.getElementById("sideBar");
     const isClickInside = sidebar.contains(e.target);
-    const isToggleButton = e.target.closest("[data-menu-button]"); // example trigger class
+    const isToggleButton = e.target.closest("[data-menu-button]");
 
-    // If sidebar is open, you clicked outside, and it's not the toggle button
     if (
         sidebar.classList.contains("show") &&
         !isClickInside &&
@@ -63,4 +62,45 @@ document.addEventListener("DOMContentLoaded", function () {
                 "{{ asset('frontend/assets/images/placeholder.png') }}";
         };
     });
+});
+
+$(".perks-slider").slick({
+    dots: false,
+    arrows: false,
+    infinite: false,
+    slidesToShow: 4,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 6000,
+    responsive: [
+        {
+            breakpoint: 1024,
+            settings: {
+                slidesToShow: 1,
+                slidesToScroll: 1,
+            },
+        },
+    ],
+});
+
+$(".banner-slider").slick({
+    dots: false,
+    infinite: true,
+    centerMode: true,
+    centerPadding: "60px",
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    arrows: false,
+    autoplay: true,
+    autoplaySpeed: 2500,
+    responsive: [
+        {
+            breakpoint: 768,
+            settings: {
+                centerMode: false,
+                centerPadding: "0px",
+                autoplaySpeed: 3500,
+            },
+        },
+    ],
 });

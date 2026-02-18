@@ -3,7 +3,7 @@
     <div class="col-md-12">
         <div class="dashboard-content">
             {{ Breadcrumbs::render('admin.inquiries.index') }}
-            <form id="bulkActionForm" method="POST" action="{{ route('admin.bulk-actions', ['resource' => 'contacts']) }}">
+            <form id="bulkActionForm" method="POST" action="{{ route('admin.bulk-actions', ['resource' => 'inquiries']) }}">
                 @csrf
                 <div class="table-container universal-table">
                     <div class="custom-sec">
@@ -40,7 +40,6 @@
                                         <th>Phone</th>
                                         <th>Message</th>
                                         <th>Created At</th>
-                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -61,29 +60,6 @@
                                                 </div>
                                             </td>
                                             <td>{{ formatDateTime($contact->created_at) }}</td>
-                                            <td>
-                                                <div class="dropstart">
-                                                    <button type="button" class="recent-act__icon dropdown-toggle"
-                                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                                        <i class='bx bx-dots-vertical-rounded'></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu">
-                                                        <li>
-                                                            <form
-                                                                action="{{ route('admin.inquiries.destroy', $contact->id) }}"
-                                                                method="POST"
-                                                                onsubmit="return confirm('Are you sure you want to delete?')">
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit" class="dropdown-item">
-                                                                    <i class="bx bx-trash"></i>
-                                                                    Delete
-                                                                </button>
-                                                            </form>
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>

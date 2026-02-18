@@ -29,7 +29,7 @@
 
     --color-success: #198754;
     --color-error: #dc3545;
-    
+
     --mh-primary: #cd1b4f;
     --mh-text: #2c2c2c;
 }
@@ -163,7 +163,8 @@ i.bx {
 
 .section-content .sub-heading {
     font-size: 0.9rem;
-    font-weight: 800;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
 }
 .section-content p {
     font-size: 0.89rem;
@@ -364,7 +365,6 @@ i.bx {
     align-items: center;
     gap: 24px;
 }
-
 
 .mh-agency-logo {
     width: 40px;
@@ -719,3 +719,172 @@ i.bx {
         0 0 0 2px #fff,
         0 0 0 3px #08f077;
 }
+
+/* Perks */
+.slick-slide {
+    padding-inline: 0.75rem;
+}
+.perks-wrapper {
+    padding-bottom: 5.25rem;
+}
+
+.perks-card {
+    margin: 1rem 0;
+    background: #fff;
+    box-shadow: 0 0 15px 1px #00000020;
+    padding: 2.25rem 1.1rem;
+    text-align: center;
+    border-radius: 0.65rem;
+    overflow: hidden;
+    color: #0e1317;
+}
+
+.perks-card__icon {
+    width: 68px;
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+    background: #cd1b4f14;
+    border-radius: 100%;
+}
+
+.perks-card__icon i {
+    color: var(--color-primary);
+    font-size: 1.85rem;
+}
+
+.perks-card__content .title {
+    font-size: 1.2rem;
+    margin: 0.75rem 0 0.75rem;
+    color: #0e1317;
+    font-weight: 500;
+}
+
+.perks-card__content p {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    margin: 0;
+}
+
+/* Perks */
+
+/* About */
+.about-wrapper {
+    padding: 5.5rem 0 10.5rem;
+}
+
+.about-content .sub-heading {
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 0.75rem;
+}
+
+.about-content .heading {
+    font-size: 1.9rem;
+    line-height: 1;
+}
+
+.about-content p {
+    margin-top: 1.5rem;
+    font-size: 0.95rem;
+    opacity: 0.85;
+    line-height: 1.7;
+}
+
+.about-images {
+    position: relative;
+    padding: 1.5rem 0 0 6rem;
+}
+
+.about-images .first-image {
+    width: 370px;
+    height: 410px;
+    object-fit: cover;
+    border-radius: 0.75rem;
+}
+
+.about-images .second-image {
+    position: absolute;
+    right: 1.5rem;
+    bottom: -5rem;
+    width: 270px;
+    height: 290px;
+    object-fit: cover;
+    border: 7px solid #fff;
+    border-radius: 0.85rem;
+    z-index: 1;
+}
+
+.about-wrapper {
+    background: #f5f5f5;
+}
+
+/* About */
+
+/* contact */
+.contact-img {
+    width: 100%;
+    height: 100%;
+}
+
+.contact-img > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: left;
+}
+
+.new-contact-content {
+    padding: 4rem 4rem 4rem 1rem;
+}
+
+.new-contact-content .heading {
+    font-size: 1.8rem;
+    line-height: 1.5;
+}
+
+.input-fields :is(input, textarea) {
+    width: 100%;
+    background: none;
+    outline: none;
+    border: none;
+    border-bottom: 1px solid #ccc;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    transition: all 300ms;
+}
+
+.input-fields {
+    margin: 0.75rem 0;
+}
+
+.input-fields input:hover {
+    border-color: var(--color-primary);
+}
+
+/* contact */
+
+/* banner */
+.banner {
+    width: 100%;
+    height: auto;
+    padding: 2rem 1.5rem 0;
+    cursor: pointer;
+}
+.banner__img {
+    width: 100%;
+    height: 100%;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+.banner__img > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* banner */

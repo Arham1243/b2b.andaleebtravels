@@ -21,7 +21,6 @@ class IndexController extends Controller
                 'email' => 'required|email|max:255',
                 'phone' => 'required|string|max:20',
                 'message' => 'required|string',
-                'g-recaptcha-response' => 'required',
             ]);
 
             Inquiry::create([

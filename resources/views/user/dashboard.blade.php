@@ -13,11 +13,21 @@
                 </div>
 
                 <div class="row">
-
+                    <div class="col-md-6">
+                        <a href="{{ route('user.profile.personalInfo') }}" class="revenue-card mt-0">
+                            <div class="revenue-card__icon">
+                                <i class='bx bx-lg bxs-user'></i>
+                            </div>
+                            <div class="revenue-card__content">
+                                <div class="title">Account Settings</div>
+                                <div class="num">Change Personal Info</div>
+                            </div>
+                        </a>
+                    </div>
                     <div class="col-md-6">
                         <a href="{{ route('user.profile.changePassword') }}" class="revenue-card mt-0">
                             <div class="revenue-card__icon">
-                                <i class='bx bx-lg bxs-calendar-check'></i>
+                                <i class='bx bx-lg bxs-lock'></i>
                             </div>
                             <div class="revenue-card__content">
                                 <div class="title">Account Settings</div>
