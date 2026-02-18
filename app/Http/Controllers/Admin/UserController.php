@@ -3,17 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\B2bVendor;
 
 class UserController extends Controller
 {
     public function index()
     {
-        $users = User::get();
+        $users = B2bVendor::get();
         return view('admin.users-management.list', compact('users'));
     }
     
-    public function changeStatus(User $user)
+    public function changeStatus(B2bVendor $user)
     {
         $user->update([
             'status' => $user->status === 'active' ? 'inactive' : 'active',
@@ -21,7 +21,7 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')->with('notify_success', 'User status changed successfully!');
     }
     
-    public function destroy(User $user)
+    public function destroy(B2bVendor $user)
     {
         $user->delete();
         return redirect()->route('admin.users.index')->with('notify_success', 'User deleted successfully!');
