@@ -41,7 +41,7 @@
                     </a>
                     <a href="{{ route('user.dashboard') }}" class="mh-agency-profile">
                         <div class="mh-agency-logo">
-                            <img src="{{ asset(Auth::user()->avatar) }}" alt="Agency">
+                            <img src="{{ asset(Auth::user()->avatar ?? 'frontend/assets/images/favicon.ico') }}" alt="Agency">
                         </div>
                         <div class="mh-agency-info">
                             <span class="mh-agency-name">{{ Auth::user()->name }}</span>
