@@ -39,14 +39,8 @@
     .mh-header .mh-nav {
         display: none;
     }
-    .mh-header .mh-balance-pill {
-        display: none;
-    }
     .mh-header .menu-btn {
         display: block;
-    }
-    .mh-header .mh-agency-profile .mh-agency-info{
-        display: none;
     }
     .mh-header {
         padding: 6px 0;
@@ -56,8 +50,5 @@
     }
     .mh-user-area{
         gap: 0;
-    }
-    .mh-agency-profile{
-        border: none;
     }
 }

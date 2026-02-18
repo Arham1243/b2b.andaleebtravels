@@ -393,58 +393,6 @@ i.bx {
     color: var(--mh-primary);
     font-weight: 600;
 }
-
-.mh-agency-profile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding-left: 15px;
-    border-left: 1px solid var(--mh-border);
-}
-
-.mh-agency-logo {
-    width: 38px;
-    height: 38px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
-    overflow: hidden;
-    background: #eee;
-    border: 2px solid #fff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.mh-agency-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.mh-agency-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.mh-agency-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--mh-text);
-    line-height: 1.2;
-}
-
-.mh-agency-code {
-    font-size: 11px;
-    color: var(--mh-text-light);
-    font-weight: 500;
-    letter-spacing: 0.2px;
-}
-
-@media (max-width: 991px) {
-    .mh-balance-link {
-        display: none;
-    }
-}
 /* sideber */
 .sideBar {
     position: fixed;
