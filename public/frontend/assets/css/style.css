@@ -263,10 +263,6 @@ i.bx {
     --mh-border: #e0e0e0;
     --mh-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
-.mh-header .menu-btn {
-    display: none;
-    font-size: 1.75rem;
-}
 .mh-container {
     max-width: 1200px;
     margin: 0 auto;

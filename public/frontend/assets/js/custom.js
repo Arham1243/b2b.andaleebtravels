@@ -17,31 +17,6 @@ window.addEventListener("load", () => {
 });
 /* top progress bar  */
 
-/* sideBar */
-
-// Close sidebar when clicking outside
-document.addEventListener("click", function (e) {
-    const sidebar = document.getElementById("sideBar");
-    const isClickInside = sidebar.contains(e.target);
-    const isToggleButton = e.target.closest("[data-menu-button]");
-
-    if (
-        sidebar.classList.contains("show") &&
-        !isClickInside &&
-        !isToggleButton
-    ) {
-        closeSideBar();
-    }
-});
-
-function openSideBar() {
-    document.getElementById("sideBar").classList.add("show");
-}
-function closeSideBar() {
-    document.getElementById("sideBar").classList.remove("show");
-}
-/* sideBar */
-
 const showMessage = (message, type, position = "bottom-right") => {
     $.toast({
         heading: type === "success" ? "Success!" : "Error!",

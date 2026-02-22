@@ -14,9 +14,6 @@
             </a>
 
             <div class="mh-user-area">
-                <a href="javascript:void(0);" class="mh-icon-link menu-btn" data-menu-button onclick="openSideBar()">
-                    <i class="bx bx-menu"></i>
-                </a>
                 @if (!Auth::check())
                     <a href="{{ route('auth.login') }}" class="themeBtn themeBtn--primary">Login</a>
                 @endif
@@ -24,16 +21,5 @@
         </div>
     </div>
 </header>
-
-<div class="sideBar" id="sideBar">
-    <a href="javascript:void(0)" class="sideBar__close" onclick="closeSideBar()">×</a>
-    <a href="{{ route('frontend.index') }}" class="sideBar__logo">
-        <img src="{{ isset($config['SITE_LOGO']) ? asset($config['SITE_LOGO']) : asset('frontend/assets/images/logo.webp') }}"
-            alt="Andaleeb Travel Agency" />
-    </a>
-    @if (!Auth::check())
-        <a href="{{ route('auth.login') }}" class="themeBtn themeBtn--primary">Login</a>
-    @endif
-</div>
 
 <div class="first-section"></div>
