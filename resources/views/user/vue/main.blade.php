@@ -1,7 +1,7 @@
 <div id="{{ $appId }}">
     @include('user.vue.views.' . $appComponent)
 </div>
-@section('vue-js')
+@push('vue-js')
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     @if (env('APP_MODE') && env('APP_MODE') === 'production')
         <script src="user/assets/js/vue@3-prod.js"></script>
@@ -44,7 +44,7 @@
             }
         };
     </script>
-@endsection
+@endpush
 @push('js')
     @include('user.vue.js.' . $appJs)
 @endpush
