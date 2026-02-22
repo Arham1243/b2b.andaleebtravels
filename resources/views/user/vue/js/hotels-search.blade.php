@@ -1,4 +1,4 @@
-@include('frontend.vue.services.hotels-search')
+@include('user.vue.services.hotels-search')
 <script>
     const HotelSearch = createApp({
         setup() {
@@ -39,7 +39,7 @@
             // Hotel Search Logic
             const hotelCheckInDate = ref(null);
             const hotelCheckOutDate = ref(null);
-            const hotelRoomCount = ref(0);
+            const hotelRoomCount = ref('');
             const hotelRooms = ref([]);
 
             const {
@@ -66,7 +66,7 @@
             const loadingHotelDestination = ref(false);
 
             const totalHotelGuestsText = computed(() => {
-                if (hotelRoomCount.value === 0) {
+                if (hotelRoomCount.value === '') {
                     return 'Select Rooms & Guests';
                 }
                 const totalAdults = hotelRooms.value.reduce((sum, room) => sum + room.adults, 0);
@@ -309,11 +309,11 @@
     HotelSearch.mount('#hotels-search');
 </script>
 @push('css')
-    <link rel="stylesheet" href="{{ asset('frontend/assets/css/daterangepicker.css') }}" />
+    <link rel="stylesheet" href="{{ asset('user/assets/css/daterangepicker.css') }}" />
 @endpush
 @push('js')
-    <script src="{{ asset('frontend/assets/js/moment.min.js') }}"></script>
-    <script type="text/javascript" src="{{ asset('frontend/assets/js/daterangepicker.min.js') }}"></script>
+    <script src="{{ asset('user/assets/js/moment.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('user/assets/js/daterangepicker.min.js') }}"></script>
     <script>
         function initSingleDatePicker(wrapperId, inputId, dayDisplayId) {
             const format = "MMM D, YYYY";

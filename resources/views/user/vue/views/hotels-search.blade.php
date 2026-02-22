@@ -1,5 +1,5 @@
-<div class="search-options" v-cloak>
-    <form class="search-options-wrapper" method="GET" action="{{ route('frontend.hotels.search') }}">
+<div class="search-options  global-search-content" v-cloak>
+    <form class="search-options-wrapper" method="GET" action="#">
         <!-- GOING TO -->
         <div class="departure-wrapper" ref="hotelDestinationWrapperRef">
             <div class="search-box" @click.stop="onHotelDestinationBoxClick">
@@ -147,7 +147,7 @@
                             <div class="child-age">
                                 <label>Number of Rooms</label>
                                 <select v-model="hotelRoomCount" name="room_count" class="form-control">
-                                    <option value="" selected>Select</option>
+                                    <option value="" selected disabled>Select</option>
                                     <option v-for="n in 5" :key="n" :value="n">
                                         @{{ n }} Room<template v-if="n > 1">s</template></option>
                                 </select>

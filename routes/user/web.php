@@ -4,8 +4,6 @@ use App\Http\Controllers\Frontend\Auth\AuthController;
 use App\Http\Controllers\Frontend\Auth\PasswordResetController;
 use App\Http\Controllers\User\UserDashController;
 use App\Http\Controllers\User\ProfileSettingsController;
-use App\Http\Controllers\User\OrderController;
-use App\Http\Controllers\User\TravelInsuranceController;
 use App\Http\Controllers\User\HotelController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,4 +30,17 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
 
     Route::get('profile/change/password', [ProfileSettingsController::class, 'changePassword'])->name('profile.changePassword');
     Route::post('profile/change/password/update', [ProfileSettingsController::class, 'updatePassword'])->name('profile.updatePassword');
+
+
+    Route::prefix('hotels')->name('hotels.')->group(function () {
+        Route::get('/', [HotelController::class, 'index'])->name('index');
+        Route::get('/search', [HotelController::class, 'search'])->name('search');
+        Route::get('/search-hotels', [HotelController::class, 'searchHotels'])->name('search-hotels');
+        Route::get('/details/{id}', [HotelController::class, 'details'])->name('details');
+        Route::get('/checkout/{id}', [HotelController::class, 'checkout'])->name('checkout');
+        Route::post('/payment/process', [HotelController::class, 'processPayment'])->name('payment.process');
+        Route::get('/payment/success/{booking}', [HotelController::class, 'paymentSuccess'])->name('payment.success');
+        Route::get('/payment/success/view/{booking}', [HotelController::class, 'paymentSuccessView'])->name('payment.success.view');
+        Route::get('/payment/failed/{booking?}', [HotelController::class, 'paymentFailed'])->name('payment.failed');
+    });
 });

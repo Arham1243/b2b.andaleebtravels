@@ -25,6 +25,7 @@
 
     @include('user.layouts.scripts')
     @yield('js')
+    @yield('vue-js')
     @stack('js')
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', function() {

@@ -13,7 +13,7 @@
                 </a>
             </li>
             <li class="topbar-nav__item">
-                <a href="javascript:void(0)" class="topbar-nav__link">
+                <a href="{{ route('user.hotels.index') }}" class="topbar-nav__link">
                     <i class='bx bxs-building-house'></i> Hotels
                 </a>
             </li>

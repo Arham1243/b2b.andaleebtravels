@@ -1,13 +1,25 @@
 <script>
     const hotelsDataPromise = Promise.all([
-        fetch("{{ asset('frontend/mocks/yalago_countries.json') }}").then(r => r.json()),
-        fetch("{{ asset('frontend/mocks/yalago_provinces.json') }}").then(r => r.json()),
-        fetch("{{ asset('frontend/mocks/yalago_locations.json') }}").then(r => r.json())
+        fetch("{{ asset('user/mocks/yalago_countries.json') }}").then(r => r.json()),
+        fetch("{{ asset('user/mocks/yalago_provinces.json') }}").then(r => r.json()),
+        fetch("{{ asset('user/mocks/yalago_locations.json') }}").then(r => r.json())
     ]).then(([countries, provinces, locations]) => ({
         countries,
         provinces,
         locations
     }));
+
+    const exactMatch = (arr, key, q) => {
+        return arr.find((o) => {
+            const value = o[key];
+            return value && value.toLowerCase().trim() === q;
+        });
+    };
+    const startsWith = (arr, key, q) =>
+        arr.filter((o) => {
+            const value = o[key];
+            return value && value.toLowerCase().startsWith(q);
+        });
 
 
     const byField = (arr, field, value) => arr.filter(o => o[field] === value);
@@ -78,7 +90,7 @@
             try {
                 const {
                     data: hotelsForLocation
-                } = await axios.get(`{{ url('hotels/search-hotels') }}?location_id=${lMatch.id}`);
+                } = await axios.get(`{{ route('user.hotels.search-hotels') }}?location_id=${lMatch.id}`);
                 return formatHotels({
                     countries: [],
                     provinces: [],

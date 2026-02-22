@@ -1,12 +1,12 @@
 <div id="{{ $appId }}">
-    @include('frontend.vue.views.' . $appComponent)
+    @include('user.vue.views.' . $appComponent)
 </div>
 @section('vue-js')
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     @if (env('APP_MODE') && env('APP_MODE') === 'production')
-        <script src="frontend/assets/js/vue@3-prod.js"></script>
+        <script src="user/assets/js/vue@3-prod.js"></script>
     @else
-        <script src="{{ asset('frontend/assets/js/vue@3-local.js') }}"></script>
+        <script src="{{ asset('user/assets/js/vue@3-local.js') }}"></script>
     @endif
     <script>
         const {
@@ -46,5 +46,5 @@
     </script>
 @endsection
 @push('js')
-    @include('frontend.vue.js.' . $appJs)
+    @include('user.vue.js.' . $appJs)
 @endpush
