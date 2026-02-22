@@ -66,20 +66,19 @@
                     <div class="hd-sidebar">
                         {{-- Hotel Name & Rating --}}
                         <div class="hd-sidebar__section">
-                            <h1 class="hd-sidebar__hotel-name">{{ $hotel['name'] }}</h1>
+                            <div class="hd-sidebar__hotel-name">{{ $hotel['name'] }}</div>
                             <div class="hd-sidebar__hotel-location">
-                                <i class="bx bx-map"></i> {{ $hotel['address'] }}
+                                <i class="bx bx-map"></i> <span>{{ $hotel['address'] }}</span>
                             </div>
                             @if ($hotel['rating'])
                                 <div class="hd-sidebar__hotel-rating">
-                                    <div class="hd-header__stars">
+                                    <div class="hd-sidebar__stars">
                                         @for ($i = 1; $i <= 5; $i++)
-                                            <i class="bx bxs-star"
-                                                style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
+                                            <i class="bx bxs-star {{ $i <= $hotel['rating'] ? 'active' : '' }}"></i>
                                         @endfor
                                     </div>
-                                    <span class="hd-header__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
-                                    <span class="hd-header__rating-text">{{ $hotel['rating_text'] }}</span>
+                                    <span class="hd-sidebar__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
+                                    <span class="hd-sidebar__rating-text">{{ $hotel['rating_text'] }}</span>
                                 </div>
                             @endif
                             <div class="hd-sidebar__hotel-price">

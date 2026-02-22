@@ -4715,26 +4715,24 @@ body .search-box__input.search-box__input {
 }
 .hd-sidebar__section:last-child { border-bottom: none; }
 .hd-sidebar__hotel-name {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     color: #1a1a1a;
-    margin: 0 0 8px;
+    margin: 0 0 6px;
     padding: 0;
-    line-height: 1.35;
-    letter-spacing: -0.01em;
-    word-wrap: break-word;
+    line-height: 1.4;
 }
 .hd-sidebar__hotel-location {
-    font-size: 0.8rem;
-    color: #666;
-    margin-bottom: 12px;
+    font-size: 13px;
+    color: #777;
+    margin: 0 0 10px;
     display: flex;
     align-items: flex-start;
-    gap: 5px;
+    gap: 4px;
     line-height: 1.4;
 }
 .hd-sidebar__hotel-location i {
-    font-size: 0.95rem;
+    font-size: 15px;
     color: var(--color-primary);
     margin-top: 1px;
     flex-shrink: 0;
@@ -4742,44 +4740,52 @@ body .search-box__input.search-box__input {
 .hd-sidebar__hotel-rating {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 10px;
 }
-.hd-sidebar__hotel-rating .hd-header__stars { display: flex; gap: 2px; }
-.hd-sidebar__hotel-rating .hd-header__stars i { font-size: 13px; }
-.hd-sidebar__hotel-rating .hd-header__rating-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 4px;
+.hd-sidebar__stars {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+.hd-sidebar__stars i {
+    font-size: 14px;
+    color: #ddd;
+}
+.hd-sidebar__stars i.active {
+    color: #f2ac06;
+}
+.hd-sidebar__rating-badge {
     background: var(--color-primary);
     color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    line-height: 1;
 }
-.hd-sidebar__hotel-rating .hd-header__rating-text {
-    font-size: 0.75rem;
-    color: #555;
-    font-weight: 500;
+.hd-sidebar__rating-text {
+    font-size: 12px;
+    color: #666;
+    font-weight: 400;
 }
 .hd-sidebar__hotel-price {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    padding-top: 10px;
-    margin-top: 4px;
-    border-top: 1px solid #f0f0f0;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
 }
 .hd-sidebar__price-label {
-    font-size: 0.72rem;
+    font-size: 12px;
     color: #999;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    font-weight: 400;
 }
 .hd-sidebar__price-value {
-    font-size: 1.2rem;
-    font-weight: 800;
+    font-size: 20px;
+    font-weight: 700;
     color: var(--color-primary);
-    letter-spacing: -0.02em;
 }
 .hd-sidebar__title {
     font-size: 0.88rem;
