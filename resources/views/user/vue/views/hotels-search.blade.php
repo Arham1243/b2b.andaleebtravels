@@ -151,7 +151,7 @@
             </div>
         </div>
 
-        <!-- ROW 2: Rooms & Guests + Nationality + Residence + Search -->
+        <!-- ROW 2: Rooms & Guests + Search -->
         <div class="hs-row hs-row--bottom">
             <!-- ROOMS & GUESTS -->
             <div class="hs-field hs-field--rooms" ref="hotelRoomsRef">
@@ -254,62 +254,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- NATIONALITY -->
-            <div class="hs-field hs-field--small" ref="hotelNationalityRef">
-                <div class="hs-field__inner" @click.stop="toggleHotelNationality">
-                    <div class="hs-field__label">NATIONALITY <i class='bx bx-chevron-down' style="font-size:11px"></i></div>
-                    <div class="hs-field__value">@{{ hotelNationality }}</div>
-                </div>
-                <input type="hidden" name="nationality" :value="hotelNationality">
-                <div class="options-dropdown-wrapper options-dropdown-wrapper--pax scroll"
-                    :class="{ open: hotelNationalityOpen }">
-                    <div class="options-dropdown options-dropdown--norm">
-                        <div class="options-dropdown__body p-0">
-                            <div class="hs-dropdown-search">
-                                <input type="text" v-model="nationalitySearch" placeholder="Search country..." class="hs-dropdown-search__input" @click.stop>
-                            </div>
-                            <ul class="options-dropdown-list">
-                                <li class="options-dropdown-list__item" v-for="c in filteredNationalityOptions" :key="'nat-'+c"
-                                    @click="hotelNationality = c; nationalitySearch = ''; toggleHotelNationality()">
-                                    <div class="info"><div class="name">@{{ c }}</div></div>
-                                </li>
-                                <li class="options-dropdown-list__item no-hover" v-if="filteredNationalityOptions.length === 0">
-                                    <div class="info"><div class="name text-muted">No results</div></div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RESIDENCE -->
-            <div class="hs-field hs-field--small" ref="hotelResidenceRef">
-                <div class="hs-field__inner" @click.stop="toggleHotelResidence">
-                    <div class="hs-field__label">RESIDENCE <i class='bx bx-chevron-down' style="font-size:11px"></i></div>
-                    <div class="hs-field__value">@{{ hotelResidence }}</div>
-                </div>
-                <input type="hidden" name="residence" :value="hotelResidence">
-                <div class="options-dropdown-wrapper options-dropdown-wrapper--pax scroll"
-                    :class="{ open: hotelResidenceOpen }">
-                    <div class="options-dropdown options-dropdown--norm">
-                        <div class="options-dropdown__body p-0">
-                            <div class="hs-dropdown-search">
-                                <input type="text" v-model="residenceSearch" placeholder="Search country..." class="hs-dropdown-search__input" @click.stop>
-                            </div>
-                            <ul class="options-dropdown-list">
-                                <li class="options-dropdown-list__item" v-for="c in filteredResidenceOptions" :key="'res-'+c"
-                                    @click="hotelResidence = c; residenceSearch = ''; toggleHotelResidence()">
-                                    <div class="info"><div class="name">@{{ c }}</div></div>
-                                </li>
-                                <li class="options-dropdown-list__item no-hover" v-if="filteredResidenceOptions.length === 0">
-                                    <div class="info"><div class="name text-muted">No results</div></div>
-                                </li>
-                            </ul>
                         </div>
                     </div>
                 </div>

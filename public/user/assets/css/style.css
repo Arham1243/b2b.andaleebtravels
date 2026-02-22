@@ -4699,6 +4699,85 @@ body .search-box__input.search-box__input {
 .hd-slick-arrow--prev { left: 12px; }
 .hd-slick-arrow--next { right: 12px; }
 
+/* Sidebar */
+.hd-sidebar {
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    padding: 0;
+    position: sticky;
+    top: 90px;
+    overflow: hidden;
+}
+.hd-sidebar__section {
+    padding: 18px 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.hd-sidebar__section:last-child { border-bottom: none; }
+.hd-sidebar__title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #222;
+    margin: 0 0 12px;
+}
+.hd-sidebar__row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.hd-sidebar__row:last-child { margin-bottom: 0; }
+.hd-sidebar__item {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.hd-sidebar__item > i {
+    font-size: 1.1rem;
+    color: var(--color-primary);
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.hd-sidebar__label {
+    display: block;
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 1px;
+}
+.hd-sidebar__value {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #333;
+}
+.hd-sidebar__info-list {
+    max-height: 260px;
+    overflow-y: auto;
+}
+.hd-sidebar__info-list::-webkit-scrollbar { width: 3px; }
+.hd-sidebar__info-list::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+.hd-sidebar__info-item {
+    display: flex;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+.hd-sidebar__info-item:last-child { border-bottom: none; }
+.hd-sidebar__info-num {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.hd-sidebar__info-text {
+    font-size: 0.78rem;
+    color: #555;
+    line-height: 1.5;
+}
+
 /* Quick Info Strip */
 .hd-quick-info {
     display: flex;
@@ -5061,6 +5140,10 @@ body .hd-qty-input.hd-qty-input {
     }
     .hd-header__price-box {
         text-align: left;
+    }
+    .hd-sidebar {
+        position: static;
+        margin-top: 1rem;
     }
 }
 /* ===== End Hotel Detail Page ===== */

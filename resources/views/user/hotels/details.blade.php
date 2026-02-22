@@ -33,96 +33,151 @@
                 ])
             </div>
 
-            {{-- HOTEL HEADER --}}
-            <div class="hd-header">
-                <div class="hd-header__info">
-                    <h1 class="hd-header__name">{{ $hotel['name'] }}</h1>
-                    <div class="hd-header__location">
-                        <i class="bx bx-map"></i> {{ $hotel['address'] }}
-                    </div>
-                    @if ($hotel['rating'])
-                        <div class="hd-header__rating">
-                            <div class="hd-header__stars">
-                                @for ($i = 1; $i <= 5; $i++)
-                                    <i class="bx bxs-star"
-                                        style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
-                                @endfor
+            {{-- MAIN LAYOUT: Images (col-8) + Sidebar (col-4) --}}
+            <div class="row">
+                {{-- LEFT: Images --}}
+                <div class="col-lg-8">
+                    {{-- HOTEL HEADER --}}
+                    <div class="hd-header">
+                        <div class="hd-header__info">
+                            <h1 class="hd-header__name">{{ $hotel['name'] }}</h1>
+                            <div class="hd-header__location">
+                                <i class="bx bx-map"></i> {{ $hotel['address'] }}
                             </div>
-                            <span class="hd-header__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
-                            <span class="hd-header__rating-text">{{ $hotel['rating_text'] }}</span>
+                            @if ($hotel['rating'])
+                                <div class="hd-header__rating">
+                                    <div class="hd-header__stars">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <i class="bx bxs-star"
+                                                style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
+                                        @endfor
+                                    </div>
+                                    <span class="hd-header__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
+                                    <span class="hd-header__rating-text">{{ $hotel['rating_text'] }}</span>
+                                </div>
+                            @endif
                         </div>
-                    @endif
+                        <div class="hd-header__price-box">
+                            <span class="hd-header__price-label">Price from</span>
+                            <div class="hd-header__price">{{ formatPrice($hotel['price']) }}</div>
+                        </div>
+                    </div>
+
+                    {{-- IMAGE GALLERY (Slick) --}}
+                    <div class="hd-gallery">
+                        <div class="hd-gallery__main" id="hd-slider-main">
+                            @foreach ($hotel['images'] as $img)
+                                <div class="hd-gallery__slide">
+                                    <img src="{{ $img['Url'] ?? asset('user/assets/images/placeholder.png') }}" alt="{{ $hotel['name'] }}" />
+                                </div>
+                            @endforeach
+                            @if (count($hotel['images']) === 0)
+                                <div class="hd-gallery__slide">
+                                    <img src="{{ asset('user/assets/images/placeholder.png') }}" alt="{{ $hotel['name'] }}" />
+                                </div>
+                            @endif
+                        </div>
+                        <div class="hd-gallery__thumbs" id="hd-slider-nav">
+                            @foreach ($hotel['images'] as $img)
+                                <div class="hd-gallery__thumb">
+                                    <img src="{{ $img['Url'] ?? asset('user/assets/images/placeholder.png') }}" alt="Thumb" />
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
-                <div class="hd-header__price-box">
-                    <span class="hd-header__price-label">Price from</span>
-                    <div class="hd-header__price">{{ formatPrice($hotel['price']) }}</div>
+
+                {{-- RIGHT: Booking Details Sidebar --}}
+                <div class="col-lg-4">
+                    <div class="hd-sidebar">
+                        {{-- Booking Summary --}}
+                        <div class="hd-sidebar__section">
+                            <h4 class="hd-sidebar__title">Booking Details</h4>
+                            <div class="hd-sidebar__row">
+                                <div class="hd-sidebar__item">
+                                    <i class="bx bx-calendar"></i>
+                                    <div>
+                                        <span class="hd-sidebar__label">Check-in</span>
+                                        <span class="hd-sidebar__value">{{ $startDate->format('d M, Y') }}</span>
+                                    </div>
+                                </div>
+                                <div class="hd-sidebar__item">
+                                    <i class="bx bx-calendar-check"></i>
+                                    <div>
+                                        <span class="hd-sidebar__label">Check-out</span>
+                                        <span class="hd-sidebar__value">{{ $endDate->format('d M, Y') }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hd-sidebar__row">
+                                <div class="hd-sidebar__item">
+                                    <i class="bx bxs-moon"></i>
+                                    <div>
+                                        <span class="hd-sidebar__label">Duration</span>
+                                        <span class="hd-sidebar__value">{{ $nights }} Night{{ $nights > 1 ? 's' : '' }}</span>
+                                    </div>
+                                </div>
+                                <div class="hd-sidebar__item">
+                                    <i class="bx bx-door-open"></i>
+                                    <div>
+                                        <span class="hd-sidebar__label">Rooms</span>
+                                        <span class="hd-sidebar__value">{{ $roomCount }} Room{{ $roomCount > 1 ? 's' : '' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hd-sidebar__row">
+                                <div class="hd-sidebar__item">
+                                    <i class="bx bx-user"></i>
+                                    <div>
+                                        <span class="hd-sidebar__label">Guests</span>
+                                        <span class="hd-sidebar__value">{{ $adults }} Adult{{ $adults > 1 ? 's' : '' }}{{ $children > 0 ? ', ' . $children . ' Child' . ($children > 1 ? 'ren' : '') : '' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Map --}}
+                        <div class="hd-sidebar__section">
+                            <h4 class="hd-sidebar__title">Location</h4>
+                            <div class="hd-map">
+                                <iframe
+                                    src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
+                                    width="100%" height="200" frameborder="0" style="border:0; border-radius: 0.5rem;"
+                                    allowfullscreen=""></iframe>
+                            </div>
+                        </div>
+
+                        {{-- Hotel Info --}}
+                        @if (count($info_items) > 0)
+                        <div class="hd-sidebar__section">
+                            <h4 class="hd-sidebar__title">Hotel Information</h4>
+                            <div class="hd-sidebar__info-list">
+                                @foreach ($info_items as $index => $item)
+                                    <div class="hd-sidebar__info-item">
+                                        <span class="hd-sidebar__info-num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
+                                        <div class="hd-sidebar__info-text">{!! $item['Description'] !!}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+                    </div>
                 </div>
             </div>
 
-            {{-- IMAGE GALLERY (Slick) --}}
-            <div class="hd-gallery">
-                <div class="hd-gallery__main" id="hd-slider-main">
-                    @foreach ($hotel['images'] as $img)
-                        <div class="hd-gallery__slide">
-                            <img src="{{ $img['Url'] ?? asset('user/assets/images/placeholder.png') }}" alt="{{ $hotel['name'] }}" />
-                        </div>
-                    @endforeach
-                    @if (count($hotel['images']) === 0)
-                        <div class="hd-gallery__slide">
-                            <img src="{{ asset('user/assets/images/placeholder.png') }}" alt="{{ $hotel['name'] }}" />
-                        </div>
-                    @endif
-                </div>
-                <div class="hd-gallery__thumbs" id="hd-slider-nav">
-                    @foreach ($hotel['images'] as $img)
-                        <div class="hd-gallery__thumb">
-                            <img src="{{ $img['Url'] ?? asset('user/assets/images/placeholder.png') }}" alt="Thumb" />
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-
-            {{-- QUICK INFO STRIP --}}
-            <div class="hd-quick-info">
-                <div class="hd-quick-info__item">
-                    <i class="bx bxs-moon"></i>
-                    <span>{{ $startDate->format('d M') }} - {{ $endDate->format('d M Y') }} &middot; {{ $nights }}
-                        night{{ $nights > 1 ? 's' : '' }}</span>
-                </div>
-                <div class="hd-quick-info__item">
-                    <i class="bx bxs-group"></i>
-                    <span>{{ $adults }}
-                        Adult{{ $adults > 1 ? 's' : '' }}{{ $children > 0 ? ', ' . $children . ' Child' . ($children > 1 ? 'ren' : '') : '' }},
-                        {{ $roomCount }} Room{{ $roomCount > 1 ? 's' : '' }}</span>
-                </div>
-            </div>
-
-            {{-- TABS --}}
-            <div class="hd-tabs">
+            {{-- ABOUT + ROOMS SECTION (full width below) --}}
+            <div class="hd-tabs mt-4">
                 <div class="hd-tabs__nav">
                     <button class="hd-tabs__btn active" data-tab="overview">Overview</button>
                     <button class="hd-tabs__btn" data-tab="rooms">Rooms</button>
-                    <button class="hd-tabs__btn" data-tab="info">Information</button>
                 </div>
 
                 {{-- OVERVIEW TAB --}}
                 <div class="hd-tabs__panel active" id="tab-overview">
-                    <div class="row">
-                        <div class="col-lg-8">
-                            <div class="hd-content-box">
-                                <h3 class="hd-content-box__title">About this hotel</h3>
-                                <div class="hd-content-box__text">
-                                    {!! $hotel['description'] !!}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-4">
-                            <div class="hd-map">
-                                <iframe
-                                    src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
-                                    width="100%" height="350" frameborder="0" style="border:0; border-radius: 0.75rem;"
-                                    allowfullscreen=""></iframe>
-                            </div>
+                    <div class="hd-content-box">
+                        <h3 class="hd-content-box__title">About this hotel</h3>
+                        <div class="hd-content-box__text">
+                            {!! $hotel['description'] !!}
                         </div>
                     </div>
                 </div>
@@ -166,25 +221,19 @@
                                         <div class="hd-room-card__policies">
                                             @foreach ($board['CancellationPolicy']['CancellationCharges'] ?? [] as $policy)
                                                 @php
-                                                    $expiry = \Carbon\Carbon::parse($policy['ExpiryDateUTC'])->format(
-                                                        'd M Y',
-                                                    );
+                                                    $expiry = \Carbon\Carbon::parse($policy['ExpiryDateUTC'])->format('d M Y');
                                                     $amount = $policy['Charge']['Amount'] ?? 0;
                                                     $isFree = $amount == 0;
                                                 @endphp
-                                                <div
-                                                    class="hd-room-card__policy {{ $isFree ? 'hd-room-card__policy--free' : 'hd-room-card__policy--fee' }}">
+                                                <div class="hd-room-card__policy {{ $isFree ? 'hd-room-card__policy--free' : 'hd-room-card__policy--fee' }}">
                                                     <div class="hd-room-card__policy-left">
-                                                        <i
-                                                            class="bx {{ $isFree ? 'bxs-check-circle' : 'bxs-info-circle' }}"></i>
-                                                        <span>{{ $isFree ? 'Free cancellation until' : 'Cancellation after' }}
-                                                            <strong>{{ $expiry }}</strong></span>
+                                                        <i class="bx {{ $isFree ? 'bxs-check-circle' : 'bxs-info-circle' }}"></i>
+                                                        <span>{{ $isFree ? 'Free cancellation until' : 'Cancellation after' }} <strong>{{ $expiry }}</strong></span>
                                                     </div>
                                                     @if ($isFree)
                                                         <span class="hd-room-card__policy-badge">FREE</span>
                                                     @else
-                                                        <span
-                                                            class="hd-room-card__policy-price">{{ formatPrice($amount) }}</span>
+                                                        <span class="hd-room-card__policy-price">{{ formatPrice($amount) }}</span>
                                                     @endif
                                                 </div>
                                             @endforeach
@@ -212,18 +261,6 @@
                         @endforeach
                     </div>
                 </div>
-
-                {{-- INFO TAB --}}
-                <div class="hd-tabs__panel" id="tab-info">
-                    <div class="hd-info-list">
-                        @foreach ($info_items as $index => $item)
-                            <div class="hd-info-item">
-                                <div class="hd-info-item__num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</div>
-                                <div class="hd-info-item__text">{!! $item['Description'] !!}</div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -234,8 +271,7 @@
             <div class="hd-continue-bar__inner">
                 <div class="hd-continue-bar__price">
                     <span class="hd-continue-bar__label">Total</span>
-                    <span class="hd-continue-bar__amount"><span class="dirham">D</span> <span
-                            id="total-room-price">0.00</span></span>
+                    <span class="hd-continue-bar__amount"><span class="dirham">D</span> <span id="total-room-price">0.00</span></span>
                 </div>
                 <a id="continueBtn" href="{!! route('user.hotels.checkout', $hotel['id']) . '?' . http_build_query(request()->query()) !!}" class="hd-continue-bar__btn">
                     Continue
