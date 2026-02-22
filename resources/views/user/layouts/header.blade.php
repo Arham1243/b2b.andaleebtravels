@@ -81,7 +81,7 @@
                         <form action="{{ route('user.logout') }}" method="POST">
                             @csrf
                             <button onclick="return confirm('Are you sure you want to logout?')" type="submit"
-                                class="dropdown-item text-danger">
+                                class="dropdown-item">
                                 <i class='bx bx-log-out'></i> Logout
                             </button>
                         </form>

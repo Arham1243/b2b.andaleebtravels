@@ -11,6 +11,7 @@ use App\Models\Province;
 use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 use Carbon\Carbon;
@@ -52,7 +53,7 @@ class HotelController extends Controller
     {
 
         if (!$request->has(['destination', 'check_in', 'check_out', 'room_count'])) {
-            return redirect()->route('frontend.hotels.index')
+            return redirect()->route('user.hotels.index')
                 ->with('notify_error', 'Missing required parameters.');
         }
 
@@ -67,7 +68,7 @@ class HotelController extends Controller
 
         if ($hotelIds->isNotEmpty()) {
             // 3. Fetch availability from API
-            $hotels = $this->fetchAvailability($hotelIds, $rooms, $request);
+            // $hotels = $this->fetchAvailability($hotelIds, $rooms, $request);
 
             // 4. Apply filters
             $hotels = $this->applyFilters($hotels, $request);
@@ -77,7 +78,7 @@ class HotelController extends Controller
 
             $hotels = $this->formatHotels($hotels);
         }
-        return view('frontend.hotels.search', [
+        return view('user.hotels.search', [
             'hotels' => $hotels->values()
         ]);
     }
@@ -350,7 +351,7 @@ class HotelController extends Controller
     public function details(Request $request, int $id)
     {
         if (!$request->has(['check_in', 'check_out', 'room_count'])) {
-            return redirect()->route('frontend.hotels.index')
+            return redirect()->route('user.hotels.index')
                 ->with('notify_error', 'Missing required parameters.');
         }
 
@@ -387,7 +388,7 @@ class HotelController extends Controller
         $availableList = collect($availability);
 
         if ($availableList->isEmpty()) {
-            return redirect()->route('frontend.hotels.search')
+            return redirect()->route('user.hotels.search')
                 ->with('notify_error', 'No Hotel Found! Please try again.');
         }
 
@@ -448,7 +449,7 @@ class HotelController extends Controller
             'rooms_request'    => $rooms,
             'hotelCommissionPercentage'    => $this->hotelCommissionPercentage,
         ];
-        return view('frontend.hotels.details', $data);
+        return view('user.hotels.details', $data);
     }
 
     public function prepareRoomsData(array $requestData)
@@ -485,14 +486,14 @@ class HotelController extends Controller
         $requiredParams = ['check_in', 'check_out', 'room_count', 'selected_rooms', 'show_extras'];
         foreach ($requiredParams as $param) {
             if (!$request->has($param)) {
-                return redirect()->route('frontend.hotels.index')
+                return redirect()->route('user.hotels.index')
                     ->with('notify_error', 'Missing required information. Please try again.');
             }
         }
 
         $selectedRoomsCount = (int) $request->query('selected_rooms');
         if ($selectedRoomsCount < 1) {
-            return redirect()->route('frontend.hotels.index')
+            return redirect()->route('user.hotels.index')
                 ->with('notify_error', 'Please select at least one room.');
         }
 
@@ -523,7 +524,7 @@ class HotelController extends Controller
             ->json('Establishments', []);
 
         if (empty($availability)) {
-            return redirect()->route('frontend.hotels.search')
+            return redirect()->route('user.hotels.search')
                 ->with('notify_error', 'No availability found.');
         }
 
@@ -630,7 +631,7 @@ class HotelController extends Controller
             $boardsCollection->all()
         );
 
-        return view('frontend.hotels.checkout', [
+        return view('user.hotels.checkout', [
             'hotel'                  => $hotelFormatted,
             'api_availability'       => $availableList,
             'selected_rooms'         => $selectedRoomsData,
@@ -676,7 +677,7 @@ class HotelController extends Controller
                 'booking.guests' => 'nullable|array',
                 'booking.extras' => 'nullable|array',
 
-                'payment_method' => 'required|in:payby,tabby',
+                'payment_method' => 'required|in:payby,tabby,wallet',
                 'flight_details' => 'nullable|array',
             ]);
 
@@ -686,7 +687,7 @@ class HotelController extends Controller
 
 
             if (!$hotel) {
-                return redirect()->route('frontend.hotels.index')
+                return redirect()->route('user.hotels.index')
                     ->with('notify_error', 'Hotel not found.');
             }
 
@@ -784,8 +785,30 @@ class HotelController extends Controller
                     'payment_status' => 'failed',
                 ]);
 
-                return redirect()->route('frontend.hotels.index')
+                return redirect()->route('user.hotels.index')
                     ->with('notify_error', $availabilityCheck['error']);
+            }
+
+            // Handle wallet payment
+            if ($validated['payment_method'] === 'wallet') {
+                $user = Auth::user();
+                if ($user->main_balance < $totalAmount) {
+                    $booking->update([
+                        'booking_status' => 'failed',
+                        'payment_status' => 'failed',
+                    ]);
+                    return redirect()->back()
+                        ->with('notify_error', 'Insufficient wallet balance. Your balance is ' . formatPrice($user->main_balance));
+                }
+
+                $user->decrement('main_balance', $totalAmount);
+
+                $booking->update([
+                    'payment_status' => 'paid',
+                    'payment_reference' => 'WALLET-' . strtoupper(uniqid()),
+                ]);
+
+                return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
             }
 
             // Get payment redirect URL
@@ -803,7 +826,7 @@ class HotelController extends Controller
                     'error' => $e->getMessage()
                 ]);
 
-                return redirect()->route('frontend.hotels.payment.failed', ['booking' => $booking->id])
+                return redirect()->route('user.hotels.payment.failed', ['booking' => $booking->id])
                     ->with('notify_error', 'Unable to process payment. Please try again.');
             }
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -817,7 +840,7 @@ class HotelController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return redirect()->route('frontend.hotels.index')
+            return redirect()->route('user.hotels.index')
                 ->with('notify_error', 'An error occurred while processing your booking. Please try again.');
         }
     }
@@ -829,13 +852,16 @@ class HotelController extends Controller
 
             // Prevent re-processing if already paid
             if ($booking->isPaid() && $booking->isConfirmed()) {
-                return redirect()->route('frontend.hotels.payment.success.view', ['booking' => $booking->id]);
+                return redirect()->route('user.hotels.payment.success.view', ['booking' => $booking->id]);
             }
 
             $hotelService = new \App\Services\HotelService();
 
             // Verify payment based on payment method
-            if ($booking->payment_method === 'payby') {
+            if ($booking->payment_method === 'wallet') {
+                // Wallet payments are already verified at checkout
+                $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
+            } elseif ($booking->payment_method === 'payby') {
                 $verificationResult = $hotelService->verifyPayByPayment($booking);
             } elseif ($booking->payment_method === 'tabby') {
                 $verificationResult = $hotelService->verifyTabbyPayment($booking);
@@ -852,7 +878,7 @@ class HotelController extends Controller
                 $hotelService->sendBookingFailureEmail($booking, $verificationResult['error'] ?? 'Payment verification failed');
                 $hotelService->sendBookingFailureEmailToAdmin($booking, $verificationResult['error'] ?? 'Payment verification failed');
 
-                return redirect()->route('frontend.hotels.payment.failed', ['booking' => $booking->id])
+                return redirect()->route('user.hotels.payment.failed', ['booking' => $booking->id])
                     ->with('notify_error', 'Payment verification failed. Please contact support.');
             }
 
@@ -869,7 +895,7 @@ class HotelController extends Controller
                 $hotelService->sendBookingFailureEmail($booking, $bookingResult['error'] ?? 'Booking placement failed');
                 $hotelService->sendBookingFailureEmailToAdmin($booking, $bookingResult['error'] ?? 'Booking placement failed');
 
-                return redirect()->route('frontend.hotels.payment.failed', ['booking' => $booking->id])
+                return redirect()->route('user.hotels.payment.failed', ['booking' => $booking->id])
                     ->with('notify_error', 'Unable to confirm your booking. Our team will contact you shortly.');
             }
 
@@ -877,7 +903,7 @@ class HotelController extends Controller
             $hotelService->sendBookingConfirmationEmail($booking);
             $hotelService->sendBookingConfirmationEmailToAdmin($booking);
 
-            return redirect()->route('frontend.hotels.payment.success.view', ['booking' => $booking->id]);
+            return redirect()->route('user.hotels.payment.success.view', ['booking' => $booking->id]);
         } catch (\Exception $e) {
             Log::error('Payment success processing failed', [
                 'booking_id' => $booking ?? null,
@@ -885,7 +911,7 @@ class HotelController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return redirect()->route('frontend.hotels.index')
+            return redirect()->route('user.hotels.index')
                 ->with('notify_error', 'An error occurred while processing your payment. Please contact support.');
         }
     }
@@ -896,13 +922,13 @@ class HotelController extends Controller
             $booking = \App\Models\HotelBooking::findOrFail($booking);
 
             if (!$booking->isPaid()) {
-                return redirect()->route('frontend.hotels.index')
+                return redirect()->route('user.hotels.index')
                     ->with('notify_error', 'Invalid booking access.');
             }
 
-            return view('frontend.hotels.payment-success', compact('booking'));
+            return view('user.hotels.payment-success', compact('booking'));
         } catch (\Exception $e) {
-            return redirect()->route('frontend.hotels.index')
+            return redirect()->route('user.hotels.index')
                 ->with('notify_error', 'Booking not found.');
         }
     }
@@ -924,12 +950,12 @@ class HotelController extends Controller
                     $hotelService->sendBookingFailureEmailToAdmin($booking, 'Payment was cancelled or failed');
                 }
 
-                return view('frontend.hotels.payment-failed', compact('booking'));
+                return view('user.hotels.payment-failed', compact('booking'));
             }
 
-            return view('frontend.hotels.payment-failed', ['booking' => null]);
+            return view('user.hotels.payment-failed', ['booking' => null]);
         } catch (\Exception $e) {
-            return view('frontend.hotels.payment-failed', ['booking' => null]);
+            return view('user.hotels.payment-failed', ['booking' => null]);
         }
     }
 

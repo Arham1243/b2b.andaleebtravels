@@ -1,162 +1,95 @@
-@extends('frontend.layouts.main')
+@extends('user.layouts.main')
 @section('content')
-    <div class="py-2">
+    <div class="hc-page">
         <div class="container">
-            <nav class="breadcrumb-nav">
-                <ul class="breadcrumb-list">
-                    <li class="breadcrumb-item">
-                        <a href="{{ route('frontend.index') }}" class="breadcrumb-link">Home</a>
-                        <i class='bx bx-chevron-right breadcrumb-separator'></i>
-                    </li>
-                    <li class="breadcrumb-item">
-                        <a href="{{ route('frontend.hotels.index') }}" class="breadcrumb-link">Hotels</a>
-                        <i class='bx bx-chevron-right breadcrumb-separator'></i>
-                    </li>
-                    <li class="breadcrumb-item active">
-                        Booking Failed
-                    </li>
-                </ul>
+            <nav class="hd-breadcrumb">
+                <a href="{{ route('user.hotels.index') }}">Hotels</a>
+                <i class="bx bx-chevron-right"></i>
+                <span>Booking Failed</span>
             </nav>
-        </div>
-    </div>
 
-    <section class="section-gap">
-        <div class="container">
             <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <div class="modern-card text-center">
-                        <div class="error-icon mb-4">
-                            <i class='bx bx-x-circle' style="font-size: 80px; color: #dc3545;"></i>
+                <div class="col-lg-7">
+                    <div class="hc-card text-center">
+                        <div class="hc-result-icon hc-result-icon--error">
+                            <i class="bx bx-x-circle"></i>
                         </div>
 
-                        <h2 class="mb-3">Booking Failed</h2>
-                        <p class="text-muted mb-4">
-                            Unfortunately, we were unable to complete your hotel booking. This could be due to payment failure or unavailability of the selected hotel.
-                        </p>
+                        <h2 class="hc-result-title">Booking Failed</h2>
+                        <p class="hc-result-text">Unfortunately, we were unable to complete your hotel booking. This could be due to payment failure or unavailability.</p>
 
                         @if($booking)
-                        <div class="booking-details-card mb-4">
+                        <div class="hc-result-details">
                             <div class="row g-3">
                                 <div class="col-md-12">
-                                    <div class="detail-item">
-                                        <label>Booking Number</label>
-                                        <strong>{{ $booking->booking_number }}</strong>
+                                    <div class="hc-result-item">
+                                        <span class="hc-result-item__label">Booking Number</span>
+                                        <span class="hc-result-item__value">{{ $booking->booking_number }}</span>
                                     </div>
                                 </div>
 
                                 <div class="col-md-12">
-                                    <div class="detail-item">
-                                        <label>Hotel Name</label>
-                                        <strong>{{ $booking->hotel_name }}</strong>
+                                    <div class="hc-result-item">
+                                        <span class="hc-result-item__label">Hotel</span>
+                                        <span class="hc-result-item__value">{{ $booking->hotel_name }}</span>
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <div class="detail-item">
-                                        <label>Check-in Date</label>
-                                        <strong>{{ $booking->check_in_date->format('d M, Y') }}</strong>
+                                    <div class="hc-result-item">
+                                        <span class="hc-result-item__label">Check-in</span>
+                                        <span class="hc-result-item__value">{{ $booking->check_in_date->format('d M, Y') }}</span>
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <div class="detail-item">
-                                        <label>Check-out Date</label>
-                                        <strong>{{ $booking->check_out_date->format('d M, Y') }}</strong>
+                                    <div class="hc-result-item">
+                                        <span class="hc-result-item__label">Check-out</span>
+                                        <span class="hc-result-item__value">{{ $booking->check_out_date->format('d M, Y') }}</span>
                                     </div>
                                 </div>
 
                                 <div class="col-md-12">
-                                    <div class="detail-item">
-                                        <label>Status</label>
-                                        <strong class="text-danger">{{ ucfirst($booking->payment_status) }}</strong>
+                                    <div class="hc-result-item">
+                                        <span class="hc-result-item__label">Status</span>
+                                        <span class="hc-result-item__value" style="color: #e74c3c;">{{ ucfirst($booking->payment_status) }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         @endif
 
-                        <div class="alert alert-warning">
-                            <i class='bx bx-info-circle'></i>
-                            <strong>What should I do next?</strong>
-                            <ul class="text-start mt-2 mb-0">
-                                <li>Please try booking again with a different payment method</li>
-                                <li>Contact our support team if you need assistance</li>
-                                <li>Check if your payment method has sufficient funds</li>
-                            </ul>
+                        <div class="hc-alert hc-alert--warning mt-3" style="text-align: left;">
+                            <i class="bx bx-info-circle"></i>
+                            <div>
+                                <strong>What should I do next?</strong>
+                                <ul style="margin: 8px 0 0; padding-left: 18px; font-size: 0.82rem;">
+                                    <li>Try booking again with a different payment method</li>
+                                    <li>Contact our support team if you need assistance</li>
+                                    <li>Check if your payment method has sufficient funds</li>
+                                </ul>
+                            </div>
                         </div>
 
-                        <div class="contact-info mb-4">
-                            <h5>Need Help?</h5>
-                            <p class="mb-2">
-                                <i class='bx bx-phone'></i> 
-                                <a href="tel:+971525748986">+971 52 574 8986</a>
-                            </p>
-                            <p class="mb-0">
-                                <i class='bx bx-envelope'></i> 
-                                <a href="mailto:info@andaleebtours.com">info@andaleebtours.com</a>
-                            </p>
+                        <div class="hc-result-contact">
+                            <div class="hc-result-contact__title">Need Help?</div>
+                            <div class="hc-result-contact__row">
+                                <a href="tel:+971525748986"><i class="bx bx-phone"></i> +971 52 574 8986</a>
+                                <a href="mailto:info@andaleebtours.com"><i class="bx bx-envelope"></i> info@andaleebtours.com</a>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex gap-2 justify-content-center">
+                            <a href="{{ route('user.hotels.index') }}" class="hc-btn hc-btn--primary">
+                                <i class="bx bx-search"></i> Try Again
+                            </a>
+                            <a href="{{ route('user.dashboard') }}" class="hc-btn hc-btn--outline">
+                                <i class="bx bx-home"></i> Dashboard
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 @endsection
-
-@push('css')
-<style>
-    .booking-details-card {
-        background: #f8f9fa;
-        padding: 30px;
-        border-radius: 10px;
-        text-align: left;
-    }
-
-    .detail-item {
-        margin-bottom: 10px;
-    }
-
-    .detail-item label {
-        display: block;
-        font-size: 14px;
-        color: #6c757d;
-        margin-bottom: 5px;
-    }
-
-    .detail-item strong {
-        display: block;
-        font-size: 16px;
-        color: #212529;
-    }
-
-    .contact-info {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 10px;
-    }
-
-    .contact-info a {
-        color: var(--color-primary);
-        text-decoration: none;
-    }
-
-    .contact-info a:hover {
-        text-decoration: underline;
-    }
-
-    .btn-secondary-custom {
-        display: inline-block;
-        padding: 12px 30px;
-        background: #6c757d;
-        color: white;
-        border-radius: 5px;
-        text-decoration: none;
-        transition: all 0.3s ease;
-    }
-
-    .btn-secondary-custom:hover {
-        background: #5a6268;
-        color: white;
-    }
-</style>
-@endpush

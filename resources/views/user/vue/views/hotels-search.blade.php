@@ -1,6 +1,6 @@
 <div class="hotel-search-redesign" v-cloak>
     <div class="hotel-search-redesign__title">Book Domestic and International Hotels</div>
-    <form method="GET" action="#">
+    <form method="GET" action="{{ route('user.hotels.search') }}">
         <!-- ROW 1: Destination + Check In + Night + Check Out -->
         <div class="hs-row hs-row--top">
             <!-- DESTINATION -->
@@ -266,14 +266,20 @@
                     <div class="hs-field__value">@{{ hotelNationality }}</div>
                 </div>
                 <input type="hidden" name="nationality" :value="hotelNationality">
-                <div class="options-dropdown-wrapper options-dropdown-wrapper--pax"
+                <div class="options-dropdown-wrapper options-dropdown-wrapper--pax scroll"
                     :class="{ open: hotelNationalityOpen }">
                     <div class="options-dropdown options-dropdown--norm">
                         <div class="options-dropdown__body p-0">
+                            <div class="hs-dropdown-search">
+                                <input type="text" v-model="nationalitySearch" placeholder="Search country..." class="hs-dropdown-search__input" @click.stop>
+                            </div>
                             <ul class="options-dropdown-list">
-                                <li class="options-dropdown-list__item" v-for="c in countryOptions" :key="'nat-'+c"
-                                    @click="hotelNationality = c; toggleHotelNationality()">
+                                <li class="options-dropdown-list__item" v-for="c in filteredNationalityOptions" :key="'nat-'+c"
+                                    @click="hotelNationality = c; nationalitySearch = ''; toggleHotelNationality()">
                                     <div class="info"><div class="name">@{{ c }}</div></div>
+                                </li>
+                                <li class="options-dropdown-list__item no-hover" v-if="filteredNationalityOptions.length === 0">
+                                    <div class="info"><div class="name text-muted">No results</div></div>
                                 </li>
                             </ul>
                         </div>
@@ -288,14 +294,20 @@
                     <div class="hs-field__value">@{{ hotelResidence }}</div>
                 </div>
                 <input type="hidden" name="residence" :value="hotelResidence">
-                <div class="options-dropdown-wrapper options-dropdown-wrapper--pax"
+                <div class="options-dropdown-wrapper options-dropdown-wrapper--pax scroll"
                     :class="{ open: hotelResidenceOpen }">
                     <div class="options-dropdown options-dropdown--norm">
                         <div class="options-dropdown__body p-0">
+                            <div class="hs-dropdown-search">
+                                <input type="text" v-model="residenceSearch" placeholder="Search country..." class="hs-dropdown-search__input" @click.stop>
+                            </div>
                             <ul class="options-dropdown-list">
-                                <li class="options-dropdown-list__item" v-for="c in countryOptions" :key="'res-'+c"
-                                    @click="hotelResidence = c; toggleHotelResidence()">
+                                <li class="options-dropdown-list__item" v-for="c in filteredResidenceOptions" :key="'res-'+c"
+                                    @click="hotelResidence = c; residenceSearch = ''; toggleHotelResidence()">
                                     <div class="info"><div class="name">@{{ c }}</div></div>
+                                </li>
+                                <li class="options-dropdown-list__item no-hover" v-if="filteredResidenceOptions.length === 0">
+                                    <div class="info"><div class="name text-muted">No results</div></div>
                                 </li>
                             </ul>
                         </div>

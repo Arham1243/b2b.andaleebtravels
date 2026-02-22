@@ -1,315 +1,193 @@
-@extends('frontend.layouts.main')
+@extends('user.layouts.main')
 @section('content')
-    <div class="py-2">
+    @php
+        $checkIn = request()->get('check_in');
+        $checkOut = request()->get('check_out');
+        $startDate = $checkIn ? \Carbon\Carbon::parse(urldecode($checkIn)) : now();
+        $endDate = $checkOut ? \Carbon\Carbon::parse(urldecode($checkOut)) : now()->addDay();
+        $nights = max(1, $startDate->diffInDays($endDate));
+
+        $roomsRequest = $rooms_request ?? [];
+        $roomCount = count($roomsRequest) ?: 1;
+        $adults = collect($roomsRequest)->sum('Adults') ?: 1;
+        $children = collect($roomsRequest)->flatMap(fn($room) => $room['ChildAges'] ?? [])->count();
+    @endphp
+
+    <div class="hd-page">
         <div class="container">
-            <nav class="breadcrumb-nav">
-                <ul class="breadcrumb-list">
-
-                    <li class="breadcrumb-item">
-                        <a href="{{ route('frontend.index') }}" class="breadcrumb-link">Home</a>
-                        <i class='bx bx-chevron-right breadcrumb-separator'></i>
-                    </li>
-
-                    <li class="breadcrumb-item">
-                        <a href="{{ route('frontend.hotels.index') }}" class="breadcrumb-link">Hotels</a>
-                        <i class='bx bx-chevron-right breadcrumb-separator'></i>
-                    </li>
-
-                    <li class="breadcrumb-item">
-                        <a href="{!! route('frontend.hotels.search') . '?' . http_build_query(request()->query()) !!}" class="breadcrumb-link">Listing</a>
-                        <i class='bx bx-chevron-right breadcrumb-separator'></i>
-                    </li>
-
-                    <li class="breadcrumb-item active">
-                        {{ $hotel['name'] }}
-                    </li>
-                </ul>
+            {{-- BREADCRUMB --}}
+            <nav class="hd-breadcrumb">
+                <a href="{{ route('user.hotels.index') }}">Hotels</a>
+                <i class="bx bx-chevron-right"></i>
+                <a href="{!! route('user.hotels.search') . '?' . http_build_query(request()->query()) !!}">Search Results</a>
+                <i class="bx bx-chevron-right"></i>
+                <span>{{ $hotel['name'] }}</span>
             </nav>
-        </div>
-    </div>
 
-    <div class="container">
-        <div class="row justify-content-center mt-2 mb-4">
-            <div class="col-md-10">
-                <div class="main-page-search">
-                    @include('frontend.vue.main', [
-                        'appId' => 'hotels-search',
-                        'appComponent' => 'hotels-search',
-                        'appJs' => 'hotels-search',
-                    ])
+            {{-- SEARCH BAR --}}
+            <div class="hd-search-bar mb-4">
+                @include('user.vue.main', [
+                    'appId' => 'hotels-search',
+                    'appComponent' => 'hotels-search',
+                    'appJs' => 'hotels-search',
+                ])
+            </div>
+
+            {{-- HOTEL HEADER --}}
+            <div class="hd-header">
+                <div class="hd-header__info">
+                    <h1 class="hd-header__name">{{ $hotel['name'] }}</h1>
+                    <div class="hd-header__location">
+                        <i class="bx bx-map"></i> {{ $hotel['address'] }}
+                    </div>
+                    @if ($hotel['rating'])
+                        <div class="hd-header__rating">
+                            <div class="hd-header__stars">
+                                @for ($i = 1; $i <= 5; $i++)
+                                    <i class="bx bxs-star" style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
+                                @endfor
+                            </div>
+                            <span class="hd-header__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
+                            <span class="hd-header__rating-text">{{ $hotel['rating_text'] }}</span>
+                        </div>
+                    @endif
+                </div>
+                <div class="hd-header__price-box">
+                    <span class="hd-header__price-label">Price from</span>
+                    <div class="hd-header__price">{{ formatPrice($hotel['price']) }}</div>
                 </div>
             </div>
-        </div>
 
-        <div class="hotel-detail">
-            <div class="hotel-info">
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="hotels-lg-img-wrapper">
-                            <div class="hotels-lg-img-list">
-                                @foreach ($hotel['images'] as $img)
-                                    <div class="hotels-lg-img-item">
-                                        <img data-src="{{ $img['Url'] ?? asset('frontend/images/placeholder.png') }}"
-                                            class="imgFluid lazyload" alt="Image" />
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            <div class="action-btns">
-                                <div class="event-slider-actions">
-                                    <button type="button" class="event-slider-actions__arrow event-slider-prev">
-                                        <i class="bx bx-chevron-left"></i>
-                                    </button>
-                                    <div class="event-slider-actions__progress"></div>
-                                    <button type="button" class="event-slider-actions__arrow event-slider-next">
-                                        <i class="bx bx-chevron-right"></i>
-                                    </button>
-                                </div>
-                                <button class="full-screen"><i class='bx bx-fullscreen'></i>Full screen</button>
-                            </div>
+            {{-- IMAGE GALLERY --}}
+            <div class="hd-gallery">
+                <div class="hd-gallery__main">
+                    @if (count($hotel['images']) > 0)
+                        <img src="{{ $hotel['images'][0]['Url'] ?? asset('user/assets/images/placeholder.png') }}"
+                            alt="{{ $hotel['name'] }}" id="hd-main-img" />
+                    @endif
+                </div>
+                <div class="hd-gallery__thumbs">
+                    @foreach ($hotel['images'] as $idx => $img)
+                        <div class="hd-gallery__thumb {{ $idx === 0 ? 'active' : '' }}"
+                            onclick="document.getElementById('hd-main-img').src='{{ $img['Url'] }}'; document.querySelectorAll('.hd-gallery__thumb').forEach(t=>t.classList.remove('active')); this.classList.add('active');">
+                            <img src="{{ $img['Url'] ?? asset('user/assets/images/placeholder.png') }}" alt="Thumb" />
                         </div>
-
-                        <div class="hotels-sm-img-list hotels-sm-img-list-slider">
-                            @foreach ($hotel['images'] as $img)
-                                <div class="hotels-sm-img-item">
-                                    <img data-src="{{ $img['Url'] ?? asset('frontend/images/placeholder.png') }}"
-                                        class="imgFluid lazyload" alt="Image" />
-                                </div>
-                            @endforeach
-                        </div>
-
-                    </div>
-                    <div class="col-md-4">
-                        <div class="event-card event-card--details">
-                            <div class="event-card__content">
-                                <div class="title">{{ $hotel['name'] }}</div>
-                                <div class="details">
-                                    <div class="icon"><i class="bx bx-map"></i></div>
-                                    <div class="content">{{ $hotel['address'] }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="event-card event-card--details">
-                            <div class="event-card__content">
-                                <span class="subtitle">Price from</span>
-                                <div class="price">{{ formatPrice($hotel['price']) }}
-                                </div>
-                                <span class="subtitle d-block mb-2">(Per person)</span>
-
-                                {{-- Dates and nights --}}
-                                @php
-                                    $checkIn = request()->get('check_in');
-                                    $checkOut = request()->get('check_out');
-
-                                    if ($checkIn && $checkOut) {
-                                        $startDate = \Carbon\Carbon::parse(urldecode($checkIn));
-                                        $endDate = \Carbon\Carbon::parse(urldecode($checkOut));
-                                        $nights = $startDate->diffInDays($endDate);
-                                        $nights = $nights ?: 1; // at least 1 night if same-day
-                                    }
-                                @endphp
-
-                                <div class="details">
-                                    <div class="icon"><i class="bx bxs-moon"></i></div>
-                                    <div class="content">
-                                        {{ $startDate->format('d M Y') ?? '' }} - {{ $endDate->format('d M Y') ?? '' }} |
-                                        {{ $nights ?? 0 }} nights at hotel
-                                    </div>
-                                </div>
-
-                                {{-- Room details --}}
-                                @php
-                                    $roomsRequest = $rooms_request ?? [];
-
-                                    $roomCount = count($roomsRequest) ?: 1;
-                                    $adults = collect($roomsRequest)->sum('Adults') ?: 1;
-
-                                    // Count all children by summing the length of ChildAges arrays
-                                    $children = collect($roomsRequest)
-                                        ->flatMap(fn($room) => $room['ChildAges'] ?? [])
-                                        ->count();
-                                @endphp
-
-                                <div class="details">
-                                    <div class="icon"><i class='bx bxs-group'></i></div>
-                                    <div class="content">
-                                        {{ $adults }} Adults, {{ $children }}
-                                        Child{{ $children > 1 ? 'ren' : '' }}, {{ $roomCount }}
-                                        Room{{ $roomCount > 1 ? 's' : '' }}
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <div class="event-card">
-                            <div class="event-card__content">
-                                <div class="hotel-detail__reviews m-0 p-0">
-                                    <div class="review-header mb-0">
-                                        <div class="rating">{{ number_format($hotel['rating'], 1) }}</div>
-                                        <div class="details">
-                                            <div class="client-name">{{ $hotel['rating_text'] }}</div>
-                                            <div class="checkin-time">Based on customer reviews</div>
-                                            @for ($i = 1; $i <= 5; $i++)
-                                                <i class="bx bxs-star"
-                                                    style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ccc' }}"></i>
-                                            @endfor
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @endforeach
                 </div>
             </div>
-        </div>
-    </div>
 
+            {{-- QUICK INFO STRIP --}}
+            <div class="hd-quick-info">
+                <div class="hd-quick-info__item">
+                    <i class="bx bxs-moon"></i>
+                    <span>{{ $startDate->format('d M') }} &mdash; {{ $endDate->format('d M Y') }} &middot; {{ $nights }} night{{ $nights > 1 ? 's' : '' }}</span>
+                </div>
+                <div class="hd-quick-info__item">
+                    <i class="bx bxs-group"></i>
+                    <span>{{ $adults }} Adult{{ $adults > 1 ? 's' : '' }}{{ $children > 0 ? ', ' . $children . ' Child' . ($children > 1 ? 'ren' : '') : '' }}, {{ $roomCount }} Room{{ $roomCount > 1 ? 's' : '' }}</span>
+                </div>
+            </div>
 
+            {{-- TABS --}}
+            <div class="hd-tabs">
+                <div class="hd-tabs__nav">
+                    <button class="hd-tabs__btn active" data-tab="overview">Overview</button>
+                    <button class="hd-tabs__btn" data-tab="rooms">Rooms</button>
+                    <button class="hd-tabs__btn" data-tab="info">Information</button>
+                </div>
 
-    <div class="container">
-        <div class="hotel-detail__tabs">
-            <ul class="nav nav-pills details-tabs" id="pills-tab" role="tablist">
-                <li role="presentation">
-                    <button class="nav-link active" id="pills-home-tab" data-bs-toggle="pill" data-bs-target="#pills-home"
-                        type="button" role="tab" aria-controls="pills-home" aria-selected="true">Overview</button>
-                </li>
-                <li role="presentation">
-                    <button class="nav-link" id="pills-profile-tab" data-bs-toggle="pill" data-bs-target="#pills-profile"
-                        type="button" role="tab" aria-controls="pills-profile" aria-selected="false">Rooms</button>
-                </li>
-                <li role="presentation">
-                    <button class="nav-link" id="pills-contact-tab" data-bs-toggle="pill"
-                        data-bs-target="#pills-contact" type="button" role="tab" aria-controls="pills-contact"
-                        aria-selected="false">Information
-                        Items</button>
-                </li>
-            </ul>
-            <div class="tab-content" id="pills-tabContent">
-                <div class="tab-pane fade show active" id="pills-home" role="tabpanel" aria-labelledby="pills-home-tab"
-                    tabindex="0">
+                {{-- OVERVIEW TAB --}}
+                <div class="hd-tabs__panel active" id="tab-overview">
                     <div class="row">
-                        <div class="col-md-8">
-                            <div class="hotel-detail-box text-document">
-                                <h3 class="heading mt-0">Hotel Information</h3>
-                                {!! $hotel['description'] !!}
+                        <div class="col-lg-8">
+                            <div class="hd-content-box">
+                                <h3 class="hd-content-box__title">About this hotel</h3>
+                                <div class="hd-content-box__text">
+                                    {!! $hotel['description'] !!}
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="hotel-map">
-                                <iframe src="https://maps.google.com/maps?q={{ $hotel['address'] }}&output=embed"
-                                    width="100%" height="490" frameborder="0" style="border:0;"
+                        <div class="col-lg-4">
+                            <div class="hd-map">
+                                <iframe src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
+                                    width="100%" height="350" frameborder="0" style="border:0; border-radius: 0.75rem;"
                                     allowfullscreen=""></iframe>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="pills-profile" role="tabpanel" aria-labelledby="pills-profile-tab"
-                    tabindex="0">
 
-                    <div class="row g-3 g-lg-4">
+                {{-- ROOMS TAB --}}
+                <div class="hd-tabs__panel" id="tab-rooms">
+                    <div class="row g-3">
                         @foreach ($api_availability[0]['Rooms'] as $roomIndex => $room)
                             @foreach (collect($room['Boards'])->unique('Code') as $boardIndex => $board)
                                 @php
                                     $finalPrice = yalagoFinalPrice($board, $hotelCommissionPercentage);
                                     $finalPriceFormatted = formatPrice($finalPrice);
-
-                                    // Refundable / Non-refundable
-                                    $isRefundable = empty($board['NonRefundable']) ? true : false;
+                                    $isRefundable = empty($board['NonRefundable']);
                                     $boardTitle = $board['Description'] ?? '';
                                 @endphp
-
-
                                 <div class="col-12 col-lg-4">
-                                    <div class="room-card" data-room-code="{{ $room['Code'] }}"
+                                    <div class="hd-room-card" data-room-code="{{ $room['Code'] }}"
                                         data-board-code="{{ $board['Code'] }}" data-price="{{ $finalPrice }}"
                                         data-board-title="{{ $boardTitle }}"
                                         data-room-name="{{ $room['Description'] }}">
 
-                                        <div class="room-card__box">
-                                            <!-- Header -->
-                                            <div class="room-card__header">
-                                                <h3 class="room-card__title">
-                                                    {{ $room['Description'] }}
-                                                </h3>
-                                            </div>
+                                        <div class="hd-room-card__header">
+                                            <h4 class="hd-room-card__name">{{ $room['Description'] }}</h4>
+                                        </div>
 
-                                            <!-- Tags -->
-                                            <div class="room-card__tags">
-                                                <span class="room-card__tag">
-                                                    <i class='bx bx-home'></i> {{ $boardTitle }}
+                                        <div class="hd-room-card__tags">
+                                            <span class="hd-room-card__tag">
+                                                <i class="bx bx-home"></i> {{ $boardTitle }}
+                                            </span>
+                                            @if ($board['NonRefundable'])
+                                                <span class="hd-room-card__tag hd-room-card__tag--red">
+                                                    <i class="bx bx-x-circle"></i> Non-Refundable
                                                 </span>
+                                            @else
+                                                <span class="hd-room-card__tag hd-room-card__tag--green">
+                                                    <i class="bx bx-check-shield"></i> Refundable
+                                                </span>
+                                            @endif
+                                        </div>
 
-                                                @if ($board['NonRefundable'])
-                                                    <span class="room-card__tag room-card__tag--red">
-                                                        <i class='bx bx-x-circle'></i> Non-Refundable
-                                                    </span>
-                                                @else
-                                                    <span class="room-card__tag room-card__tag--green">
-                                                        <i class='bx bx-check-shield'></i> Refundable
-                                                    </span>
-                                                @endif
-                                            </div>
-
-                                            <!-- Policy -->
-                                            <div class="room-card__policy">
-                                                @foreach ($board['CancellationPolicy']['CancellationCharges'] ?? [] as $policy)
-                                                    @php
-                                                        $expiry = \Carbon\Carbon::parse(
-                                                            $policy['ExpiryDateUTC'],
-                                                        )->format('d M Y');
-                                                        $amount = $policy['Charge']['Amount'] ?? 0;
-                                                        $isFree = $amount == 0;
-                                                    @endphp
-
+                                        <div class="hd-room-card__policies">
+                                            @foreach ($board['CancellationPolicy']['CancellationCharges'] ?? [] as $policy)
+                                                @php
+                                                    $expiry = \Carbon\Carbon::parse($policy['ExpiryDateUTC'])->format('d M Y');
+                                                    $amount = $policy['Charge']['Amount'] ?? 0;
+                                                    $isFree = $amount == 0;
+                                                @endphp
+                                                <div class="hd-room-card__policy {{ $isFree ? 'hd-room-card__policy--free' : 'hd-room-card__policy--fee' }}">
+                                                    <div class="hd-room-card__policy-left">
+                                                        <i class="bx {{ $isFree ? 'bxs-check-circle' : 'bxs-info-circle' }}"></i>
+                                                        <span>{{ $isFree ? 'Free cancellation until' : 'Cancellation after' }} <strong>{{ $expiry }}</strong></span>
+                                                    </div>
                                                     @if ($isFree)
-                                                        <div class="room-card__policy-row room-card__policy-row--free">
-                                                            <div class="room-card__policy-content">
-                                                                <i class="bx bxs-check-circle room-card__icon"></i>
-                                                                <span>
-                                                                    Free cancellation until
-                                                                    <strong>{{ $expiry }}</strong>
-                                                                </span>
-                                                            </div>
-                                                            <span
-                                                                class="room-card__badge room-card__badge--free">FREE</span>
-                                                        </div>
+                                                        <span class="hd-room-card__policy-badge">FREE</span>
                                                     @else
-                                                        <div class="room-card__policy-row room-card__policy-row--fee">
-                                                            <div class="room-card__policy-content">
-                                                                <i class="bx bxs-info-circle room-card__icon"></i>
-                                                                <span>
-                                                                    Cancellation after <strong>{{ $expiry }}</strong>
-                                                                </span>
-                                                            </div>
-                                                            <span class="room-card__price-text">
-                                                                {{ formatPrice($amount) }}
-                                                            </span>
-                                                        </div>
+                                                        <span class="hd-room-card__policy-price">{{ formatPrice($amount) }}</span>
                                                     @endif
-                                                @endforeach
+                                                </div>
+                                            @endforeach
+                                        </div>
+
+                                        <div class="hd-room-card__footer">
+                                            <div class="hd-room-card__price-info">
+                                                <span class="hd-room-card__price-label">Per room</span>
+                                                <span class="hd-room-card__price">{{ $finalPriceFormatted }}</span>
                                             </div>
-
-                                            <!-- Footer -->
-                                            <div class="room-card__footer">
-                                                <div class="room-card__price-info">
-                                                    <span class="room-card__label">Price per room</span>
-                                                    <span class="room-card__total">
-                                                        {{ $finalPriceFormatted }}
-                                                    </span>
-                                                </div>
-
-                                                <div class="qty-control">
-                                                    <button onclick="decrementRoom(this)" class="qty-btn" type="button">
-                                                        <i class="bx bx-minus"></i>
-                                                    </button>
-                                                    <input type="number" class="counter-input qty-input room-qty-input"
-                                                        value="0" readonly min="0"
-                                                        max="{{ $roomCount }}">
-                                                    <button onclick="incrementRoom(this)" class="qty-btn" type="button">
-                                                        <i class="bx bx-plus"></i>
-                                                    </button>
-                                                </div>
+                                            <div class="hd-room-card__qty">
+                                                <button onclick="decrementRoom(this)" class="hd-qty-btn" type="button">
+                                                    <i class="bx bx-minus"></i>
+                                                </button>
+                                                <input type="number" class="hd-qty-input room-qty-input"
+                                                    value="0" readonly min="0" max="{{ $roomCount }}">
+                                                <button onclick="incrementRoom(this)" class="hd-qty-btn" type="button">
+                                                    <i class="bx bx-plus"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -317,105 +195,84 @@
                             @endforeach
                         @endforeach
                     </div>
-
-
-
                 </div>
-                <div class="tab-pane fade" id="pills-contact" role="tabpanel" aria-labelledby="pills-contact-tab"
-                    tabindex="0">
-                    <div class="hotel-detail-box editorial-section">
-                        <div class="notice-wrapper">
-                            @foreach ($info_items as $index => $item)
-                                <div class="notice-item">
-                                    <div class="notice-number">
-                                        {{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}
-                                    </div>
-                                    <div class="notice-text">
-                                        <p>{!! $item['Description'] !!}</p>
-                                    </div>
-                                </div>
-                            @endforeach
 
-                        </div>
+                {{-- INFO TAB --}}
+                <div class="hd-tabs__panel" id="tab-info">
+                    <div class="hd-info-list">
+                        @foreach ($info_items as $index => $item)
+                            <div class="hd-info-item">
+                                <div class="hd-info-item__num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</div>
+                                <div class="hd-info-item__text">{!! $item['Description'] !!}</div>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-
-    <div class="continue-bar">
+    {{-- CONTINUE BAR --}}
+    <div class="hd-continue-bar">
         <div class="container">
-            <div class="continue-bar-padding">
-                <div class="row align-items-center justify-content-center">
-                    <div class="col-12 col-md-6">
-                        <div class="details-wrapper">
-                            <div class="details">
-                                <div class="total">Total</div>
-                                <div><span class="dirham">D</span><span class="total-price"
-                                        id="total-room-price">0.00</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <div class="details-btn-wrapper">
-                            <a id="continueBtn" href="{!! route('frontend.hotels.checkout', $hotel['id']) . '?' . http_build_query(request()->query()) !!}" class="btn-primary-custom">
-                                Continue
-                            </a>
-                        </div>
-                    </div>
+            <div class="hd-continue-bar__inner">
+                <div class="hd-continue-bar__price">
+                    <span class="hd-continue-bar__label">Total</span>
+                    <span class="hd-continue-bar__amount"><span class="dirham">D</span> <span id="total-room-price">0.00</span></span>
                 </div>
+                <a id="continueBtn" href="{!! route('user.hotels.checkout', $hotel['id']) . '?' . http_build_query(request()->query()) !!}" class="hd-continue-bar__btn">
+                    Continue
+                </a>
             </div>
         </div>
     </div>
 @endsection
+
 @push('js')
     <script>
+        // Tabs
+        document.querySelectorAll('.hd-tabs__btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.hd-tabs__btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.hd-tabs__panel').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Room selection logic
         const priceEl = document.getElementById('total-room-price');
-        const roomCards = document.querySelectorAll('.room-card');
+        const roomCards = document.querySelectorAll('.hd-room-card');
         const continueBtn = document.getElementById('continueBtn');
         const maxRooms = {{ $roomCount }};
-        const baseUrl = "{!! route('frontend.hotels.checkout', $hotel['id']) . '?' . http_build_query(request()->query()) !!}";
+        const baseUrl = "{!! route('user.hotels.checkout', $hotel['id']) . '?' . http_build_query(request()->query()) !!}";
         const showExtras = @json($show_extras);
 
         const formatPrice = (value) =>
-            Number(value).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
+            Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         function getTotalRoomsSelected() {
             let total = 0;
-            roomCards.forEach(card => {
-                const input = card.querySelector('.room-qty-input');
-                total += parseInt(input.value) || 0;
-            });
+            roomCards.forEach(card => { total += parseInt(card.querySelector('.room-qty-input').value) || 0; });
             return total;
         }
 
         function updateTotalPrice() {
             let total = 0;
             roomCards.forEach(card => {
-                const quantity = parseInt(card.querySelector('.room-qty-input').value) || 0;
-                const price = parseFloat(card.dataset.price);
-                total += quantity * price;
+                const qty = parseInt(card.querySelector('.room-qty-input').value) || 0;
+                total += qty * parseFloat(card.dataset.price);
             });
             priceEl.textContent = formatPrice(total);
         }
 
         function updateContinueUrl() {
-            const params = new URLSearchParams({
-                show_extras: showExtras ? true : false
-            });
-
+            const params = new URLSearchParams({ show_extras: showExtras ? true : false });
             let roomIndex = 1;
-
             roomCards.forEach(card => {
-                const quantity = parseInt(card.querySelector('.room-qty-input').value) || 0;
-
-                if (quantity > 0) {
-                    for (let i = 0; i < quantity; i++) {
+                const qty = parseInt(card.querySelector('.room-qty-input').value) || 0;
+                if (qty > 0) {
+                    for (let i = 0; i < qty; i++) {
                         params.append(`room_${roomIndex}_code`, card.dataset.roomCode);
                         params.append(`room_${roomIndex}_board_code`, card.dataset.boardCode);
                         params.append(`room_${roomIndex}_board_title`, card.dataset.boardTitle);
@@ -425,78 +282,51 @@
                     }
                 }
             });
-
             params.append('selected_rooms', getTotalRoomsSelected());
-
             const separator = baseUrl.includes('?') ? '&' : '?';
             continueBtn.href = baseUrl + separator + params.toString();
         }
 
         function updateRoomCardState(card) {
-            const input = card.querySelector('.room-qty-input');
-            const quantity = parseInt(input.value) || 0;
-
-            if (quantity > 0) {
-                card.classList.add('room-card--selected');
-            } else {
-                card.classList.remove('room-card--selected');
-            }
+            const qty = parseInt(card.querySelector('.room-qty-input').value) || 0;
+            card.classList.toggle('hd-room-card--selected', qty > 0);
         }
 
         function incrementRoom(button) {
-            const card = button.closest('.room-card');
+            const card = button.closest('.hd-room-card');
             const input = card.querySelector('.room-qty-input');
             const currentTotal = getTotalRoomsSelected();
             const currentValue = parseInt(input.value) || 0;
-            const max = parseInt(input.max);
 
             if (currentTotal >= maxRooms) {
-                showMessage(`You can only select ${maxRooms} room(s) in total.`, "error");
+                showToast(`You can only select ${maxRooms} room(s) in total.`, "error");
                 return;
             }
-
-            if (currentValue < max) {
+            if (currentValue < parseInt(input.max)) {
                 input.value = currentValue + 1;
-                updateRoomCardState(card);
-                updateTotalPrice();
-                updateContinueUrl();
+                updateRoomCardState(card); updateTotalPrice(); updateContinueUrl();
             }
         }
 
         function decrementRoom(button) {
-            const card = button.closest('.room-card');
+            const card = button.closest('.hd-room-card');
             const input = card.querySelector('.room-qty-input');
             const currentValue = parseInt(input.value) || 0;
-            const min = parseInt(input.min);
 
-            if (currentValue > min) {
+            if (currentValue > parseInt(input.min)) {
                 input.value = currentValue - 1;
-                updateRoomCardState(card);
-                updateTotalPrice();
-                updateContinueUrl();
+                updateRoomCardState(card); updateTotalPrice(); updateContinueUrl();
             }
         }
 
         continueBtn.addEventListener('click', (e) => {
             const totalCount = getTotalRoomsSelected();
-
             if (totalCount !== maxRooms) {
                 e.preventDefault();
-                showMessage(
-                    `Please select exactly ${maxRooms} room(s) before continuing.`,
-                    "error"
-                );
-
-                const roomsTab = document.getElementById('pills-profile-tab');
-                roomsTab?.click();
-
+                showToast(`Please select exactly ${maxRooms} room(s) before continuing.`, "error");
+                document.querySelector('.hd-tabs__btn[data-tab="rooms"]')?.click();
                 setTimeout(() => {
-                    document
-                        .querySelector('.hotel-detail__tabs')
-                        ?.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
+                    document.querySelector('.hd-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }, 100);
             }
         });

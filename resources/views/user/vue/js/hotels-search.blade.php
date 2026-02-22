@@ -82,6 +82,19 @@
             const hotelNationality = ref('UAE');
             const hotelResidence = ref('UAE');
             const countryOptions = ref(['UAE', 'Saudi Arabia', 'Oman', 'Bahrain', 'Kuwait', 'Qatar', 'India', 'Pakistan', 'United Kingdom', 'United States']);
+            const nationalitySearch = ref('');
+            const residenceSearch = ref('');
+
+            const filteredNationalityOptions = computed(() => {
+                if (!nationalitySearch.value) return countryOptions.value;
+                const q = nationalitySearch.value.toLowerCase();
+                return countryOptions.value.filter(c => c.toLowerCase().includes(q));
+            });
+            const filteredResidenceOptions = computed(() => {
+                if (!residenceSearch.value) return countryOptions.value;
+                const q = residenceSearch.value.toLowerCase();
+                return countryOptions.value.filter(c => c.toLowerCase().includes(q));
+            });
 
             const {
                 open: hotelNationalityOpen,
@@ -206,13 +219,14 @@
                 /* =========================
                    ROOMS
                 ========================= */
-                const roomCount = parseInt(urlParams.room_count || 0);
+                const roomCount = parseInt(urlParams.room_count || 1);
                 hotelRoomCount.value = roomCount;
 
                 await nextTick();
 
                 for (let i = 0; i < roomCount; i++) {
                     const room = hotelRooms.value[i];
+                    if (!room) continue;
 
                     room.adults = parseInt(urlParams[`room_${i + 1}_adults`] || 1);
                     room.children = parseInt(urlParams[`room_${i + 1}_children`] || 0);
@@ -347,11 +361,16 @@
                 toggleHotelNationality,
                 hotelResidenceOpen,
                 hotelResidenceRef,
-                toggleHotelResidence
+                toggleHotelResidence,
+                nationalitySearch,
+                residenceSearch,
+                filteredNationalityOptions,
+                filteredResidenceOptions
             };
         },
     });
-    HotelSearch.mount('#hotels-search');
+    const hotelSearchInstance = HotelSearch.mount('#hotels-search');
+    window.__hotelSearchVue = hotelSearchInstance;
 </script>
 @push('css')
     <link rel="stylesheet" href="{{ asset('user/assets/css/daterangepicker.css') }}" />
@@ -393,6 +412,15 @@
             $input.on("apply.daterangepicker", function(ev, picker) {
                 $input.val(picker.startDate.format(format));
                 updateDateDisplay(displayPrefix, picker.startDate);
+
+                // Sync back to Vue refs
+                if (window.__hotelSearchVue) {
+                    if (inputId === 'hotel-checkin-input') {
+                        window.__hotelSearchVue.hotelCheckInDate = picker.startDate.clone();
+                    } else if (inputId === 'hotel-checkout-input') {
+                        window.__hotelSearchVue.hotelCheckOutDate = picker.startDate.clone();
+                    }
+                }
             });
 
             $wrapper.on("click", function(e) {
