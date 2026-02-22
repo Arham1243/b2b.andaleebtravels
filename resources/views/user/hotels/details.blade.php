@@ -135,32 +135,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        {{-- Map --}}
-                        <div class="hd-sidebar__section">
-                            <h4 class="hd-sidebar__title">Location</h4>
-                            <div class="hd-map">
-                                <iframe
-                                    src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
-                                    width="100%" height="200" frameborder="0" style="border:0; border-radius: 0.5rem;"
-                                    allowfullscreen=""></iframe>
-                            </div>
-                        </div>
-
-                        {{-- Hotel Info --}}
-                        @if (count($info_items) > 0)
-                        <div class="hd-sidebar__section">
-                            <h4 class="hd-sidebar__title">Hotel Information</h4>
-                            <div class="hd-sidebar__info-list">
-                                @foreach ($info_items as $index => $item)
-                                    <div class="hd-sidebar__info-item">
-                                        <span class="hd-sidebar__info-num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
-                                        <div class="hd-sidebar__info-text">{!! $item['Description'] !!}</div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -170,6 +144,10 @@
                 <div class="hd-tabs__nav">
                     <button class="hd-tabs__btn active" data-tab="overview">Overview</button>
                     <button class="hd-tabs__btn" data-tab="rooms">Rooms</button>
+                    <button class="hd-tabs__btn" data-tab="location">Location</button>
+                    @if (count($info_items) > 0)
+                        <button class="hd-tabs__btn" data-tab="info">Hotel Information</button>
+                    @endif
                 </div>
 
                 {{-- OVERVIEW TAB --}}
@@ -181,6 +159,36 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- LOCATION TAB --}}
+                <div class="hd-tabs__panel" id="tab-location">
+                    <div class="hd-content-box">
+                        <h3 class="hd-content-box__title">Location</h3>
+                        <div class="hd-map">
+                            <iframe
+                                src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
+                                width="100%" height="400" frameborder="0" style="border:0; border-radius: 0.5rem;"
+                                allowfullscreen=""></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- INFO TAB --}}
+                @if (count($info_items) > 0)
+                <div class="hd-tabs__panel" id="tab-info">
+                    <div class="hd-content-box">
+                        <h3 class="hd-content-box__title">Hotel Information</h3>
+                        <div class="hd-sidebar__info-list">
+                            @foreach ($info_items as $index => $item)
+                                <div class="hd-sidebar__info-item">
+                                    <span class="hd-sidebar__info-num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
+                                    <div class="hd-sidebar__info-text">{!! $item['Description'] !!}</div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 {{-- ROOMS TAB --}}
                 <div class="hd-tabs__panel" id="tab-rooms">
