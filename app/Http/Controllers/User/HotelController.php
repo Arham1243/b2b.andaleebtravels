@@ -68,7 +68,7 @@ class HotelController extends Controller
 
         if ($hotelIds->isNotEmpty()) {
             // 3. Fetch availability from API
-            // $hotels = $this->fetchAvailability($hotelIds, $rooms, $request);
+            $hotels = $this->fetchAvailability($hotelIds, $rooms, $request);
 
             // 4. Apply filters
             $hotels = $this->applyFilters($hotels, $request);
