@@ -200,7 +200,6 @@
 
                 /* =========================
                    DATES — deferred until daterangepicker is ready
-                   (moment.js + daterangepicker load after Vue via @stack)
                 ========================= */
                 window.__hotelSearchPopulateDates = function() {
                     const checkInMoment = urlParams.check_in ?
