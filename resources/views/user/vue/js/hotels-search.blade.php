@@ -150,87 +150,8 @@
                 }
             });
 
-            function getUrlParams() {
-                const params = new URLSearchParams(window.location.search);
-                const obj = {};
-
-                for (const [key, value] of params.entries()) {
-                    obj[key] = value;
-                }
-
-                return obj;
-            }
-
-            onMounted(async () => {
+            onMounted(() => {
                 loadHotelDestinations('a');
-
-                const urlParams = getUrlParams();
-
-                /* =========================
-                   DESTINATION
-                ========================= */
-                if (urlParams.destination) {
-                    hotelDestinationInputValue.value = urlParams.destination;
-                    selectedHotelDestination.value = urlParams.destination;
-                }
-
-                /* =========================
-                   ROOMS
-                ========================= */
-                const roomCount = parseInt(urlParams.room_count || 1);
-                hotelRoomCount.value = roomCount;
-
-                await nextTick();
-
-                for (let i = 0; i < roomCount; i++) {
-                    const room = hotelRooms.value[i];
-                    if (!room) continue;
-
-                    room.adults = parseInt(urlParams[`room_${i + 1}_adults`] || 1);
-                    room.children = parseInt(urlParams[`room_${i + 1}_children`] || 0);
-
-                    await nextTick();
-
-                    for (let c = 0; c < room.children; c++) {
-                        const ageKey = `room_${i + 1}_child_age_${c + 1}`;
-                        const ageVal = urlParams[ageKey];
-                        room.childAges[c] = ageVal ? parseInt(ageVal) : '';
-                    }
-                }
-
-                /* =========================
-                   DATES — deferred until daterangepicker is ready
-                ========================= */
-                window.__hotelSearchPopulateDates = function() {
-                    const checkInMoment = urlParams.check_in ?
-                        moment(urlParams.check_in, 'MMM D, YYYY') : null;
-                    const checkOutMoment = urlParams.check_out ?
-                        moment(urlParams.check_out, 'MMM D, YYYY') : null;
-
-                    const checkInPicker = $('#hotel-checkin-input').data('daterangepicker');
-                    const checkOutPicker = $('#hotel-checkout-input').data('daterangepicker');
-
-                    if (checkInMoment?.isValid() && checkInPicker) {
-                        $('#hotel-checkin-input').val(checkInMoment.format('MMM D, YYYY'));
-                        updateDateDisplay('hotel-checkin', checkInMoment);
-                        checkInPicker.setStartDate(checkInMoment);
-                        hotelCheckInDate.value = checkInMoment.clone();
-
-                        if (checkOutPicker) {
-                            checkOutPicker.minDate = checkInMoment.clone();
-                            checkOutPicker.setStartDate(
-                                checkOutMoment?.isValid() && checkOutMoment.isSameOrAfter(checkInMoment) ?
-                                checkOutMoment : checkInMoment.clone()
-                            );
-                        }
-                    }
-
-                    if (checkOutMoment?.isValid() && checkOutPicker) {
-                        $('#hotel-checkout-input').val(checkOutMoment.format('MMM D, YYYY'));
-                        updateDateDisplay('hotel-checkout', checkOutMoment);
-                        hotelCheckOutDate.value = checkOutMoment.clone();
-                    }
-                };
             });
 
             const incrementHotelGuests = (roomIndex, key) => {
@@ -379,13 +300,76 @@
             initSingleDatePicker("hotel-checkin-box", "hotel-checkin-input", "hotel-checkin");
             initSingleDatePicker("hotel-checkout-box", "hotel-checkout-input", "hotel-checkout");
 
-            // Populate dates from URL params after pickers are ready
-            if (typeof window.__hotelSearchPopulateDates === 'function') {
-                window.__hotelSearchPopulateDates();
-            }
-
             const $checkinInput = $("#hotel-checkin-input");
             const $checkoutInput = $("#hotel-checkout-input");
+
+            // Populate all search fields from URL params via jQuery
+            (function populateFromUrl() {
+                const params = new URLSearchParams(window.location.search);
+                const vue = window.__hotelSearchVue;
+                if (!vue) return;
+
+                // Destination
+                const dest = params.get('destination');
+                if (dest) {
+                    vue.hotelDestinationInputValue = dest;
+                    vue.selectedHotelDestination = dest;
+                }
+
+                // Rooms & Guests
+                const roomCount = parseInt(params.get('room_count') || 1);
+                vue.hotelRoomCount = roomCount;
+
+                setTimeout(() => {
+                    for (let i = 0; i < roomCount; i++) {
+                        const room = vue.hotelRooms[i];
+                        if (!room) continue;
+                        room.adults = parseInt(params.get(`room_${i + 1}_adults`) || 1);
+                        room.children = parseInt(params.get(`room_${i + 1}_children`) || 0);
+                    }
+
+                    setTimeout(() => {
+                        for (let i = 0; i < roomCount; i++) {
+                            const room = vue.hotelRooms[i];
+                            if (!room) continue;
+                            for (let c = 0; c < room.children; c++) {
+                                const ageVal = params.get(`room_${i + 1}_child_age_${c + 1}`);
+                                if (ageVal) room.childAges[c] = parseInt(ageVal);
+                            }
+                        }
+                    }, 50);
+                }, 50);
+
+                // Dates
+                const checkIn = params.get('check_in');
+                const checkOut = params.get('check_out');
+
+                if (checkIn) {
+                    const checkInMoment = moment(checkIn, 'MMM D, YYYY');
+                    if (checkInMoment.isValid()) {
+                        const checkinPicker = $checkinInput.data('daterangepicker');
+                        if (checkinPicker) {
+                            checkinPicker.setStartDate(checkInMoment);
+                            $checkinInput.val(checkInMoment.format('MMM D, YYYY'));
+                            updateDateDisplay('hotel-checkin', checkInMoment);
+                            vue.hotelCheckInDate = checkInMoment.clone();
+                        }
+                    }
+                }
+
+                if (checkOut) {
+                    const checkOutMoment = moment(checkOut, 'MMM D, YYYY');
+                    if (checkOutMoment.isValid()) {
+                        const checkoutPicker = $checkoutInput.data('daterangepicker');
+                        if (checkoutPicker) {
+                            checkoutPicker.setStartDate(checkOutMoment);
+                            $checkoutInput.val(checkOutMoment.format('MMM D, YYYY'));
+                            updateDateDisplay('hotel-checkout', checkOutMoment);
+                            vue.hotelCheckOutDate = checkOutMoment.clone();
+                        }
+                    }
+                }
+            })();
 
             // Sync checkout with checkin
             $checkinInput.on("apply.daterangepicker", function(ev, picker) {

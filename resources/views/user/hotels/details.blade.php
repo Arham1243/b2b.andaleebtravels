@@ -33,36 +33,10 @@
                 ])
             </div>
 
-            {{-- MAIN LAYOUT: Images (col-8) + Sidebar (col-4) --}}
+            {{-- MAIN LAYOUT: Images (col-8) + Details Sidebar (col-4) --}}
             <div class="row">
                 {{-- LEFT: Images --}}
                 <div class="col-lg-8">
-                    {{-- HOTEL HEADER --}}
-                    <div class="hd-header">
-                        <div class="hd-header__info">
-                            <h1 class="hd-header__name">{{ $hotel['name'] }}</h1>
-                            <div class="hd-header__location">
-                                <i class="bx bx-map"></i> {{ $hotel['address'] }}
-                            </div>
-                            @if ($hotel['rating'])
-                                <div class="hd-header__rating">
-                                    <div class="hd-header__stars">
-                                        @for ($i = 1; $i <= 5; $i++)
-                                            <i class="bx bxs-star"
-                                                style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
-                                        @endfor
-                                    </div>
-                                    <span class="hd-header__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
-                                    <span class="hd-header__rating-text">{{ $hotel['rating_text'] }}</span>
-                                </div>
-                            @endif
-                        </div>
-                        <div class="hd-header__price-box">
-                            <span class="hd-header__price-label">Price from</span>
-                            <div class="hd-header__price">{{ formatPrice($hotel['price']) }}</div>
-                        </div>
-                    </div>
-
                     {{-- IMAGE GALLERY (Slick) --}}
                     <div class="hd-gallery">
                         <div class="hd-gallery__main" id="hd-slider-main">
@@ -87,9 +61,33 @@
                     </div>
                 </div>
 
-                {{-- RIGHT: Booking Details Sidebar --}}
+                {{-- RIGHT: Hotel Details + Booking Sidebar --}}
                 <div class="col-lg-4">
                     <div class="hd-sidebar">
+                        {{-- Hotel Name & Rating --}}
+                        <div class="hd-sidebar__section">
+                            <h1 class="hd-sidebar__hotel-name">{{ $hotel['name'] }}</h1>
+                            <div class="hd-sidebar__hotel-location">
+                                <i class="bx bx-map"></i> {{ $hotel['address'] }}
+                            </div>
+                            @if ($hotel['rating'])
+                                <div class="hd-sidebar__hotel-rating">
+                                    <div class="hd-header__stars">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <i class="bx bxs-star"
+                                                style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
+                                        @endfor
+                                    </div>
+                                    <span class="hd-header__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
+                                    <span class="hd-header__rating-text">{{ $hotel['rating_text'] }}</span>
+                                </div>
+                            @endif
+                            <div class="hd-sidebar__hotel-price">
+                                <span class="hd-sidebar__price-label">Price from</span>
+                                <span class="hd-sidebar__price-value">{{ formatPrice($hotel['price']) }}</span>
+                            </div>
+                        </div>
+
                         {{-- Booking Summary --}}
                         <div class="hd-sidebar__section">
                             <h4 class="hd-sidebar__title">Booking Details</h4>
