@@ -1,4 +1,3 @@
-@push('js')
 <script>
     const hotelsDataPromise = Promise.all([
         fetch("{{ asset('user/mocks/yalago_countries.json') }}").then(r => r.json()),
@@ -146,4 +145,3 @@
         });
     };
 </script>
-@endpush

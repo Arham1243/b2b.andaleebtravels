@@ -1,5 +1,5 @@
-@include('user.vue.services.hotels-search')
 @push('js')
+@include('user.vue.services.hotels-search')
 <script>
     const HotelSearch = createApp({
         setup() {
