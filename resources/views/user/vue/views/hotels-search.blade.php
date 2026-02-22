@@ -11,7 +11,7 @@
                         <input type="text" autocomplete="off" class="hs-field__input" v-model="hotelDestinationInputValue"
                             @input="hotelDestinationQuery = hotelDestinationInputValue" placeholder="Select Destination"
                             ref="hotelDestinationInputRef" name="destination">
-                        <i class='bx bx-current-location hs-field__icon'></i>
+                        <i class='bx bx-world hs-field__icon'></i>
                     </div>
                 </div>
 
