@@ -1,4 +1,5 @@
 @include('user.vue.services.hotels-search')
+@push('js')
 <script>
     const HotelSearch = createApp({
         setup() {
@@ -313,6 +314,7 @@
     const hotelSearchInstance = HotelSearch.mount('#hotels-search');
     window.__hotelSearchVue = hotelSearchInstance;
 </script>
+@endpush
 @push('css')
     <link rel="stylesheet" href="{{ asset('user/assets/css/daterangepicker.css') }}" />
 @endpush

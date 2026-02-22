@@ -45,6 +45,4 @@
         };
     </script>
 @endpush
-@push('js')
-    @include('user.vue.js.' . $appJs)
-@endpush
+@include('user.vue.js.' . $appJs)
