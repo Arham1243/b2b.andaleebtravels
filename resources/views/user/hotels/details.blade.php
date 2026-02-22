@@ -44,7 +44,8 @@
                         <div class="hd-header__rating">
                             <div class="hd-header__stars">
                                 @for ($i = 1; $i <= 5; $i++)
-                                    <i class="bx bxs-star" style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
+                                    <i class="bx bxs-star"
+                                        style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
                                 @endfor
                             </div>
                             <span class="hd-header__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
@@ -58,18 +59,23 @@
                 </div>
             </div>
 
-            {{-- IMAGE GALLERY --}}
+            {{-- IMAGE GALLERY (Slick) --}}
             <div class="hd-gallery">
-                <div class="hd-gallery__main">
-                    @if (count($hotel['images']) > 0)
-                        <img src="{{ $hotel['images'][0]['Url'] ?? asset('user/assets/images/placeholder.png') }}"
-                            alt="{{ $hotel['name'] }}" id="hd-main-img" />
+                <div class="hd-gallery__main" id="hd-slider-main">
+                    @foreach ($hotel['images'] as $img)
+                        <div class="hd-gallery__slide">
+                            <img src="{{ $img['Url'] ?? asset('user/assets/images/placeholder.png') }}" alt="{{ $hotel['name'] }}" />
+                        </div>
+                    @endforeach
+                    @if (count($hotel['images']) === 0)
+                        <div class="hd-gallery__slide">
+                            <img src="{{ asset('user/assets/images/placeholder.png') }}" alt="{{ $hotel['name'] }}" />
+                        </div>
                     @endif
                 </div>
-                <div class="hd-gallery__thumbs">
-                    @foreach ($hotel['images'] as $idx => $img)
-                        <div class="hd-gallery__thumb {{ $idx === 0 ? 'active' : '' }}"
-                            onclick="document.getElementById('hd-main-img').src='{{ $img['Url'] }}'; document.querySelectorAll('.hd-gallery__thumb').forEach(t=>t.classList.remove('active')); this.classList.add('active');">
+                <div class="hd-gallery__thumbs" id="hd-slider-nav">
+                    @foreach ($hotel['images'] as $img)
+                        <div class="hd-gallery__thumb">
                             <img src="{{ $img['Url'] ?? asset('user/assets/images/placeholder.png') }}" alt="Thumb" />
                         </div>
                     @endforeach
@@ -80,11 +86,14 @@
             <div class="hd-quick-info">
                 <div class="hd-quick-info__item">
                     <i class="bx bxs-moon"></i>
-                    <span>{{ $startDate->format('d M') }} &mdash; {{ $endDate->format('d M Y') }} &middot; {{ $nights }} night{{ $nights > 1 ? 's' : '' }}</span>
+                    <span>{{ $startDate->format('d M') }} - {{ $endDate->format('d M Y') }} &middot; {{ $nights }}
+                        night{{ $nights > 1 ? 's' : '' }}</span>
                 </div>
                 <div class="hd-quick-info__item">
                     <i class="bx bxs-group"></i>
-                    <span>{{ $adults }} Adult{{ $adults > 1 ? 's' : '' }}{{ $children > 0 ? ', ' . $children . ' Child' . ($children > 1 ? 'ren' : '') : '' }}, {{ $roomCount }} Room{{ $roomCount > 1 ? 's' : '' }}</span>
+                    <span>{{ $adults }}
+                        Adult{{ $adults > 1 ? 's' : '' }}{{ $children > 0 ? ', ' . $children . ' Child' . ($children > 1 ? 'ren' : '') : '' }},
+                        {{ $roomCount }} Room{{ $roomCount > 1 ? 's' : '' }}</span>
                 </div>
             </div>
 
@@ -109,7 +118,8 @@
                         </div>
                         <div class="col-lg-4">
                             <div class="hd-map">
-                                <iframe src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
+                                <iframe
+                                    src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
                                     width="100%" height="350" frameborder="0" style="border:0; border-radius: 0.75rem;"
                                     allowfullscreen=""></iframe>
                             </div>
@@ -156,19 +166,25 @@
                                         <div class="hd-room-card__policies">
                                             @foreach ($board['CancellationPolicy']['CancellationCharges'] ?? [] as $policy)
                                                 @php
-                                                    $expiry = \Carbon\Carbon::parse($policy['ExpiryDateUTC'])->format('d M Y');
+                                                    $expiry = \Carbon\Carbon::parse($policy['ExpiryDateUTC'])->format(
+                                                        'd M Y',
+                                                    );
                                                     $amount = $policy['Charge']['Amount'] ?? 0;
                                                     $isFree = $amount == 0;
                                                 @endphp
-                                                <div class="hd-room-card__policy {{ $isFree ? 'hd-room-card__policy--free' : 'hd-room-card__policy--fee' }}">
+                                                <div
+                                                    class="hd-room-card__policy {{ $isFree ? 'hd-room-card__policy--free' : 'hd-room-card__policy--fee' }}">
                                                     <div class="hd-room-card__policy-left">
-                                                        <i class="bx {{ $isFree ? 'bxs-check-circle' : 'bxs-info-circle' }}"></i>
-                                                        <span>{{ $isFree ? 'Free cancellation until' : 'Cancellation after' }} <strong>{{ $expiry }}</strong></span>
+                                                        <i
+                                                            class="bx {{ $isFree ? 'bxs-check-circle' : 'bxs-info-circle' }}"></i>
+                                                        <span>{{ $isFree ? 'Free cancellation until' : 'Cancellation after' }}
+                                                            <strong>{{ $expiry }}</strong></span>
                                                     </div>
                                                     @if ($isFree)
                                                         <span class="hd-room-card__policy-badge">FREE</span>
                                                     @else
-                                                        <span class="hd-room-card__policy-price">{{ formatPrice($amount) }}</span>
+                                                        <span
+                                                            class="hd-room-card__policy-price">{{ formatPrice($amount) }}</span>
                                                     @endif
                                                 </div>
                                             @endforeach
@@ -183,8 +199,8 @@
                                                 <button onclick="decrementRoom(this)" class="hd-qty-btn" type="button">
                                                     <i class="bx bx-minus"></i>
                                                 </button>
-                                                <input type="number" class="hd-qty-input room-qty-input"
-                                                    value="0" readonly min="0" max="{{ $roomCount }}">
+                                                <input type="number" class="hd-qty-input room-qty-input" value="0"
+                                                    readonly min="0" max="{{ $roomCount }}">
                                                 <button onclick="incrementRoom(this)" class="hd-qty-btn" type="button">
                                                     <i class="bx bx-plus"></i>
                                                 </button>
@@ -218,7 +234,8 @@
             <div class="hd-continue-bar__inner">
                 <div class="hd-continue-bar__price">
                     <span class="hd-continue-bar__label">Total</span>
-                    <span class="hd-continue-bar__amount"><span class="dirham">D</span> <span id="total-room-price">0.00</span></span>
+                    <span class="hd-continue-bar__amount"><span class="dirham">D</span> <span
+                            id="total-room-price">0.00</span></span>
                 </div>
                 <a id="continueBtn" href="{!! route('user.hotels.checkout', $hotel['id']) . '?' . http_build_query(request()->query()) !!}" class="hd-continue-bar__btn">
                     Continue
@@ -249,11 +266,16 @@
         const showExtras = @json($show_extras);
 
         const formatPrice = (value) =>
-            Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            Number(value).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
 
         function getTotalRoomsSelected() {
             let total = 0;
-            roomCards.forEach(card => { total += parseInt(card.querySelector('.room-qty-input').value) || 0; });
+            roomCards.forEach(card => {
+                total += parseInt(card.querySelector('.room-qty-input').value) || 0;
+            });
             return total;
         }
 
@@ -267,7 +289,9 @@
         }
 
         function updateContinueUrl() {
-            const params = new URLSearchParams({ show_extras: showExtras ? true : false });
+            const params = new URLSearchParams({
+                show_extras: showExtras ? true : false
+            });
             let roomIndex = 1;
             roomCards.forEach(card => {
                 const qty = parseInt(card.querySelector('.room-qty-input').value) || 0;
@@ -299,12 +323,14 @@
             const currentValue = parseInt(input.value) || 0;
 
             if (currentTotal >= maxRooms) {
-                showToast(`You can only select ${maxRooms} room(s) in total.`, "error");
+                showToast("error", `You can only select ${maxRooms} room(s) in total.`);
                 return;
             }
             if (currentValue < parseInt(input.max)) {
                 input.value = currentValue + 1;
-                updateRoomCardState(card); updateTotalPrice(); updateContinueUrl();
+                updateRoomCardState(card);
+                updateTotalPrice();
+                updateContinueUrl();
             }
         }
 
@@ -315,7 +341,9 @@
 
             if (currentValue > parseInt(input.min)) {
                 input.value = currentValue - 1;
-                updateRoomCardState(card); updateTotalPrice(); updateContinueUrl();
+                updateRoomCardState(card);
+                updateTotalPrice();
+                updateContinueUrl();
             }
         }
 
@@ -323,12 +351,48 @@
             const totalCount = getTotalRoomsSelected();
             if (totalCount !== maxRooms) {
                 e.preventDefault();
-                showToast(`Please select exactly ${maxRooms} room(s) before continuing.`, "error");
+                showToast("error",`Please select exactly ${maxRooms} room(s) before continuing.`);
                 document.querySelector('.hd-tabs__btn[data-tab="rooms"]')?.click();
                 setTimeout(() => {
-                    document.querySelector('.hd-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    document.querySelector('.hd-tabs')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
                 }, 100);
             }
         });
     </script>
+    <script src="{{ asset('user/assets/js/slick.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            $('#hd-slider-main').slick({
+                slidesToShow: 1,
+                slidesToScroll: 1,
+                arrows: true,
+                fade: true,
+                asNavFor: '#hd-slider-nav',
+                prevArrow: '<button type="button" class="hd-slick-arrow hd-slick-arrow--prev"><i class="bx bx-chevron-left"></i></button>',
+                nextArrow: '<button type="button" class="hd-slick-arrow hd-slick-arrow--next"><i class="bx bx-chevron-right"></i></button>',
+            });
+
+            $('#hd-slider-nav').slick({
+                slidesToShow: 5,
+                slidesToScroll: 1,
+                asNavFor: '#hd-slider-main',
+                dots: false,
+                arrows: false,
+                centerMode: false,
+                focusOnSelect: true,
+                responsive: [
+                    { breakpoint: 768, settings: { slidesToShow: 4 } },
+                    { breakpoint: 480, settings: { slidesToShow: 3 } }
+                ]
+            });
+        });
+    </script>
+@endpush
+
+@push('css')
+    <link rel="stylesheet" href="{{ asset('user/assets/css/slick.css') }}" />
+    <link rel="stylesheet" href="{{ asset('user/assets/css/slick-theme.css') }}" />
 @endpush

@@ -78,8 +78,20 @@ class HotelController extends Controller
 
             $hotels = $this->formatHotels($hotels);
         }
+
+        // Paginate results
+        $perPage = 15;
+        $page = max(1, (int) $request->input('page', 1));
+        $total = $hotels->count();
+        $pagedHotels = $hotels->values()->forPage($page, $perPage)->values();
+        $hasMore = ($page * $perPage) < $total;
+
         return view('user.hotels.search', [
-            'hotels' => $hotels->values()
+            'hotels' => $pagedHotels,
+            'totalHotels' => $total,
+            'currentPage' => $page,
+            'perPage' => $perPage,
+            'hasMore' => $hasMore,
         ]);
     }
 

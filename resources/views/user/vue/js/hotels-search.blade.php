@@ -276,6 +276,16 @@
                     updateDateDisplay('hotel-checkout', checkOutMoment);
                     hotelCheckOutDate.value = checkOutMoment.clone();
                 }
+
+                /* =========================
+                   NATIONALITY & RESIDENCE
+                ========================= */
+                if (urlParams.nationality) {
+                    hotelNationality.value = urlParams.nationality;
+                }
+                if (urlParams.residence) {
+                    hotelResidence.value = urlParams.residence;
+                }
             });
 
             const incrementHotelGuests = (roomIndex, key) => {

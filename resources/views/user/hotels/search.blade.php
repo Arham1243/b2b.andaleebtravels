@@ -39,7 +39,7 @@
             {{-- RESULTS HEADER --}}
             <div class="hl-results-header">
                 <div class="hl-results-header__left">
-                    <span class="hl-results-count">{{ $hotels->count() }} results found</span>
+                    <span class="hl-results-count">{{ $totalHotels }} results found</span>
                     @if (count($userFilters) > 0)
                         <a href="{{ route('user.hotels.search', $query) }}" class="hl-reset-btn">
                             <i class="bx bx-refresh"></i> Reset Filters
@@ -218,6 +218,13 @@
                                             {{ $hotel['location'] ?? '' }}{{ $hotel['province'] ? ', ' . $hotel['province'] : '' }}
                                         </div>
 
+                                        <div class="hl-card__meta">
+                                            <span><i class="bx bxs-moon"></i> {{ $nights }} night{{ $nights > 1 ? 's' : '' }}</span>
+                                            @if ($hotel['boards']->isNotEmpty())
+                                                <span><i class="bx bx-restaurant"></i> {{ $hotel['boards']->implode(' | ') }}</span>
+                                            @endif
+                                        </div>
+                                        
                                         @if ($hotel['rating'])
                                             <div class="hl-card__rating">
                                                 <div class="hl-card__stars">
@@ -229,13 +236,6 @@
                                                 <span class="hl-card__rating-text">{{ $hotel['rating_text'] }}</span>
                                             </div>
                                         @endif
-
-                                        <div class="hl-card__meta">
-                                            <span><i class="bx bxs-moon"></i> {{ $nights }} night{{ $nights > 1 ? 's' : '' }}</span>
-                                            @if ($hotel['boards']->isNotEmpty())
-                                                <span><i class="bx bx-restaurant"></i> {{ $hotel['boards']->implode(' | ') }}</span>
-                                            @endif
-                                        </div>
                                     </div>
                                     <div class="hl-card__price-col">
                                         @if ($hotel['price'])
@@ -243,11 +243,26 @@
                                             <div class="hl-card__price">{{ formatPrice($hotel['price']) }}</div>
                                         @endif
                                         <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
-                                            class="hl-card__btn">View Details</a>
+                                            class="hl-card__btn">Select Room</a>
                                     </div>
                                 </div>
                             </div>
                         @endforeach
+
+                        {{-- Pagination --}}
+                        <div class="hl-pagination">
+                            <div class="hl-pagination__info">
+                                Showing {{ min($currentPage * $perPage, $totalHotels) }} of {{ $totalHotels }} hotels
+                            </div>
+                            @if ($hasMore)
+                                @php
+                                    $nextPageUrl = url()->current() . '?' . http_build_query(array_merge(request()->query(), ['page' => $currentPage + 1]));
+                                @endphp
+                                <a href="{{ $nextPageUrl }}" class="hl-pagination__btn">
+                                    Show More <i class="bx bx-chevron-down"></i>
+                                </a>
+                            @endif
+                        </div>
                     @else
                         <div class="hl-empty">
                             <i class="bx bx-search-alt"></i>
