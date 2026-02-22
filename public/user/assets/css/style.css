@@ -3922,8 +3922,8 @@ body .search-box__input.search-box__input {
 }
 .hs-search-btn {
     background: #fff;
-    color: #8b7e6a;
-    border: 2px solid #8b7e6a;
+    color: var(--color-primary);
+    border: 2px solid var(--color-primary);
     border-radius: 0.35rem;
     padding: 10px 28px;
     font-size: 0.9rem;
@@ -3936,7 +3936,7 @@ body .search-box__input.search-box__input {
     align-items: center;
 }
 .hs-search-btn:hover {
-    background: #8b7e6a;
+    background: var(--color-primary);
     color: #fff;
 }
 .hs-search-btn:disabled {

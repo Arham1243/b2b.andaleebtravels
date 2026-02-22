@@ -119,7 +119,7 @@
             try {
                 const {
                     data
-                } = await axios.get(`{{ url('hotels/search-hotels') }}?q=${q}`);
+                } = await axios.get(`{{ route('user.hotels.search-hotels') }}?q=${q}`);
                 return formatHotels({
                     countries: [],
                     provinces: [],
