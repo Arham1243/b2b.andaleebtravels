@@ -3712,3 +3712,323 @@ body .search-box__input.search-box__input {
     border-bottom: 1px solid #d4d4d4;
 }
 /* dropdown */
+
+/* ===== Hotel Search Redesign ===== */
+.hotel-search-redesign {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 0 15px 1px #0000001a;
+}
+.hotel-search-redesign__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+/* Rows */
+.hs-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+}
+.hs-row--top {
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+    overflow: visible;
+    margin-bottom: 0.75rem;
+}
+.hs-row--bottom {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Fields */
+.hs-field {
+    position: relative;
+}
+.hs-field__inner {
+    padding: 10px 14px;
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.hs-field__label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+    color: #8b7e6a;
+    margin-bottom: 2px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+.hs-field__label i {
+    font-size: 13px;
+}
+.hs-field__value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.3;
+}
+.hs-field__value-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.hs-field__input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+    width: 100%;
+    padding: 0;
+    line-height: 1.4;
+}
+.hs-field__input::placeholder {
+    color: #333;
+}
+.hs-field__icon {
+    font-size: 1.1rem;
+    color: #999;
+    flex-shrink: 0;
+}
+
+/* Destination field */
+.hs-field--destination {
+    flex: 1;
+    min-width: 0;
+    border-right: 1px solid #ddd;
+}
+
+/* Date fields */
+.hs-field--date {
+    min-width: 182px;
+    flex-shrink: 0;
+    position: relative;
+}
+.hs-field--date .hs-field__inner {
+    padding: 8px 14px;
+}
+.hs-field--date .daterangepicker {
+    top: 100% !important;
+    left: 0 !important;
+    right: auto !important;
+    z-index: 1050;
+}
+
+/* Date display: big day number + month/weekday */
+.hs-date-display {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin-top: 2px;
+}
+.hs-date-display__day {
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: #333;
+    line-height: 1;
+}
+.hs-date-display__meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+.hs-date-display__month {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #555;
+}
+.hs-date-display__weekday {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #888;
+}
+
+/* Night badge */
+.hs-night-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    flex-shrink: 0;
+    min-width: 48px;
+    align-self: center;
+}
+.hs-night-badge__count {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #333;
+    line-height: 1;
+}
+.hs-night-badge__label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+/* Bottom row fields */
+.hs-field--rooms {
+    position: relative;
+}
+.hs-field--rooms .hs-field__inner,
+.hs-field--small .hs-field__inner {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 0.35rem;
+    background: #fff;
+    min-height: 48px;
+}
+.hs-field--rooms .hs-field__inner:hover,
+.hs-field--small .hs-field__inner:hover {
+    border-color: #bbb;
+}
+.hs-rooms-text {
+    font-size: 0.85rem;
+    color: #333;
+    font-weight: 500;
+}
+.hs-rooms-text strong {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+/* Small fields (nationality, residence) */
+.hs-field--small {
+    position: relative;
+    min-width: 100px;
+}
+
+/* Search button */
+.hs-field--btn {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+.hs-search-btn {
+    background: #fff;
+    color: #8b7e6a;
+    border: 2px solid #8b7e6a;
+    border-radius: 0.35rem;
+    padding: 10px 28px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    height: 48px;
+    display: flex;
+    align-items: center;
+}
+.hs-search-btn:hover {
+    background: #8b7e6a;
+    color: #fff;
+}
+.hs-search-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Dropdown overrides for redesigned fields */
+.hs-field--destination .options-dropdown-wrapper--from {
+    width: 100%;
+    min-width: 300px;
+}
+.hs-field--rooms .options-dropdown-wrapper--pax,
+.hs-field--small .options-dropdown-wrapper--pax {
+    min-width: 250px;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+    .hs-row--top {
+        flex-direction: column;
+        border: none;
+        gap: 0.5rem;
+    }
+    .hs-field--destination {
+        border-right: none;
+        border: 1px solid #ddd;
+        border-radius: 0.5rem;
+    }
+    .hs-field--date {
+        border: 1px solid #ddd;
+        border-radius: 0.5rem;
+    }
+    .hs-night-badge {
+        flex-direction: row;
+        gap: 4px;
+        padding: 4px 0;
+    }
+    .hs-row--bottom {
+        flex-wrap: wrap;
+    }
+    .hs-field--btn {
+        width: 100%;
+        margin-left: 0;
+    }
+    .hs-search-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+/* Sidebar cards */
+.hs-sidebar-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+.hs-sidebar-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #fff;
+    border-radius: 0.75rem;
+    padding: 18px 10px;
+    box-shadow: 0 0 10px 1px #0000000d;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s;
+    text-align: center;
+}
+.hs-sidebar-card:hover {
+    box-shadow: 0 2px 16px #0000001a;
+    transform: translateY(-1px);
+}
+.hs-sidebar-card__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 0.5rem;
+    background: var(--color-primary-light, #cd1b4f1a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.hs-sidebar-card__icon i {
+    font-size: 1.3rem;
+    color: var(--color-primary, #cd1b4f);
+}
+.hs-sidebar-card__title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.3;
+}
+/* ===== End Hotel Search Redesign ===== */

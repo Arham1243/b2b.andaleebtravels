@@ -78,6 +78,39 @@
                 return `${roomText}, ${guestText}`;
             });
 
+            // Nationality & Residence
+            const hotelNationality = ref('UAE');
+            const hotelResidence = ref('UAE');
+            const countryOptions = ref(['UAE', 'Saudi Arabia', 'Oman', 'Bahrain', 'Kuwait', 'Qatar', 'India', 'Pakistan', 'United Kingdom', 'United States']);
+
+            const {
+                open: hotelNationalityOpen,
+                wrapper: hotelNationalityRef,
+                toggle: toggleHotelNationality
+            } = useDropdown();
+
+            const {
+                open: hotelResidenceOpen,
+                wrapper: hotelResidenceRef,
+                toggle: toggleHotelResidence
+            } = useDropdown();
+
+            // Night count
+            const nightCount = computed(() => {
+                if (hotelCheckInDate.value && hotelCheckOutDate.value) {
+                    const diff = hotelCheckOutDate.value.diff(hotelCheckInDate.value, 'days');
+                    return diff > 0 ? diff : 1;
+                }
+                return 1;
+            });
+
+            // Total guests count
+            const totalGuestsCount = computed(() => {
+                const totalAdults = hotelRooms.value.reduce((sum, room) => sum + room.adults, 0);
+                const totalChildren = hotelRooms.value.reduce((sum, room) => sum + room.children, 0);
+                return totalAdults + totalChildren;
+            });
+
             const hotelDestinationInputRef = ref(null);
             const onHotelDestinationBoxClick = () => {
                 toggleHotelDestinationDropdown();
@@ -208,7 +241,7 @@
 
                 if (checkInMoment?.isValid() && checkInPicker) {
                     $('#hotel-checkin-input').val(checkInMoment.format('MMM D, YYYY'));
-                    $('#hotel-checkin-day').text(checkInMoment.format('dddd'));
+                    updateDateDisplay('hotel-checkin', checkInMoment);
                     checkInPicker.setStartDate(checkInMoment);
 
                     hotelCheckInDate.value = checkInMoment.clone();
@@ -226,7 +259,7 @@
 
                 if (checkOutMoment?.isValid() && checkOutPicker) {
                     $('#hotel-checkout-input').val(checkOutMoment.format('MMM D, YYYY'));
-                    $('#hotel-checkout-day').text(checkOutMoment.format('dddd'));
+                    updateDateDisplay('hotel-checkout', checkOutMoment);
                     hotelCheckOutDate.value = checkOutMoment.clone();
                 }
             });
@@ -302,7 +335,19 @@
                 hotelDestinationDropdownOpen,
                 hotelDestinationWrapperRef,
                 toggleHotelDestinationDropdown,
-                isHotelSearchEnabled
+                isHotelSearchEnabled,
+                // New fields
+                nightCount,
+                totalGuestsCount,
+                hotelNationality,
+                hotelResidence,
+                countryOptions,
+                hotelNationalityOpen,
+                hotelNationalityRef,
+                toggleHotelNationality,
+                hotelResidenceOpen,
+                hotelResidenceRef,
+                toggleHotelResidence
             };
         },
     });
@@ -315,20 +360,31 @@
     <script src="{{ asset('user/assets/js/moment.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('user/assets/js/daterangepicker.min.js') }}"></script>
     <script>
-        function initSingleDatePicker(wrapperId, inputId, dayDisplayId) {
+        function updateDateDisplay(prefix, dateMoment) {
+            $(`#${prefix}-dd`).text(dateMoment.format('D'));
+            $(`#${prefix}-mon`).text(dateMoment.format("MMM'YY"));
+            $(`#${prefix}-day`).text(dateMoment.format('dddd'));
+        }
+
+        function clearDateDisplay(prefix) {
+            $(`#${prefix}-dd`).html('&mdash;');
+            $(`#${prefix}-mon`).html('&nbsp;');
+            $(`#${prefix}-day`).html('&nbsp;');
+        }
+
+        function initSingleDatePicker(wrapperId, inputId, displayPrefix) {
             const format = "MMM D, YYYY";
             const $wrapper = $(`#${wrapperId}`);
             const $input = $(`#${inputId}`);
-            const $dayDisplay = $(`#${dayDisplayId}`);
-            if (!$wrapper.length || !$input.length || !$dayDisplay.length) return;
+            if (!$wrapper.length || !$input.length) return;
 
-            // Initialize daterangepicker
             $input.daterangepicker({
                 singleDatePicker: true,
                 autoApply: true,
                 showDropdowns: true,
                 minDate: moment(),
                 autoUpdateInput: false,
+                parentEl: $wrapper,
                 locale: {
                     format
                 }
@@ -336,7 +392,7 @@
 
             $input.on("apply.daterangepicker", function(ev, picker) {
                 $input.val(picker.startDate.format(format));
-                $dayDisplay.text(picker.startDate.format("dddd"));
+                updateDateDisplay(displayPrefix, picker.startDate);
             });
 
             $wrapper.on("click", function(e) {
@@ -350,8 +406,8 @@
         }
 
         $(document).ready(function() {
-            initSingleDatePicker("hotel-checkin-box", "hotel-checkin-input", "hotel-checkin-day");
-            initSingleDatePicker("hotel-checkout-box", "hotel-checkout-input", "hotel-checkout-day");
+            initSingleDatePicker("hotel-checkin-box", "hotel-checkin-input", "hotel-checkin");
+            initSingleDatePicker("hotel-checkout-box", "hotel-checkout-input", "hotel-checkout");
 
             const $checkinInput = $("#hotel-checkin-input");
             const $checkoutInput = $("#hotel-checkout-input");
@@ -362,18 +418,14 @@
                 const checkoutPicker = $checkoutInput.data('daterangepicker');
 
                 if (checkoutPicker) {
-                    // Set minimum date for checkout (day after checkin)
                     checkoutPicker.minDate = checkinDate.clone().add(1, 'day');
-
-                    // Navigate checkout calendar to same month as checkin
                     checkoutPicker.setStartDate(checkinDate.clone().add(1, 'day'));
 
-                    // If current checkout date is before new minimum, reset it
                     if ($checkoutInput.val()) {
                         const currentCheckout = moment($checkoutInput.val(), "MMM D, YYYY");
                         if (currentCheckout.isSameOrBefore(checkinDate)) {
                             $checkoutInput.val('');
-                            $("#hotel-checkout-day").text('');
+                            clearDateDisplay('hotel-checkout');
                         }
                     }
                 }
