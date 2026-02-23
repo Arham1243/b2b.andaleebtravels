@@ -288,45 +288,66 @@
                                     <div class="hc-card__title">Payment Method</div>
                                 </div>
 
-                                <div class="hc-payment-options">
-                                    {{-- Wallet --}}
-                                    <label class="hc-payment-option">
-                                        <input type="radio" name="payment_method" value="wallet" required>
-                                        <div class="hc-payment-option__body">
-                                            <div class="hc-payment-option__icon"><i class="bx bxs-wallet"></i></div>
-                                            <div class="hc-payment-option__info">
-                                                <div class="hc-payment-option__name">Wallet Balance</div>
-                                                <div class="hc-payment-option__desc">Available: {{ formatPrice($walletBalance) }}</div>
+                                {{-- Wallet Toggle --}}
+                                <div class="hc-wallet-toggle" id="wallet-toggle-section">
+                                    <label class="hc-wallet-toggle__label">
+                                        <input type="checkbox" id="use-wallet" name="use_wallet" value="1">
+                                        <div class="hc-wallet-toggle__body">
+                                            <div class="hc-wallet-toggle__left">
+                                                <div class="hc-payment-option__icon"><i class="bx bxs-wallet"></i></div>
+                                                <div class="hc-payment-option__info">
+                                                    <div class="hc-payment-option__name">Use Wallet Balance</div>
+                                                    <div class="hc-payment-option__desc">Available: <strong><span class="dirham">D</span> {{ formatPrice($walletBalance) }}</strong></div>
+                                                </div>
                                             </div>
-                                            <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
+                                            <div class="hc-wallet-toggle__switch">
+                                                <span class="hc-wallet-toggle__slider"></span>
+                                            </div>
                                         </div>
                                     </label>
+                                    <div class="hc-wallet-applied" id="wallet-applied-info" style="display: none;">
+                                        <div class="hc-wallet-applied__row">
+                                            <span>Wallet deduction</span>
+                                            <span><span class="dirham">D</span> <span id="wallet-deduct-amount">0.00</span></span>
+                                        </div>
+                                        <div class="hc-wallet-applied__row hc-wallet-applied__row--remaining">
+                                            <span>Remaining to pay</span>
+                                            <span><span class="dirham">D</span> <span id="remaining-amount">0.00</span></span>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="0">
+                                </div>
 
-                                    {{-- Card --}}
-                                    <label class="hc-payment-option">
-                                        <input type="radio" name="payment_method" value="payby" checked required>
-                                        <div class="hc-payment-option__body">
-                                            <div class="hc-payment-option__icon"><i class="bx bxs-credit-card"></i></div>
-                                            <div class="hc-payment-option__info">
-                                                <div class="hc-payment-option__name">Credit / Debit Card</div>
-                                                <div class="hc-payment-option__desc">Redirected to secure payment gateway</div>
+                                {{-- Remaining Payment Method --}}
+                                <div class="hc-payment-remaining" id="remaining-payment-section">
+                                    <div class="hc-payment-remaining__title" id="remaining-payment-title">Select Payment Method</div>
+                                    <div class="hc-payment-options">
+                                        {{-- Card --}}
+                                        <label class="hc-payment-option">
+                                            <input type="radio" name="payment_method" value="payby" checked required>
+                                            <div class="hc-payment-option__body">
+                                                <div class="hc-payment-option__icon"><i class="bx bxs-credit-card"></i></div>
+                                                <div class="hc-payment-option__info">
+                                                    <div class="hc-payment-option__name">Credit / Debit Card</div>
+                                                    <div class="hc-payment-option__desc">Redirected to secure payment gateway</div>
+                                                </div>
+                                                <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
                                             </div>
-                                            <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
-                                        </div>
-                                    </label>
+                                        </label>
 
-                                    {{-- Tabby --}}
-                                    <label class="hc-payment-option">
-                                        <input type="radio" name="payment_method" value="tabby" required>
-                                        <div class="hc-payment-option__body">
-                                            <div class="hc-payment-option__icon"><i class="bx bx-calendar-check"></i></div>
-                                            <div class="hc-payment-option__info">
-                                                <div class="hc-payment-option__name">Tabby - Buy Now Pay Later</div>
-                                                <div class="hc-payment-option__desc">4 interest-free installments</div>
+                                        {{-- Tabby --}}
+                                        <label class="hc-payment-option">
+                                            <input type="radio" name="payment_method" value="tabby" required>
+                                            <div class="hc-payment-option__body">
+                                                <div class="hc-payment-option__icon"><i class="bx bx-calendar-check"></i></div>
+                                                <div class="hc-payment-option__info">
+                                                    <div class="hc-payment-option__name">Tabby - Buy Now Pay Later</div>
+                                                    <div class="hc-payment-option__desc">4 interest-free installments</div>
+                                                </div>
+                                                <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
                                             </div>
-                                            <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
-                                        </div>
-                                    </label>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <button type="submit" class="hc-btn hc-btn--primary hc-btn--full mt-3" id="pay-btn">
@@ -406,9 +427,21 @@
                                 </div>
                             @endif
 
+                            {{-- Wallet Applied in Summary --}}
+                            <div class="hc-summary__wallet" id="summary-wallet-section" style="display: none;">
+                                <div class="hc-summary__line">
+                                    <span>Subtotal</span>
+                                    <span><span class="dirham">D</span> <span id="summary-subtotal">{{ formatPrice($total_price) }}</span></span>
+                                </div>
+                                <div class="hc-summary__line hc-summary__line--wallet">
+                                    <span><i class="bx bxs-wallet" style="font-size: 0.9rem; vertical-align: middle;"></i> Wallet Applied</span>
+                                    <span class="hc-summary__wallet-amount">- <span class="dirham">D</span> <span id="summary-wallet-amount">0.00</span></span>
+                                </div>
+                            </div>
+
                             {{-- Total --}}
                             <div class="hc-summary__total">
-                                <span>Total Price</span>
+                                <span id="summary-total-label">Total Price</span>
                                 <span class="hc-summary__total-price">
                                     <span class="dirham">D</span> <span id="summary-net-total">{{ formatPrice($total_price) }}</span>
                                 </span>
@@ -425,15 +458,90 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const roomsTotal = @json($total_price);
+            const walletBalance = @json($walletBalance);
             const formatPrice = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             const els = {
                 extrasTotal: document.getElementById('extras-total-amount'),
                 summaryNet: document.getElementById('summary-net-total'),
-                extrasList: document.getElementById('selected-extras-list')
+                extrasList: document.getElementById('selected-extras-list'),
+                summarySubtotal: document.getElementById('summary-subtotal'),
+                summaryWalletAmount: document.getElementById('summary-wallet-amount'),
+                summaryWalletSection: document.getElementById('summary-wallet-section'),
+                summaryTotalLabel: document.getElementById('summary-total-label'),
+                walletDeductAmount: document.getElementById('wallet-deduct-amount'),
+                remainingAmount: document.getElementById('remaining-amount'),
+                walletAppliedInfo: document.getElementById('wallet-applied-info'),
+                walletAmountInput: document.getElementById('wallet-amount-input'),
+                remainingPaymentSection: document.getElementById('remaining-payment-section'),
+                remainingPaymentTitle: document.getElementById('remaining-payment-title'),
+                useWallet: document.getElementById('use-wallet')
             };
 
             const extrasHidden = document.getElementById('selected-extras-hidden-fields');
+            let currentExtrasTotal = 0;
+
+            function getNetTotal() {
+                return roomsTotal + currentExtrasTotal;
+            }
+
+            function recalcWallet() {
+                const netTotal = getNetTotal();
+                const useWallet = els.useWallet && els.useWallet.checked;
+                const walletDeduction = useWallet ? Math.min(walletBalance, netTotal) : 0;
+                const remaining = netTotal - walletDeduction;
+                const walletCoversAll = walletDeduction >= netTotal;
+
+                // Update hidden input
+                if (els.walletAmountInput) els.walletAmountInput.value = walletDeduction.toFixed(2);
+
+                // Update wallet applied info
+                if (els.walletAppliedInfo) els.walletAppliedInfo.style.display = useWallet ? 'block' : 'none';
+                if (els.walletDeductAmount) els.walletDeductAmount.textContent = formatPrice(walletDeduction);
+                if (els.remainingAmount) els.remainingAmount.textContent = formatPrice(remaining);
+
+                // Update summary sidebar
+                if (els.summaryWalletSection) els.summaryWalletSection.style.display = useWallet ? 'block' : 'none';
+                if (els.summarySubtotal) els.summarySubtotal.textContent = formatPrice(netTotal);
+                if (els.summaryWalletAmount) els.summaryWalletAmount.textContent = formatPrice(walletDeduction);
+                if (els.summaryNet) els.summaryNet.textContent = formatPrice(remaining > 0 ? remaining : 0);
+                if (els.summaryTotalLabel) els.summaryTotalLabel.textContent = useWallet ? 'Amount to Pay' : 'Total Price';
+
+                // Show/hide remaining payment methods
+                if (els.remainingPaymentSection) {
+                    if (walletCoversAll && useWallet) {
+                        els.remainingPaymentSection.style.display = 'none';
+                        // Set payment method to wallet only
+                        const radios = document.querySelectorAll('input[name="payment_method"]');
+                        radios.forEach(r => { r.required = false; r.checked = false; });
+                    } else {
+                        els.remainingPaymentSection.style.display = 'block';
+                        const radios = document.querySelectorAll('input[name="payment_method"]');
+                        radios.forEach(r => r.required = true);
+                        if (!document.querySelector('input[name="payment_method"]:checked')) {
+                            const firstRadio = document.querySelector('input[name="payment_method"][value="payby"]');
+                            if (firstRadio) firstRadio.checked = true;
+                        }
+                    }
+                    if (els.remainingPaymentTitle) {
+                        els.remainingPaymentTitle.textContent = useWallet && remaining > 0
+                            ? `Pay Remaining D ${formatPrice(remaining)} via`
+                            : 'Select Payment Method';
+                    }
+                }
+
+                // Update pay button text
+                const payBtn = document.getElementById('pay-btn');
+                if (payBtn && !payBtn.disabled) {
+                    if (walletCoversAll && useWallet) {
+                        payBtn.innerHTML = '<i class="bx bx-lock-alt"></i> Pay with Wallet';
+                    } else if (useWallet) {
+                        payBtn.innerHTML = `<i class="bx bx-lock-alt"></i> Pay D ${formatPrice(remaining)}`;
+                    } else {
+                        payBtn.innerHTML = '<i class="bx bx-lock-alt"></i> Pay Now';
+                    }
+                }
+            }
 
             function recalcTotals() {
                 let extrasTotal = 0, idx = 0;
@@ -465,9 +573,9 @@
                     }
                 });
 
-                const netTotal = roomsTotal + extrasTotal;
+                currentExtrasTotal = extrasTotal;
+                const netTotal = getNetTotal();
                 if (els.extrasTotal) els.extrasTotal.textContent = formatPrice(extrasTotal);
-                if (els.summaryNet) els.summaryNet.textContent = formatPrice(netTotal);
 
                 if (els.extrasList) {
                     if (selected.length === 0) {
@@ -478,6 +586,13 @@
                         ).join('');
                     }
                 }
+
+                recalcWallet();
+            }
+
+            // Wallet toggle
+            if (els.useWallet) {
+                els.useWallet.addEventListener('change', recalcWallet);
             }
 
             document.querySelectorAll('.hc-transfer-option__radio').forEach(r => r.addEventListener('change', recalcTotals));

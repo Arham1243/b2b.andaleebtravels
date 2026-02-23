@@ -18,6 +18,11 @@
         <div class="topbar-content-wrapper">
             @yield('content')
         </div>
+        <footer class="dashboard-footer">
+            <div class="container">
+                <span>&copy; {{ date('Y') }} {{ env('APP_NAME', 'Andaleeb Travels') }}. All rights reserved.</span>
+            </div>
+        </footer>
     </div>
     <div class="loader-mask" id="loader">
         <div class="loader"></div>
