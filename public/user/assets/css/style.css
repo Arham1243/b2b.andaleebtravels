@@ -4163,15 +4163,14 @@ body .search-box__input.search-box__input {
 
 /* Dashboard footer */
 .dashboard-footer {
-    background: #fff;
-    border-top: 1px solid #e8e8e8;
+    background: linear-gradient(135deg, #2c3e50 0%, #0e1317 100%);
     padding: 14px 0;
     text-align: center;
     margin-top: auto;
 }
 .dashboard-footer span {
     font-size: 0.78rem;
-    color: #888;
+    color: #fff;
     font-weight: 500;
 }
 /* ===== End Hotel Search Redesign ===== */
