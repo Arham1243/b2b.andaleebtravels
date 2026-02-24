@@ -1932,7 +1932,7 @@ textarea[readonly] {
 }
 
 .rating:not(:checked) > label:before {
-    content: "Ã¢Ëœâ€¦";
+    content: "â˜…";
 }
 
 .rating > input:checked ~ label {
@@ -2961,11 +2961,11 @@ ol.breadcrumb {
 .dashboard--topbar {
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
 }
 .dashboard--topbar .topbar-content-wrapper {
     padding: 1.5rem 2rem;
     flex: 1;
-    min-height: 101vh;
 }
 
 /* Mobile Toggle */
@@ -3888,6 +3888,8 @@ body .search-box__input.search-box__input {
     border-radius: 50%;
     width: 44px;
     height: 44px;
+    left: -22px;
+    position: relative;
 }
 .hs-night-badge__count {
     font-size: 0.85rem;
