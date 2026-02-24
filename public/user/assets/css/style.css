@@ -1932,7 +1932,7 @@ textarea[readonly] {
 }
 
 .rating:not(:checked) > label:before {
-    content: "â˜…";
+    content: "Ã¢Ëœâ€¦";
 }
 
 .rating > input:checked ~ label {
@@ -2961,11 +2961,11 @@ ol.breadcrumb {
 .dashboard--topbar {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
 }
 .dashboard--topbar .topbar-content-wrapper {
     padding: 1.5rem 2rem;
     flex: 1;
+    min-height: 101vh;
 }
 
 /* Mobile Toggle */
