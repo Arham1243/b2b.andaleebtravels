@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\HotelBooking;
+use App\Models\B2bHotelBooking;
 use App\Models\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +20,7 @@ class HotelService
 
     public $paybyPartnerId = '200009116289';
     public $paybyApiUrl = 'https://api.payby.com/sgs/api/acquire2';
-    public $paybyPrivateKey = 'admin/assets/files/payby-private-key.pem';
+    public $paybyPrivateKey = 'user/assets/files/payby-private-key.pem';
 
     // Yalago API Configuration
     private $yalagoApiKey = '93082895-c45f-489f-ae10-bed9eaae161e';
@@ -39,15 +39,15 @@ class HotelService
     /**
      * Create hotel booking record
      */
-    public function createBookingRecord(array $data): HotelBooking
+    public function createBookingRecord(array $data): B2bHotelBooking
     {
         $checkIn = new DateTime($data['check_in_date']);
         $checkOut = new DateTime($data['check_out_date']);
         $nights = $checkIn->diff($checkOut)->days;
 
         $bookingData = [
-            'user_id' => auth()->id() ?? null,
-            'booking_number' => HotelBooking::generateBookingNumber(),
+            'b2b_vendor_id' => auth('b2b_vendor')->id(),
+            'booking_number' => B2bHotelBooking::generateBookingNumber(),
             'yalago_hotel_id' => $data['yalago_hotel_id'],
             'hotel_name' => $data['hotel_name'],
             'hotel_address' => $data['hotel_address'] ?? null,
@@ -77,7 +77,7 @@ class HotelService
             'user_agent' => request()->userAgent(),
         ];
 
-        $booking = HotelBooking::create($bookingData);
+        $booking = B2bHotelBooking::create($bookingData);
 
         return $booking;
     }
@@ -85,7 +85,7 @@ class HotelService
     /**
      * Verify hotel availability before payment
      */
-    public function verifyAvailability(HotelBooking $booking): array
+    public function verifyAvailability(B2bHotelBooking $booking): array
     {
         try {
             $roomsData = $booking->rooms_data;
@@ -178,7 +178,7 @@ class HotelService
     /**
      * Get redirect URL based on payment method
      */
-    public function getRedirectUrl(HotelBooking $booking, string $paymentMethod): string
+    public function getRedirectUrl(B2bHotelBooking $booking, string $paymentMethod): string
     {
         switch ($paymentMethod) {
             case 'payby':
@@ -195,7 +195,7 @@ class HotelService
     /**
      * PayBy Redirect
      */
-    protected function paybyRedirect(HotelBooking $booking)
+    protected function paybyRedirect(B2bHotelBooking $booking)
     {
         $requestTime = now()->timestamp * 1000;
         $finalAmount = $booking->total_amount;
@@ -279,7 +279,7 @@ class HotelService
     /**
      * Tabby Redirect
      */
-    protected function tabbyRedirect(HotelBooking $booking)
+    protected function tabbyRedirect(B2bHotelBooking $booking)
     {
         $finalAmount = $booking->total_amount + ($booking->total_amount * $this->commissionPercentage);
 
@@ -406,7 +406,7 @@ class HotelService
     /**
      * Verify PayBy Payment
      */
-    public function verifyPayByPayment(HotelBooking $booking): array
+    public function verifyPayByPayment(B2bHotelBooking $booking): array
     {
         try {
             $requestTime = now()->timestamp * 1000;
@@ -477,7 +477,7 @@ class HotelService
      * TODO: Need to implement proper verification from Tabby merchant dashboard
      * Currently returning success by default for testing purposes
      */
-    public function verifyTabbyPayment(HotelBooking $booking): array
+    public function verifyTabbyPayment(B2bHotelBooking $booking): array
     {
         // TODO: Implement actual Tabby payment verification
         // For now, return success to allow testing
@@ -490,7 +490,7 @@ class HotelService
     /**
      * Place booking order with Yalago API after successful payment
      */
-    public function placeBookingOrder(HotelBooking $booking)
+    public function placeBookingOrder(B2bHotelBooking $booking)
     {
 
         try {
@@ -681,7 +681,7 @@ class HotelService
     /**
      * Send booking confirmation email to user
      */
-    public function sendBookingConfirmationEmail(HotelBooking $booking)
+    public function sendBookingConfirmationEmail(B2bHotelBooking $booking)
     {
         try {
             Mail::send('emails.hotel-booking-success-user', ['booking' => $booking], function ($message) use ($booking) {
@@ -704,7 +704,7 @@ class HotelService
     /**
      * Send booking confirmation email to admin
      */
-    public function sendBookingConfirmationEmailToAdmin(HotelBooking $booking)
+    public function sendBookingConfirmationEmailToAdmin(B2bHotelBooking $booking)
     {
         try {
             $adminEmail = $this->adminEmail;
@@ -729,7 +729,7 @@ class HotelService
     /**
      * Send booking failure email to user
      */
-    public function sendBookingFailureEmail(HotelBooking $booking, string $reason = '')
+    public function sendBookingFailureEmail(B2bHotelBooking $booking, string $reason = '')
     {
         try {
             Mail::send('emails.hotel-booking-failed-user', [
@@ -755,7 +755,7 @@ class HotelService
     /**
      * Send booking failure email to admin
      */
-    public function sendBookingFailureEmailToAdmin(HotelBooking $booking, string $reason = '')
+    public function sendBookingFailureEmailToAdmin(B2bHotelBooking $booking, string $reason = '')
     {
         try {
             $adminEmail = $this->adminEmail;
@@ -780,7 +780,7 @@ class HotelService
         }
     }
 
-    public function getCancellationCharges(HotelBooking $booking): array
+    public function getCancellationCharges(B2bHotelBooking $booking): array
     {
         $response = Http::withHeaders([
             'x-api-key'   => $this->yalagoApiKey,
@@ -806,7 +806,7 @@ class HotelService
         return $response->json();
     }
 
-    public function cancelYalagoBooking(HotelBooking $booking, array $charges): array
+    public function cancelYalagoBooking(B2bHotelBooking $booking, array $charges): array
     {
         if (!($charges['IsCancellable'] ?? false)) {
             throw new \Exception('Booking is not cancellable');

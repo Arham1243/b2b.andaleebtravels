@@ -297,7 +297,7 @@
                                                 <div class="hc-payment-option__icon"><i class="bx bxs-wallet"></i></div>
                                                 <div class="hc-payment-option__info">
                                                     <div class="hc-payment-option__name">Use Wallet Balance</div>
-                                                    <div class="hc-payment-option__desc">Available: <strong><span class="dirham">D</span> {{ formatPrice($walletBalance) }}</strong></div>
+                                                    <div class="hc-payment-option__desc">Available: <strong> {{ formatPrice($walletBalance) }}</strong></div>
                                                 </div>
                                             </div>
                                             <div class="hc-wallet-toggle__switch">

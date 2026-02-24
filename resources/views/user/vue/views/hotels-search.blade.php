@@ -6,7 +6,7 @@
             <!-- DESTINATION -->
             <div class="hs-field hs-field--destination" ref="hotelDestinationWrapperRef">
                 <div class="hs-field__inner" @click.stop="onHotelDestinationBoxClick">
-                    <div class="hs-field__label">ENTER YOUR DESTINATION OR PROPERTY</div>
+                    <div class="hs-field__label">ENTER YOUR DESTINATION</div>
                     <div class="hs-field__value-row">
                         <input type="text" autocomplete="off" class="hs-field__input" v-model="hotelDestinationInputValue"
                             @input="hotelDestinationQuery = hotelDestinationInputValue" placeholder="Select Destination"
