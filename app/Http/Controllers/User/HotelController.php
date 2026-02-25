@@ -1015,7 +1015,7 @@ class HotelController extends Controller
                 return $data['country'];
             }
         } catch (\Exception $e) {
-            Log::warning('Failed to get source market from IP', ['error' => $e->getMessage()]);
+           //
         }
 
         return 'AE';
