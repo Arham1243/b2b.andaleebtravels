@@ -198,7 +198,7 @@ class HotelService
     protected function paybyRedirect(B2bHotelBooking $booking)
     {
         $requestTime = now()->timestamp * 1000;
-        $finalAmount = $booking->total_amount;
+        $finalAmount = $booking->total_amount - ($booking->wallet_amount ?? 0);
 
         $requestData = [
             'requestTime' => $requestTime,
@@ -281,7 +281,8 @@ class HotelService
      */
     protected function tabbyRedirect(B2bHotelBooking $booking)
     {
-        $finalAmount = $booking->total_amount + ($booking->total_amount * $this->commissionPercentage);
+        $remainingAmount = $booking->total_amount - ($booking->wallet_amount ?? 0);
+        $finalAmount = $remainingAmount + ($remainingAmount * $this->commissionPercentage);
 
         $items = [[
             'title' => $booking->hotel_name,
