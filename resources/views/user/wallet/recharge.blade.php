@@ -24,7 +24,7 @@
 
         .recharge-section__title i {
             font-size: 24px;
-            color: #0d2f81;
+            color: var(--color-primary);
         }
 
         .quick-amounts {
@@ -35,7 +35,7 @@
         }
 
         .quick-amounts__divider {
-            border-left: 3px solid #0d2f81;
+            border-left: 3px solid var(--color-primary);
             height: 40px;
         }
 
@@ -52,19 +52,19 @@
         }
 
         .quick-amount-btn:hover {
-            border-color: #0d2f81;
-            color: #0d2f81;
+            border-color: var(--color-primary);
+            color: var(--color-primary);
         }
 
         .quick-amount-btn.active {
-            background: #0d2f81;
-            border-color: #0d2f81;
+            background: var(--color-primary);
+            border-color: var(--color-primary);
             color: #fff;
         }
 
         .quick-amounts__or {
             font-weight: 600;
-            color: #0d2f81;
+            color: var(--color-primary);
             font-size: 15px;
         }
 
@@ -79,7 +79,7 @@
         }
 
         .custom-amount-input:focus {
-            border-color: #0d2f81;
+            border-color: var(--color-primary);
         }
 
         .custom-amount-input::placeholder {
@@ -105,11 +105,11 @@
         }
 
         .payment-method-card:hover {
-            border-color: #0d2f81;
+            border-color: var(--color-primary);
         }
 
         .payment-method-card.selected {
-            border-color: #0d2f81;
+            border-color: var(--color-primary);
             background: #f0f4ff;
         }
 
@@ -117,7 +117,7 @@
             position: absolute;
             top: 16px;
             right: 16px;
-            accent-color: #0d2f81;
+            accent-color: var(--color-primary);
             width: 18px;
             height: 18px;
         }
@@ -136,12 +136,12 @@
 
         .payment-method-card__icon {
             font-size: 28px;
-            color: #0d2f81;
+            color: var(--color-primary);
             margin-bottom: 10px;
         }
 
         .btn-recharge {
-            background: #0d2f81;
+            background: var(--color-primary);
             color: #fff;
             border: none;
             padding: 12px 40px;
@@ -167,11 +167,11 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: #e8f5e9;
+            background: var(--color-primary-light);
             padding: 8px 18px;
             border-radius: 8px;
             font-weight: 600;
-            color: #2e7d32;
+            color: var(--color-primary);
             font-size: 15px;
         }
 
@@ -186,7 +186,7 @@
         <div class="dashboard-content">
             <div class="recharge-section">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
-                    <h3 class="heading mb-0">Wallet Recharge</h3>
+                    <h3 class="heading fw-bold mb-0">Wallet Recharge</h3>
                     <div class="current-balance">
                         <i class='bx bxs-wallet'></i>
                         Current Balance: {!! formatPrice(Auth::user()->main_balance) !!}
