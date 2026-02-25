@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\B2bWalletLedger;
 use App\Models\B2bWalletRecharge;
 use App\Models\Config;
 use Illuminate\Http\Request;
@@ -109,14 +110,17 @@ class WalletRechargeController extends Controller
                     'user_agent' => $rechargeData['user_agent'],
                 ]);
 
-                // Add amount to vendor wallet
-                $vendor = Auth::user();
-                $vendor->update([
-                    'main_balance' => $vendor->main_balance + $recharge->amount,
-                ]);
+                // Add amount to vendor wallet via ledger
+                B2bWalletLedger::recordCredit(
+                    Auth::id(),
+                    (float) $recharge->amount,
+                    'Wallet Recharge #' . $recharge->transaction_number,
+                    B2bWalletRecharge::class,
+                    $recharge->id
+                );
 
                 Log::info('Wallet recharged successfully', [
-                    'vendor_id' => $vendor->id,
+                    'vendor_id' => Auth::id(),
                     'recharge_id' => $recharge->id,
                     'amount' => $recharge->amount,
                 ]);
