@@ -43,8 +43,8 @@
                     </div>
                 </div>
                 <div class="hs-support-strip__right">
-                    <a href="tel:++97145766068" class="hs-support-strip__link">
-                        <i class='bx bxl-whatsapp'></i> +971 45766068
+                    <a href="https://api.whatsapp.com/send?phone=+971525748986&text=I%27m%20interested%20in%20your%20services" class="hs-support-strip__link">
+                        <i class='bx bxl-whatsapp'></i> +971 525748986
                     </a>
 
                     <a href="mailto:info@andaleebtours.com" class="hs-support-strip__link">
