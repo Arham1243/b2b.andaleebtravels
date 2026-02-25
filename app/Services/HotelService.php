@@ -46,7 +46,7 @@ class HotelService
         $nights = $checkIn->diff($checkOut)->days;
 
         $bookingData = [
-            'b2b_vendor_id' => auth('b2b_vendor')->id(),
+            'b2b_vendor_id' => auth()->id(),
             'booking_number' => B2bHotelBooking::generateBookingNumber(),
             'yalago_hotel_id' => $data['yalago_hotel_id'],
             'hotel_name' => $data['hotel_name'],
