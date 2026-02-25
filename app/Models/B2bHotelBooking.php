@@ -35,6 +35,7 @@ class B2bHotelBooking extends Model
         'flight_details',
         'rooms_total',
         'total_amount',
+        'wallet_amount',
         'currency',
         'payment_method',
         'payment_status',
@@ -69,6 +70,7 @@ class B2bHotelBooking extends Model
         'rooms_total' => 'decimal:2',
         'extras_total' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'wallet_amount' => 'decimal:2',
     ];
 
     /**

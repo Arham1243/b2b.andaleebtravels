@@ -289,6 +289,7 @@
                                 </div>
 
                                 {{-- Wallet Toggle --}}
+                                @if ($walletBalance > 0)
                                 <div class="hc-wallet-toggle" id="wallet-toggle-section">
                                     <label class="hc-wallet-toggle__label">
                                         <input type="checkbox" id="use-wallet" name="use_wallet" value="1">
@@ -297,7 +298,7 @@
                                                 <div class="hc-payment-option__icon"><i class="bx bxs-wallet"></i></div>
                                                 <div class="hc-payment-option__info">
                                                     <div class="hc-payment-option__name">Use Wallet Balance</div>
-                                                    <div class="hc-payment-option__desc">Available: <strong> {{ formatPrice($walletBalance) }}</strong></div>
+                                                    <div class="hc-payment-option__desc">Available: <strong>{!! formatPrice($walletBalance) !!}</strong></div>
                                                 </div>
                                             </div>
                                             <div class="hc-wallet-toggle__switch">
@@ -317,6 +318,7 @@
                                     </div>
                                     <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="0">
                                 </div>
+                                @endif
 
                                 {{-- Remaining Payment Method --}}
                                 <div class="hc-payment-remaining" id="remaining-payment-section">
