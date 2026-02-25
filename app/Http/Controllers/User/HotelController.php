@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\Banner;
+use App\Models\B2bHotelBooking;
 use App\Models\Country;
 use App\Models\Hotel;
 use App\Models\Config;
@@ -860,7 +860,7 @@ class HotelController extends Controller
     public function paymentSuccess(Request $request, $booking)
     {
         try {
-            $booking = \App\Models\HotelBooking::findOrFail($booking);
+            $booking = B2bHotelBooking::findOrFail($booking);
 
             // Prevent re-processing if already paid
             if ($booking->isPaid() && $booking->isConfirmed()) {
@@ -931,7 +931,7 @@ class HotelController extends Controller
     public function paymentSuccessView($booking)
     {
         try {
-            $booking = \App\Models\HotelBooking::findOrFail($booking);
+            $booking = B2bHotelBooking::findOrFail($booking);
 
             if (!$booking->isPaid()) {
                 return redirect()->route('user.hotels.index')
@@ -949,7 +949,7 @@ class HotelController extends Controller
     {
         try {
             if ($booking) {
-                $booking = \App\Models\HotelBooking::findOrFail($booking);
+                $booking = B2bHotelBooking::findOrFail($booking);
 
                 if ($booking->payment_status === 'pending') {
                     $booking->update([
