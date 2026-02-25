@@ -37,6 +37,7 @@ class B2bHotelBooking extends Model
         'total_amount',
         'wallet_amount',
         'currency',
+        'supplier',
         'payment_method',
         'payment_status',
         'payment_reference',

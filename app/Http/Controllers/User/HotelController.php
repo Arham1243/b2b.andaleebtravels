@@ -322,6 +322,8 @@ class HotelController extends Controller
 
                 'image'    => $images[0]['Url'] ?? null,
 
+                'supplier' => 'Yalago',
+
                 'price' => calculatePriceWithCommission(data_get($cheapestBoard, 'NetCost.Amount'), $this->hotelCommissionPercentage),
 
                 'boards' => $boards

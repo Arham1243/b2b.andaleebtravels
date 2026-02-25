@@ -223,6 +223,9 @@
                                             @if ($hotel['boards']->isNotEmpty())
                                                 <span><i class="bx bx-restaurant"></i> {{ $hotel['boards']->implode(' | ') }}</span>
                                             @endif
+                                            @if (!empty($hotel['supplier']))
+                                                <span class="hl-card__supplier"><i class="bx bx-link"></i> {{ $hotel['supplier'] }}</span>
+                                            @endif
                                         </div>
                                         
                                         @if ($hotel['rating'])
@@ -394,5 +397,6 @@
         .irs--round .irs-handle.state_hover, .irs--round .irs-handle:hover { background-color: var(--color-primary); }
         .irs--round .irs-from, .irs--round .irs-to, .irs--round .irs-single { font-weight: 600; background-color: transparent; color: #666; }
         .irs--round .irs-from:before, .irs--round .irs-to:before, .irs--round .irs-single:before, .irs--round .irs-min, .irs--round .irs-max { display: none; }
+        .hl-card__supplier { background: #e8f4fd; color: #1976d2; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
     </style>
 @endpush

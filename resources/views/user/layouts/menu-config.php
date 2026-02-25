@@ -6,6 +6,11 @@ return [
         'route' => route('user.dashboard'),
     ],
     [
+        'title' => 'My Bookings',
+        'icon' => 'bx bxs-book-content',
+        'route' => route('user.bookings.index'),
+    ],
+    [
         'title' => 'Account Settings',
         'icon' => 'bx bxs-cog',
         'submenu' => [
