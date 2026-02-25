@@ -23,6 +23,7 @@ class WalletRechargeController extends Controller
     public function index()
     {
         $recharges = B2bWalletRecharge::where('b2b_vendor_id', Auth::id())
+            ->whereIn('status', ['paid', 'failed'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -156,6 +157,44 @@ class WalletRechargeController extends Controller
 
             return redirect()->route('user.wallet.recharge')
                 ->with('notify_error', 'Payment failed.');
+        }
+    }
+
+    public function retryPayment($recharge)
+    {
+        try {
+            $recharge = B2bWalletRecharge::where('b2b_vendor_id', Auth::id())
+                ->where('id', $recharge)
+                ->where('status', 'failed')
+                ->firstOrFail();
+
+            // Create a fresh recharge record for the retry
+            $newRecharge = B2bWalletRecharge::create([
+                'b2b_vendor_id' => Auth::id(),
+                'transaction_number' => B2bWalletRecharge::generateTransactionNumber(),
+                'amount' => $recharge->amount,
+                'currency' => 'AED',
+                'payment_method' => $recharge->payment_method,
+                'status' => 'pending',
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            if ($newRecharge->payment_method === 'payby') {
+                $redirectUrl = $this->paybyRedirect($newRecharge);
+            } else {
+                $redirectUrl = $this->tabbyRedirect($newRecharge);
+            }
+
+            return redirect()->away($redirectUrl);
+        } catch (\Exception $e) {
+            Log::error('Wallet recharge retry failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->route('user.wallet.recharge')
+                ->with('notify_error', 'Payment retry failed. Please try again.');
         }
     }
 

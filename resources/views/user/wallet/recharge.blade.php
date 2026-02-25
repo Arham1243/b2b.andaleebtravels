@@ -260,6 +260,7 @@
                                     <th>Status</th>
                                     <th>Message</th>
                                     <th>Date</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -293,6 +294,17 @@
                                             @endif
                                         </td>
                                         <td>{{ $recharge->created_at->format('d M Y, h:i A') }}</td>
+                                        <td>
+                                            @if ($recharge->status === 'failed')
+                                                <a href="{{ route('user.wallet.recharge.retry', $recharge->id) }}"
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    onclick="return confirm('Retry payment of {{ number_format($recharge->amount, 2) }} AED?')">
+                                                    <i class='bx bx-refresh'></i> Pay Again
+                                                </a>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
