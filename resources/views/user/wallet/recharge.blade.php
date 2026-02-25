@@ -268,7 +268,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($recharges as $recharge)
+                                @foreach ($recharges as $recharge)
                                     <tr>
                                         <td>
                                             <span class="fw-semibold">{{ $recharge->transaction_number }}</span>
@@ -299,13 +299,7 @@
                                         </td>
                                         <td>{{ $recharge->created_at->format('d M Y, h:i A') }}</td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center py-4 text-muted">
-                                            No recharge transactions yet.
-                                        </td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
