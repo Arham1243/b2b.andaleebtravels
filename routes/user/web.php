@@ -49,7 +49,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/recharge', [WalletRechargeController::class, 'index'])->name('recharge');
         Route::post('/recharge/process', [WalletRechargeController::class, 'process'])->name('recharge.process');
         Route::get('/recharge/retry/{recharge}', [WalletRechargeController::class, 'retryPayment'])->name('recharge.retry');
-        Route::get('/payment/success/{recharge}', [WalletRechargeController::class, 'paymentSuccess'])->name('payment.success');
-        Route::get('/payment/failed/{recharge?}', [WalletRechargeController::class, 'paymentFailed'])->name('payment.failed');
+        Route::get('/payment/success/{transactionNumber}', [WalletRechargeController::class, 'paymentSuccess'])->name('payment.success');
+        Route::get('/payment/failed/{transactionNumber?}', [WalletRechargeController::class, 'paymentFailed'])->name('payment.failed');
     });
 });
