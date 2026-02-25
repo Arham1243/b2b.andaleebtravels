@@ -256,7 +256,7 @@
                         </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="data-table">
+                        <table class="custom-table">
                             <thead>
                                 <tr>
                                     <th>Transaction #</th>
