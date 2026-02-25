@@ -5,6 +5,7 @@ use App\Http\Controllers\Frontend\Auth\PasswordResetController;
 use App\Http\Controllers\User\UserDashController;
 use App\Http\Controllers\User\ProfileSettingsController;
 use App\Http\Controllers\User\HotelController;
+use App\Http\Controllers\User\WalletRechargeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('login', [AuthController::class, 'login'])->name('login');
@@ -42,5 +43,12 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/payment/success/{booking}', [HotelController::class, 'paymentSuccess'])->name('payment.success');
         Route::get('/payment/success/view/{booking}', [HotelController::class, 'paymentSuccessView'])->name('payment.success.view');
         Route::get('/payment/failed/{booking?}', [HotelController::class, 'paymentFailed'])->name('payment.failed');
+    });
+
+    Route::prefix('wallet')->name('wallet.')->group(function () {
+        Route::get('/recharge', [WalletRechargeController::class, 'index'])->name('recharge');
+        Route::post('/recharge/process', [WalletRechargeController::class, 'process'])->name('recharge.process');
+        Route::get('/payment/success/{recharge}', [WalletRechargeController::class, 'paymentSuccess'])->name('payment.success');
+        Route::get('/payment/failed/{recharge?}', [WalletRechargeController::class, 'paymentFailed'])->name('payment.failed');
     });
 });

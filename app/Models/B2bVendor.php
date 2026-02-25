@@ -15,4 +15,9 @@ class B2bVendor extends Authenticatable
     {
         return $this->hasMany(B2bHotelBooking::class, 'b2b_vendor_id');
     }
+
+    public function walletRecharges(): HasMany
+    {
+        return $this->hasMany(B2bWalletRecharge::class, 'b2b_vendor_id');
+    }
 }

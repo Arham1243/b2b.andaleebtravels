@@ -19,6 +19,12 @@
                     </div>
                     <span class="quick-action-label">Change Password</span>
                 </a>
+                <a href="{{ route('user.wallet.recharge') }}" class="quick-action-item">
+                    <div class="quick-action-circle">
+                        <i class='bx bxs-wallet'></i>
+                    </div>
+                    <span class="quick-action-label">Recharge Wallet</span>
+                </a>
             </div>
         </div>
     </div>
