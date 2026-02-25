@@ -50,7 +50,8 @@
                     <label class="hl-sort-label">Sort by:</label>
                     <select class="hl-sort-select" name="sort_by" id="sort_by">
                         @foreach ($sortOptions as $value => $label)
-                            <option value="{{ $value }}" {{ $sortBy === $value ? 'selected' : '' }}>{{ $label }}</option>
+                            <option value="{{ $value }}" {{ $sortBy === $value ? 'selected' : '' }}>
+                                {{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -71,7 +72,9 @@
                             <div class="hl-filter-group__body">
                                 @php
                                     $selectedBoards = request()->input('board_type', []);
-                                    if (!is_array($selectedBoards)) $selectedBoards = explode(',', $selectedBoards);
+                                    if (!is_array($selectedBoards)) {
+                                        $selectedBoards = explode(',', $selectedBoards);
+                                    }
                                     $selectedBoards = array_map('strtolower', $selectedBoards);
                                     $boards = ['Room Only', 'Bed And Breakfast', 'Half Board', 'Full Board'];
                                 @endphp
@@ -123,11 +126,13 @@
                                     $ratingMin = request()->input('rating_range_min', 0);
                                     $ratingMax = request()->input('rating_range_max', 10);
                                 @endphp
-                                <input type="text" class="js-range-slider" name="rating_range"
-                                    data-skin="round" data-type="double" data-min="0" data-max="10"
-                                    data-grid="false" data-from="{{ $ratingMin }}" data-to="{{ $ratingMax }}">
-                                <input type="hidden" value="{{ $ratingMin }}" name="rating_range_min" id="rating_range_min">
-                                <input type="hidden" value="{{ $ratingMax }}" name="rating_range_max" id="rating_range_max">
+                                <input type="text" class="js-range-slider" name="rating_range" data-skin="round"
+                                    data-type="double" data-min="0" data-max="10" data-grid="false"
+                                    data-from="{{ $ratingMin }}" data-to="{{ $ratingMax }}">
+                                <input type="hidden" value="{{ $ratingMin }}" name="rating_range_min"
+                                    id="rating_range_min">
+                                <input type="hidden" value="{{ $ratingMax }}" name="rating_range_max"
+                                    id="rating_range_max">
                             </div>
                         </div>
 
@@ -140,7 +145,9 @@
                             <div class="hl-filter-group__body">
                                 @php
                                     $selectedRatings = request()->input('rating', []);
-                                    if (!is_array($selectedRatings)) $selectedRatings = explode(',', $selectedRatings);
+                                    if (!is_array($selectedRatings)) {
+                                        $selectedRatings = explode(',', $selectedRatings);
+                                    }
                                 @endphp
                                 @for ($i = 5; $i >= 1; $i--)
                                     <label class="hl-checkbox">
@@ -167,12 +174,14 @@
                             <div class="hl-filter-group__body">
                                 @php
                                     $propertyTypes = request()->input('property_type', []);
-                                    if (!is_array($propertyTypes)) $propertyTypes = explode(',', $propertyTypes);
+                                    if (!is_array($propertyTypes)) {
+                                        $propertyTypes = explode(',', $propertyTypes);
+                                    }
                                     $propertyTypes = array_map('strtolower', $propertyTypes);
                                 @endphp
                                 <label class="hl-checkbox">
-                                    <input type="checkbox" name="property_type" class="check-filter__input"
-                                        value="Hotel" {{ in_array('hotel', $propertyTypes) ? 'checked' : '' }}>
+                                    <input type="checkbox" name="property_type" class="check-filter__input" value="Hotel"
+                                        {{ in_array('hotel', $propertyTypes) ? 'checked' : '' }}>
                                     <span class="hl-checkbox__mark"></span>
                                     <span class="hl-checkbox__text">Hotel</span>
                                 </label>
@@ -187,7 +196,8 @@
 
                         {{-- Hotel Name --}}
                         <div class="hl-filter-group">
-                            <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
+                            <div class="hl-filter-group__header"
+                                onclick="this.parentElement.classList.toggle('collapsed')">
                                 <span>Hotel Name</span>
                                 <i class="bx bx-chevron-down"></i>
                             </div>
@@ -219,28 +229,33 @@
                                         </div>
 
                                         <div class="hl-card__meta">
-                                            <span><i class="bx bxs-moon"></i> {{ $nights }} night{{ $nights > 1 ? 's' : '' }}</span>
+                                            <span><i class="bx bxs-moon"></i> {{ $nights }}
+                                                night{{ $nights > 1 ? 's' : '' }}</span>
                                             @if ($hotel['boards']->isNotEmpty())
-                                                <span><i class="bx bx-restaurant"></i> {{ $hotel['boards']->implode(' | ') }}</span>
-                                            @endif
-                                            @if (!empty($hotel['supplier']))
-                                                <span class="hl-card__supplier"><i class="bx bx-link"></i> {{ $hotel['supplier'] }}</span>
+                                                <span><i class="bx bx-restaurant"></i>
+                                                    {{ $hotel['boards']->implode(' | ') }}</span>
                                             @endif
                                         </div>
-                                        
+
                                         @if ($hotel['rating'])
                                             <div class="hl-card__rating">
                                                 <div class="hl-card__stars">
                                                     @for ($i = 1; $i <= 5; $i++)
-                                                        <i class="bx bxs-star" style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
+                                                        <i class="bx bxs-star"
+                                                            style="color: {{ $i <= $hotel['rating'] ? '#f2ac06' : '#ddd' }}"></i>
                                                     @endfor
                                                 </div>
-                                                <span class="hl-card__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
+                                                <span
+                                                    class="hl-card__rating-badge">{{ number_format($hotel['rating'], 1) }}</span>
                                                 <span class="hl-card__rating-text">{{ $hotel['rating_text'] }}</span>
                                             </div>
                                         @endif
                                     </div>
                                     <div class="hl-card__price-col">
+                                        @if (!empty($hotel['supplier']))
+                                            <span class="hl-card__supplier"><i class="bx bx-link"></i>
+                                                {{ $hotel['supplier'] }}</span>
+                                        @endif
                                         @if ($hotel['price'])
                                             <span class="hl-card__price-label">Total price from</span>
                                             <div class="hl-card__price">{{ formatPrice($hotel['price']) }}</div>
@@ -259,7 +274,10 @@
                             </div>
                             @if ($hasMore)
                                 @php
-                                    $nextPageUrl = url()->current() . '?' . http_build_query(array_merge(request()->query(), ['page' => $currentPage + 1]));
+                                    $nextPageUrl =
+                                        url()->current() .
+                                        '?' .
+                                        http_build_query(array_merge(request()->query(), ['page' => $currentPage + 1]));
                                 @endphp
                                 <a href="{{ $nextPageUrl }}" class="hl-pagination__btn">
                                     Show More <i class="bx bx-chevron-down"></i>
@@ -270,7 +288,8 @@
                         <div class="hl-empty">
                             <i class="bx bx-search-alt"></i>
                             <h3>No hotels found</h3>
-                            <p>We couldn't find any properties matching your criteria. Try adjusting your filters or searching for different dates.</p>
+                            <p>We couldn't find any properties matching your criteria. Try adjusting your filters or
+                                searching for different dates.</p>
                             <div class="hl-empty__actions">
                                 <a href="{{ route('user.hotels.index') }}" class="themeBtn">Search alternative dates</a>
                                 <a href="{{ route('user.hotels.search', $query) }}" class="themeBtn">Reset filters</a>
@@ -291,16 +310,23 @@
             var $range = $(".js-range-slider"),
                 $from = $("#rating_range_max"),
                 $to = $("#rating_range_min"),
-                range, min = $range.data('min'), max = $range.data('max'), from, to;
+                range, min = $range.data('min'),
+                max = $range.data('max'),
+                from, to;
 
             if ($range.length && $from.length && $to.length) {
-                var updateValues = function() { $from.prop("value", from); $to.prop("value", to); };
+                var updateValues = function() {
+                    $from.prop("value", from);
+                    $to.prop("value", to);
+                };
 
                 $range.ionRangeSlider({
                     onFinish: function(data) {
                         if (data.from !== from || data.to !== to) {
-                            from = data.from; to = data.to;
-                            updateValues(); updateURLParams();
+                            from = data.from;
+                            to = data.to;
+                            updateValues();
+                            updateURLParams();
                         }
                     }
                 });
@@ -318,14 +344,30 @@
                     let newFrom = +$(this).prop("value");
                     if (newFrom < min) newFrom = min;
                     if (newFrom > to) newFrom = to;
-                    if (newFrom !== from) { from = newFrom; updateValues(); range.update({ from: from, to: to }); updateURLParams(); }
+                    if (newFrom !== from) {
+                        from = newFrom;
+                        updateValues();
+                        range.update({
+                            from: from,
+                            to: to
+                        });
+                        updateURLParams();
+                    }
                 });
 
                 $to.on("input", function() {
                     let newTo = +$(this).prop("value");
                     if (newTo > max) newTo = max;
                     if (newTo < from) newTo = from;
-                    if (newTo !== to) { to = newTo; updateValues(); range.update({ from: from, to: to }); updateURLParams(); }
+                    if (newTo !== to) {
+                        to = newTo;
+                        updateValues();
+                        range.update({
+                            from: from,
+                            to: to
+                        });
+                        updateURLParams();
+                    }
                 });
             }
 
@@ -336,7 +378,8 @@
                     const selected = Array.from(document.querySelectorAll(
                         `.check-filter__input[name="${input.name}"]:checked`
                     )).map(el => el.value);
-                    selected.length > 0 ? url.searchParams.set(input.name, selected.join(',')) : url.searchParams.delete(input.name);
+                    selected.length > 0 ? url.searchParams.set(input.name, selected.join(',')) : url
+                        .searchParams.delete(input.name);
                     window.location.href = url.toString();
                 });
             });
@@ -346,12 +389,14 @@
             const maxInput = document.querySelector('input[name="max_price"]');
             if (minInput && maxInput) {
                 const enforce = () => {
-                    let minVal = parseInt(minInput.value) || 0, maxVal = parseInt(maxInput.value) || 0;
+                    let minVal = parseInt(minInput.value) || 0,
+                        maxVal = parseInt(maxInput.value) || 0;
                     if (minVal < 0) minVal = 0;
                     if (minVal >= maxVal) minVal = maxVal - 1;
                     if (minVal < 0) minVal = 0;
                     if (maxVal <= minVal) maxVal = minVal + 1;
-                    minInput.value = minVal; maxInput.value = maxVal;
+                    minInput.value = minVal;
+                    maxInput.value = maxVal;
                 };
                 const reload = () => {
                     enforce();
@@ -382,7 +427,8 @@
             if (sortSelect) {
                 sortSelect.addEventListener("change", function() {
                     const url = new URL(window.location.href);
-                    this.value ? url.searchParams.set("sort_by", this.value) : url.searchParams.delete("sort_by");
+                    this.value ? url.searchParams.set("sort_by", this.value) : url.searchParams.delete(
+                        "sort_by");
                     window.location.href = url.toString();
                 });
             }
@@ -390,13 +436,53 @@
     </script>
 @endpush
 @push('css')
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.0/css/ion.rangeSlider.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.0/css/ion.rangeSlider.min.css">
     <style>
-        .irs--round .irs-bar { background-color: var(--color-primary); }
-        .irs--round .irs-handle { background-color: var(--color-primary); border-color: var(--color-primary); box-shadow: 0 0 0 5px #cd1b4f40; width: 21px; height: 21px; top: 50%; cursor: grab; }
-        .irs--round .irs-handle.state_hover, .irs--round .irs-handle:hover { background-color: var(--color-primary); }
-        .irs--round .irs-from, .irs--round .irs-to, .irs--round .irs-single { font-weight: 600; background-color: transparent; color: #666; }
-        .irs--round .irs-from:before, .irs--round .irs-to:before, .irs--round .irs-single:before, .irs--round .irs-min, .irs--round .irs-max { display: none; }
-        .hl-card__supplier { background: #e8f4fd; color: #1976d2; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+        .irs--round .irs-bar {
+            background-color: var(--color-primary);
+        }
+
+        .irs--round .irs-handle {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 5px #cd1b4f40;
+            width: 21px;
+            height: 21px;
+            top: 50%;
+            cursor: grab;
+        }
+
+        .irs--round .irs-handle.state_hover,
+        .irs--round .irs-handle:hover {
+            background-color: var(--color-primary);
+        }
+
+        .irs--round .irs-from,
+        .irs--round .irs-to,
+        .irs--round .irs-single {
+            font-weight: 600;
+            background-color: transparent;
+            color: #666;
+        }
+
+        .irs--round .irs-from:before,
+        .irs--round .irs-to:before,
+        .irs--round .irs-single:before,
+        .irs--round .irs-min,
+        .irs--round .irs-max {
+            display: none;
+        }
+
+        .hl-card__supplier {
+            background: #e8f4fd;
+            color: #1976d2;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
     </style>
 @endpush
