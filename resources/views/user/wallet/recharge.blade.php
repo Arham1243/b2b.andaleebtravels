@@ -153,11 +153,6 @@
             margin-top: 20px;
         }
 
-        .btn-recharge:hover {
-            background: #0a2466;
-            color: #fff;
-        }
-
         .btn-recharge:disabled {
             background: #ccc;
             cursor: not-allowed;
