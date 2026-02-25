@@ -110,7 +110,7 @@
 
         .payment-method-card.selected {
             border-color: var(--color-primary);
-            background: #f0f4ff;
+            background: var(--color-primary-light);
         }
 
         .payment-method-card input[type="radio"] {
