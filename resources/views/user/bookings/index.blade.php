@@ -212,7 +212,7 @@
 
                 @if ($hotelBookings->isNotEmpty())
                     <div class="table-responsive">
-                        <table class="bookings-table">
+                        <table class="data-table">
                             <thead>
                                 <tr>
                                     <th>Booking #</th>
