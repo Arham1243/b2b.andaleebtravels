@@ -211,8 +211,8 @@ class HotelService
                 ],
                 'paySceneCode' => 'PAYPAGE',
                 'paySceneParams' => [
-                    'redirectUrl' => route('frontend.hotels.payment.success', ['booking' => $booking->id]),
-                    'backUrl' => route('frontend.hotels.payment.failed', ['booking' => $booking->id])
+                    'redirectUrl' => route('user.hotels.payment.success', ['booking' => $booking->id]),
+                    'backUrl' => route('user.hotels.payment.failed', ['booking' => $booking->id])
                 ],
                 'reserved' => 'Andaleeb Hotel Booking',
                 'accessoryContent' => [
@@ -367,9 +367,9 @@ class HotelService
             'lang' => 'en',
             'merchant_code' => $merchantCode,
             'merchant_urls' => [
-                'success' => route('frontend.hotels.payment.success', ['booking' => $booking->id]),
-                'cancel' => route('frontend.hotels.payment.failed'),
-                'failure' => route('frontend.hotels.payment.failed')
+                'success' => route('user.hotels.payment.success', ['booking' => $booking->id]),
+                'cancel' => route('user.hotels.payment.failed'),
+                'failure' => route('user.hotels.payment.failed')
             ]
         ];
 
