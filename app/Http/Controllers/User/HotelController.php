@@ -775,7 +775,7 @@ class HotelController extends Controller
                 'total_amount' => $totalAmount,
 
                 'payment_method' => $validated['payment_method'],
-                'flight_details' => $validated['flight_details'],
+                'flight_details' => $validated['flight_details'] ?? null,
                 'source_market' => $this->getSourceMarketFromIP(),
             ];
 
