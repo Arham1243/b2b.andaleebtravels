@@ -7,13 +7,6 @@
 
                     <div class="card status-card p-4 p-md-5 text-center">
 
-                        <!-- Success Icon -->
-                        <div>
-                            <div class="status-icon-wrapper success">
-                                <i class='bx bx-info-circle'></i>
-                            </div>
-                        </div>
-
                         <!-- Headline -->
                         <h1 class="h3 fw-bold mb-2">Password Reset Email Sent</h1>
                         <p class="text-muted mb-4">
@@ -25,12 +18,13 @@
 
                         <!-- Actions -->
                         <div class="d-grid gap-2">
-                            <a href="{{ route('auth.login') }}" class="btn btn-primary-theme btn-lg">
+                            <a href="{{ route('auth.login') }}" class="btn-primary-custom">
                                 Back to Login
                             </a>
-                            <a href="{{ route('frontend.index') }}" class="btn btn-link text-decoration-none text-muted">
-                                Return to Home
-                            </a>
+                            <div class="auth-footer">
+                                <a href="{{ route('frontend.index') }}" class="custom-link"> <i class='bx bx-arrow-back'></i>
+                                    Return to Home</a>
+                            </div>
                         </div>
                     </div>
 
