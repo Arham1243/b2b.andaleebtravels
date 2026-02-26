@@ -17,7 +17,7 @@
                         </p>
 
                         <!-- Actions -->
-                        <div class="d-grid gap-2">
+                        <div class="d-grid">
                             <a href="{{ route('auth.login') }}" class="btn-primary-custom">
                                 Back to Login
                             </a>
