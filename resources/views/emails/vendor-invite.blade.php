@@ -14,7 +14,7 @@
         .credentials td { padding: 8px 0; }
         .credentials td:first-child { font-weight: 600; color: #555; width: 120px; }
         .credentials td:last-child { color: #1a1a2e; font-weight: 500; }
-        .btn { display: inline-block; background: #cd1b4f; color: #fff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 10px; }
+        .btn { display: inline-block; background: #cd1b4f; color: #fff !important; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 10px; }
         .footer { background: #f8f9fa; padding: 20px 30px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; }
         .note { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px; margin-top: 20px; font-size: 13px; color: #856404; }
     </style>
