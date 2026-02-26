@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\DBConsoleController;
 use App\Http\Controllers\Admin\EnvEditorController;
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\TerminalController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,9 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 
     Route::resource('users', UserController::class);
     Route::get('users/change-status/{user}', [UserController::class, 'changeStatus'])->name('users.change-status');
+
+    Route::resource('vendors', VendorController::class);
+    Route::get('vendors/change-status/{vendor}', [VendorController::class, 'changeStatus'])->name('vendors.change-status');
 
     Route::resource('inquiries', InquiryController::class);
     Route::get('logo-management', [ConfigController::class, 'logoManagement'])->name('settings.logo');
