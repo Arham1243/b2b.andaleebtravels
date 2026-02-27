@@ -2966,6 +2966,7 @@ ol.breadcrumb {
 .dashboard--topbar .topbar-content-wrapper {
     padding: 1.5rem 2rem;
     flex: 1;
+    min-height: 100vh;
 }
 
 /* Mobile Toggle */

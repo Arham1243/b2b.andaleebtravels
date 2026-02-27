@@ -1,10 +1,12 @@
 <script>
     const hotelsDataPromise = Promise.all([
         fetch("{{ asset('user/mocks/yalago_countries.json') }}").then(r => r.json()),
-        fetch("{{ asset('user/mocks/yalago_provinces.json') }}").then(r => r.json())
-    ]).then(([countries, provinces]) => ({
+        fetch("{{ asset('user/mocks/yalago_provinces.json') }}").then(r => r.json()),
+        fetch("{{ asset('user/mocks/yalago_locations.json') }}").then(r => r.json())
+    ]).then(([countries, provinces, locations]) => ({
         countries,
-        provinces
+        provinces,
+        locations
     }));
 
     const exactMatch = (arr, key, q) => {
@@ -23,10 +25,11 @@
     const byField = (arr, field, value) =>
         arr.filter(o => o[field] === value);
 
-    const formatResults = ({ countries, provinces }) => ({
+    const formatResults = ({ countries, provinces, locations }) => ({
         destinations: {
             countries,
-            provinces
+            provinces,
+            locations
         }
     });
 
@@ -36,11 +39,12 @@
         if (!q) {
             return formatResults({
                 countries: [],
-                provinces: []
+                provinces: [],
+                locations: []
             });
         }
 
-        const { countries, provinces } = await hotelsDataPromise;
+        const { countries, provinces, locations } = await hotelsDataPromise;
 
         // COUNTRY EXACT
         const cMatch = exactMatch(countries, 'name', q);
@@ -50,26 +54,43 @@
 
             return formatResults({
                 countries: [],
-                provinces: provs
+                provinces: provs,
+                locations: []
             });
         }
 
         // PROVINCE EXACT
         const pMatch = exactMatch(provinces, 'name', q);
         if (pMatch) {
+            const locs = byField(locations, 'province_id', pMatch.id);
+            locs.unshift({ ...pMatch, name: pMatch.name });
+
             return formatResults({
                 countries: [],
-                provinces: [pMatch]
+                provinces: [],
+                locations: locs
             });
         }
 
-        // PARTIAL MATCH
+        // LOCATION EXACT
+        const lMatch = exactMatch(locations, 'name', q);
+        if (lMatch) {
+            return formatResults({
+                countries: [],
+                provinces: [],
+                locations: [lMatch]
+            });
+        }
+
+        // PARTIAL MATCHES
         const cs = startsWith(countries, 'name', q);
         const ps = startsWith(provinces, 'name', q);
+        const ls = startsWith(locations, 'name', q);
 
         return formatResults({
             countries: cs,
-            provinces: ps
+            provinces: ps,
+            locations: ls
         });
     };
 </script>

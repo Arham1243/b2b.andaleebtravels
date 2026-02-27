@@ -20,8 +20,9 @@
                 <div class="options-dropdown-wrapper options-dropdown-wrapper--from"
                     :class="{
                         open: hotelDestinationDropdownOpen,
-                        scroll: (hotelDestinations?.countries?.length || 0) + (hotelDestinations?.provinces?.length ||
-                            0) > 9
+                        scroll: (hotelDestinations?.countries?.length || 0) +
+                            (hotelDestinations?.provinces?.length || 0) +
+                            (hotelDestinations?.locations?.length || 0) > 9
                     }">
                     <!-- Loading State -->
                     <div class="options-dropdown" v-if="loadingHotelDestination">
@@ -37,7 +38,11 @@
 
                     <!-- Destinations -->
                     <div class="options-dropdown"
-                        v-if="!loadingHotelDestination && ((hotelDestinations?.countries?.length || 0) + (hotelDestinations?.provinces?.length || 0) > 0)">
+                        v-if="!loadingHotelDestination && (
+    (hotelDestinations?.countries?.length || 0) +
+    (hotelDestinations?.provinces?.length || 0) +
+    (hotelDestinations?.locations?.length || 0)
+) > 0">
                         <div class="options-dropdown__header">
                             <span>Destinations</span>
                         </div>
@@ -53,6 +58,21 @@
                                     </div>
                                 </li>
                                 <li class="options-dropdown-list__item" v-for="item in hotelDestinations.provinces"
+                                    :key="'province-' + item.id" @click="selectHotelDestination(item.name)">
+
+                                    <div class="icon">
+                                        <i class='bx bx-map-pin'></i>
+                                    </div>
+
+                                    <div class="info">
+                                        <div class="name">@{{ item.name }}</div>
+
+                                        <span class="sub-text" v-if="item.country_name">
+                                            @{{ item.country_name }}
+                                        </span>
+                                    </div>
+                                </li>
+                                <li class="options-dropdown-list__item" v-for="item in hotelDestinations.locations"
                                     :key="'location-' + item.id" @click="selectHotelDestination(item.name)">
                                     <div class="icon">
                                         <i class='bx bx-map'></i>
@@ -70,7 +90,7 @@
 
                     <!-- No Matches -->
                     <div class="options-dropdown options-dropdown--norm"
-                        v-if="!loadingHotelDestination && !hotelDestinations?.countries?.length && !hotelDestinations?.provinces?.length">
+                        v-if="!loadingHotelDestination && !hotelDestinations?.countries?.length && !hotelDestinations?.locations?.length"
                         <div class="options-dropdown__header justify-content-center">
                             <span class="text-danger" style="font-weight: 500;">No Matches Found</span>
                         </div>
