@@ -90,7 +90,7 @@
 
                     <!-- No Matches -->
                     <div class="options-dropdown options-dropdown--norm"
-                        v-if="!loadingHotelDestination && !hotelDestinations?.countries?.length && !hotelDestinations?.locations?.length"
+                        v-if="!loadingHotelDestination && !hotelDestinations?.countries?.length && !hotelDestinations?.locations?.length">
                         <div class="options-dropdown__header justify-content-center">
                             <span class="text-danger" style="font-weight: 500;">No Matches Found</span>
                         </div>
