@@ -8,7 +8,8 @@
                 <div class="hs-field__inner" @click.stop="onHotelDestinationBoxClick">
                     <div class="hs-field__label">ENTER YOUR DESTINATION</div>
                     <div class="hs-field__value-row">
-                        <input type="text" autocomplete="off" class="hs-field__input" v-model="hotelDestinationInputValue"
+                        <input type="text" autocomplete="off" class="hs-field__input"
+                            v-model="hotelDestinationInputValue"
                             @input="hotelDestinationQuery = hotelDestinationInputValue" placeholder="Select Destination"
                             ref="hotelDestinationInputRef" name="destination">
                         <i class='bx bx-world hs-field__icon'></i>
@@ -19,7 +20,8 @@
                 <div class="options-dropdown-wrapper options-dropdown-wrapper--from"
                     :class="{
                         open: hotelDestinationDropdownOpen,
-                        scroll: (hotelDestinations?.countries?.length || 0) + (hotelDestinations?.locations?.length || 0) > 9
+                        scroll: (hotelDestinations?.countries?.length || 0) + (hotelDestinations?.provinces?.length ||
+                            0) > 9
                     }">
                     <!-- Loading State -->
                     <div class="options-dropdown" v-if="loadingHotelDestination">
@@ -35,7 +37,7 @@
 
                     <!-- Destinations -->
                     <div class="options-dropdown"
-                        v-if="!loadingHotelDestination && ((hotelDestinations?.countries?.length || 0) + (hotelDestinations?.locations?.length || 0) > 0)">
+                        v-if="!loadingHotelDestination && ((hotelDestinations?.countries?.length || 0) + (hotelDestinations?.provinces?.length || 0) > 0)">
                         <div class="options-dropdown__header">
                             <span>Destinations</span>
                         </div>
@@ -50,7 +52,7 @@
                                         <div class="name">@{{ item.name }}</div>
                                     </div>
                                 </li>
-                                <li class="options-dropdown-list__item" v-for="item in hotelDestinations.locations"
+                                <li class="options-dropdown-list__item" v-for="item in hotelDestinations.provinces"
                                     :key="'location-' + item.id" @click="selectHotelDestination(item.name)">
                                     <div class="icon">
                                         <i class='bx bx-map'></i>
@@ -68,7 +70,7 @@
 
                     <!-- No Matches -->
                     <div class="options-dropdown options-dropdown--norm"
-                        v-if="!loadingHotelDestination && !hotelDestinations?.countries?.length && !hotelDestinations?.locations?.length">
+                        v-if="!loadingHotelDestination && !hotelDestinations?.countries?.length && !hotelDestinations?.provinces?.length">
                         <div class="options-dropdown__header justify-content-center">
                             <span class="text-danger" style="font-weight: 500;">No Matches Found</span>
                         </div>
@@ -79,7 +81,8 @@
             <!-- CHECK IN DATE -->
             <div class="hs-field hs-field--date" id="hotel-checkin-box">
                 <div class="hs-field__inner">
-                    <div class="hs-field__label"><i class='bx bx-calendar'></i> CHECK IN <i class='bx bx-chevron-down' style="font-size:11px"></i></div>
+                    <div class="hs-field__label"><i class='bx bx-calendar'></i> CHECK IN <i class='bx bx-chevron-down'
+                            style="font-size:11px"></i></div>
                     <div class="hs-date-display">
                         <span class="hs-date-display__day" id="hotel-checkin-dd">&mdash;</span>
                         <div class="hs-date-display__meta">
@@ -87,8 +90,8 @@
                             <span class="hs-date-display__weekday" id="hotel-checkin-day">&nbsp;</span>
                         </div>
                     </div>
-                    <input readonly autocomplete="off" type="hidden"
-                        name="check_in" ref="hotelCheckInDate" id="hotel-checkin-input">
+                    <input readonly autocomplete="off" type="hidden" name="check_in" ref="hotelCheckInDate"
+                        id="hotel-checkin-input">
                 </div>
             </div>
 
@@ -101,7 +104,8 @@
             <!-- CHECK OUT DATE -->
             <div class="hs-field hs-field--date" id="hotel-checkout-box">
                 <div class="hs-field__inner">
-                    <div class="hs-field__label"><i class='bx bx-calendar'></i> CHECK OUT <i class='bx bx-chevron-down' style="font-size:11px"></i></div>
+                    <div class="hs-field__label"><i class='bx bx-calendar'></i> CHECK OUT <i class='bx bx-chevron-down'
+                            style="font-size:11px"></i></div>
                     <div class="hs-date-display">
                         <span class="hs-date-display__day" id="hotel-checkout-dd">&mdash;</span>
                         <div class="hs-date-display__meta">
@@ -109,8 +113,8 @@
                             <span class="hs-date-display__weekday" id="hotel-checkout-day">&nbsp;</span>
                         </div>
                     </div>
-                    <input readonly autocomplete="off" type="hidden"
-                        name="check_out" ref="hotelCheckOutDate" id="hotel-checkout-input">
+                    <input readonly autocomplete="off" type="hidden" name="check_out" ref="hotelCheckOutDate"
+                        id="hotel-checkout-input">
                 </div>
             </div>
         </div>
@@ -120,7 +124,8 @@
             <!-- ROOMS & GUESTS -->
             <div class="hs-field hs-field--rooms" ref="hotelRoomsRef">
                 <div class="hs-field__inner" @click.stop="toggleHotelRooms">
-                    <div class="hs-field__label">ROOMS & GUESTS <i class='bx bx-chevron-down' style="font-size:11px"></i></div>
+                    <div class="hs-field__label">ROOMS & GUESTS <i class='bx bx-chevron-down'
+                            style="font-size:11px"></i></div>
                     <div class="hs-field__value">
                         <span class="hs-rooms-text">
                             <strong>@{{ hotelRoomCount || 0 }}</strong> Room
@@ -203,14 +208,16 @@
 
                                     <!-- Child Ages -->
                                     <div class="child-ages child-ages-search mt-2" v-if="room.children > 0">
-                                        <div class="child-age child-age--half" v-for="(age, childIndex) in room.childAges"
+                                        <div class="child-age child-age--half"
+                                            v-for="(age, childIndex) in room.childAges"
                                             :key="'room-' + roomIndex + '-child-' + childIndex">
                                             <label>Child @{{ childIndex + 1 }} Age</label>
                                             <select v-model="room.childAges[childIndex]"
                                                 :name="'room_' + (roomIndex + 1) + '_child_age_' + (childIndex + 1)"
                                                 class="form-control">
                                                 <option value="">Select</option>
-                                                <option v-for="n in 17" :key="n" :value="n">
+                                                <option v-for="n in 17" :key="n"
+                                                    :value="n">
                                                     @{{ n }}
                                                 </option>
                                             </select>
@@ -225,8 +232,7 @@
 
             <!-- SEARCH BUTTON -->
             <div class="hs-field hs-field--btn">
-                <button type="submit" :disabled="!isHotelSearchEnabled"
-                    class="hs-search-btn">Search Hotels</button>
+                <button type="submit" :disabled="!isHotelSearchEnabled" class="hs-search-btn">Search Hotels</button>
             </div>
         </div>
     </form>

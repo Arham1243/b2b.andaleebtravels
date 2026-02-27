@@ -1,55 +1,75 @@
 <script>
     const hotelsDataPromise = Promise.all([
         fetch("{{ asset('user/mocks/yalago_countries.json') }}").then(r => r.json()),
-        fetch("{{ asset('user/mocks/yalago_locations.json') }}").then(r => r.json())
-    ]).then(([countries, locations]) => ({
+        fetch("{{ asset('user/mocks/yalago_provinces.json') }}").then(r => r.json())
+    ]).then(([countries, provinces]) => ({
         countries,
-        locations
+        provinces
     }));
 
     const exactMatch = (arr, key, q) => {
-        return arr.find((o) => {
+        return arr.find(o => {
             const value = o[key];
             return value && value.toLowerCase().trim() === q;
         });
     };
+
     const startsWith = (arr, key, q) =>
-        arr.filter((o) => {
+        arr.filter(o => {
             const value = o[key];
             return value && value.toLowerCase().startsWith(q);
         });
 
-    const byField = (arr, field, value) => arr.filter(o => o[field] === value);
+    const byField = (arr, field, value) =>
+        arr.filter(o => o[field] === value);
 
-    const formatResults = ({ countries, locations }) => ({
+    const formatResults = ({ countries, provinces }) => ({
         destinations: {
             countries,
-            locations
+            provinces
         }
     });
 
     window.HotelGlobalSearchAPI = async qRaw => {
         const q = qRaw.trim().toLowerCase();
-        if (!q) return formatResults({ countries: [], locations: [] });
 
-        const { countries, locations } = await hotelsDataPromise;
+        if (!q) {
+            return formatResults({
+                countries: [],
+                provinces: []
+            });
+        }
 
+        const { countries, provinces } = await hotelsDataPromise;
+
+        // COUNTRY EXACT
         const cMatch = exactMatch(countries, 'name', q);
         if (cMatch) {
-            const locs = byField(locations, 'country_id', cMatch.id);
-            locs.unshift({ ...cMatch, name: cMatch.name });
-            return formatResults({ countries: [], locations: locs });
+            const provs = byField(provinces, 'country_id', cMatch.id);
+            provs.unshift({ ...cMatch, name: cMatch.name });
+
+            return formatResults({
+                countries: [],
+                provinces: provs
+            });
         }
 
-        const lMatch = exactMatch(locations, 'name', q);
-        if (lMatch) {
-            return formatResults({ countries: [], locations: [lMatch] });
+        // PROVINCE EXACT
+        const pMatch = exactMatch(provinces, 'name', q);
+        if (pMatch) {
+            return formatResults({
+                countries: [],
+                provinces: [pMatch]
+            });
         }
 
+        // PARTIAL MATCH
         const cs = startsWith(countries, 'name', q);
-        const ls = startsWith(locations, 'name', q);
+        const ps = startsWith(provinces, 'name', q);
 
-        return formatResults({ countries: cs, locations: ls });
+        return formatResults({
+            countries: cs,
+            provinces: ps
+        });
     };
 </script>
-
