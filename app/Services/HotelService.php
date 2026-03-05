@@ -22,6 +22,9 @@ class HotelService
     public $paybyApiUrl = 'https://api.payby.com/sgs/api/acquire2';
     public $paybyPrivateKey = 'user/assets/files/payby-private-key.pem';
 
+    public $tamaraApiUrl = 'https://api-sandbox.tamara.co';
+    public $tamaraApiToken = null;
+
     // Yalago API Configuration
     private $yalagoApiKey = '93082895-c45f-489f-ae10-bed9eaae161e';
     private $yalagoApiUrl = 'https://api.yalago.com/hotels';
@@ -33,6 +36,9 @@ class HotelService
         $config = Config::pluck('config_value', 'config_key')->toArray();
         $this->commissionPercentage = ($config['HOTEL_COMMISSION_PERCENTAGE'] ?? 30) / 100;
         $this->adminEmail = $config['ADMINEMAIL'] ?? 'info@andaleebtours.com';
+
+        $this->tamaraApiUrl = rtrim(env('TAMARA_API_URL', $this->tamaraApiUrl), '/');
+        $this->tamaraApiToken = env('TAMARA_API_TOKEN');
     }
 
 
@@ -186,6 +192,9 @@ class HotelService
 
             case 'tabby':
                 return $this->tabbyRedirect($booking);
+
+            case 'tamara':
+                return $this->tamaraRedirect($booking);
 
             default:
                 throw new \InvalidArgumentException("Unsupported payment method: {$paymentMethod}");
@@ -405,6 +414,110 @@ class HotelService
     }
 
     /**
+     * Tamara Redirect
+     */
+    protected function tamaraRedirect(B2bHotelBooking $booking): string
+    {
+        if (empty($this->tamaraApiToken)) {
+            throw new \Exception('Tamara API token is missing. Check your .env file.');
+        }
+
+        $remainingAmount = $booking->total_amount - ($booking->wallet_amount ?? 0);
+        $finalAmount = $remainingAmount + ($remainingAmount * $this->commissionPercentage);
+        $amount = number_format((float) $finalAmount, 2, '.', '');
+
+        $address = [
+            'first_name' => $booking->lead_first_name,
+            'last_name' => $booking->lead_last_name,
+            'line1' => $booking->lead_address ?? 'N/A',
+            'city' => 'Dubai',
+            'country_code' => 'AE',
+            'phone_number' => $booking->lead_phone,
+        ];
+
+        $requestData = [
+            'order_reference_id' => $booking->booking_number,
+            'order_number' => $booking->booking_number,
+            'description' => "Hotel booking {$booking->booking_number}",
+            'country_code' => 'AE',
+            'locale' => 'en_US',
+            'payment_type' => 'PAY_BY_INSTALMENTS',
+            'total_amount' => [
+                'amount' => $amount,
+                'currency' => 'AED',
+            ],
+            'shipping_amount' => [
+                'amount' => '0.00',
+                'currency' => 'AED',
+            ],
+            'tax_amount' => [
+                'amount' => '0.00',
+                'currency' => 'AED',
+            ],
+            'items' => [
+                [
+                    'reference_id' => (string) $booking->id,
+                    'type' => 'Hotel Booking',
+                    'name' => $booking->hotel_name,
+                    'sku' => $booking->booking_number,
+                    'quantity' => 1,
+                    'unit_price' => [
+                        'amount' => $amount,
+                        'currency' => 'AED',
+                    ],
+                    'tax_amount' => [
+                        'amount' => '0.00',
+                        'currency' => 'AED',
+                    ],
+                    'total_amount' => [
+                        'amount' => $amount,
+                        'currency' => 'AED',
+                    ],
+                ],
+            ],
+            'consumer' => [
+                'first_name' => $booking->lead_first_name,
+                'last_name' => $booking->lead_last_name,
+                'phone_number' => $booking->lead_phone,
+                'email' => $booking->lead_email,
+            ],
+            'billing_address' => $address,
+            'shipping_address' => $address,
+            'merchant_url' => [
+                'success' => route('user.hotels.payment.success', ['booking' => $booking->id]),
+                'failure' => route('user.hotels.payment.failed', ['booking' => $booking->id]),
+                'cancel' => route('user.hotels.payment.failed', ['booking' => $booking->id]),
+                'notification' => route('user.hotels.payment.success', ['booking' => $booking->id]),
+            ],
+        ];
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->tamaraApiToken,
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])->post($this->tamaraApiUrl . '/checkout', $requestData);
+
+        if (!$response->successful()) {
+            throw new \Exception('Tamara API request failed: ' . $response->body());
+        }
+
+        $responseData = $response->json();
+        $orderId = $responseData['order_id'] ?? null;
+        $checkoutUrl = $responseData['checkout_url'] ?? null;
+
+        if (!$checkoutUrl || !$orderId) {
+            throw new \Exception('Tamara checkout creation failed: checkout URL or order ID missing.');
+        }
+
+        $booking->update([
+            'payment_reference' => $orderId,
+            'payment_response' => $responseData,
+        ]);
+
+        return $checkoutUrl;
+    }
+
+    /**
      * Verify PayBy Payment
      */
     public function verifyPayByPayment(B2bHotelBooking $booking): array
@@ -486,6 +599,65 @@ class HotelService
             'success' => true,
             'data' => []
         ];
+    }
+
+    /**
+     * Verify Tamara Payment
+     */
+    public function verifyTamaraPayment(B2bHotelBooking $booking): array
+    {
+        try {
+            if (empty($this->tamaraApiToken)) {
+                throw new \Exception('Tamara API token is missing. Check your .env file.');
+            }
+
+            if (empty($booking->payment_reference)) {
+                throw new \Exception('Tamara order ID is missing for this booking.');
+            }
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->tamaraApiToken,
+                'Accept' => 'application/json',
+            ])->get($this->tamaraApiUrl . '/orders/' . $booking->payment_reference);
+
+            if (!$response->successful()) {
+                throw new \Exception('Tamara verification API request failed: ' . $response->body());
+            }
+
+            $responseData = $response->json();
+            $status = strtolower((string) ($responseData['status'] ?? ''));
+            $paidStatuses = ['approved', 'authorised', 'authorized', 'captured', 'fully_captured', 'partially_captured'];
+
+            if (!in_array($status, $paidStatuses, true)) {
+                throw new \Exception('Tamara payment not approved. Status: ' . ($responseData['status'] ?? 'unknown'));
+            }
+
+            $tamaraAmount = (float) data_get($responseData, 'total_amount.amount', 0);
+            $expectedAmount = (float) (
+                ($booking->total_amount - ($booking->wallet_amount ?? 0))
+                + (($booking->total_amount - ($booking->wallet_amount ?? 0)) * $this->commissionPercentage)
+            );
+
+            if ($tamaraAmount > 0 && abs($tamaraAmount - $expectedAmount) > 0.01) {
+                throw new \Exception('Tamara amount mismatch detected.');
+            }
+
+            return [
+                'success' => true,
+                'data' => $responseData,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Tamara Verification Error', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 
     /**

@@ -693,7 +693,7 @@ class HotelController extends Controller
                 'booking.guests' => 'nullable|array',
                 'booking.extras' => 'nullable|array',
 
-                'payment_method' => 'required_without:use_wallet|in:payby,tabby',
+                'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
                 'use_wallet' => 'nullable|in:1',
                 'wallet_amount' => 'nullable|numeric|min:0',
                 'flight_details' => 'nullable|array',
@@ -899,6 +899,8 @@ class HotelController extends Controller
                 $verificationResult = $hotelService->verifyPayByPayment($booking);
             } elseif ($booking->payment_method === 'tabby') {
                 $verificationResult = $hotelService->verifyTabbyPayment($booking);
+            } elseif ($booking->payment_method === 'tamara') {
+                $verificationResult = $hotelService->verifyTamaraPayment($booking);
             } else {
                 throw new \Exception('Invalid payment method');
             }

@@ -349,6 +349,19 @@
                                                 <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
                                             </div>
                                         </label>
+
+                                        {{-- Tamara --}}
+                                        <label class="hc-payment-option">
+                                            <input type="radio" name="payment_method" value="tamara" required>
+                                            <div class="hc-payment-option__body">
+                                                <div class="hc-payment-option__icon"><i class="bx bx-wallet-alt"></i></div>
+                                                <div class="hc-payment-option__info">
+                                                    <div class="hc-payment-option__name">Tamara - Buy Now Pay Later</div>
+                                                    <div class="hc-payment-option__desc">Split payment with Tamara installments</div>
+                                                </div>
+                                                <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
 
