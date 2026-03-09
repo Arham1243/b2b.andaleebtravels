@@ -1,6 +1,6 @@
 <div class="hotel-search-redesign" v-cloak>
     <div class="hotel-search-redesign__title">Book Domestic and International Hotels</div>
-    <form method="GET" action="{{ route('user.hotels.search') }}">
+    <form method="GET" action="{{ route('user.hotels.search') }}" @submit="onHotelSearchSubmit">
         <!-- ROW 1: Destination + Check In + Night + Check Out -->
         <div class="hs-row hs-row--top">
             <!-- DESTINATION -->
@@ -261,8 +261,15 @@
 
             <!-- SEARCH BUTTON -->
             <div class="hs-field hs-field--btn">
-                <button type="submit" :disabled="!isHotelSearchEnabled"
-                    class="hs-search-btn">Search Hotels</button>
+                <button type="submit" :disabled="!isHotelSearchEnabled || isHotelSearchSubmitting"
+                    class="hs-search-btn">
+                    <template v-if="isHotelSearchSubmitting">
+                        <i class='bx bx-loader-alt bx-spin'></i> Searching...
+                    </template>
+                    <template v-else>
+                        Search Hotels
+                    </template>
+                </button>
             </div>
         </div>
     </form>

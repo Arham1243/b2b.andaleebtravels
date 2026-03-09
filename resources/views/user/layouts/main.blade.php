@@ -24,8 +24,14 @@
             </div>
         </footer>
     </div>
-    <div class="loader-mask" id="loader">
-        <div class="loader"></div>
+    <div class="loader-mask is-visible" id="loader" aria-live="polite" aria-busy="true">
+        <div class="portal-loader">
+            <div class="portal-loader__orbit">
+                <span class="portal-loader__ring"></span>
+                <i class='bx bxs-plane-alt portal-loader__plane'></i>
+            </div>
+            <div class="portal-loader__text" data-loader-message>Fetching your travel results...</div>
+        </div>
     </div>
 
     @include('user.layouts.scripts')

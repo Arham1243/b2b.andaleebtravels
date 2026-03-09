@@ -284,6 +284,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.0/js/ion.rangeSlider.min.js"></script>
     <script>
         $(document).ready(function() {
+            const navigateWithLoader = (url, message = 'Updating hotel results...') => {
+                if (typeof window.showPageLoader === 'function') {
+                    window.showPageLoader(message);
+                }
+                window.location.href = url;
+            };
+
             // Rating range slider
             var $range = $(".js-range-slider"),
                 $from = $("#rating_range_max"),
@@ -308,7 +315,7 @@
                     const url = new URL(window.location.href);
                     url.searchParams.set('rating_range_min', from);
                     url.searchParams.set('rating_range_max', to);
-                    window.location.href = url.toString();
+                    navigateWithLoader(url.toString());
                 };
 
                 $from.on("input", function() {
@@ -334,7 +341,7 @@
                         `.check-filter__input[name="${input.name}"]:checked`
                     )).map(el => el.value);
                     selected.length > 0 ? url.searchParams.set(input.name, selected.join(',')) : url.searchParams.delete(input.name);
-                    window.location.href = url.toString();
+                    navigateWithLoader(url.toString());
                 });
             });
 
@@ -355,7 +362,7 @@
                     const url = new URL(window.location.href);
                     url.searchParams.set('min_price', minInput.value);
                     url.searchParams.set('max_price', maxInput.value);
-                    window.location.href = url.toString();
+                    navigateWithLoader(url.toString());
                 };
                 minInput.addEventListener('input', enforce);
                 maxInput.addEventListener('input', enforce);
@@ -370,7 +377,7 @@
                     const val = hotelInput.value.trim();
                     const url = new URL(window.location.href);
                     val ? url.searchParams.set('hotel_name', val) : url.searchParams.delete('hotel_name');
-                    window.location.href = url.toString();
+                    navigateWithLoader(url.toString());
                 });
             }
 
@@ -380,7 +387,7 @@
                 sortSelect.addEventListener("change", function() {
                     const url = new URL(window.location.href);
                     this.value ? url.searchParams.set("sort_by", this.value) : url.searchParams.delete("sort_by");
-                    window.location.href = url.toString();
+                    navigateWithLoader(url.toString());
                 });
             }
         });

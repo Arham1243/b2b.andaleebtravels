@@ -1822,21 +1822,71 @@ body.responsive.fancybox-active.compensate-for-scrollbar {
     width: 100%;
     height: 100%;
     z-index: 1000000000000;
-    background: #fff;
+    background: linear-gradient(135deg, #fffaf6 0%, #ffffff 45%, #f7fbff 100%);
     display: flex;
     align-items: center;
     justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
-.loader {
-    width: 48px;
-    height: 48px;
-    border: 4px solid var(--color-primary);
-    border-bottom-color: transparent;
+.loader-mask.is-visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: all;
+}
+
+.portal-loader {
+    min-width: 260px;
+    padding: 1.25rem 1.5rem 1.1rem;
+    border-radius: 14px;
+    text-align: center;
+    background: #ffffffee;
+    border: 1px solid #f1d3bf;
+    box-shadow: 0 12px 30px #1018281a;
+}
+
+.portal-loader__orbit {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 0.75rem;
+    position: relative;
+}
+
+.portal-loader__ring {
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
-    display: inline-block;
-    box-sizing: border-box;
+    border: 4px solid #ff684940;
+}
+
+.portal-loader__ring::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    border-top-color: var(--color-primary);
     animation: rotation 1s linear infinite;
+}
+
+.portal-loader__plane {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 30px;
+    height: 30px;
+    font-size: 30px;
+    color: var(--color-primary);
+    animation: floatPlane 1.2s ease-in-out infinite;
+}
+
+.portal-loader__text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #304254;
 }
 
 @keyframes rotation {
@@ -1846,6 +1896,17 @@ body.responsive.fancybox-active.compensate-for-scrollbar {
 
     100% {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes floatPlane {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
     }
 }
 

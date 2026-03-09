@@ -93,9 +93,30 @@ function showIcon(iconField) {
         .setAttribute("class", `${iconField.value} bx-md`);
 }
 
+const getPageLoader = () => document.getElementById("loader");
+
+window.showPageLoader = function (message) {
+    const loader = getPageLoader();
+    if (!loader) return;
+    const messageElement = loader.querySelector("[data-loader-message]");
+    if (messageElement && typeof message === "string" && message.trim() !== "") {
+        messageElement.textContent = message.trim();
+    }
+    loader.classList.add("is-visible");
+};
+
+window.hidePageLoader = function () {
+    const loader = getPageLoader();
+    if (!loader) return;
+    loader.classList.remove("is-visible");
+};
+
+window.addEventListener("beforeunload", function () {
+    window.showPageLoader();
+});
+
 window.addEventListener("load", function () {
-    const loader = document.getElementById("loader");
-    loader.style.display = "none";
+    window.hidePageLoader();
 });
 
 // Single File Upload

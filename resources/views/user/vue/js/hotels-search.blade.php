@@ -42,6 +42,7 @@
             const hotelCheckOutDate = ref(null);
             const hotelRoomCount = ref('');
             const hotelRooms = ref([]);
+            const isHotelSearchSubmitting = ref(false);
 
             const {
                 open: hotelRoomsOpen,
@@ -201,6 +202,17 @@
                     allChildAgesFilled;
             });
 
+            const onHotelSearchSubmit = (event) => {
+                if (!isHotelSearchEnabled.value) {
+                    event.preventDefault();
+                    return;
+                }
+                isHotelSearchSubmitting.value = true;
+                if (typeof window.showPageLoader === 'function') {
+                    window.showPageLoader('Finding the best hotels for your trip...');
+                }
+            };
+
             return {
                 // Hotel
                 hotelCheckInDate,
@@ -226,6 +238,8 @@
                 hotelDestinationWrapperRef,
                 toggleHotelDestinationDropdown,
                 isHotelSearchEnabled,
+                isHotelSearchSubmitting,
+                onHotelSearchSubmit,
                 nightCount,
                 totalGuestsCount
             };
