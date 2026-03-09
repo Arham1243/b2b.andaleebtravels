@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\Banner;
+use App\Models\B2bHotelBooking;
+use App\Models\B2bWalletLedger;
 use App\Models\Country;
 use App\Models\Hotel;
 use App\Models\Config;
@@ -320,6 +321,8 @@ class HotelController extends Controller
                 'location' => $localHotel?->location?->name,
 
                 'image'    => $images[0]['Url'] ?? null,
+
+                'supplier' => 'Yalago',
 
                 'price' => calculatePriceWithCommission(data_get($cheapestBoard, 'NetCost.Amount'), $this->hotelCommissionPercentage),
 
@@ -657,6 +660,7 @@ class HotelController extends Controller
             'check_in'               => $checkInDate,
             'check_out'              => $checkOutDate,
             'hotelCommissionPercentage'              => $this->hotelCommissionPercentage,
+            'walletBalance'          => (float) Auth::user()->main_balance,
         ]);
     }
 
@@ -689,7 +693,9 @@ class HotelController extends Controller
                 'booking.guests' => 'nullable|array',
                 'booking.extras' => 'nullable|array',
 
-                'payment_method' => 'required|in:payby,tabby,wallet',
+                'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
+                'use_wallet' => 'nullable|in:1',
+                'wallet_amount' => 'nullable|numeric|min:0',
                 'flight_details' => 'nullable|array',
             ]);
 
@@ -775,7 +781,7 @@ class HotelController extends Controller
                 'total_amount' => $totalAmount,
 
                 'payment_method' => $validated['payment_method'],
-                'flight_details' => $validated['flight_details'],
+                'flight_details' => $validated['flight_details'] ?? null,
                 'source_market' => $this->getSourceMarketFromIP(),
             ];
 
@@ -801,29 +807,34 @@ class HotelController extends Controller
                     ->with('notify_error', $availabilityCheck['error']);
             }
 
-            // Handle wallet payment
-            if ($validated['payment_method'] === 'wallet') {
+            // Store wallet intent on booking (do NOT deduct yet — only on verified success)
+            $useWallet = !empty($validated['use_wallet']);
+            $walletDeduction = 0;
+
+            if ($useWallet) {
                 $user = Auth::user();
-                if ($user->main_balance < $totalAmount) {
+                $requestedWalletAmount = (float) ($validated['wallet_amount'] ?? 0);
+                $walletDeduction = min($requestedWalletAmount, (float) $user->main_balance, $totalAmount);
+
+                if ($walletDeduction > 0) {
                     $booking->update([
-                        'booking_status' => 'failed',
-                        'payment_status' => 'failed',
+                        'wallet_amount' => $walletDeduction,
                     ]);
-                    return redirect()->back()
-                        ->with('notify_error', 'Insufficient wallet balance. Your balance is ' . formatPrice($user->main_balance));
                 }
+            }
 
-                $user->decrement('main_balance', $totalAmount);
+            $remainingAmount = $totalAmount - $walletDeduction;
 
+            // If wallet covers the full amount, redirect to success for processing
+            if ($remainingAmount <= 0) {
                 $booking->update([
-                    'payment_status' => 'paid',
-                    'payment_reference' => 'WALLET-' . strtoupper(uniqid()),
+                    'payment_method' => 'wallet',
                 ]);
 
                 return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
             }
 
-            // Get payment redirect URL
+            // Get payment redirect URL for remaining amount
             try {
                 $redirectUrl = $hotelService->getRedirectUrl($booking, $validated['payment_method']);
                 return redirect($redirectUrl);
@@ -831,6 +842,7 @@ class HotelController extends Controller
                 $booking->update([
                     'booking_status' => 'failed',
                     'payment_status' => 'failed',
+                    'wallet_amount' => 0,
                 ]);
 
                 Log::error('Payment redirect failed', [
@@ -860,7 +872,7 @@ class HotelController extends Controller
     public function paymentSuccess(Request $request, $booking)
     {
         try {
-            $booking = \App\Models\HotelBooking::findOrFail($booking);
+            $booking = B2bHotelBooking::findOrFail($booking);
 
             // Prevent re-processing if already paid
             if ($booking->isPaid() && $booking->isConfirmed()) {
@@ -870,13 +882,25 @@ class HotelController extends Controller
             $hotelService = new \App\Services\HotelService();
 
             // Verify payment based on payment method
-            if ($booking->payment_method === 'wallet') {
-                // Wallet payments are already verified at checkout
+            if ($booking->payment_method === 'wallet' && $booking->wallet_amount >= $booking->total_amount) {
+                // Full wallet payment — verify balance is still sufficient
+                $vendor = $booking->vendor;
+                if ((float) $vendor->main_balance < (float) $booking->wallet_amount) {
+                    $booking->update([
+                        'payment_status' => 'failed',
+                        'booking_status' => 'failed',
+                        'wallet_amount' => 0,
+                    ]);
+                    return redirect()->route('user.hotels.payment.failed', ['booking' => $booking->id])
+                        ->with('notify_error', 'Insufficient wallet balance.');
+                }
                 $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
             } elseif ($booking->payment_method === 'payby') {
                 $verificationResult = $hotelService->verifyPayByPayment($booking);
             } elseif ($booking->payment_method === 'tabby') {
                 $verificationResult = $hotelService->verifyTabbyPayment($booking);
+            } elseif ($booking->payment_method === 'tamara') {
+                $verificationResult = $hotelService->verifyTamaraPayment($booking);
             } else {
                 throw new \Exception('Invalid payment method');
             }
@@ -885,6 +909,7 @@ class HotelController extends Controller
                 $booking->update([
                     'payment_status' => 'failed',
                     'booking_status' => 'failed',
+                    'wallet_amount' => 0,
                 ]);
 
                 $hotelService->sendBookingFailureEmail($booking, $verificationResult['error'] ?? 'Payment verification failed');
@@ -892,6 +917,17 @@ class HotelController extends Controller
 
                 return redirect()->route('user.hotels.payment.failed', ['booking' => $booking->id])
                     ->with('notify_error', 'Payment verification failed. Please contact support.');
+            }
+
+            // Payment verified — now deduct wallet if used
+            if ($booking->wallet_amount > 0) {
+                B2bWalletLedger::recordDebit(
+                    $booking->b2b_vendor_id,
+                    (float) $booking->wallet_amount,
+                    'Hotel Booking #' . $booking->booking_number,
+                    B2bHotelBooking::class,
+                    $booking->id
+                );
             }
 
             // Update payment status
@@ -931,7 +967,7 @@ class HotelController extends Controller
     public function paymentSuccessView($booking)
     {
         try {
-            $booking = \App\Models\HotelBooking::findOrFail($booking);
+            $booking = B2bHotelBooking::findOrFail($booking);
 
             if (!$booking->isPaid()) {
                 return redirect()->route('user.hotels.index')
@@ -949,12 +985,13 @@ class HotelController extends Controller
     {
         try {
             if ($booking) {
-                $booking = \App\Models\HotelBooking::findOrFail($booking);
+                $booking = B2bHotelBooking::findOrFail($booking);
 
                 if ($booking->payment_status === 'pending') {
                     $booking->update([
                         'payment_status' => 'failed',
                         'booking_status' => 'failed',
+                        'wallet_amount' => 0,
                     ]);
 
                     $hotelService = new \App\Services\HotelService();
@@ -982,7 +1019,7 @@ class HotelController extends Controller
                 return $data['country'];
             }
         } catch (\Exception $e) {
-            Log::warning('Failed to get source market from IP', ['error' => $e->getMessage()]);
+           //
         }
 
         return 'AE';

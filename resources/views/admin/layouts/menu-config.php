@@ -12,6 +12,11 @@ return [
         'route' => route('admin.users.index'),
     ],
     [
+        'title' => 'Vendors',
+        'icon' => 'bx bxs-briefcase',
+        'route' => route('admin.vendors.index'),
+    ],
+    [
         'title' => 'Inquiries',
         'icon' => 'bx bxs-message-dots',
         'route' => route('admin.inquiries.index'),

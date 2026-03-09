@@ -833,3 +833,9 @@ i.bx {
 }
 
 /* banner */
+.auth-footer {
+    text-align: center;
+    margin-top: 25px;
+    font-size: 14px;
+    color: var(--heading-color);
+}

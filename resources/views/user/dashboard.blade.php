@@ -19,6 +19,18 @@
                     </div>
                     <span class="quick-action-label">Change Password</span>
                 </a>
+                <a href="{{ route('user.wallet.recharge') }}" class="quick-action-item">
+                    <div class="quick-action-circle">
+                        <i class='bx bxs-wallet'></i>
+                    </div>
+                    <span class="quick-action-label">Recharge Wallet</span>
+                </a>
+                <a href="{{ route('user.bookings.index') }}" class="quick-action-item">
+                    <div class="quick-action-circle">
+                        <i class='bx bxs-book-content'></i>
+                    </div>
+                    <span class="quick-action-label">My Bookings</span>
+                </a>
             </div>
         </div>
     </div>

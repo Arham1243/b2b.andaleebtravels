@@ -37,7 +37,7 @@
         <!-- Right Section -->
         <div class="topbar-right">
             <!-- Balance Pill -->
-            <a href="#" class="mh-balance-pill">
+            <a href="{{ route('user.wallet.recharge') }}" class="mh-balance-pill">
                 <div class="mh-balance-icon">
                     <i class='bx bxs-wallet'></i>
                 </div>

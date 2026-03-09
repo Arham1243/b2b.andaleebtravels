@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Frontend\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\B2bVendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,11 +20,11 @@ class PasswordResetController extends Controller
     public function sendResetLink(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email|exists:b2b_vendors,email',
         ]);
 
         // Check if user exists and is Google-authenticated
-        $existingUser = User::where('email', $request->email)->first();
+        $existingUser = B2bVendor::where('email', $request->email)->first();
 
         if ($existingUser && $existingUser->auth_provider === 'google') {
             return back()
@@ -74,7 +74,7 @@ class PasswordResetController extends Controller
             'token' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = B2bVendor::where('email', $request->email)->first();
 
         if (! $user || ! Password::tokenExists($user, $request->token)) {
             return Redirect::route('password.reset', ['token' => $request->token])
