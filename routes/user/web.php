@@ -39,7 +39,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/', [HotelController::class, 'index'])->name('index');
         Route::get('/search', [HotelController::class, 'search'])->name('search');
         Route::get('/search-hotels', [HotelController::class, 'searchHotels'])->name('search-hotels');
-        Route::post('/sync-provinces', [ProvinceSyncController::class, 'syncFromTbo'])->name('sync-provinces');
+        Route::get('/sync-provinces', [ProvinceSyncController::class, 'syncFromTbo'])->name('sync-provinces');
         Route::get('/details/{id}', [HotelController::class, 'details'])->name('details');
         Route::get('/checkout/{id}', [HotelController::class, 'checkout'])->name('checkout');
         Route::post('/payment/process', [HotelController::class, 'processPayment'])->name('payment.process');
