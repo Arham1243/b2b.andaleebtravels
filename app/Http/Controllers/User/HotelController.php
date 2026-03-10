@@ -181,6 +181,15 @@ class HotelController extends Controller
             });
         }
 
+        // Supplier
+        if ($request->filled('supplier')) {
+            $suppliers = array_map('strtolower', explode(',', $request->supplier));
+            $hotels = $hotels->filter(function ($hotel) use ($suppliers) {
+                $supplier = strtolower($hotel['supplier'] ?? '');
+                return $supplier !== '' && in_array($supplier, $suppliers, true);
+            });
+        }
+
         return $hotels;
     }
 

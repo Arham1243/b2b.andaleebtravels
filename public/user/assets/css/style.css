@@ -4476,7 +4476,7 @@ body .search-box__input.search-box__input {
 }
 .hl-card__img {
     width: 220px;
-    min-height: 180px;
+    height: 180px;
     flex-shrink: 0;
     overflow: hidden;
 }

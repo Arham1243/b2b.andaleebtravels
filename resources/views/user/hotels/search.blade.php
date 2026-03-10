@@ -206,6 +206,34 @@
                                     name="hotel_name" id="hotel-name" value="{{ request('hotel_name') }}">
                             </div>
                         </div>
+
+                        {{-- Supplier --}}
+                        <div class="hl-filter-group">
+                            <div class="hl-filter-group__header"
+                                onclick="this.parentElement.classList.toggle('collapsed')">
+                                <span>Supplier</span>
+                                <i class="bx bx-chevron-down"></i>
+                            </div>
+                            <div class="hl-filter-group__body">
+                                @php
+                                    $selectedSuppliers = request()->input('supplier', []);
+                                    if (!is_array($selectedSuppliers)) {
+                                        $selectedSuppliers = explode(',', $selectedSuppliers);
+                                    }
+                                    $selectedSuppliers = array_map('strtolower', $selectedSuppliers);
+                                    $suppliers = ['Yalago', 'TBO'];
+                                @endphp
+                                @foreach ($suppliers as $supplier)
+                                    <label class="hl-checkbox">
+                                        <input type="checkbox" name="supplier" class="check-filter__input"
+                                            value="{{ $supplier }}"
+                                            {{ in_array(strtolower($supplier), $selectedSuppliers) ? 'checked' : '' }}>
+                                        <span class="hl-checkbox__mark"></span>
+                                        <span class="hl-checkbox__text">{{ $supplier }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
                 </div>
 
