@@ -235,10 +235,10 @@
                                         <div class="hl-card__meta">
                                             <span><i class="bx bxs-moon"></i> {{ $nights }}
                                                 night{{ $nights > 1 ? 's' : '' }}</span>
-                                            @if ($hotel['boards']->isNotEmpty())
-                                                <span><i class="bx bx-restaurant"></i>
-                                                    {{ $hotel['boards']->implode(' | ') }}</span>
-                                            @endif
+                                        @if (!empty($hotel['boards']))
+                                            <span><i class="bx bx-restaurant"></i>
+                                                {{ implode(' | ', $hotel['boards']) }}</span>
+                                        @endif
                                         </div>
 
                                         @if ($hotel['rating'])
