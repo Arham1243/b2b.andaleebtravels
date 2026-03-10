@@ -24,7 +24,7 @@
             </div>
         </footer>
     </div>
-    <div class="loader-mask is-visible" id="loader" aria-live="polite" aria-busy="true">
+    <div class="loader-mask" id="loader" aria-live="polite" aria-busy="true">
         <div class="portal-loader">
             <div class="portal-loader__orbit">
                 <span class="portal-loader__ring"></span>

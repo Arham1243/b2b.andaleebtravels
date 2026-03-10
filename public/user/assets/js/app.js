@@ -94,6 +94,7 @@ function showIcon(iconField) {
 }
 
 const getPageLoader = () => document.getElementById("loader");
+window.__enablePageLoaderOnNav = false;
 
 window.showPageLoader = function (message) {
     const loader = getPageLoader();
@@ -112,7 +113,9 @@ window.hidePageLoader = function () {
 };
 
 window.addEventListener("beforeunload", function () {
-    window.showPageLoader();
+    if (window.__enablePageLoaderOnNav) {
+        window.showPageLoader();
+    }
 });
 
 window.addEventListener("load", function () {

@@ -308,6 +308,7 @@
         $(document).ready(function() {
             const navigateWithLoader = (url, message = 'Updating hotel results...') => {
                 if (typeof window.showPageLoader === 'function') {
+                    window.__enablePageLoaderOnNav = true;
                     window.showPageLoader(message);
                 }
                 window.location.href = url;

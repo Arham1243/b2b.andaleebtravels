@@ -203,6 +203,7 @@
                     return;
                 }
                 isHotelSearchSubmitting.value = true;
+                window.__enablePageLoaderOnNav = true;
                 if (typeof window.showPageLoader === 'function') {
                     window.showPageLoader('Finding the best hotels for your trip...');
                 }
