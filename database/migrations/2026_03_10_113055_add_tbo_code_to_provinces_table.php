@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('cities', function (Blueprint $table) {
+        Schema::table('provinces', function (Blueprint $table) {
             $table->string('tbo_code')->nullable()->after('name'); 
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('cities', function (Blueprint $table) {
+        Schema::table('provinces', function (Blueprint $table) {
             $table->dropColumn('tbo_code');
         });
     }

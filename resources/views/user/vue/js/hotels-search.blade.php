@@ -59,10 +59,7 @@
             const hotelDestinationQuery = ref('');
             const hotelDestinationInputValue = ref('');
             const selectedHotelDestination = ref('');
-            const hotelDestinations = ref({
-                countries: [],
-                locations: []
-            });
+            const hotelDestinations = ref([]);
             const loadingHotelDestination = ref(false);
 
             const totalHotelGuestsText = computed(() => {
@@ -104,13 +101,10 @@
                 loadingHotelDestination.value = true;
                 try {
                     const data = await window.HotelGlobalSearchAPI(searchQuery);
-                    hotelDestinations.value = data.destinations;
+                    hotelDestinations.value = data.destinations?.provinces || [];
                 } catch (err) {
                     console.error("Hotel API Error:", err);
-                    hotelDestinations.value = {
-                        countries: [],
-                        locations: []
-                    };
+                    hotelDestinations.value = [];
                 } finally {
                     loadingHotelDestination.value = false;
                 }
