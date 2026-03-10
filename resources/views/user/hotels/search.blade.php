@@ -220,8 +220,12 @@
                                 </div>
                                 <div class="hl-card__body">
                                     <div class="hl-card__info">
-                                        <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
-                                            class="hl-card__name">{{ $hotel['name'] }}</a>
+                                        @if (($hotel['supplier'] ?? '') === 'Yalago' && !empty($hotel['id']))
+                                            <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
+                                                class="hl-card__name">{{ $hotel['name'] }}</a>
+                                        @else
+                                            <span class="hl-card__name">{{ $hotel['name'] }}</span>
+                                        @endif
 
                                         <div class="hl-card__location">
                                             <i class="bx bx-map"></i>
@@ -260,8 +264,12 @@
                                             <span class="hl-card__price-label">Total price from</span>
                                             <div class="hl-card__price">{{ formatPrice($hotel['price']) }}</div>
                                         @endif
-                                        <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
-                                            class="hl-card__btn">Select Room</a>
+                                        @if (($hotel['supplier'] ?? '') === 'Yalago' && !empty($hotel['id']))
+                                            <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
+                                                class="hl-card__btn">Select Room</a>
+                                        @else
+                                            <span class="hl-card__btn hl-card__btn--disabled">Details unavailable</span>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -489,6 +497,12 @@
             border-radius: 4px;
             text-transform: uppercase;
             margin-bottom: 0.5rem;
+        }
+
+        .hl-card__btn--disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
         }
     </style>
 @endpush

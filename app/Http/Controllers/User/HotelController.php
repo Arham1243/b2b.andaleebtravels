@@ -5,11 +5,10 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\B2bHotelBooking;
 use App\Models\B2bWalletLedger;
-use App\Models\Country;
 use App\Models\Hotel;
 use App\Models\Config;
 use App\Models\Province;
-use App\Models\Location;
+use App\Services\HotelProviders\HotelProviderManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
@@ -62,22 +61,20 @@ class HotelController extends Controller
         // 1. Build rooms array
         $rooms = $this->buildRoomsArray($request);
 
-        // 2. Resolve destination to hotel IDs
-        $hotelIds = $this->resolveDestinationToHotelIds($request->destination);
+        // 2. Resolve destination to province
+        $province = $this->resolveDestinationToProvince($request->destination);
 
         $hotels = collect();
 
-        if ($hotelIds->isNotEmpty()) {
-            // 3. Fetch availability from API
-            $hotels = $this->fetchAvailability($hotelIds, $rooms, $request);
+        if ($province) {
+            $providerManager = new HotelProviderManager($this->hotelCommissionPercentage);
+            $hotels = $providerManager->search($province, $rooms, $request);
 
-            // 4. Apply filters
+            // 3. Apply filters
             $hotels = $this->applyFilters($hotels, $request);
 
-            // 5. Apply sorting
+            // 4. Apply sorting
             $hotels = $this->applySorting($hotels, $request);
-
-            $hotels = $this->formatHotels($hotels);
         }
 
         // Paginate results
@@ -113,81 +110,14 @@ class HotelController extends Controller
     }
 
     // 3. Resolve Destination to Hotel IDs
-    protected function resolveDestinationToHotelIds($destination)
+    protected function resolveDestinationToProvince($destination): ?Province
     {
-        $hotelIds = collect();
+        $province = Province::where('name', $destination)
+            ->where('status', 'active')
+            ->first();
 
-        $country = Country::where('name', $destination)->where('status', 'active')->first();
-        $province = Province::where('name', $destination)->where('status', 'active')->first();
-        $location = Location::where('name', $destination)->where('status', 'active')->first();
-
-        if ($country) {
-            $provinceIds = $country->provinces()->pluck('id');
-            $locationIds = Location::whereIn('province_id', $provinceIds)->pluck('id');
-            $hotelIds = Hotel::whereIn('location_id', $locationIds)->pluck('yalago_id');
-        } elseif ($province) {
-            $locationIds = $province->locations()->pluck('id');
-            $hotelIds = Hotel::whereIn('location_id', $locationIds)->pluck('yalago_id');
-        } elseif ($location) {
-            $hotelIds = Hotel::where('location_id', $location->id)->pluck('yalago_id');
-        } else {
-            $hotel = Hotel::where('name', $destination)->where('status', 'active')->first();
-            if ($hotel) $hotelIds = collect([$hotel->yalago_id]);
-        }
-
-        return $hotelIds;
+        return $province ?: null;
     }
-
-    // 4. Fetch availability from API
-    protected function fetchAvailability($hotelIds, $rooms, Request $request)
-{
-    $startDate = Carbon::parse($request->check_in)->format('Y-m-d');
-    $endDate   = Carbon::parse($request->check_out)->format('Y-m-d');
-
-    $payload = [
-        "CheckInDate"      => $startDate,
-        "CheckOutDate"     => $endDate,
-        "EstablishmentIds" => $hotelIds->toArray(),
-        "Rooms"            => $rooms,
-        "SourceMarket"     => "",
-        "Culture"          => "en-GB",
-        "GetPackagePrice"  => false,
-        "GetTaxBreakdown"  => true,
-        "IsPackage"        => false,
-        "GetLocalCharges"  => true,
-        "IsBindingPrice"   => true
-    ];
-
-    try {
-        $response = Http::timeout(30)          
-            ->connectTimeout(10)               
-            ->retry(2, 2000)                   
-            ->withHeaders([
-                'x-api-key' => '93082895-c45f-489f-ae10-bed9eaae161e',
-                'Accept'    => 'application/json'
-            ])
-            ->post('https://api.yalago.com/hotels/availability/get', $payload);
-
-        if ($response->failed()) {
-            Log::error('Yalago API failed', [
-                'status' => $response->status(),
-                'body'   => $response->body()
-            ]);
-
-            return collect(); // safe fallback
-        }
-
-        return collect($response->json()['Establishments'] ?? []);
-
-    } catch (\Exception $e) {
-
-        Log::error('Yalago API timeout/error', [
-            'message' => $e->getMessage()
-        ]);
-
-        return collect(); // prevent crash
-    }
-}
 
     // 5. Apply all filters
     protected function applyFilters($hotels, Request $request)
@@ -197,20 +127,19 @@ class HotelController extends Controller
             $min = $request->min_price;
             $max = $request->max_price;
             $hotels = $hotels->filter(function ($hotel) use ($min, $max) {
-                foreach ($hotel['Rooms'] as $room) {
-                    foreach ($room['Boards'] as $board) {
-                        $price = $board['IsBindingPrice'] ? $board['GrossCost']['Amount'] : $board['NetCost']['Amount'];
-                        if ((!$min || $price >= $min) && (!$max || $price <= $max)) return true;
-                    }
-                }
-                return false;
+                $price = $hotel['price'] ?? null;
+                if ($price === null) return false;
+                return (!$min || $price >= $min) && (!$max || $price <= $max);
             });
         }
 
         // Rating exact
         if ($request->filled('rating')) {
             $ratings = explode(',', $request->rating);
-            $hotels = $hotels->filter(fn($hotel) => in_array($hotel['EstablishmentInfo']['Rating'], $ratings));
+            $hotels = $hotels->filter(function ($hotel) use ($ratings) {
+                $rating = $hotel['rating'] ?? null;
+                return $rating !== null && in_array((string) $rating, $ratings, true);
+            });
         }
 
         // Rating range
@@ -218,23 +147,28 @@ class HotelController extends Controller
         $rMax = $request->input('rating_range_max');
         if ($rMin || $rMax) {
             $hotels = $hotels->filter(
-                fn($hotel) => (!$rMin || $hotel['EstablishmentInfo']['Rating'] >= $rMin) &&
-                    (!$rMax || $hotel['EstablishmentInfo']['Rating'] <= $rMax)
+                function ($hotel) use ($rMin, $rMax) {
+                    $rating = $hotel['rating'] ?? null;
+                    if ($rating === null) return false;
+                    return (!$rMin || $rating >= $rMin) && (!$rMax || $rating <= $rMax);
+                }
             );
         }
 
         // Property type
         if ($request->filled('property_type')) {
             $types = explode(',', $request->property_type);
-            $hotels = $hotels->filter(fn($hotel) => in_array($hotel['EstablishmentInfo']['AccomodationType'], $types));
+            $hotels = $hotels->filter(function ($hotel) use ($types) {
+                $type = $hotel['property_type'] ?? null;
+                return $type !== null && in_array($type, $types);
+            });
         }
 
         // Hotel name
         if ($request->filled('hotel_name')) {
             $name = $request->hotel_name;
             $hotels = $hotels->filter(
-                fn($hotel) =>
-                stripos($hotel['EstablishmentInfo']['EstablishmentName'], $name) !== false
+                fn($hotel) => stripos($hotel['name'] ?? '', $name) !== false
             );
         }
 
@@ -242,12 +176,8 @@ class HotelController extends Controller
         if ($request->filled('board_type')) {
             $boards = explode(',', $request->board_type);
             $hotels = $hotels->filter(function ($hotel) use ($boards) {
-                foreach ($hotel['Rooms'] as $room) {
-                    foreach ($room['Boards'] as $board) {
-                        if (in_array($board['Description'], $boards)) return true;
-                    }
-                }
-                return false;
+                $hotelBoards = $hotel['boards'] ?? [];
+                return count(array_intersect($boards, $hotelBoards)) > 0;
             });
         }
 
@@ -258,81 +188,24 @@ class HotelController extends Controller
     protected function applySorting($hotels, Request $request)
     {
         $sort = $request->sort_by;
-        if (!$sort) return $hotels;
+        $priceValue = function ($hotel) {
+            $price = $hotel['price'] ?? null;
+            return $price === null ? PHP_FLOAT_MAX : $price;
+        };
 
-        if ($sort === 'price_low_to_high') {
-            $hotels = $hotels->sortBy(
-                fn($hotel) =>
-                $hotel['Rooms'][0]['Boards'][0]['IsBindingPrice']
-                    ? $hotel['Rooms'][0]['Boards'][0]['GrossCost']['Amount']
-                    : $hotel['Rooms'][0]['Boards'][0]['NetCost']['Amount']
-            );
+        if (!$sort || $sort === 'price_low_to_high') {
+            $hotels = $hotels->sortBy($priceValue);
         } elseif ($sort === 'price_high_to_low') {
-            $hotels = $hotels->sortByDesc(
-                fn($hotel) =>
-                $hotel['Rooms'][0]['Boards'][0]['IsBindingPrice']
-                    ? $hotel['Rooms'][0]['Boards'][0]['GrossCost']['Amount']
-                    : $hotel['Rooms'][0]['Boards'][0]['NetCost']['Amount']
-            );
+            $hotels = $hotels->sortByDesc($priceValue);
         } elseif ($sort === 'recommended') {
-            $hotels = $hotels->filter(fn($hotel) => $hotel['EstablishmentInfo']['Rating'] == 5);
+            $hotels = $hotels->filter(fn($hotel) => ($hotel['rating'] ?? 0) == 5);
         } elseif ($sort === 'top_rated') {
-            $hotels = $hotels->filter(fn($hotel) => in_array($hotel['EstablishmentInfo']['Rating'], [5, 4]));
+            $hotels = $hotels->filter(fn($hotel) => in_array((int) ($hotel['rating'] ?? 0), [5, 4], true));
         }
 
         return $hotels;
     }
 
-    private function formatHotels(Collection $hotels): Collection
-    {
-        $yalagoIds = $hotels->pluck('EstablishmentId')->all();
-
-        $localHotels = Hotel::with(['province', 'location'])
-            ->whereIn('yalago_id', $yalagoIds)
-            ->get()
-            ->keyBy('yalago_id');
-
-        return $hotels->map(function ($item) use ($localHotels) {
-
-            $localHotel = $localHotels->get($item['EstablishmentId']);
-
-            $boards = collect($item['Rooms'])
-                ->flatMap(fn($room) => $room['Boards']);
-
-
-            $cheapestBoard = $boards
-                ->sortBy('NetCost.Amount')
-                ->first();
-
-            // decode images if they are JSON string
-            $images = is_string($localHotel->images)
-                ? json_decode($localHotel->images, true)
-                : $localHotel->images;
-
-            return [
-                'id' => $localHotel?->id,
-
-                'name' => $localHotel?->name,
-                'address' => $localHotel?->address,
-                'rating' => $localHotel?->rating,
-                'rating_text' => $localHotel?->rating_text,
-
-                'province' => $localHotel?->province?->name,
-                'location' => $localHotel?->location?->name,
-
-                'image'    => $images[0]['Url'] ?? null,
-
-                'supplier' => 'Yalago',
-
-                'price' => calculatePriceWithCommission(data_get($cheapestBoard, 'NetCost.Amount'), $this->hotelCommissionPercentage),
-
-                'boards' => $boards
-                    ->pluck('Description')
-                    ->unique()
-                    ->values(),
-            ];
-        });
-    }
 
     private function formatHotel(Hotel $hotel, ?float $price = null, ?array $boards = null): array
     {
