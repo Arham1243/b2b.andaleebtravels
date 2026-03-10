@@ -83,7 +83,11 @@
                             @endif
                             <div class="hd-sidebar__hotel-price">
                                 <span class="hd-sidebar__price-label">Price from</span>
-                                <span class="hd-sidebar__price-value">{{ formatPrice($hotel['price']) }}</span>
+                                @if (!empty($hotel['price']))
+                                    <span class="hd-sidebar__price-value">{{ formatPrice($hotel['price']) }}</span>
+                                @else
+                                    <span class="hd-sidebar__price-value">Price on request</span>
+                                @endif
                             </div>
                         </div>
 
@@ -140,7 +144,9 @@
             <div class="hd-tabs mt-4">
                 <div class="hd-tabs__nav">
                     <button class="hd-tabs__btn active" data-tab="overview">Overview</button>
-                    <button class="hd-tabs__btn" data-tab="rooms">Rooms</button>
+                    @if ($provider === 'yalago')
+                        <button class="hd-tabs__btn" data-tab="rooms">Rooms</button>
+                    @endif
                     <button class="hd-tabs__btn" data-tab="location">Location</button>
                     @if (count($info_items) > 0)
                         <button class="hd-tabs__btn" data-tab="info">Hotel Information</button>
@@ -188,102 +194,106 @@
                 @endif
 
                 {{-- ROOMS TAB --}}
-                <div class="hd-tabs__panel" id="tab-rooms">
-                    <div class="row g-3">
-                        @foreach ($api_availability[0]['Rooms'] as $roomIndex => $room)
-                            @foreach (collect($room['Boards'])->unique('Code') as $boardIndex => $board)
-                                @php
-                                    $finalPrice = yalagoFinalPrice($board, $hotelCommissionPercentage);
-                                    $finalPriceFormatted = formatPrice($finalPrice);
-                                    $isRefundable = empty($board['NonRefundable']);
-                                    $boardTitle = $board['Description'] ?? '';
-                                @endphp
-                                <div class="col-12 col-lg-4">
-                                    <div class="hd-room-card" data-room-code="{{ $room['Code'] }}"
-                                        data-board-code="{{ $board['Code'] }}" data-price="{{ $finalPrice }}"
-                                        data-board-title="{{ $boardTitle }}"
-                                        data-room-name="{{ $room['Description'] }}">
+                @if ($provider === 'yalago')
+                    <div class="hd-tabs__panel" id="tab-rooms">
+                        <div class="row g-3">
+                            @foreach ($api_availability[0]['Rooms'] as $roomIndex => $room)
+                                @foreach (collect($room['Boards'])->unique('Code') as $boardIndex => $board)
+                                    @php
+                                        $finalPrice = yalagoFinalPrice($board, $hotelCommissionPercentage);
+                                        $finalPriceFormatted = formatPrice($finalPrice);
+                                        $isRefundable = empty($board['NonRefundable']);
+                                        $boardTitle = $board['Description'] ?? '';
+                                    @endphp
+                                    <div class="col-12 col-lg-4">
+                                        <div class="hd-room-card" data-room-code="{{ $room['Code'] }}"
+                                            data-board-code="{{ $board['Code'] }}" data-price="{{ $finalPrice }}"
+                                            data-board-title="{{ $boardTitle }}"
+                                            data-room-name="{{ $room['Description'] }}">
 
-                                        <div class="hd-room-card__header">
-                                            <h4 class="hd-room-card__name">{{ $room['Description'] }}</h4>
-                                        </div>
-
-                                        <div class="hd-room-card__tags">
-                                            <span class="hd-room-card__tag">
-                                                <i class="bx bx-home"></i> {{ $boardTitle }}
-                                            </span>
-                                            @if ($board['NonRefundable'])
-                                                <span class="hd-room-card__tag hd-room-card__tag--red">
-                                                    <i class="bx bx-x-circle"></i> Non-Refundable
-                                                </span>
-                                            @else
-                                                <span class="hd-room-card__tag hd-room-card__tag--green">
-                                                    <i class="bx bx-check-shield"></i> Refundable
-                                                </span>
-                                            @endif
-                                        </div>
-
-                                        <div class="hd-room-card__policies">
-                                            @foreach ($board['CancellationPolicy']['CancellationCharges'] ?? [] as $policy)
-                                                @php
-                                                    $expiry = \Carbon\Carbon::parse($policy['ExpiryDateUTC'])->format('d M Y');
-                                                    $amount = $policy['Charge']['Amount'] ?? 0;
-                                                    $isFree = $amount == 0;
-                                                @endphp
-                                                <div class="hd-room-card__policy {{ $isFree ? 'hd-room-card__policy--free' : 'hd-room-card__policy--fee' }}">
-                                                    <div class="hd-room-card__policy-left">
-                                                        <i class="bx {{ $isFree ? 'bxs-check-circle' : 'bxs-info-circle' }}"></i>
-                                                        <span>{{ $isFree ? 'Free cancellation until' : 'Cancellation after' }} <strong>{{ $expiry }}</strong></span>
-                                                    </div>
-                                                    @if ($isFree)
-                                                        <span class="hd-room-card__policy-badge">FREE</span>
-                                                    @else
-                                                        <span class="hd-room-card__policy-price">{{ formatPrice($amount) }}</span>
-                                                    @endif
-                                                </div>
-                                            @endforeach
-                                        </div>
-
-                                        <div class="hd-room-card__footer">
-                                            <div class="hd-room-card__price-info">
-                                                <span class="hd-room-card__price-label">Per room</span>
-                                                <span class="hd-room-card__price">{{ $finalPriceFormatted }}</span>
+                                            <div class="hd-room-card__header">
+                                                <h4 class="hd-room-card__name">{{ $room['Description'] }}</h4>
                                             </div>
-                                            <div class="hd-room-card__qty">
-                                                <button onclick="decrementRoom(this)" class="hd-qty-btn" type="button">
-                                                    <i class="bx bx-minus"></i>
-                                                </button>
-                                                <input type="number" class="hd-qty-input room-qty-input" value="0"
-                                                    readonly min="0" max="{{ $roomCount }}">
-                                                <button onclick="incrementRoom(this)" class="hd-qty-btn" type="button">
-                                                    <i class="bx bx-plus"></i>
-                                                </button>
+
+                                            <div class="hd-room-card__tags">
+                                                <span class="hd-room-card__tag">
+                                                    <i class="bx bx-home"></i> {{ $boardTitle }}
+                                                </span>
+                                                @if ($board['NonRefundable'])
+                                                    <span class="hd-room-card__tag hd-room-card__tag--red">
+                                                        <i class="bx bx-x-circle"></i> Non-Refundable
+                                                    </span>
+                                                @else
+                                                    <span class="hd-room-card__tag hd-room-card__tag--green">
+                                                        <i class="bx bx-check-shield"></i> Refundable
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            <div class="hd-room-card__policies">
+                                                @foreach ($board['CancellationPolicy']['CancellationCharges'] ?? [] as $policy)
+                                                    @php
+                                                        $expiry = \Carbon\Carbon::parse($policy['ExpiryDateUTC'])->format('d M Y');
+                                                        $amount = $policy['Charge']['Amount'] ?? 0;
+                                                        $isFree = $amount == 0;
+                                                    @endphp
+                                                    <div class="hd-room-card__policy {{ $isFree ? 'hd-room-card__policy--free' : 'hd-room-card__policy--fee' }}">
+                                                        <div class="hd-room-card__policy-left">
+                                                            <i class="bx {{ $isFree ? 'bxs-check-circle' : 'bxs-info-circle' }}"></i>
+                                                            <span>{{ $isFree ? 'Free cancellation until' : 'Cancellation after' }} <strong>{{ $expiry }}</strong></span>
+                                                        </div>
+                                                        @if ($isFree)
+                                                            <span class="hd-room-card__policy-badge">FREE</span>
+                                                        @else
+                                                            <span class="hd-room-card__policy-price">{{ formatPrice($amount) }}</span>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+
+                                            <div class="hd-room-card__footer">
+                                                <div class="hd-room-card__price-info">
+                                                    <span class="hd-room-card__price-label">Per room</span>
+                                                    <span class="hd-room-card__price">{{ $finalPriceFormatted }}</span>
+                                                </div>
+                                                <div class="hd-room-card__qty">
+                                                    <button onclick="decrementRoom(this)" class="hd-qty-btn" type="button">
+                                                        <i class="bx bx-minus"></i>
+                                                    </button>
+                                                    <input type="number" class="hd-qty-input room-qty-input" value="0"
+                                                        readonly min="0" max="{{ $roomCount }}">
+                                                    <button onclick="incrementRoom(this)" class="hd-qty-btn" type="button">
+                                                        <i class="bx bx-plus"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                @endforeach
                             @endforeach
-                        @endforeach
+                        </div>
                     </div>
-                </div>
+                @endif
             </div>
         </div>
     </div>
 
     {{-- CONTINUE BAR --}}
-    <div class="hd-continue-bar">
-        <div class="container">
-            <div class="hd-continue-bar__inner">
-                <div class="hd-continue-bar__price">
-                    <span class="hd-continue-bar__label">Total</span>
-                    <span class="hd-continue-bar__amount"><span class="dirham">D</span> <span id="total-room-price">0.00</span></span>
+    @if ($provider === 'yalago')
+        <div class="hd-continue-bar">
+            <div class="container">
+                <div class="hd-continue-bar__inner">
+                    <div class="hd-continue-bar__price">
+                        <span class="hd-continue-bar__label">Total</span>
+                        <span class="hd-continue-bar__amount"><span class="dirham">D</span> <span id="total-room-price">0.00</span></span>
+                    </div>
+                    <a id="continueBtn" href="{!! route('user.hotels.checkout', $hotel['id']) . '?' . http_build_query(request()->query()) !!}" class="hd-continue-bar__btn">
+                        Continue
+                    </a>
                 </div>
-                <a id="continueBtn" href="{!! route('user.hotels.checkout', $hotel['id']) . '?' . http_build_query(request()->query()) !!}" class="hd-continue-bar__btn">
-                    Continue
-                </a>
             </div>
         </div>
-    </div>
+    @endif
 @endsection
 
 @push('js')
@@ -298,6 +308,7 @@
             });
         });
 
+        @if ($provider === 'yalago')
         // Room selection logic
         const priceEl = document.getElementById('total-room-price');
         const roomCards = document.querySelectorAll('.hd-room-card');
@@ -402,6 +413,7 @@
                 }, 100);
             }
         });
+        @endif
     </script>
     <script src="{{ asset('user/assets/js/slick.js') }}"></script>
     <script>

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 class TboHotelProvider implements HotelProviderInterface
 {
     private const API_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/TBOHotelCodeList';
+    private const API_DETAILS_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/HotelDetails';
     private const API_USERNAME = 'SkylineexperienceTest';
     private const API_PASSWORD = 'Sky@69774762';
 
@@ -109,5 +110,47 @@ class TboHotelProvider implements HotelProviderInterface
                 'property_type' => null,
             ];
         });
+    }
+
+    public function fetchDetails(string $hotelCode): ?array
+    {
+        try {
+            $response = Http::timeout(30)
+                ->connectTimeout(10)
+                ->retry(2, 2000)
+                ->withBasicAuth(self::API_USERNAME, self::API_PASSWORD)
+                ->post(self::API_DETAILS_URL, [
+                    'Hotelcodes' => $hotelCode,
+                    'Language' => 'EN',
+                ]);
+
+            if ($response->failed()) {
+                Log::error('TBO HotelDetails API failed', [
+                    'hotel_code' => $hotelCode,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return null;
+            }
+
+            $payload = $response->json();
+            $statusCode = $payload['Status']['Code'] ?? null;
+            if ($statusCode !== 200) {
+                Log::error('TBO HotelDetails API status not ok', [
+                    'hotel_code' => $hotelCode,
+                    'status' => $payload['Status'] ?? null,
+                ]);
+                return null;
+            }
+
+            $details = $payload['HotelDetails'][0] ?? null;
+            return is_array($details) ? $details : null;
+        } catch (\Exception $e) {
+            Log::error('TBO HotelDetails API error', [
+                'hotel_code' => $hotelCode,
+                'message' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 }

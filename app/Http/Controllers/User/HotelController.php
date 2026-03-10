@@ -9,6 +9,7 @@ use App\Models\Hotel;
 use App\Models\Config;
 use App\Models\Province;
 use App\Services\HotelProviders\HotelProviderManager;
+use App\Services\HotelProviders\TboHotelProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
@@ -345,7 +346,77 @@ class HotelController extends Controller
             'check_out'        => $endDate,
             'rooms_request'    => $rooms,
             'hotelCommissionPercentage'    => $this->hotelCommissionPercentage,
+            'provider' => 'yalago',
         ];
+        return view('user.hotels.details', $data);
+    }
+
+    public function detailsTbo(Request $request, string $code)
+    {
+        $provider = new TboHotelProvider();
+        $details = $provider->fetchDetails($code);
+
+        if (!$details) {
+            return redirect()->route('user.hotels.search')
+                ->with('notify_error', 'No Hotel Found! Please try again.');
+        }
+
+        $images = collect($details['Images'] ?? [])
+            ->map(fn($url) => ['Url' => $url])
+            ->values()
+            ->all();
+
+        if (empty($images) && !empty($details['Image'])) {
+            $images = [['Url' => $details['Image']]];
+        }
+
+        $rating = $details['HotelRating'] ?? null;
+        $ratingText = null;
+        if ($rating !== null) {
+            $ratingText = match (true) {
+                $rating >= 4.5 => 'Spectacular',
+                $rating >= 4.0 => 'Excellent',
+                $rating >= 3.5 => 'Good',
+                $rating >= 3.0 => 'Above Average',
+                $rating >= 2.0 => 'Average',
+                $rating >= 1.0 => 'Poor',
+                default        => 'Very Poor',
+            };
+        }
+
+        $hotelFormatted = [
+            'id' => null,
+            'name' => $details['HotelName'] ?? '',
+            'address' => $details['Address'] ?? '',
+            'rating' => $rating,
+            'rating_text' => $ratingText,
+            'description' => $details['Description'] ?? '',
+            'images' => $images,
+            'image' => $images[0]['Url'] ?? null,
+            'price' => null,
+        ];
+
+        $infoItems = [];
+        foreach (($details['HotelFacilities'] ?? []) as $facility) {
+            $infoItems[] = ['Description' => $facility];
+        }
+        foreach (($details['Attractions'] ?? []) as $attraction) {
+            $infoItems[] = ['Description' => $attraction];
+        }
+
+        $data = [
+            'hotel' => $hotelFormatted,
+            'info_items' => $infoItems,
+            'api_availability' => [],
+            'total_rooms' => 0,
+            'show_extras' => false,
+            'check_in' => null,
+            'check_out' => null,
+            'rooms_request' => [],
+            'hotelCommissionPercentage' => $this->hotelCommissionPercentage,
+            'provider' => 'tbo',
+        ];
+
         return view('user.hotels.details', $data);
     }
 

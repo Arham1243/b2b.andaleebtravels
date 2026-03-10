@@ -63,10 +63,9 @@
                     <div class="hl-sidebar">
                         <div class="hl-sidebar__title">Filters</div>
 
-                           {{-- Supplier --}}
+                        {{-- Supplier --}}
                         <div class="hl-filter-group">
-                            <div class="hl-filter-group__header"
-                                onclick="this.parentElement.classList.toggle('collapsed')">
+                            <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
                                 <span>Supplier</span>
                                 <i class="bx bx-chevron-down"></i>
                             </div>
@@ -90,7 +89,7 @@
                                 @endforeach
                             </div>
                         </div>
-                        
+
                         {{-- Board Type --}}
                         <div class="hl-filter-group">
                             <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
@@ -208,8 +207,8 @@
                                     $propertyTypes = array_map('strtolower', $propertyTypes);
                                 @endphp
                                 <label class="hl-checkbox">
-                                    <input type="checkbox" name="property_type" class="check-filter__input" value="Hotel"
-                                        {{ in_array('hotel', $propertyTypes) ? 'checked' : '' }}>
+                                    <input type="checkbox" name="property_type" class="check-filter__input"
+                                        value="Hotel" {{ in_array('hotel', $propertyTypes) ? 'checked' : '' }}>
                                     <span class="hl-checkbox__mark"></span>
                                     <span class="hl-checkbox__text">Hotel</span>
                                 </label>
@@ -250,7 +249,10 @@
                                     <div class="hl-card__info">
                                         @if (($hotel['supplier'] ?? '') === 'Yalago' && !empty($hotel['id']))
                                             <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
-                                                class="hl-card__name">{{ $hotel['name'] }}</a>
+                                                class="hl-card__name js-detail-link">{{ $hotel['name'] }}</a>
+                                        @elseif (($hotel['supplier'] ?? '') === 'TBO' && !empty($hotel['provider_id']))
+                                            <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
+                                                class="hl-card__name js-detail-link">{{ $hotel['name'] }}</a>
                                         @else
                                             <span class="hl-card__name">{{ $hotel['name'] }}</span>
                                         @endif
@@ -263,10 +265,10 @@
                                         <div class="hl-card__meta">
                                             <span><i class="bx bxs-moon"></i> {{ $nights }}
                                                 night{{ $nights > 1 ? 's' : '' }}</span>
-                                        @if (!empty($hotel['boards']))
-                                            <span><i class="bx bx-restaurant"></i>
-                                                {{ implode(' | ', $hotel['boards']) }}</span>
-                                        @endif
+                                            @if (!empty($hotel['boards']))
+                                                <span><i class="bx bx-restaurant"></i>
+                                                    {{ implode(' | ', $hotel['boards']) }}</span>
+                                            @endif
                                         </div>
 
                                         @if ($hotel['rating'])
@@ -294,7 +296,10 @@
                                         @endif
                                         @if (($hotel['supplier'] ?? '') === 'Yalago' && !empty($hotel['id']))
                                             <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
-                                                class="hl-card__btn">Select Room</a>
+                                                class="hl-card__btn js-detail-link">Select Room</a>
+                                        @elseif (($hotel['supplier'] ?? '') === 'TBO' && !empty($hotel['provider_id']))
+                                            <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
+                                                class="hl-card__btn js-detail-link">View Details</a>
                                         @else
                                             <span class="hl-card__btn hl-card__btn--disabled">Details unavailable</span>
                                         @endif
@@ -422,7 +427,8 @@
                     const selected = Array.from(document.querySelectorAll(
                         `.check-filter__input[name="${input.name}"]:checked`
                     )).map(el => el.value);
-                    selected.length > 0 ? url.searchParams.set(input.name, selected.join(',')) : url.searchParams.delete(input.name);
+                    selected.length > 0 ? url.searchParams.set(input.name, selected.join(',')) : url
+                        .searchParams.delete(input.name);
                     navigateWithLoader(url.toString());
                 });
             });
@@ -470,10 +476,31 @@
             if (sortSelect) {
                 sortSelect.addEventListener("change", function() {
                     const url = new URL(window.location.href);
-                    this.value ? url.searchParams.set("sort_by", this.value) : url.searchParams.delete("sort_by");
+                    this.value ? url.searchParams.set("sort_by", this.value) : url.searchParams.delete(
+                        "sort_by");
                     navigateWithLoader(url.toString());
                 });
             }
+
+            // Pagination
+            document.querySelectorAll('.hl-pagination__btn')?.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const url = btn.getAttribute('href');
+                    if (!url) return;
+                    e.preventDefault();
+                    navigateWithLoader(url, 'Loading more hotels...');
+                });
+            });
+
+            // Details links
+            document.querySelectorAll('.js-detail-link')?.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const url = link.getAttribute('href');
+                    if (!url) return;
+                    e.preventDefault();
+                    navigateWithLoader(url, 'Loading hotel details...');
+                });
+            });
         });
     </script>
 @endpush
