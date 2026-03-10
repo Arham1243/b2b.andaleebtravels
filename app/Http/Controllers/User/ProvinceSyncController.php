@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Log;
 
 class ProvinceSyncController extends Controller
 {
+    private const TBO_API_CITY_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/CityList';
+    private const TBO_API_USERNAME = 'SkylineexperienceTest';
+    private const TBO_API_PASSWORD = 'Sky@69774762';
+
     public function syncFromTbo(Request $request)
     {
         $countryCode = $request->input('country_code', 'AE');
@@ -26,10 +30,11 @@ class ProvinceSyncController extends Controller
         }
 
         try {
-            $response = Http::timeout(30)
+          $response = Http::timeout(30)
                 ->connectTimeout(10)
                 ->retry(2, 1000)
-                ->post('http://api.tbotechnology.in/TBOHolidays_HotelAPI/CityList', [
+                ->withBasicAuth(self::TBO_API_USERNAME, self::TBO_API_PASSWORD)
+                ->post(self::TBO_API_CITY_URL, [
                     'CountryCode' => $countryCode,
                 ]);
 
