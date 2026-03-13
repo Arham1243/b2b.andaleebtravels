@@ -55,6 +55,15 @@ class TripAndDealHotelProvider implements HotelProviderInterface
             return $requested;
         }
 
+        $checkIn = $request->input('check_in');
+        if ($checkIn) {
+            try {
+                return Carbon::parse($checkIn)->format('d-m-Y');
+            } catch (\Exception $e) {
+                // fallback below
+            }
+        }
+
         return Carbon::now()->startOfYear()->format('d-m-Y');
     }
 

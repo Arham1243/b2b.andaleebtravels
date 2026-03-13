@@ -262,7 +262,12 @@
 
                                         <div class="hl-card__location">
                                             <i class="bx bx-map"></i>
-                                            {{ $hotel['location'] ?? '' }}{{ $hotel['province'] ? ', ' . $hotel['province'] : '' }}
+                                            @php
+                                                $loc = trim((string) ($hotel['location'] ?? ''));
+                                                $prov = trim((string) ($hotel['province'] ?? ''));
+                                                $showProv = $prov !== '' && strtolower($prov) !== strtolower($loc);
+                                            @endphp
+                                            {{ $loc }}{{ $showProv ? ', ' . $prov : '' }}
                                         </div>
 
                                         <div class="hl-card__meta">
