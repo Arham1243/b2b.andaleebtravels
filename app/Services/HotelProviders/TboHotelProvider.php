@@ -2,6 +2,7 @@
 
 namespace App\Services\HotelProviders;
 
+use App\Models\Country;
 use App\Models\Province;
 use App\Services\HotelProviders\Contracts\HotelProviderInterface;
 use Illuminate\Http\Request;
@@ -21,14 +22,18 @@ class TboHotelProvider implements HotelProviderInterface
         return 'tbo';
     }
 
-    public function search(Province $province, array $rooms, Request $request): Collection
+    public function search(Province|Country $destination, array $rooms, Request $request): Collection
     {
-        if (empty($province->tbo_code)) {
+        if ($destination instanceof Country) {
             return collect();
         }
 
-        $hotels = $this->fetchByCity($province->tbo_code);
-        return $this->formatHotels($hotels, $province);
+        if (empty($destination->tbo_code)) {
+            return collect();
+        }
+
+        $hotels = $this->fetchByCity($destination->tbo_code);
+        return $this->formatHotels($hotels, $destination);
     }
 
     private function fetchByCity(string $cityCode): Collection

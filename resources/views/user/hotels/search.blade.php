@@ -6,7 +6,7 @@
         $checkOut = Carbon::createFromFormat('M d, Y', request('check_out'));
         $nights = max(1, $checkIn->diffInDays($checkOut));
 
-        $defaultParams = ['destination', 'check_in', 'check_out', 'room_count'];
+        $defaultParams = ['destination', 'destination_type', 'check_in', 'check_out', 'room_count'];
         $currentParams = request()->query();
         $userFilters = collect($currentParams)
             ->filter(fn($value, $key) => !in_array($key, $defaultParams) && str_starts_with($key, 'room_') === false)
@@ -76,7 +76,7 @@
                                         $selectedSuppliers = explode(',', $selectedSuppliers);
                                     }
                                     $selectedSuppliers = array_map('strtolower', $selectedSuppliers);
-                                    $suppliers = ['Yalago', 'TBO'];
+                                    $suppliers = ['Yalago', 'TBO', 'Trip and Deal'];
                                 @endphp
                                 @foreach ($suppliers as $supplier)
                                     <label class="hl-checkbox">
@@ -253,6 +253,9 @@
                                         @elseif (($hotel['supplier'] ?? '') === 'TBO' && !empty($hotel['provider_id']))
                                             <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
                                                 class="hl-card__name js-detail-link">{{ $hotel['name'] }}</a>
+                                        @elseif (($hotel['supplier'] ?? '') === 'Trip and Deal' && !empty($hotel['provider_id']))
+                                            <a href="{{ route('user.hotels.details.trip-and-deal', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
+                                                class="hl-card__name js-detail-link">{{ $hotel['name'] }}</a>
                                         @else
                                             <span class="hl-card__name">{{ $hotel['name'] }}</span>
                                         @endif
@@ -299,6 +302,9 @@
                                                 class="hl-card__btn js-detail-link">Select Room</a>
                                         @elseif (($hotel['supplier'] ?? '') === 'TBO' && !empty($hotel['provider_id']))
                                             <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
+                                                class="hl-card__btn js-detail-link">View Details</a>
+                                        @elseif (($hotel['supplier'] ?? '') === 'Trip and Deal' && !empty($hotel['provider_id']))
+                                            <a href="{{ route('user.hotels.details.trip-and-deal', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
                                                 class="hl-card__btn js-detail-link">View Details</a>
                                         @else
                                             <span class="hl-card__btn hl-card__btn--disabled">Details unavailable</span>

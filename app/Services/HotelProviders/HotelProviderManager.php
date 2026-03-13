@@ -2,6 +2,7 @@
 
 namespace App\Services\HotelProviders;
 
+use App\Models\Country;
 use App\Models\Province;
 use App\Services\HotelProviders\Contracts\HotelProviderInterface;
 use Illuminate\Http\Request;
@@ -16,14 +17,15 @@ class HotelProviderManager
     {
         $this->providers = [
             new YalagoHotelProvider($commissionPercentage),
+            new TripAndDealHotelProvider(),
             new TboHotelProvider(),
         ];
     }
 
-    public function search(Province $province, array $rooms, Request $request): Collection
+    public function search(Province|Country $destination, array $rooms, Request $request): Collection
     {
         return collect($this->providers)
-            ->flatMap(fn(HotelProviderInterface $provider) => $provider->search($province, $rooms, $request))
+            ->flatMap(fn(HotelProviderInterface $provider) => $provider->search($destination, $rooms, $request))
             ->values();
     }
 }

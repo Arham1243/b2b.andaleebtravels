@@ -1,9 +1,15 @@
 <script>
-    const hotelsDataPromise = fetch("{{ asset('user/mocks/provinces.json') }}")
+    const hotelsDataPromise = Promise.all([
+        fetch("{{ asset('user/mocks/provinces.json') }}")
         .then(r => r.json())
-        .then(provinces => ({
-            provinces
-        }));
+        .catch(() => []),
+        fetch("{{ asset('user/mocks/countries.json') }}")
+        .then(r => r.json())
+        .catch(() => []),
+    ]).then(([provinces, countries]) => ({
+        provinces,
+        countries
+    }));
 
     const exactMatch = (arr, key, q) => {
         return arr.find(o => {
@@ -18,9 +24,9 @@
             return value && value.toLowerCase().startsWith(q);
         });
 
-    const formatResults = provinces => ({
+    const formatResults = items => ({
         destinations: {
-            provinces
+            all: items
         }
     });
 
@@ -31,16 +37,36 @@
             return formatResults([]);
         }
 
-        const { provinces } = await hotelsDataPromise;
+        const { provinces, countries } = await hotelsDataPromise;
 
         // PROVINCE EXACT
         const pMatch = exactMatch(provinces, 'name', q);
         if (pMatch) {
-            return formatResults([pMatch]);
+            return formatResults([{
+                ...pMatch,
+                type: 'province'
+            }]);
+        }
+
+        // COUNTRY EXACT
+        const cMatch = exactMatch(countries, 'name', q);
+        if (cMatch) {
+            return formatResults([{
+                ...cMatch,
+                type: 'country'
+            }]);
         }
 
         // PARTIAL MATCHES
-        const ps = startsWith(provinces, 'name', q);
-        return formatResults(ps);
+        const ps = startsWith(provinces, 'name', q).map(item => ({
+            ...item,
+            type: 'province'
+        }));
+        const cs = startsWith(countries, 'name', q).map(item => ({
+            ...item,
+            type: 'country'
+        }));
+
+        return formatResults([...ps, ...cs]);
     };
 </script>

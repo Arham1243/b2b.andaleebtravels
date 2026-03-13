@@ -16,6 +16,30 @@ class ProvinceSyncController extends Controller
     private const TBO_API_USERNAME = 'SkylineexperienceTest';
     private const TBO_API_PASSWORD = 'Sky@69774762';
 
+    public function dumpCountries(Request $request)
+    {
+        $countries = Country::orderBy('name')->get(['id', 'name', 'iso_code']);
+
+        $jsonPath = public_path('user/mocks/countries.json');
+        File::ensureDirectoryExists(dirname($jsonPath));
+
+        $payload = $countries->map(function ($country) {
+            return [
+                'id' => $country->id,
+                'name' => $country->name,
+                'iso_code' => $country->iso_code,
+            ];
+        })->values()->all();
+
+        File::put($jsonPath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        return response()->json([
+            'ok' => true,
+            'count' => $countries->count(),
+            'json_path' => 'public/user/mocks/countries.json',
+        ]);
+    }
+
     public function syncFromTbo(Request $request)
     {
         $countriesQuery = Country::whereNotNull('iso_code')

@@ -10,8 +10,9 @@
                     <div class="hs-field__value-row">
                         <input type="text" autocomplete="off" class="hs-field__input"
                             v-model="hotelDestinationInputValue"
-                            @input="hotelDestinationQuery = hotelDestinationInputValue" placeholder="Select Destination"
+                            @input="onHotelDestinationInput" placeholder="Select Destination"
                             ref="hotelDestinationInputRef" name="destination">
+                        <input type="hidden" name="destination_type" :value="selectedHotelDestinationType">
                         <i class='bx bx-world hs-field__icon'></i>
                     </div>
                 </div>
@@ -43,17 +44,19 @@
                         <div class="options-dropdown__body p-0">
                             <ul class="options-dropdown-list">
                                 <li class="options-dropdown-list__item" v-for="item in hotelDestinations"
-                                    :key="'province-' + item.id" @click="selectHotelDestination(item.name)">
+                                    :key="'destination-' + item.type + '-' + item.id"
+                                    @click="selectHotelDestination(item)">
 
                                     <div class="icon">
-                                        <i class='bx bx-map-pin'></i>
+                                        <i class='bx' :class="item.type === 'country' ? 'bx-world' : 'bx-map-pin'"></i>
                                     </div>
 
                                     <div class="info">
                                         <div class="name">@{{ item.name }}</div>
 
-                                        <span class="sub-text" v-if="item.country_name">
-                                            @{{ item.country_name }}
+                                        <span class="sub-text">
+                                            <template v-if="item.type === 'country'">Country</template>
+                                            <template v-else>@{{ item.country_name }}</template>
                                         </span>
                                     </div>
                                 </li>

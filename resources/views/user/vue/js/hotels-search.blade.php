@@ -59,6 +59,7 @@
             const hotelDestinationQuery = ref('');
             const hotelDestinationInputValue = ref('');
             const selectedHotelDestination = ref('');
+            const selectedHotelDestinationType = ref('');
             const hotelDestinations = ref([]);
             const loadingHotelDestination = ref(false);
 
@@ -101,7 +102,7 @@
                 loadingHotelDestination.value = true;
                 try {
                     const data = await window.HotelGlobalSearchAPI(searchQuery);
-                    hotelDestinations.value = data.destinations?.provinces || [];
+                    hotelDestinations.value = data.destinations?.all || [];
                 } catch (err) {
                     console.error("Hotel API Error:", err);
                     hotelDestinations.value = [];
@@ -112,9 +113,15 @@
 
             const selectHotelDestination = (destination) => {
                 selectedHotelDestination.value = destination;
-                hotelDestinationInputValue.value = destination;
+                selectedHotelDestinationType.value = destination?.type || '';
+                hotelDestinationInputValue.value = destination?.name || destination;
                 hotelDestinationQuery.value = '';
                 toggleHotelDestinationDropdown();
+            };
+
+            const onHotelDestinationInput = () => {
+                selectedHotelDestinationType.value = '';
+                hotelDestinationQuery.value = hotelDestinationInputValue.value;
             };
 
             watch(hotelDestinationQuery, (newQuery) => {
@@ -203,7 +210,7 @@
                 }
             };
 
-            return {
+                return {
                 // Hotel
                 hotelCheckInDate,
                 hotelCheckOutDate,
@@ -218,11 +225,13 @@
                 hotelDestinationQuery,
                 hotelDestinationInputValue,
                 selectedHotelDestination,
+                selectedHotelDestinationType,
                 hotelDestinations,
                 loadingHotelDestination,
                 hotelDestinationInputRef,
                 onHotelDestinationBoxClick,
                 selectHotelDestination,
+                onHotelDestinationInput,
                 hotelDestinationDropdownOpen,
                 hotelDestinationWrapperRef,
                 toggleHotelDestinationDropdown,
@@ -317,6 +326,10 @@
                 if (dest) {
                     vue.hotelDestinationInputValue = dest;
                     vue.selectedHotelDestination = dest;
+                }
+                const destType = params.get('destination_type');
+                if (destType) {
+                    vue.selectedHotelDestinationType = destType;
                 }
 
                 // Rooms & Guests

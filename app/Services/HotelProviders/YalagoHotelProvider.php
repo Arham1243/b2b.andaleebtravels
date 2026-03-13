@@ -2,6 +2,7 @@
 
 namespace App\Services\HotelProviders;
 
+use App\Models\Country;
 use App\Models\Hotel;
 use App\Models\Province;
 use App\Services\HotelProviders\Contracts\HotelProviderInterface;
@@ -28,11 +29,17 @@ class YalagoHotelProvider implements HotelProviderInterface
         return 'yalago';
     }
 
-    public function search(Province $province, array $rooms, Request $request): Collection
+    public function search(Province|Country $destination, array $rooms, Request $request): Collection
     {
-        $hotelIds = Hotel::where('province_id', $province->id)
-            ->whereNotNull('yalago_id')
-            ->pluck('yalago_id');
+        if ($destination instanceof Country) {
+            $hotelIds = Hotel::where('country_id', $destination->id)
+                ->whereNotNull('yalago_id')
+                ->pluck('yalago_id');
+        } else {
+            $hotelIds = Hotel::where('province_id', $destination->id)
+                ->whereNotNull('yalago_id')
+                ->pluck('yalago_id');
+        }
 
         if ($hotelIds->isEmpty()) {
             return collect();

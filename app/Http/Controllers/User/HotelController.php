@@ -7,9 +7,11 @@ use App\Models\B2bHotelBooking;
 use App\Models\B2bWalletLedger;
 use App\Models\Hotel;
 use App\Models\Config;
+use App\Models\Country;
 use App\Models\Province;
 use App\Services\HotelProviders\HotelProviderManager;
 use App\Services\HotelProviders\TboHotelProvider;
+use App\Services\HotelProviders\TripAndDealHotelProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
@@ -62,15 +64,20 @@ class HotelController extends Controller
         // 1. Build rooms array
         $rooms = $this->buildRoomsArray($request);
 
-        // 2. Resolve destination to province
-        $province = $this->resolveDestinationToProvince($request->destination);
+        // 2. Resolve destination to province or country
+        [$province, $country] = $this->resolveDestination($request);
 
         $hotels = collect();
 
         if ($province) {
             $providerManager = new HotelProviderManager($this->hotelCommissionPercentage);
             $hotels = $providerManager->search($province, $rooms, $request);
+        } elseif ($country) {
+            $providerManager = new HotelProviderManager($this->hotelCommissionPercentage);
+            $hotels = $providerManager->search($country, $rooms, $request);
+        }
 
+        if ($hotels->isNotEmpty()) {
             // 3. Apply filters
             $hotels = $this->applyFilters($hotels, $request);
 
@@ -111,13 +118,32 @@ class HotelController extends Controller
     }
 
     // 3. Resolve Destination to Hotel IDs
-    protected function resolveDestinationToProvince($destination): ?Province
+    protected function resolveDestination(Request $request): array
     {
-        $province = Province::where('name', $destination)
-            ->where('status', 'active')
-            ->first();
+        $destination = trim((string) $request->destination);
+        $destinationType = strtolower(trim((string) $request->input('destination_type', '')));
+        $province = null;
+        $country = null;
 
-        return $province ?: null;
+        if ($destinationType === 'province' || $destinationType === 'city') {
+            $province = Province::with('country')
+                ->where('name', $destination)
+                ->where('status', 'active')
+                ->first();
+        } elseif ($destinationType === 'country') {
+            $country = Country::where('name', $destination)->first();
+        } else {
+            $province = Province::with('country')
+                ->where('name', $destination)
+                ->where('status', 'active')
+                ->first();
+
+            if (!$province) {
+                $country = Country::where('name', $destination)->first();
+            }
+        }
+
+        return [$province, $country];
     }
 
     // 5. Apply all filters
@@ -415,6 +441,63 @@ class HotelController extends Controller
             'rooms_request' => [],
             'hotelCommissionPercentage' => $this->hotelCommissionPercentage,
             'provider' => 'tbo',
+        ];
+
+        return view('user.hotels.details', $data);
+    }
+
+    public function detailsTripAndDeal(Request $request, string $code)
+    {
+        $provider = new TripAndDealHotelProvider();
+        $details = $provider->fetchDetails($code);
+
+        if (!$details) {
+            return redirect()->route('user.hotels.search')
+                ->with('notify_error', 'No Hotel Found! Please try again.');
+        }
+
+        $images = collect($details['Images'] ?? [])
+            ->map(fn($url) => ['Url' => $url])
+            ->values()
+            ->all();
+
+        $rating = $details['StarRating'] ?? null;
+        $ratingText = null;
+        if ($rating !== null) {
+            $ratingText = match (true) {
+                $rating >= 4.5 => 'Spectacular',
+                $rating >= 4.0 => 'Excellent',
+                $rating >= 3.5 => 'Good',
+                $rating >= 3.0 => 'Above Average',
+                $rating >= 2.0 => 'Average',
+                $rating >= 1.0 => 'Poor',
+                default        => 'Very Poor',
+            };
+        }
+
+        $hotelFormatted = [
+            'id' => null,
+            'name' => $details['PropertyName'] ?? '',
+            'address' => $details['Address'] ?? '',
+            'rating' => $rating,
+            'rating_text' => $ratingText,
+            'description' => $details['Description'] ?? '',
+            'images' => $images,
+            'image' => $images[0]['Url'] ?? null,
+            'price' => null,
+        ];
+
+        $data = [
+            'hotel' => $hotelFormatted,
+            'info_items' => [],
+            'api_availability' => [],
+            'total_rooms' => 0,
+            'show_extras' => false,
+            'check_in' => null,
+            'check_out' => null,
+            'rooms_request' => [],
+            'hotelCommissionPercentage' => $this->hotelCommissionPercentage,
+            'provider' => 'trip_and_deal',
         ];
 
         return view('user.hotels.details', $data);
