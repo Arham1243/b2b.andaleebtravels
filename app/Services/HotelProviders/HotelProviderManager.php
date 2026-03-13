@@ -17,7 +17,7 @@ class HotelProviderManager
     {
         $this->providers = [
             new YalagoHotelProvider($commissionPercentage),
-            new TripAndDealHotelProvider(),
+            new TripInDealHotelProvider(),
             new TboHotelProvider(),
         ];
     }

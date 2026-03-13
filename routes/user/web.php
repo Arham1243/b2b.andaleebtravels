@@ -43,7 +43,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/dump-countries', [ProvinceSyncController::class, 'dumpCountries'])->name('dump-countries');
         Route::get('/details/{id}', [HotelController::class, 'details'])->name('details');
         Route::get('/details/tbo/{code}', [HotelController::class, 'detailsTbo'])->name('details.tbo');
-        Route::get('/details/trip-and-deal/{code}', [HotelController::class, 'detailsTripAndDeal'])->name('details.trip-and-deal');
+        Route::get('/details/tripindeal/{code}', [HotelController::class, 'detailsTripInDeal'])->name('details.tripindeal');
         Route::get('/checkout/{id}', [HotelController::class, 'checkout'])->name('checkout');
         Route::post('/payment/process', [HotelController::class, 'processPayment'])->name('payment.process');
         Route::get('/payment/success/{booking}', [HotelController::class, 'paymentSuccess'])->name('payment.success');

@@ -11,7 +11,7 @@ use App\Models\Country;
 use App\Models\Province;
 use App\Services\HotelProviders\HotelProviderManager;
 use App\Services\HotelProviders\TboHotelProvider;
-use App\Services\HotelProviders\TripAndDealHotelProvider;
+use App\Services\HotelProviders\TripInDealHotelProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
@@ -446,9 +446,9 @@ class HotelController extends Controller
         return view('user.hotels.details', $data);
     }
 
-    public function detailsTripAndDeal(Request $request, string $code)
+    public function detailsTripInDeal(Request $request, string $code)
     {
-        $provider = new TripAndDealHotelProvider();
+        $provider = new TripInDealHotelProvider();
         $details = $provider->fetchDetails($code);
 
         if (!$details) {
@@ -497,7 +497,7 @@ class HotelController extends Controller
             'check_out' => null,
             'rooms_request' => [],
             'hotelCommissionPercentage' => $this->hotelCommissionPercentage,
-            'provider' => 'trip_and_deal',
+            'provider' => 'tripindeal',
         ];
 
         return view('user.hotels.details', $data);

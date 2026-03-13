@@ -11,15 +11,16 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class TripAndDealHotelProvider implements HotelProviderInterface
+class TripInDealHotelProvider implements HotelProviderInterface
 {
     private const API_UPDATED_URL = 'https://hotelpartnerdataapi.tripindeal.com/api/v1/data/updatedpropertyids';
     private const API_DETAILS_URL = 'https://hotelpartnerdataapi.tripindeal.com/api/v1/data/propertydetails';
     private const DETAILS_CHUNK_SIZE = 80;
+    private const API_TOKEN = '4:176b547380-e4ba-4f5c-8e03-e02328dd6b23';
 
     public function key(): string
     {
-        return 'trip_and_deal';
+        return 'tripindeal';
     }
 
     public function search(Province|Country $destination, array $rooms, Request $request): Collection
@@ -73,13 +74,14 @@ class TripAndDealHotelProvider implements HotelProviderInterface
             $response = Http::timeout(30)
                 ->connectTimeout(10)
                 ->retry(2, 2000)
+                ->withHeaders(['token' => self::API_TOKEN])
                 ->get(self::API_UPDATED_URL, [
                     'countryCode' => $countryCode,
                     'date' => $updatedFrom,
                 ]);
 
             if ($response->failed()) {
-                Log::error('TripAndDeal updatedpropertyids API failed', [
+                Log::error('TripInDeal updatedpropertyids API failed', [
                     'country_code' => $countryCode,
                     'date' => $updatedFrom,
                     'status' => $response->status(),
@@ -92,7 +94,7 @@ class TripAndDealHotelProvider implements HotelProviderInterface
             $ids = $payload['PropertyIDs'] ?? [];
             return is_array($ids) ? $ids : [];
         } catch (\Exception $e) {
-            Log::error('TripAndDeal updatedpropertyids API error', [
+            Log::error('TripInDeal updatedpropertyids API error', [
                 'country_code' => $countryCode,
                 'date' => $updatedFrom,
                 'message' => $e->getMessage(),
@@ -110,12 +112,13 @@ class TripAndDealHotelProvider implements HotelProviderInterface
                 $response = Http::timeout(30)
                     ->connectTimeout(10)
                     ->retry(2, 2000)
+                    ->withHeaders(['token' => self::API_TOKEN])
                     ->post(self::API_DETAILS_URL, [
                         'propertyIds' => array_values($chunk),
                     ]);
 
                 if ($response->failed()) {
-                    Log::error('TripAndDeal propertydetails API failed', [
+                    Log::error('TripInDeal propertydetails API failed', [
                         'status' => $response->status(),
                         'body' => $response->body(),
                     ]);
@@ -127,7 +130,7 @@ class TripAndDealHotelProvider implements HotelProviderInterface
                     $results = $results->merge($payload);
                 }
             } catch (\Exception $e) {
-                Log::error('TripAndDeal propertydetails API error', [
+                Log::error('TripInDeal propertydetails API error', [
                     'message' => $e->getMessage(),
                 ]);
                 continue;
@@ -147,8 +150,8 @@ class TripAndDealHotelProvider implements HotelProviderInterface
             return [
                 'id' => null,
                 'provider_id' => (string) ($item['PropertyId'] ?? ''),
-                'provider' => 'TripAndDeal',
-                'supplier' => 'Trip and Deal',
+                'provider' => 'TripInDeal',
+                'supplier' => 'TripInDeal',
 
                 'name' => $item['PropertyName'] ?? null,
                 'address' => $item['Address'] ?? null,

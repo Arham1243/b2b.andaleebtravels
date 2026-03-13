@@ -76,7 +76,7 @@
                                         $selectedSuppliers = explode(',', $selectedSuppliers);
                                     }
                                     $selectedSuppliers = array_map('strtolower', $selectedSuppliers);
-                                    $suppliers = ['Yalago', 'TBO', 'Trip and Deal'];
+                                    $suppliers = ['Yalago', 'TBO', 'TripInDeal'];
                                 @endphp
                                 @foreach ($suppliers as $supplier)
                                     <label class="hl-checkbox">
@@ -253,8 +253,8 @@
                                         @elseif (($hotel['supplier'] ?? '') === 'TBO' && !empty($hotel['provider_id']))
                                             <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
                                                 class="hl-card__name js-detail-link">{{ $hotel['name'] }}</a>
-                                        @elseif (($hotel['supplier'] ?? '') === 'Trip and Deal' && !empty($hotel['provider_id']))
-                                            <a href="{{ route('user.hotels.details.trip-and-deal', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
+                                        @elseif (($hotel['supplier'] ?? '') === 'TripInDeal' && !empty($hotel['provider_id']))
+                                            <a href="{{ route('user.hotels.details.tripindeal', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
                                                 class="hl-card__name js-detail-link">{{ $hotel['name'] }}</a>
                                         @else
                                             <span class="hl-card__name">{{ $hotel['name'] }}</span>
@@ -308,8 +308,8 @@
                                         @elseif (($hotel['supplier'] ?? '') === 'TBO' && !empty($hotel['provider_id']))
                                             <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
                                                 class="hl-card__btn js-detail-link">View Details</a>
-                                        @elseif (($hotel['supplier'] ?? '') === 'Trip and Deal' && !empty($hotel['provider_id']))
-                                            <a href="{{ route('user.hotels.details.trip-and-deal', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
+                                        @elseif (($hotel['supplier'] ?? '') === 'TripInDeal' && !empty($hotel['provider_id']))
+                                            <a href="{{ route('user.hotels.details.tripindeal', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
                                                 class="hl-card__btn js-detail-link">View Details</a>
                                         @else
                                             <span class="hl-card__btn hl-card__btn--disabled">Details unavailable</span>
