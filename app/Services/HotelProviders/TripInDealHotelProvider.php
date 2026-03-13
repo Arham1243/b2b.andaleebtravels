@@ -5,7 +5,6 @@ namespace App\Services\HotelProviders;
 use App\Models\Country;
 use App\Models\Province;
 use App\Services\HotelProviders\Contracts\HotelProviderInterface;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -13,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class TripInDealHotelProvider implements HotelProviderInterface
 {
-    private const API_UPDATED_URL = 'https://hotelpartnerdataapi.tripindeal.com/api/v1/data/updatedpropertyids';
+    private const API_IDS_URL = 'https://hotelpartnerdataapi.tripindeal.com/api/v1/data/propertyids';
     private const API_DETAILS_URL = 'https://hotelpartnerdataapi.tripindeal.com/api/v1/data/propertydetails';
     private const DETAILS_CHUNK_SIZE = 80;
     private const API_TOKEN = '4:176b547380-e4ba-4f5c-8e03-e02328dd6b23';
@@ -30,8 +29,7 @@ class TripInDealHotelProvider implements HotelProviderInterface
             return collect();
         }
 
-        $updatedFrom = $this->resolveUpdatedFrom($request);
-        $propertyIds = $this->fetchUpdatedPropertyIds($country->iso_code, $updatedFrom);
+        $propertyIds = $this->fetchPropertyIds($country->iso_code);
         if (empty($propertyIds)) {
             return collect();
         }
@@ -49,41 +47,20 @@ class TripInDealHotelProvider implements HotelProviderInterface
         return $this->formatHotels($details);
     }
 
-    private function resolveUpdatedFrom(Request $request): string
-    {
-        $requested = trim((string) $request->input('trip_updated_from', ''));
-        if ($requested !== '') {
-            return $requested;
-        }
-
-        $checkIn = $request->input('check_in');
-        if ($checkIn) {
-            try {
-                return Carbon::parse($checkIn)->format('d-m-Y');
-            } catch (\Exception $e) {
-                // fallback below
-            }
-        }
-
-        return Carbon::now()->startOfYear()->format('d-m-Y');
-    }
-
-    private function fetchUpdatedPropertyIds(string $countryCode, string $updatedFrom): array
+    private function fetchPropertyIds(string $countryCode): array
     {
         try {
             $response = Http::timeout(30)
                 ->connectTimeout(10)
                 ->retry(2, 2000)
-                ->withHeaders(['Token' => self::API_TOKEN])
-                ->get(self::API_UPDATED_URL, [
+                ->withHeaders(['token' => self::API_TOKEN])
+                ->get(self::API_IDS_URL, [
                     'countryCode' => $countryCode,
-                    'date' => $updatedFrom,
                 ]);
 
             if ($response->failed()) {
-                Log::error('TripInDeal updatedpropertyids API failed', [
+                Log::error('TripInDeal propertyids API failed', [
                     'country_code' => $countryCode,
-                    'date' => $updatedFrom,
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
@@ -94,9 +71,8 @@ class TripInDealHotelProvider implements HotelProviderInterface
             $ids = $payload['PropertyIDs'] ?? [];
             return is_array($ids) ? $ids : [];
         } catch (\Exception $e) {
-            Log::error('TripInDeal updatedpropertyids API error', [
+            Log::error('TripInDeal propertyids API error', [
                 'country_code' => $countryCode,
-                'date' => $updatedFrom,
                 'message' => $e->getMessage(),
             ]);
             return [];
@@ -112,7 +88,7 @@ class TripInDealHotelProvider implements HotelProviderInterface
                 $response = Http::timeout(30)
                     ->connectTimeout(10)
                     ->retry(2, 2000)
-                    ->withHeaders(['Token' => self::API_TOKEN])
+                    ->withHeaders(['token' => self::API_TOKEN])
                     ->post(self::API_DETAILS_URL, [
                         'propertyIds' => array_values($chunk),
                     ]);
