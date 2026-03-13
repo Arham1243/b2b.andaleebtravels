@@ -74,7 +74,7 @@ class TripInDealHotelProvider implements HotelProviderInterface
             $response = Http::timeout(30)
                 ->connectTimeout(10)
                 ->retry(2, 2000)
-                ->withHeaders(['token' => self::API_TOKEN])
+                ->withHeaders(['Token' => self::API_TOKEN])
                 ->get(self::API_UPDATED_URL, [
                     'countryCode' => $countryCode,
                     'date' => $updatedFrom,
@@ -112,7 +112,7 @@ class TripInDealHotelProvider implements HotelProviderInterface
                 $response = Http::timeout(30)
                     ->connectTimeout(10)
                     ->retry(2, 2000)
-                    ->withHeaders(['token' => self::API_TOKEN])
+                    ->withHeaders(['Token' => self::API_TOKEN])
                     ->post(self::API_DETAILS_URL, [
                         'propertyIds' => array_values($chunk),
                     ]);
