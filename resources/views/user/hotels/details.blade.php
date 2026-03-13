@@ -142,60 +142,76 @@
 
             {{-- ABOUT + ROOMS SECTION (full width below) --}}
             <div class="hd-tabs mt-4">
+                @php
+                    $hasDescription = !empty(trim(strip_tags((string) ($hotel['description'] ?? ''))));
+                    $hasLocation = !empty(trim((string) ($hotel['address'] ?? '')));
+                    $hasInfoItems = count($info_items) > 0;
+                    $hasRooms = $provider === 'yalago'
+                        && !empty($api_availability)
+                        && !empty($api_availability[0]['Rooms'] ?? []);
+                @endphp
                 <div class="hd-tabs__nav">
-                    <button class="hd-tabs__btn active" data-tab="overview">Overview</button>
-                    @if ($provider === 'yalago')
-                        <button class="hd-tabs__btn" data-tab="rooms">Rooms</button>
+                    @if ($hasDescription)
+                        <button class="hd-tabs__btn active" data-tab="overview">Overview</button>
                     @endif
-                    <button class="hd-tabs__btn" data-tab="location">Location</button>
-                    @if (count($info_items) > 0)
-                        <button class="hd-tabs__btn" data-tab="info">Hotel Information</button>
+                    @if ($hasRooms)
+                        <button class="hd-tabs__btn {{ !$hasDescription ? 'active' : '' }}" data-tab="rooms">Rooms</button>
+                    @endif
+                    @if ($hasLocation)
+                        <button class="hd-tabs__btn {{ (!$hasDescription && !$hasRooms) ? 'active' : '' }}" data-tab="location">Location</button>
+                    @endif
+                    @if ($hasInfoItems)
+                        <button class="hd-tabs__btn {{ (!$hasDescription && !$hasRooms && !$hasLocation) ? 'active' : '' }}" data-tab="info">Hotel Information</button>
                     @endif
                 </div>
 
                 {{-- OVERVIEW TAB --}}
-                <div class="hd-tabs__panel active" id="tab-overview">
-                    <div class="hd-content-box">
-                        <h3 class="hd-content-box__title">About this hotel</h3>
-                        <div class="hd-content-box__text">
-                            {!! $hotel['description'] !!}
+                @if ($hasDescription)
+                    <div class="hd-tabs__panel active" id="tab-overview">
+                        <div class="hd-content-box">
+                            <h3 class="hd-content-box__title">About this hotel</h3>
+                            <div class="hd-content-box__text">
+                                {!! $hotel['description'] !!}
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endif
 
                 {{-- LOCATION TAB --}}
-                <div class="hd-tabs__panel" id="tab-location">
-                    <div class="hd-content-box">
-                        <h3 class="hd-content-box__title">Location</h3>
-                        <div class="hd-map">
-                            <iframe
-                                src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
-                                width="100%" height="400" frameborder="0" style="border:0; border-radius: 0.5rem;"
-                                allowfullscreen=""></iframe>
+                @if ($hasLocation)
+                    <div class="hd-tabs__panel {{ !$hasDescription && !$hasRooms ? 'active' : '' }}" id="tab-location">
+                        <div class="hd-content-box">
+                            <h3 class="hd-content-box__title">Location</h3>
+                            <div class="hd-map">
+                                <iframe
+                                    src="https://maps.google.com/maps?q={{ urlencode($hotel['address']) }}&output=embed"
+                                    width="100%" height="400" frameborder="0" style="border:0; border-radius: 0.5rem;"
+                                    allowfullscreen=""></iframe>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endif
 
                 {{-- INFO TAB --}}
-                @if (count($info_items) > 0)
-                <div class="hd-tabs__panel" id="tab-info">
-                    <div class="hd-content-box">
-                        <h3 class="hd-content-box__title">Hotel Information</h3>
-                        <div class="hd-sidebar__info-list">
-                            @foreach ($info_items as $index => $item)
-                                <div class="hd-sidebar__info-item">
-                                    <span class="hd-sidebar__info-num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
-                                    <div class="hd-sidebar__info-text">{!! $item['Description'] !!}</div>
-                                </div>
-                            @endforeach
+                @if ($hasInfoItems)
+                    <div class="hd-tabs__panel {{ (!$hasDescription && !$hasRooms && !$hasLocation) ? 'active' : '' }}" id="tab-info">
+                        <div class="hd-content-box">
+                            <h3 class="hd-content-box__title">Hotel Information</h3>
+                            <div class="hd-sidebar__info-list">
+                                @foreach ($info_items as $index => $item)
+                                    <div class="hd-sidebar__info-item">
+                                        <span class="hd-sidebar__info-num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
+                                        <div class="hd-sidebar__info-text">{!! $item['Description'] !!}</div>
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     </div>
-                </div>
                 @endif
 
                 {{-- ROOMS TAB --}}
-                @if ($provider === 'yalago')
-                    <div class="hd-tabs__panel" id="tab-rooms">
+                @if ($hasRooms)
+                    <div class="hd-tabs__panel {{ !$hasDescription ? 'active' : '' }}" id="tab-rooms">
                         <div class="row g-3">
                             @foreach ($api_availability[0]['Rooms'] as $roomIndex => $room)
                                 @foreach (collect($room['Boards'])->unique('Code') as $boardIndex => $board)
