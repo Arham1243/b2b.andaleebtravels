@@ -64,7 +64,8 @@ class ProvinceSyncController extends Controller
         string $name,
         string $code,
         \Illuminate\Support\Collection $provinceByCode,
-        \Illuminate\Support\Collection $provinceByName
+        \Illuminate\Support\Collection $provinceByName,
+        bool $allowGlobalMatch = false
     ): ?Province {
         $province = $provinceByCode->get($code);
         if ($province) {
@@ -93,6 +94,20 @@ class ProvinceSyncController extends Controller
 
             if ($province) {
                 return $province;
+            }
+        }
+
+        if ($allowGlobalMatch && $normalizedName !== '') {
+            $globalMatches = Province::query()
+                ->get(['id', 'country_id', 'name', 'tbo_code', 'status'])
+                ->filter(function ($province) use ($normalizedName) {
+                    $norm = $this->normalizeCityName((string) $province->name);
+                    return $norm !== '' && $norm === $normalizedName;
+                })
+                ->values();
+
+            if ($globalMatches->count() === 1) {
+                return $globalMatches->first();
             }
         }
 
@@ -128,22 +143,32 @@ class ProvinceSyncController extends Controller
         $jsonPath = public_path('user/mocks/provinces.json');
         File::ensureDirectoryExists(dirname($jsonPath));
 
+        $allowGlobalMatch = $request->boolean('global', false);
+        $collectUnmatched = $request->boolean('unmatched', false);
+        $unmatched = [];
+
         $countriesQuery->orderBy('id')->chunkById(25, function ($countries) use (
             &$created,
             &$updated,
             &$failed,
             &$processed,
             $jsonPath,
-            &$errors
+            &$errors,
+            $allowGlobalMatch,
+            $collectUnmatched,
+            &$unmatched
         ) {
             foreach ($countries as $country) {
-                $result = $this->syncCountryCities($country, true, $jsonPath);
+                $result = $this->syncCountryCities($country, true, $jsonPath, $allowGlobalMatch, $collectUnmatched);
                 $created += $result['created'];
                 $updated += $result['updated'];
                 $failed += $result['failed'];
                 $processed += $result['processed'];
                 if (!empty($result['error'])) {
                     $errors[] = $result['error'];
+                }
+                if (!empty($result['unmatched']) && $collectUnmatched) {
+                    $unmatched = array_merge($unmatched, $result['unmatched']);
                 }
             }
         });
@@ -156,6 +181,7 @@ class ProvinceSyncController extends Controller
             'failed' => $failed,
             'processed' => $processed,
             'errors' => $errors,
+            'unmatched' => $collectUnmatched ? array_slice($unmatched, 0, 50) : [],
             'total' => Province::count(),
             'json_path' => 'public/user/mocks/provinces.json',
         ]);
@@ -187,21 +213,31 @@ class ProvinceSyncController extends Controller
         $processed = 0;
         $errors = [];
 
+        $allowGlobalMatch = $request->boolean('global', false);
+        $collectUnmatched = $request->boolean('unmatched', false);
+        $unmatched = [];
+
         $countriesQuery->orderBy('id')->chunkById(25, function ($countries) use (
             &$created,
             &$updated,
             &$failed,
             &$processed,
-            &$errors
+            &$errors,
+            $allowGlobalMatch,
+            $collectUnmatched,
+            &$unmatched
         ) {
             foreach ($countries as $country) {
-                $result = $this->syncCountryCities($country, false, null);
+                $result = $this->syncCountryCities($country, false, null, $allowGlobalMatch, $collectUnmatched);
                 $created += $result['created'];
                 $updated += $result['updated'];
                 $failed += $result['failed'];
                 $processed += $result['processed'];
                 if (!empty($result['error'])) {
                     $errors[] = $result['error'];
+                }
+                if (!empty($result['unmatched']) && $collectUnmatched) {
+                    $unmatched = array_merge($unmatched, $result['unmatched']);
                 }
             }
         });
@@ -214,15 +250,23 @@ class ProvinceSyncController extends Controller
             'failed' => $failed,
             'processed' => $processed,
             'errors' => $errors,
+            'unmatched' => $collectUnmatched ? array_slice($unmatched, 0, 50) : [],
             'total' => Province::count(),
         ]);
     }
 
-    private function syncCountryCities(Country $country, bool $writeJson, ?string $jsonPath): array
+    private function syncCountryCities(
+        Country $country,
+        bool $writeJson,
+        ?string $jsonPath,
+        bool $allowGlobalMatch = false,
+        bool $collectUnmatched = false
+    ): array
     {
         $created = 0;
         $updated = 0;
         $failed = 0;
+        $unmatched = [];
 
         try {
             $response = Http::timeout(30)
@@ -325,7 +369,8 @@ class ProvinceSyncController extends Controller
                 $name,
                 $code,
                 $provinceByCode,
-                $provinceByName
+                $provinceByName,
+                $allowGlobalMatch
             );
 
             if ($province) {
@@ -344,6 +389,9 @@ class ProvinceSyncController extends Controller
                     'status' => 'active',
                 ]);
                 $created++;
+                if ($collectUnmatched) {
+                    $unmatched[] = ['name' => $name, 'code' => $code, 'country' => $country->iso_code];
+                }
             }
         }
 
@@ -384,6 +432,7 @@ class ProvinceSyncController extends Controller
             'updated' => $updated,
             'failed' => $failed,
             'processed' => 1,
+            'unmatched' => $collectUnmatched ? $unmatched : [],
         ];
     }
 }
