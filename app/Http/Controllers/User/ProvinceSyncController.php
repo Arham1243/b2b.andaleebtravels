@@ -17,7 +17,7 @@ class ProvinceSyncController extends Controller
     private const TBO_API_USERNAME = 'SkylineexperienceTest';
     private const TBO_API_PASSWORD = 'Sky@69774762';
     private const NAME_NORMALIZE_PATTERN = '/[^a-z0-9\\s]/u';
-    private const DEBUG_LOG_UNMATCHED = true;
+    private const DEBUG_LOG_UNMATCHED = false;
 
     private function normalizeCityName(string $name): string
     {
