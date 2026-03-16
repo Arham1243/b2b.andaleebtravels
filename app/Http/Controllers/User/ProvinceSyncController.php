@@ -15,6 +15,33 @@ class ProvinceSyncController extends Controller
     private const TBO_API_CITY_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/CityList';
     private const TBO_API_USERNAME = 'SkylineexperienceTest';
     private const TBO_API_PASSWORD = 'Sky@69774762';
+    private const NAME_NORMALIZE_PATTERN = '/[^a-z0-9\\s]/u';
+
+    private function normalizeCityName(string $name): string
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return '';
+        }
+
+        if (class_exists(\Normalizer::class)) {
+            $name = \Normalizer::normalize($name, \Normalizer::FORM_D);
+            $name = preg_replace('/\\p{Mn}/u', '', $name);
+        } else {
+            $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
+            if ($transliterated !== false) {
+                $name = $transliterated;
+            }
+        }
+
+        $name = str_replace(["’", "'", "`", "´"], '', $name);
+        $name = str_replace(['-', '_'], ' ', $name);
+        $name = mb_strtolower($name);
+        $name = preg_replace(self::NAME_NORMALIZE_PATTERN, '', $name);
+        $name = preg_replace('/\\s+/', ' ', $name);
+
+        return trim($name);
+    }
 
     public function dumpCountries(Request $request)
     {
@@ -112,6 +139,18 @@ class ProvinceSyncController extends Controller
                     continue;
                 }
 
+                $provinces = Province::where('country_id', $country->id)
+                    ->get(['id', 'country_id', 'name', 'tbo_code', 'status']);
+
+                $provinceByCode = $provinces
+                    ->filter(fn($province) => !empty($province->tbo_code))
+                    ->keyBy(fn($province) => (string) $province->tbo_code);
+
+                $provinceByName = $provinces
+                    ->mapWithKeys(function ($province) {
+                        return [$this->normalizeCityName((string) $province->name) => $province];
+                    });
+
                 foreach ($cityList as $city) {
                     $name = trim((string) ($city['Name'] ?? ''));
                     $code = trim((string) ($city['Code'] ?? ''));
@@ -119,12 +158,11 @@ class ProvinceSyncController extends Controller
                         continue;
                     }
 
-                    $province = Province::where('country_id', $country->id)
-                        ->where(function ($query) use ($name, $code) {
-                            $query->where('tbo_code', $code)
-                                ->orWhere('name', $name);
-                        })
-                        ->first();
+                    $province = $provinceByCode->get($code);
+                    if (!$province) {
+                        $normalizedName = $this->normalizeCityName($name);
+                        $province = $normalizedName !== '' ? $provinceByName->get($normalizedName) : null;
+                    }
 
                     if ($province) {
                         $province->name = $name;

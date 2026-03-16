@@ -14,7 +14,8 @@ class TripInDealHotelProvider implements HotelProviderInterface
 {
     private const API_IDS_URL = 'https://hotelpartnerdataapi.tripindeal.com/api/v1/data/propertyids';
     private const API_DETAILS_URL = 'https://hotelpartnerdataapi.tripindeal.com/api/v1/data/propertydetails';
-    private const DETAILS_CHUNK_SIZE = 80;
+    private const DETAILS_CHUNK_SIZE = 40;
+    private const DETAILS_TIMEOUT_SECONDS = 60;
     private const API_TOKEN = '4:176b547380-e4ba-4f5c-8e03-e02328dd6b23';
 
     public function key(): string
@@ -85,9 +86,9 @@ class TripInDealHotelProvider implements HotelProviderInterface
 
         foreach (array_chunk($propertyIds, self::DETAILS_CHUNK_SIZE) as $chunk) {
             try {
-                $response = Http::timeout(30)
+                $response = Http::timeout(self::DETAILS_TIMEOUT_SECONDS)
                     ->connectTimeout(10)
-                    ->retry(2, 2000)
+                    ->retry(3, 3000)
                     ->withHeaders(['token' => self::API_TOKEN])
                     ->post(self::API_DETAILS_URL, [
                         'propertyIds' => array_values($chunk),

@@ -3,12 +3,8 @@
         fetch("{{ asset('user/mocks/provinces.json') }}")
         .then(r => r.json())
         .catch(() => []),
-        fetch("{{ asset('user/mocks/countries.json') }}")
-        .then(r => r.json())
-        .catch(() => []),
-    ]).then(([provinces, countries]) => ({
-        provinces,
-        countries
+    ]).then(([provinces]) => ({
+        provinces
     }));
 
     const exactMatch = (arr, key, q) => {
@@ -37,7 +33,7 @@
             return formatResults([]);
         }
 
-        const { provinces, countries } = await hotelsDataPromise;
+        const { provinces } = await hotelsDataPromise;
 
         // PROVINCE EXACT
         const pMatch = exactMatch(provinces, 'name', q);
@@ -48,25 +44,12 @@
             }]);
         }
 
-        // COUNTRY EXACT
-        const cMatch = exactMatch(countries, 'name', q);
-        if (cMatch) {
-            return formatResults([{
-                ...cMatch,
-                type: 'country'
-            }]);
-        }
-
         // PARTIAL MATCHES
         const ps = startsWith(provinces, 'name', q).map(item => ({
             ...item,
             type: 'province'
         }));
-        const cs = startsWith(countries, 'name', q).map(item => ({
-            ...item,
-            type: 'country'
-        }));
 
-        return formatResults([...ps, ...cs]);
+        return formatResults(ps);
     };
 </script>
