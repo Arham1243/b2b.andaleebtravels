@@ -36,7 +36,8 @@ class ProvinceSyncController extends Controller
         }
 
         $name = str_replace(["’", "'", "`", "´"], '', $name);
-        $name = str_replace(['-', '_'], ' ', $name);
+        $name = preg_replace('/\\p{Pd}+/u', ' ', $name);
+        $name = str_replace(['-', '_', '/', '\\'], ' ', $name);
         $name = mb_strtolower($name);
         $name = preg_replace(self::NAME_NORMALIZE_PATTERN, '', $name);
         $name = preg_replace('/\\s+/', ' ', $name);
@@ -258,10 +259,14 @@ class ProvinceSyncController extends Controller
             ->filter(fn($province) => !empty($province->tbo_code))
             ->keyBy(fn($province) => (string) $province->tbo_code);
 
-        $provinceByName = $provinces
-            ->mapWithKeys(function ($province) {
-                return [$this->normalizeCityName((string) $province->name) => $province];
-            });
+                $provinceByName = $provinces
+                    ->flatMap(function ($province) {
+                        $name = (string) $province->name;
+                        $normalized = $this->normalizeCityName($name);
+                        $loose = $this->normalizeLoose($name);
+                        $keys = array_filter([$normalized, $loose]);
+                        return collect($keys)->mapWithKeys(fn($key) => [$key => $province]);
+                    });
 
         foreach ($cityList as $city) {
             $name = trim((string) ($city['Name'] ?? ''));
