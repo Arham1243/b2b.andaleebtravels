@@ -49,10 +49,17 @@ class ProvinceSyncController extends Controller
             ->where('iso_code', '!=', '')
             ->select(['id', 'name', 'iso_code']);
 
+        $requestedCountry = strtoupper(trim((string) $request->query('country', '')));
+        if ($requestedCountry !== '') {
+            $countriesQuery->where('iso_code', $requestedCountry);
+        }
+
         if (!$countriesQuery->exists()) {
             return response()->json([
                 'ok' => false,
-                'message' => 'No countries with iso_code found.',
+                'message' => $requestedCountry !== ''
+                    ? 'No country found for provided iso_code.'
+                    : 'No countries with iso_code found.',
             ], 404);
         }
 
