@@ -29,6 +29,7 @@ class HotelService
     private $yalagoApiKey = '93082895-c45f-489f-ae10-bed9eaae161e';
     private $yalagoApiUrl = 'https://api.yalago.com/hotels';
     private $tboApiUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Book';
+    private $tboCancelUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Cancel';
     private $tboUsername = 'SkylineexperienceTest';
     private $tboPassword = 'Sky@69774762';
     protected $adminEmail;
@@ -1098,6 +1099,38 @@ class HotelService
         }
 
         return $response->json();
+    }
+
+    public function cancelTboBooking(B2bHotelBooking $booking): array
+    {
+        $confirmationNumber = $booking->yalago_booking_reference
+            ?? data_get($booking->booking_response, 'BookingReferenceId')
+            ?? data_get($booking->booking_response, 'BookingRef');
+
+        if (empty($confirmationNumber)) {
+            throw new \Exception('Missing TBO confirmation number.');
+        }
+
+        $response = Http::timeout(30)
+            ->connectTimeout(10)
+            ->retry(2, 1000)
+            ->withBasicAuth($this->tboUsername, $this->tboPassword)
+            ->post($this->tboCancelUrl, [
+                'ConfirmationNumber' => $confirmationNumber,
+            ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('TBO cancel API request failed: ' . $response->body());
+        }
+
+        $payload = $response->json();
+        $statusCode = $payload['Status']['Code'] ?? null;
+        if ($statusCode !== 200) {
+            $message = $payload['Status']['Description'] ?? 'TBO cancel failed.';
+            throw new \Exception($message);
+        }
+
+        return $payload;
     }
 
     public function cancelYalagoBooking(B2bHotelBooking $booking, array $charges): array

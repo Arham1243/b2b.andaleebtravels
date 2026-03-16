@@ -55,6 +55,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     Route::prefix('bookings')->name('bookings.')->group(function () {
         Route::get('/', [BookingController::class, 'index'])->name('index');
         Route::post('/hotels/cancellation-charges', [BookingController::class, 'getCancellationCharges'])->name('hotels.cancellation-charges');
+        Route::post('/hotels/cancel-tbo', [BookingController::class, 'cancelTboBooking'])->name('hotels.cancel-tbo');
         Route::get('/hotels/cancel/{id}', [BookingController::class, 'cancelHotelBooking'])->name('hotels.cancel');
     });
 

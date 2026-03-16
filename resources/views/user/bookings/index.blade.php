@@ -254,11 +254,19 @@
                                         <td>
                                             <div class="booking-actions">
                                                 @if ($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
-                                                    <button type="button"
-                                                        class="btn-cancel-booking cancel-booking-btn"
-                                                        data-booking-id="{{ $booking->id }}">
-                                                        <i class="bx bx-x"></i> Cancel
-                                                    </button>
+                                                    @if (($booking->supplier ?? 'yalago') === 'tbo')
+                                                        <button type="button"
+                                                            class="btn-cancel-booking cancel-booking-btn-tbo"
+                                                            data-booking-id="{{ $booking->id }}">
+                                                            <i class="bx bx-x"></i> Cancel
+                                                        </button>
+                                                    @else
+                                                        <button type="button"
+                                                            class="btn-cancel-booking cancel-booking-btn"
+                                                            data-booking-id="{{ $booking->id }}">
+                                                            <i class="bx bx-x"></i> Cancel
+                                                        </button>
+                                                    @endif
                                                 @else
                                                     <span class="text-muted">&mdash;</span>
                                                 @endif
@@ -354,6 +362,29 @@
                 $('#cancelBookingModalBody').html(
                     '<p class="text-danger text-center py-3">Failed to load cancellation policy. Please try again.</p>'
                 );
+            });
+        });
+
+        $(document).on('click', '.cancel-booking-btn-tbo', function() {
+            const bookingId = $(this).data('booking-id');
+            if (!bookingId) return;
+
+            if (!confirm('Cancel this booking?')) {
+                return;
+            }
+
+            $.post(
+                "{{ route('user.bookings.hotels.cancel-tbo') }}", {
+                    booking_id: bookingId,
+                    _token: "{{ csrf_token() }}"
+                }
+            )
+            .done(function() {
+                window.location.reload();
+            })
+            .fail(function(xhr) {
+                const msg = xhr.responseJSON?.message || 'Unable to cancel booking. Please try again.';
+                alert(msg);
             });
         });
     </script>
