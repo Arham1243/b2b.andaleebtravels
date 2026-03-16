@@ -269,9 +269,9 @@ class ProvinceSyncController extends Controller
         $unmatched = [];
 
         try {
-            $response = Http::timeout(30)
-                ->connectTimeout(10)
-                ->retry(2, 1000)
+            $response = Http::timeout(60)
+                ->connectTimeout(15)
+                ->retry(3, 2000)
                 ->withBasicAuth(self::TBO_API_USERNAME, self::TBO_API_PASSWORD)
                 ->post(self::TBO_API_CITY_URL, [
                     'CountryCode' => $country->iso_code,
