@@ -40,7 +40,6 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/search', [HotelController::class, 'search'])->name('search');
         Route::get('/search-hotels', [HotelController::class, 'searchHotels'])->name('search-hotels');
         Route::get('/sync-provinces', [ProvinceSyncController::class, 'syncFromTbo'])->name('sync-provinces');
-        Route::get('/dump-countries', [ProvinceSyncController::class, 'dumpCountries'])->name('dump-countries');
         Route::get('/details/{id}', [HotelController::class, 'details'])->name('details');
         Route::get('/details/tbo/{code}', [HotelController::class, 'detailsTbo'])->name('details.tbo');
         Route::get('/details/tripindeal/{code}', [HotelController::class, 'detailsTripInDeal'])->name('details.tripindeal');
