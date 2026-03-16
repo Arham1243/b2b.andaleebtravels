@@ -123,6 +123,7 @@ class ProvinceSyncController extends Controller
         $updated = 0;
         $failed = 0;
         $processed = 0;
+        $errors = [];
 
         $jsonPath = public_path('user/mocks/provinces.json');
         File::ensureDirectoryExists(dirname($jsonPath));
@@ -132,7 +133,8 @@ class ProvinceSyncController extends Controller
             &$updated,
             &$failed,
             &$processed,
-            $jsonPath
+            $jsonPath,
+            &$errors
         ) {
             foreach ($countries as $country) {
                 $result = $this->syncCountryCities($country, true, $jsonPath);
@@ -140,6 +142,9 @@ class ProvinceSyncController extends Controller
                 $updated += $result['updated'];
                 $failed += $result['failed'];
                 $processed += $result['processed'];
+                if (!empty($result['error'])) {
+                    $errors[] = $result['error'];
+                }
             }
         });
 
@@ -150,6 +155,7 @@ class ProvinceSyncController extends Controller
             'updated' => $updated,
             'failed' => $failed,
             'processed' => $processed,
+            'errors' => $errors,
             'total' => Province::count(),
             'json_path' => 'public/user/mocks/provinces.json',
         ]);
@@ -179,12 +185,14 @@ class ProvinceSyncController extends Controller
         $updated = 0;
         $failed = 0;
         $processed = 0;
+        $errors = [];
 
         $countriesQuery->orderBy('id')->chunkById(25, function ($countries) use (
             &$created,
             &$updated,
             &$failed,
-            &$processed
+            &$processed,
+            &$errors
         ) {
             foreach ($countries as $country) {
                 $result = $this->syncCountryCities($country, false, null);
@@ -192,6 +200,9 @@ class ProvinceSyncController extends Controller
                 $updated += $result['updated'];
                 $failed += $result['failed'];
                 $processed += $result['processed'];
+                if (!empty($result['error'])) {
+                    $errors[] = $result['error'];
+                }
             }
         });
 
@@ -202,6 +213,7 @@ class ProvinceSyncController extends Controller
             'updated' => $updated,
             'failed' => $failed,
             'processed' => $processed,
+            'errors' => $errors,
             'total' => Province::count(),
         ]);
     }
@@ -228,7 +240,18 @@ class ProvinceSyncController extends Controller
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
-                return ['created' => 0, 'updated' => 0, 'failed' => 1, 'processed' => 1];
+                return [
+                    'created' => 0,
+                    'updated' => 0,
+                    'failed' => 1,
+                    'processed' => 1,
+                    'error' => [
+                        'country' => $country->name,
+                        'country_code' => $country->iso_code,
+                        'type' => 'http_failed',
+                        'status' => $response->status(),
+                    ],
+                ];
             }
 
             $payload = $response->json();
@@ -239,7 +262,18 @@ class ProvinceSyncController extends Controller
                     'country_code' => $country->iso_code,
                     'status' => $payload['Status'] ?? null,
                 ]);
-                return ['created' => 0, 'updated' => 0, 'failed' => 1, 'processed' => 1];
+                return [
+                    'created' => 0,
+                    'updated' => 0,
+                    'failed' => 1,
+                    'processed' => 1,
+                    'error' => [
+                        'country' => $country->name,
+                        'country_code' => $country->iso_code,
+                        'type' => 'status_not_ok',
+                        'status' => $payload['Status'] ?? null,
+                    ],
+                ];
             }
 
             $cityList = $payload['CityList'] ?? [];
@@ -249,7 +283,18 @@ class ProvinceSyncController extends Controller
                 'country_code' => $country->iso_code,
                 'message' => $e->getMessage(),
             ]);
-            return ['created' => 0, 'updated' => 0, 'failed' => 1, 'processed' => 1];
+            return [
+                'created' => 0,
+                'updated' => 0,
+                'failed' => 1,
+                'processed' => 1,
+                'error' => [
+                    'country' => $country->name,
+                    'country_code' => $country->iso_code,
+                    'type' => 'exception',
+                    'message' => $e->getMessage(),
+                ],
+            ];
         }
 
         $provinces = Province::where('country_id', $country->id)
