@@ -86,7 +86,7 @@
                             <span class="hs-date-display__weekday" id="hotel-checkin-day">&nbsp;</span>
                         </div>
                     </div>
-                    <input readonly autocomplete="off" type="hidden" name="check_in" ref="hotelCheckInDate"
+                    <input readonly autocomplete="off" type="hidden" name="check_in"
                         id="hotel-checkin-input">
                 </div>
             </div>
@@ -109,7 +109,7 @@
                             <span class="hs-date-display__weekday" id="hotel-checkout-day">&nbsp;</span>
                         </div>
                     </div>
-                    <input readonly autocomplete="off" type="hidden" name="check_out" ref="hotelCheckOutDate"
+                    <input readonly autocomplete="off" type="hidden" name="check_out"
                         id="hotel-checkout-input">
                 </div>
             </div>

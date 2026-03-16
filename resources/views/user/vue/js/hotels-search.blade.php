@@ -76,9 +76,11 @@
                 return `${roomText}, ${guestText}`;
             });
 
+            const isValidMoment = (val) => val && typeof val.isValid === 'function' && val.isValid();
+
             // Night count
             const nightCount = computed(() => {
-                if (hotelCheckInDate.value && hotelCheckOutDate.value) {
+                if (isValidMoment(hotelCheckInDate.value) && isValidMoment(hotelCheckOutDate.value)) {
                     const diff = hotelCheckOutDate.value.diff(hotelCheckInDate.value, 'days');
                     return diff > 0 ? diff : 1;
                 }
@@ -179,8 +181,8 @@
             });
 
             const isHotelSearchEnabled = computed(() => {
-                const hasCheckIn = hotelCheckInDate.value && hotelCheckInDate.value.value !== '';
-                const hasCheckOut = hotelCheckOutDate.value && hotelCheckOutDate.value.value !== '';
+                const hasCheckIn = isValidMoment(hotelCheckInDate.value);
+                const hasCheckOut = isValidMoment(hotelCheckOutDate.value);
                 const hasDestination = hotelDestinationInputValue.value && hotelDestinationInputValue
                     .value.trim() !== '';
                 const hasRooms = hotelRooms.value.length > 0;
