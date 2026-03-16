@@ -17,6 +17,7 @@ class ProvinceSyncController extends Controller
     private const TBO_API_USERNAME = 'SkylineexperienceTest';
     private const TBO_API_PASSWORD = 'Sky@69774762';
     private const NAME_NORMALIZE_PATTERN = '/[^a-z0-9\\s]/u';
+    private const DEBUG_LOG_UNMATCHED = true;
 
     private function normalizeCityName(string $name): string
     {
@@ -277,6 +278,13 @@ class ProvinceSyncController extends Controller
                     'CountryCode' => $country->iso_code,
                 ]);
 
+            Log::info('TBO CityList API response meta', [
+                'country' => $country->name,
+                'country_code' => $country->iso_code,
+                'status' => $response->status(),
+                'ok' => $response->ok(),
+            ]);
+
             if ($response->failed()) {
                 Log::error('TBO CityList API failed', [
                     'country' => $country->name,
@@ -321,6 +329,11 @@ class ProvinceSyncController extends Controller
             }
 
             $cityList = $payload['CityList'] ?? [];
+            Log::info('TBO CityList API city count', [
+                'country' => $country->name,
+                'country_code' => $country->iso_code,
+                'count' => is_array($cityList) ? count($cityList) : 0,
+            ]);
         } catch (\Exception $e) {
             Log::error('TBO CityList API error', [
                 'country' => $country->name,
@@ -374,6 +387,14 @@ class ProvinceSyncController extends Controller
             );
 
             if ($province) {
+                Log::info('TBO CityList match', [
+                    'country' => $country->name,
+                    'country_code' => $country->iso_code,
+                    'city' => $name,
+                    'code' => $code,
+                    'matched_province_id' => $province->id,
+                    'matched_province_name' => $province->name,
+                ]);
                 $province->name = $name;
                 $province->tbo_code = $code;
                 if (isset($province->status) && $province->status === null) {
@@ -382,6 +403,16 @@ class ProvinceSyncController extends Controller
                 $province->save();
                 $updated++;
             } else {
+                if (self::DEBUG_LOG_UNMATCHED) {
+                    Log::warning('TBO CityList no match, creating province', [
+                        'country' => $country->name,
+                        'country_code' => $country->iso_code,
+                        'city' => $name,
+                        'code' => $code,
+                        'normalized' => $this->normalizeCityName($name),
+                        'loose' => $this->normalizeLoose($name),
+                    ]);
+                }
                 Province::create([
                     'country_id' => $country->id,
                     'name' => $name,
