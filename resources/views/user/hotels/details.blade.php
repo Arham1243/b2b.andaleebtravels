@@ -309,6 +309,45 @@
                 </div>
             </div>
         </div>
+    @elseif ($provider === 'tbo')
+        @php
+            $tboQuery = request()->query();
+            if (!empty($tbo_booking_code ?? null)) {
+                $tboQuery['tbo_booking_code'] = $tbo_booking_code;
+            }
+            if (!empty($tbo_total_fare_raw ?? null)) {
+                $tboQuery['tbo_total_fare_raw'] = $tbo_total_fare_raw;
+            }
+            if (!empty($tbo_currency ?? null)) {
+                $tboQuery['tbo_currency'] = $tbo_currency;
+            }
+            if (!empty($tbo_meal_type ?? null)) {
+                $tboQuery['tbo_meal_type'] = $tbo_meal_type;
+            }
+        @endphp
+        <div class="hd-continue-bar">
+            <div class="container">
+                <div class="hd-continue-bar__inner">
+                    <div class="hd-continue-bar__price">
+                        <span class="hd-continue-bar__label">Total</span>
+                        <span class="hd-continue-bar__amount">
+                            @if (!empty($hotel['price']))
+                                {!! formatPrice($hotel['price']) !!}
+                            @else
+                                Price on request
+                            @endif
+                        </span>
+                    </div>
+                    @if (!empty($tbo_booking_code ?? null))
+                        <a id="continueBtn" href="{!! route('user.hotels.checkout.tbo', ['code' => $tbo_hotel_code ?? '']) . '?' . http_build_query($tboQuery) !!}" class="hd-continue-bar__btn">
+                            Continue
+                        </a>
+                    @else
+                        <span class="hd-continue-bar__btn hd-continue-bar__btn--disabled">Unavailable</span>
+                    @endif
+                </div>
+            </div>
+        </div>
     @endif
 @endsection
 

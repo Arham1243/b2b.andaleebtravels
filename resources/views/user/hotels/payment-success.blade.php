@@ -34,6 +34,13 @@
                                         <span class="hc-result-item__value">{{ $booking->yalago_booking_reference }}</span>
                                     </div>
                                 </div>
+                                @elseif(!empty(data_get($booking->booking_response, 'BookingReferenceId')) || !empty(data_get($booking->booking_response, 'BookingRef')))
+                                <div class="col-md-6">
+                                    <div class="hc-result-item">
+                                        <span class="hc-result-item__label">Confirmation Ref</span>
+                                        <span class="hc-result-item__value">{{ data_get($booking->booking_response, 'BookingReferenceId') ?? data_get($booking->booking_response, 'BookingRef') }}</span>
+                                    </div>
+                                </div>
                                 @endif
 
                                 <div class="col-md-12">

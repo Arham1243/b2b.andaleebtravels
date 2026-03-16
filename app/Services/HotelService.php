@@ -28,6 +28,9 @@ class HotelService
     // Yalago API Configuration
     private $yalagoApiKey = '93082895-c45f-489f-ae10-bed9eaae161e';
     private $yalagoApiUrl = 'https://api.yalago.com/hotels';
+    private $tboApiUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Book';
+    private $tboUsername = 'SkylineexperienceTest';
+    private $tboPassword = 'Sky@69774762';
     protected $adminEmail;
 
 
@@ -74,7 +77,8 @@ class HotelService
             'flight_details' => $data['flight_details'] ?? null,
             'rooms_total' => $data['rooms_total'],
             'total_amount' => $data['total_amount'],
-            'currency' => 'AED',
+            'currency' => $data['currency'] ?? 'AED',
+            'supplier' => $data['supplier'] ?? 'yalago',
             'payment_method' => $data['payment_method'],
             'payment_status' => 'pending',
             'booking_status' => 'pending',
@@ -667,6 +671,10 @@ class HotelService
     {
 
         try {
+            if (strtolower((string) $booking->supplier) === 'tbo') {
+                return $this->placeTboBookingOrder($booking);
+            }
+
             $selectedRooms = $booking->selected_rooms;
             $extrasData = $booking->extras_data ?? [];
             $guestsData = $booking->guests_data ?? [];
@@ -846,6 +854,119 @@ class HotelService
             return [
                 'success' => false,
                 'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    protected function placeTboBookingOrder(B2bHotelBooking $booking): array
+    {
+        try {
+            $selectedRooms = $booking->selected_rooms ?? [];
+            $primaryRoom = $selectedRooms[0] ?? null;
+
+            $bookingCode = $primaryRoom['booking_code'] ?? ($primaryRoom['room_code'] ?? null);
+            if (empty($bookingCode)) {
+                throw new Exception('Missing TBO booking code.');
+            }
+
+            $supplierTotal = collect($selectedRooms)->sum(function ($room) {
+                return (float) ($room['supplier_total_fare'] ?? 0);
+            });
+
+            if ($supplierTotal <= 0) {
+                $supplierTotal = (float) $booking->rooms_total;
+            }
+
+            $customerNames = [];
+            $customerNames[] = [
+                'Title' => $booking->lead_title ?? 'Mr',
+                'FirstName' => $booking->lead_first_name,
+                'LastName' => $booking->lead_last_name,
+                'Type' => 'Adult',
+            ];
+
+            $guests = $booking->guests_data ?? [];
+            foreach ($guests as $guest) {
+                $age = isset($guest['age']) ? (int) $guest['age'] : null;
+                $customerNames[] = [
+                    'Title' => $guest['title'] ?? 'Mr',
+                    'FirstName' => $guest['first_name'] ?? '',
+                    'LastName' => $guest['last_name'] ?? '',
+                    'Type' => $age !== null && $age < 12 ? 'Child' : 'Adult',
+                ];
+            }
+
+            $requestData = [
+                'BookingCode' => $bookingCode,
+                'CustomerDetails' => [
+                    [
+                        'CustomerNames' => $customerNames,
+                    ],
+                ],
+                'ClientReferenceId' => $booking->booking_number,
+                'BookingReferenceId' => (string) $booking->id,
+                'TotalFare' => number_format((float) $supplierTotal, 2, '.', ''),
+                'EmailId' => $booking->lead_email,
+                'PhoneNumber' => $booking->lead_phone,
+                'BookingType' => 'Voucher',
+                'PaymentMode' => 'Limit',
+            ];
+
+            $response = Http::timeout(30)
+                ->connectTimeout(10)
+                ->retry(2, 2000)
+                ->withBasicAuth($this->tboUsername, $this->tboPassword)
+                ->post($this->tboApiUrl, $requestData);
+
+            if (!$response->successful()) {
+                throw new Exception('TBO booking API request failed: ' . $response->body());
+            }
+
+            $responseData = $response->json();
+
+            $booking->update([
+                'booking_request' => $requestData,
+                'booking_response' => $responseData,
+            ]);
+
+            $statusCode = $responseData['Status']['Code'] ?? null;
+            if ($statusCode !== 200) {
+                $message = $responseData['Status']['Description'] ?? 'TBO booking failed.';
+                throw new Exception($message);
+            }
+
+            $confirmationRef = $responseData['BookingReferenceId']
+                ?? $responseData['BookingRef']
+                ?? $responseData['ConfirmationNumber']
+                ?? $responseData['BookingId']
+                ?? null;
+
+            if ($confirmationRef) {
+                $booking->update([
+                    'yalago_booking_reference' => (string) $confirmationRef,
+                    'booking_status' => 'confirmed',
+                ]);
+            } else {
+                $booking->update(['booking_status' => 'confirmed']);
+            }
+
+            return [
+                'success' => true,
+                'data' => $responseData,
+                'booking_reference' => $confirmationRef,
+            ];
+        } catch (Exception $e) {
+            Log::error('TBO Booking Order Placement Error', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $booking->update(['booking_status' => 'failed']);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
             ];
         }
     }

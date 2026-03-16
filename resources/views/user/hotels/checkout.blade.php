@@ -33,7 +33,15 @@
 
             <form id="checkoutForm" action="{{ route('user.hotels.payment.process') }}" method="POST">
                 @csrf
-                <input type="hidden" name="hotel_id" value="{{ $hotel['yalago_id'] }}">
+                <input type="hidden" name="supplier" value="{{ $provider ?? 'yalago' }}">
+                @if (($provider ?? 'yalago') === 'tbo')
+                    <input type="hidden" name="hotel_id" value="{{ $hotel['provider_id'] ?? '' }}">
+                    <input type="hidden" name="hotel_name" value="{{ $hotel['name'] ?? '' }}">
+                    <input type="hidden" name="hotel_address" value="{{ $hotel['address'] ?? '' }}">
+                    <input type="hidden" name="currency" value="{{ $tbo_currency ?? 'AED' }}">
+                @else
+                    <input type="hidden" name="hotel_id" value="{{ $hotel['yalago_id'] }}">
+                @endif
                 <input type="hidden" name="check_in" value="{{ $check_in }}">
                 <input type="hidden" name="check_out" value="{{ $check_out }}">
                 @foreach ($selected_rooms as $index => $room)
@@ -42,6 +50,10 @@
                     <input type="hidden" name="selected_rooms[{{ $index }}][board_title]" value="{{ $room['board_title'] }}">
                     <input type="hidden" name="selected_rooms[{{ $index }}][price]" value="{{ $room['price'] }}">
                     <input type="hidden" name="selected_rooms[{{ $index }}][room_name]" value="{{ $room['room_name'] }}">
+                    @if (($provider ?? 'yalago') === 'tbo')
+                        <input type="hidden" name="selected_rooms[{{ $index }}][booking_code]" value="{{ $room['booking_code'] ?? '' }}">
+                        <input type="hidden" name="selected_rooms[{{ $index }}][supplier_total_fare]" value="{{ $room['supplier_total_fare'] ?? '' }}">
+                    @endif
                 @endforeach
                 @foreach ($rooms_request as $index => $room)
                     <input type="hidden" name="rooms[{{ $index }}][adults]" value="{{ $room['Adults'] }}">

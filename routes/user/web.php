@@ -45,6 +45,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/details/tbo/{code}', [HotelController::class, 'detailsTbo'])->name('details.tbo');
         Route::get('/details/tripindeal/{code}', [HotelController::class, 'detailsTripInDeal'])->name('details.tripindeal');
         Route::get('/checkout/{id}', [HotelController::class, 'checkout'])->name('checkout');
+        Route::get('/checkout/tbo/{code}', [HotelController::class, 'checkoutTbo'])->name('checkout.tbo');
         Route::post('/payment/process', [HotelController::class, 'processPayment'])->name('payment.process');
         Route::get('/payment/success/{booking}', [HotelController::class, 'paymentSuccess'])->name('payment.success');
         Route::get('/payment/success/view/{booking}', [HotelController::class, 'paymentSuccessView'])->name('payment.success.view');
