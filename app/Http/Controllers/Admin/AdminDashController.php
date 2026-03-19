@@ -9,7 +9,7 @@ class AdminDashController extends Controller
 {
     public function dashboard()
     {
-        $users = B2bVendor::where('status', 'active')->get();
-        return view('admin.dashboard', ['title' => 'Dashboard', 'users' => $users]);
+        $vendors = B2bVendor::where('status', 'active')->get();
+        return view('admin.dashboard', ['title' => 'Dashboard', 'vendors' => $vendors]);
     }
 }

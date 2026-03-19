@@ -7,11 +7,6 @@ return [
         'route' => route('admin.dashboard'),
     ],
     [
-        'title' => 'Users',
-        'icon' => 'bx bxs-group',
-        'route' => route('admin.users.index'),
-    ],
-    [
         'title' => 'Vendors',
         'icon' => 'bx bxs-briefcase',
         'route' => route('admin.vendors.index'),

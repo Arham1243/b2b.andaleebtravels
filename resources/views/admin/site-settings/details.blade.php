@@ -112,7 +112,7 @@
                                 <div class="col-lg-6 col-md-6 col-12 mt-3">
                                     <div class="form-fields">
                                         <label class="title">Enable Providers</label>
-                                        <select name="HOTEL_SEARCH_PROVIDERS[]" class="field" multiple>
+                                        <select name="HOTEL_SEARCH_PROVIDERS[]" class="field select2-select" multiple>
                                             @foreach ($providerOptions as $key => $label)
                                                 <option value="{{ $key }}" {{ in_array($key, $selectedProviders, true) ? 'selected' : '' }}>
                                                     {{ $label }}

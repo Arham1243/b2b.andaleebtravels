@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\B2bVendor;
 use App\Models\Inquiry;
 use Illuminate\Http\Request;
@@ -21,11 +20,6 @@ class BulkActionController extends Controller
 
         $isParent = false;
         switch ($resource) {
-            case 'users':
-                $modelClass = User::class;
-                $column = 'id';
-                $redirectRoute = 'admin.users.index';
-                break;
             case 'vendors':
                 $modelClass = B2bVendor::class;
                 $column = 'id';

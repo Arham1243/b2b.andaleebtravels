@@ -8,7 +8,6 @@ use App\Http\Controllers\Admin\InquiryController;
 use App\Http\Controllers\Admin\DBConsoleController;
 use App\Http\Controllers\Admin\EnvEditorController;
 use App\Http\Controllers\Admin\LogController;
-use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\TerminalController;
 use Illuminate\Support\Facades\Route;
@@ -39,9 +38,6 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('logs/delete', [LogController::class, 'delete']);
 
     Route::post('bulk-actions/{resource}', [BulkActionController::class, 'handle'])->name('bulk-actions');
-
-    Route::resource('users', UserController::class);
-    Route::get('users/change-status/{user}', [UserController::class, 'changeStatus'])->name('users.change-status');
 
     Route::resource('vendors', VendorController::class);
     Route::get('vendors/change-status/{vendor}', [VendorController::class, 'changeStatus'])->name('vendors.change-status');
