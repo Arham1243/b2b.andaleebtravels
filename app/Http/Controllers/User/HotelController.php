@@ -197,18 +197,6 @@ class HotelController extends Controller
         }
 
         // Rating range
-        $rMin = $request->input('rating_range_min');
-        $rMax = $request->input('rating_range_max');
-        if ($rMin || $rMax) {
-            $hotels = $hotels->filter(
-                function ($hotel) use ($rMin, $rMax) {
-                    $rating = $hotel['rating'] ?? null;
-                    if ($rating === null) return false;
-                    return (!$rMin || $rating >= $rMin) && (!$rMax || $rating <= $rMax);
-                }
-            );
-        }
-
         // Property type
         if ($request->filled('property_type')) {
             $types = explode(',', $request->property_type);
@@ -327,8 +315,6 @@ class HotelController extends Controller
             'min_price',
             'max_price',
             'rating',
-            'rating_range_min',
-            'rating_range_max',
             'property_type',
             'hotel_name',
             'board_type',

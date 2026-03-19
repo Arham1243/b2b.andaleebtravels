@@ -145,27 +145,6 @@
                             </div>
                         </div>
 
-                        {{-- Customer Rating --}}
-                        <div class="hl-filter-group">
-                            <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
-                                <span>Customer Rating</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                @php
-                                    $ratingMin = request()->input('rating_range_min', 0);
-                                    $ratingMax = request()->input('rating_range_max', 10);
-                                @endphp
-                                <input type="text" class="js-range-slider" name="rating_range" data-skin="round"
-                                    data-type="double" data-min="0" data-max="10" data-grid="false"
-                                    data-from="{{ $ratingMin }}" data-to="{{ $ratingMax }}">
-                                <input type="hidden" value="{{ $ratingMin }}" name="rating_range_min"
-                                    id="rating_range_min">
-                                <input type="hidden" value="{{ $ratingMax }}" name="rating_range_max"
-                                    id="rating_range_max">
-                            </div>
-                        </div>
-
                         {{-- Star Rating --}}
                         <div class="hl-filter-group">
                             <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
@@ -381,7 +360,6 @@
 @endsection
 
 @push('js')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.0/js/ion.rangeSlider.min.js"></script>
     <script>
         $(document).ready(function() {
             const navigateWithLoader = (url, message = 'Updating hotel results...') => {
@@ -391,71 +369,6 @@
                 }
                 window.location.href = url;
             };
-
-            // Rating range slider
-            var $range = $(".js-range-slider"),
-                $from = $("#rating_range_max"),
-                $to = $("#rating_range_min"),
-                range, min = $range.data('min'),
-                max = $range.data('max'),
-                from, to;
-
-            if ($range.length && $from.length && $to.length) {
-                var updateValues = function() {
-                    $from.prop("value", from);
-                    $to.prop("value", to);
-                };
-
-                $range.ionRangeSlider({
-                    onFinish: function(data) {
-                        if (data.from !== from || data.to !== to) {
-                            from = data.from;
-                            to = data.to;
-                            updateValues();
-                            updateURLParams();
-                        }
-                    }
-                });
-
-                range = $range.data("ionRangeSlider");
-
-                var updateURLParams = function() {
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('rating_range_min', from);
-                    url.searchParams.set('rating_range_max', to);
-                    navigateWithLoader(url.toString());
-                };
-
-                $from.on("input", function() {
-                    let newFrom = +$(this).prop("value");
-                    if (newFrom < min) newFrom = min;
-                    if (newFrom > to) newFrom = to;
-                    if (newFrom !== from) {
-                        from = newFrom;
-                        updateValues();
-                        range.update({
-                            from: from,
-                            to: to
-                        });
-                        updateURLParams();
-                    }
-                });
-
-                $to.on("input", function() {
-                    let newTo = +$(this).prop("value");
-                    if (newTo > max) newTo = max;
-                    if (newTo < from) newTo = from;
-                    if (newTo !== to) {
-                        to = newTo;
-                        updateValues();
-                        range.update({
-                            from: from,
-                            to: to
-                        });
-                        updateURLParams();
-                    }
-                });
-            }
 
             // Checkboxes
             document.querySelectorAll('.check-filter__input')?.forEach(input => {
@@ -542,44 +455,7 @@
     </script>
 @endpush
 @push('css')
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.0/css/ion.rangeSlider.min.css">
     <style>
-        .irs--round .irs-bar {
-            background-color: var(--color-primary);
-        }
-
-        .irs--round .irs-handle {
-            background-color: var(--color-primary);
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 5px #cd1b4f40;
-            width: 21px;
-            height: 21px;
-            top: 50%;
-            cursor: grab;
-        }
-
-        .irs--round .irs-handle.state_hover,
-        .irs--round .irs-handle:hover {
-            background-color: var(--color-primary);
-        }
-
-        .irs--round .irs-from,
-        .irs--round .irs-to,
-        .irs--round .irs-single {
-            font-weight: 600;
-            background-color: transparent;
-            color: #666;
-        }
-
-        .irs--round .irs-from:before,
-        .irs--round .irs-to:before,
-        .irs--round .irs-single:before,
-        .irs--round .irs-min,
-        .irs--round .irs-max {
-            display: none;
-        }
-
         .hl-card__supplier {
             background: #e8f4fd;
             color: #1976d2;
