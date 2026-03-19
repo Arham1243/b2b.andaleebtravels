@@ -48,16 +48,13 @@
                                     @click="selectHotelDestination(item)">
 
                                     <div class="icon">
-                                        <i class='bx' :class="item.type === 'country' ? 'bx-world' : 'bx-map-pin'"></i>
+                                        <i class='bx bx-map-pin'></i>
                                     </div>
 
                                     <div class="info">
                                         <div class="name">@{{ item.name }}</div>
 
-                                        <span class="sub-text">
-                                            <template v-if="item.type === 'country'">Country</template>
-                                            <template v-else>@{{ item.country_name }}</template>
-                                        </span>
+                                        <span class="sub-text">@{{ item.country_name }}</span>
                                     </div>
                                 </li>
                             </ul>
@@ -86,7 +83,7 @@
                             <span class="hs-date-display__weekday" id="hotel-checkin-day">&nbsp;</span>
                         </div>
                     </div>
-                    <input readonly autocomplete="off" type="hidden" name="check_in" ref="hotelCheckInDate"
+                    <input readonly autocomplete="off" type="hidden" name="check_in"
                         id="hotel-checkin-input">
                 </div>
             </div>
@@ -109,7 +106,7 @@
                             <span class="hs-date-display__weekday" id="hotel-checkout-day">&nbsp;</span>
                         </div>
                     </div>
-                    <input readonly autocomplete="off" type="hidden" name="check_out" ref="hotelCheckOutDate"
+                    <input readonly autocomplete="off" type="hidden" name="check_out"
                         id="hotel-checkout-input">
                 </div>
             </div>

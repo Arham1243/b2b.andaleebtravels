@@ -240,6 +240,29 @@
                 <div class="col-lg-9">
                     @if ($hotels->isNotEmpty())
                         @foreach ($hotels as $hotel)
+                            @php
+                                $tboQuery = $query;
+                                if (($hotel['supplier'] ?? '') === 'TBO') {
+                                    if (!empty($hotel['tbo_booking_code'])) {
+                                        $tboQuery['tbo_booking_code'] = $hotel['tbo_booking_code'];
+                                    }
+                                    if (!empty($hotel['price'])) {
+                                        $tboQuery['tbo_price'] = $hotel['price'];
+                                    }
+                                if (!empty($hotel['tbo_currency'])) {
+                                    $tboQuery['tbo_currency'] = $hotel['tbo_currency'];
+                                }
+                                if (!empty($hotel['tbo_room_name'])) {
+                                    $tboQuery['tbo_room_name'] = $hotel['tbo_room_name'];
+                                }
+                                if (!empty($hotel['tbo_total_fare_raw'])) {
+                                    $tboQuery['tbo_total_fare_raw'] = $hotel['tbo_total_fare_raw'];
+                                }
+                                if (!empty($hotel['tbo_meal_type'])) {
+                                    $tboQuery['tbo_meal_type'] = $hotel['tbo_meal_type'];
+                                }
+                            }
+                        @endphp
                             <div class="hl-card">
                                 <div class="hl-card__img">
                                     <img src="{{ $hotel['image'] ?? asset('user/assets/images/placeholder.png') }}"
@@ -251,7 +274,7 @@
                                             <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
                                                 class="hl-card__name js-detail-link">{{ $hotel['name'] }}</a>
                                         @elseif (($hotel['supplier'] ?? '') === 'TBO' && !empty($hotel['provider_id']))
-                                            <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
+                                            <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($tboQuery) }}"
                                                 class="hl-card__name js-detail-link">{{ $hotel['name'] }}</a>
                                         @elseif (($hotel['supplier'] ?? '') === 'TripInDeal' && !empty($hotel['provider_id']))
                                             <a href="{{ route('user.hotels.details.tripindeal', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
@@ -306,7 +329,7 @@
                                             <a href="{{ route('user.hotels.details', ['id' => $hotel['id']]) . '?' . http_build_query($query) }}"
                                                 class="hl-card__btn js-detail-link">Select Room</a>
                                         @elseif (($hotel['supplier'] ?? '') === 'TBO' && !empty($hotel['provider_id']))
-                                            <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"
+                                            <a href="{{ route('user.hotels.details.tbo', ['code' => $hotel['provider_id']]) . '?' . http_build_query($tboQuery) }}"
                                                 class="hl-card__btn js-detail-link">View Details</a>
                                         @elseif (($hotel['supplier'] ?? '') === 'TripInDeal' && !empty($hotel['provider_id']))
                                             <a href="{{ route('user.hotels.details.tripindeal', ['code' => $hotel['provider_id']]) . '?' . http_build_query($query) }}"

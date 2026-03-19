@@ -40,11 +40,12 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/search', [HotelController::class, 'search'])->name('search');
         Route::get('/search-hotels', [HotelController::class, 'searchHotels'])->name('search-hotels');
         Route::get('/sync-provinces', [ProvinceSyncController::class, 'syncFromTbo'])->name('sync-provinces');
-        Route::get('/dump-countries', [ProvinceSyncController::class, 'dumpCountries'])->name('dump-countries');
+        Route::get('/update-province-tbo-codes', [ProvinceSyncController::class, 'updateTboCodes'])->name('update-province-tbo-codes');
         Route::get('/details/{id}', [HotelController::class, 'details'])->name('details');
         Route::get('/details/tbo/{code}', [HotelController::class, 'detailsTbo'])->name('details.tbo');
         Route::get('/details/tripindeal/{code}', [HotelController::class, 'detailsTripInDeal'])->name('details.tripindeal');
         Route::get('/checkout/{id}', [HotelController::class, 'checkout'])->name('checkout');
+        Route::get('/checkout/tbo/{code}', [HotelController::class, 'checkoutTbo'])->name('checkout.tbo');
         Route::post('/payment/process', [HotelController::class, 'processPayment'])->name('payment.process');
         Route::get('/payment/success/{booking}', [HotelController::class, 'paymentSuccess'])->name('payment.success');
         Route::get('/payment/success/view/{booking}', [HotelController::class, 'paymentSuccessView'])->name('payment.success.view');
@@ -54,6 +55,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     Route::prefix('bookings')->name('bookings.')->group(function () {
         Route::get('/', [BookingController::class, 'index'])->name('index');
         Route::post('/hotels/cancellation-charges', [BookingController::class, 'getCancellationCharges'])->name('hotels.cancellation-charges');
+        Route::post('/hotels/cancel-tbo', [BookingController::class, 'cancelTboBooking'])->name('hotels.cancel-tbo');
         Route::get('/hotels/cancel/{id}', [BookingController::class, 'cancelHotelBooking'])->name('hotels.cancel');
     });
 

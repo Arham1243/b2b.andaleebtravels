@@ -97,6 +97,8 @@ class HotelController extends Controller
             $hotels = $this->applySorting($hotels, $request);
         }
 
+        $this->storeTboSearchRates($hotels);
+
         // Paginate results
         $page = max(1, (int) $request->input('page', 1));
         $tripInDealPaginated = (bool) $request->attributes->get('tripindeal_paginated', false);
@@ -264,6 +266,29 @@ class HotelController extends Controller
         return $hotels;
     }
 
+    private function storeTboSearchRates(Collection $hotels): void
+    {
+        $tboRates = $hotels
+            ->filter(fn($hotel) => strtoupper((string) ($hotel['supplier'] ?? '')) === 'TBO')
+            ->filter(fn($hotel) => !empty($hotel['provider_id']) && !empty($hotel['tbo_booking_code']))
+            ->mapWithKeys(function ($hotel) {
+                return [
+                    (string) $hotel['provider_id'] => [
+                        'booking_code' => $hotel['tbo_booking_code'] ?? null,
+                        'price' => $hotel['price'] ?? null,
+                        'currency' => $hotel['tbo_currency'] ?? null,
+                        'room_name' => $hotel['tbo_room_name'] ?? null,
+                        'room_names' => $hotel['tbo_room_names'] ?? [],
+                        'meal_type' => $hotel['tbo_meal_type'] ?? null,
+                        'is_refundable' => $hotel['tbo_is_refundable'] ?? null,
+                        'total_fare_raw' => $hotel['tbo_total_fare_raw'] ?? null,
+                    ],
+                ];
+            })
+            ->toArray();
+
+        session(['tbo_search_rates' => $tboRates]);
+    }
     private function parseProviderConfig($raw): ?array
     {
         if (empty($raw)) {
@@ -454,6 +479,11 @@ class HotelController extends Controller
 
     public function detailsTbo(Request $request, string $code)
     {
+        if (!$request->has(['check_in', 'check_out', 'room_count'])) {
+            return redirect()->route('user.hotels.index')
+                ->with('notify_error', 'Missing required parameters.');
+        }
+
         $provider = new TboHotelProvider();
         $details = $provider->fetchDetails($code);
 
@@ -485,6 +515,17 @@ class HotelController extends Controller
             };
         }
 
+        $tboRates = session('tbo_search_rates', []);
+        $tboRate = is_array($tboRates) ? ($tboRates[$code] ?? null) : null;
+        $fallbackPrice = $request->query('tbo_price');
+
+        $tboPrice = $tboRate['price'] ?? ($fallbackPrice !== null ? (float) $fallbackPrice : null);
+        $tboBookingCode = $tboRate['booking_code'] ?? $request->query('tbo_booking_code');
+        $tboRoomNames = $tboRate['room_names'] ?? [];
+        $tboTotalFareRaw = $tboRate['total_fare_raw'] ?? $request->query('tbo_total_fare_raw');
+        $tboCurrency = $tboRate['currency'] ?? $request->query('tbo_currency');
+        $tboMealType = $tboRate['meal_type'] ?? $request->query('tbo_meal_type');
+
         $hotelFormatted = [
             'id' => null,
             'name' => $details['HotelName'] ?? '',
@@ -494,7 +535,7 @@ class HotelController extends Controller
             'description' => $details['Description'] ?? '',
             'images' => $images,
             'image' => $images[0]['Url'] ?? null,
-            'price' => null,
+            'price' => $tboPrice,
         ];
 
         $infoItems = [];
@@ -511,11 +552,17 @@ class HotelController extends Controller
             'api_availability' => [],
             'total_rooms' => 0,
             'show_extras' => false,
-            'check_in' => null,
-            'check_out' => null,
-            'rooms_request' => [],
+            'check_in' => $request->query('check_in'),
+            'check_out' => $request->query('check_out'),
+            'rooms_request' => $this->buildRoomsArray($request),
             'hotelCommissionPercentage' => $this->hotelCommissionPercentage,
             'provider' => 'tbo',
+            'tbo_booking_code' => $tboBookingCode,
+            'tbo_hotel_code' => $code,
+            'tbo_room_names' => $tboRoomNames,
+            'tbo_total_fare_raw' => $tboTotalFareRaw,
+            'tbo_currency' => $tboCurrency,
+            'tbo_meal_type' => $tboMealType,
         ];
 
         return view('user.hotels.details', $data);
@@ -772,56 +819,222 @@ class HotelController extends Controller
             'check_out'              => $checkOutDate,
             'hotelCommissionPercentage'              => $this->hotelCommissionPercentage,
             'walletBalance'          => (float) Auth::user()->main_balance,
+            'provider'               => 'yalago',
+        ]);
+    }
+
+    public function checkoutTbo(Request $request, string $code)
+    {
+        if (!$request->has(['check_in', 'check_out', 'room_count'])) {
+            return redirect()->route('user.hotels.index')
+                ->with('notify_error', 'Missing required parameters.');
+        }
+
+        $tboRates = session('tbo_search_rates', []);
+        $tboRate = is_array($tboRates) ? ($tboRates[$code] ?? null) : null;
+
+        $tboBookingCode = $tboRate['booking_code'] ?? $request->query('tbo_booking_code');
+        if (empty($tboBookingCode)) {
+            return redirect()->route('user.hotels.search')
+                ->with('notify_error', 'Pricing information expired. Please search again.');
+        }
+
+        $tboPrice = $tboRate['price'] ?? ($request->query('tbo_price') !== null ? (float) $request->query('tbo_price') : null);
+        $tboTotalFareRaw = $tboRate['total_fare_raw'] ?? ($request->query('tbo_total_fare_raw') !== null ? (float) $request->query('tbo_total_fare_raw') : null);
+        $tboCurrency = $tboRate['currency'] ?? $request->query('tbo_currency') ?? 'AED';
+        $tboMealType = $tboRate['meal_type'] ?? $request->query('tbo_meal_type');
+        $tboRoomNames = $tboRate['room_names'] ?? [];
+        $fallbackRoomName = $tboRate['room_name'] ?? 'Room';
+
+        $roomsData = $this->buildRoomsArray($request);
+        $roomCount = max(1, count($roomsData));
+
+        if (empty($tboRoomNames)) {
+            $tboRoomNames = array_fill(0, $roomCount, $fallbackRoomName);
+        }
+
+        if ($tboPrice === null) {
+            return redirect()->route('user.hotels.search')
+                ->with('notify_error', 'Pricing information expired. Please search again.');
+        }
+
+        if ($tboTotalFareRaw === null && $tboPrice > 0) {
+            $tboTotalFareRaw = round($tboPrice / (1 + ($this->hotelCommissionPercentage / 100)), 2);
+        }
+
+        $totalPrice = $tboPrice ?? 0;
+        $perRoomPrice = $roomCount > 0 ? round($totalPrice / $roomCount, 2) : 0;
+        $remainingPrice = $totalPrice;
+
+        $totalSupplier = $tboTotalFareRaw ?? 0;
+        $perRoomSupplier = $roomCount > 0 ? round($totalSupplier / $roomCount, 2) : 0;
+        $remainingSupplier = $totalSupplier;
+
+        $selectedRoomsData = [];
+        for ($i = 0; $i < $roomCount; $i++) {
+            $roomPrice = ($i === $roomCount - 1) ? $remainingPrice : $perRoomPrice;
+            $remainingPrice = round($remainingPrice - $roomPrice, 2);
+
+            $supplierPrice = ($i === $roomCount - 1) ? $remainingSupplier : $perRoomSupplier;
+            $remainingSupplier = round($remainingSupplier - $supplierPrice, 2);
+
+            $selectedRoomsData[] = [
+                'room_code' => $tboBookingCode,
+                'board_code' => $tboMealType ?? '',
+                'board_title' => $tboMealType ? str_replace('_', ' ', $tboMealType) : 'Room Only',
+                'price' => $roomPrice,
+                'room_name' => $tboRoomNames[$i] ?? $fallbackRoomName,
+                'booking_code' => $tboBookingCode,
+                'supplier_total_fare' => $supplierPrice,
+            ];
+        }
+
+        $provider = new TboHotelProvider();
+        $details = $provider->fetchDetails($code);
+
+        if (!$details) {
+            return redirect()->route('user.hotels.search')
+                ->with('notify_error', 'No Hotel Found! Please try again.');
+        }
+
+        $images = collect($details['Images'] ?? [])
+            ->map(fn($url) => ['Url' => $url])
+            ->values()
+            ->all();
+
+        if (empty($images) && !empty($details['Image'])) {
+            $images = [['Url' => $details['Image']]];
+        }
+
+        $hotelFormatted = [
+            'id' => null,
+            'provider_id' => $code,
+            'name' => $details['HotelName'] ?? '',
+            'address' => $details['Address'] ?? '',
+            'rating' => $details['HotelRating'] ?? null,
+            'rating_text' => null,
+            'description' => $details['Description'] ?? '',
+            'images' => $images,
+            'image' => $images[0]['Url'] ?? null,
+            'price' => $tboPrice,
+        ];
+
+        return view('user.hotels.checkout', [
+            'hotel'                  => $hotelFormatted,
+            'api_availability'       => [],
+            'selected_rooms'         => $selectedRoomsData,
+            'selected_rooms_details' => [],
+            'rooms_request'          => $roomsData,
+            'show_extras'            => false,
+            'yalago_extras'          => collect(),
+            'total_rooms'            => count($roomsData),
+            'total_price'            => $totalPrice,
+            'price_changed'          => false,
+            'check_in'               => Carbon::parse($request->check_in)->format('Y-m-d'),
+            'check_out'              => Carbon::parse($request->check_out)->format('Y-m-d'),
+            'hotelCommissionPercentage' => $this->hotelCommissionPercentage,
+            'walletBalance'          => (float) Auth::user()->main_balance,
+            'provider'               => 'tbo',
+            'tbo_currency'           => $tboCurrency,
         ]);
     }
 
     public function processPayment(Request $request)
     {
         try {
-            $validated = $request->validate([
-                'hotel_id' => 'required|integer',
-                'check_in' => 'required|date',
-                'check_out' => 'required|date|after:check_in',
+            $supplier = strtolower((string) $request->input('supplier', 'yalago'));
 
-                'rooms' => 'required|array|min:1',
-                'rooms.*.adults' => 'required|integer|min:1',
-                'rooms.*.child_ages' => 'nullable|string',
+            if ($supplier === 'tbo') {
+                $validated = $request->validate([
+                    'supplier' => 'required|in:tbo',
+                    'hotel_id' => 'required|string',
+                    'hotel_name' => 'required|string',
+                    'hotel_address' => 'nullable|string',
+                    'currency' => 'nullable|string',
+                    'check_in' => 'required|date',
+                    'check_out' => 'required|date|after:check_in',
 
-                'selected_rooms' => 'required|array|min:1',
-                'selected_rooms.*.room_code' => 'required|string',
-                'selected_rooms.*.board_code' => 'required|string',
-                'selected_rooms.*.board_title' => 'required|string',
-                'selected_rooms.*.price' => 'required|numeric',
-                'selected_rooms.*.room_name' => 'required|string',
+                    'rooms' => 'required|array|min:1',
+                    'rooms.*.adults' => 'required|integer|min:1',
+                    'rooms.*.child_ages' => 'nullable|string',
 
-                'booking.lead_guest.title' => 'required|string',
-                'booking.lead_guest.first_name' => 'required|string',
-                'booking.lead_guest.last_name' => 'required|string',
-                'booking.lead_guest.email' => 'required|email',
-                'booking.lead_guest.phone' => 'required|string',
-                'booking.lead_guest.address' => 'required|string',
+                    'selected_rooms' => 'required|array|min:1',
+                    'selected_rooms.*.room_code' => 'required|string',
+                    'selected_rooms.*.board_code' => 'nullable|string',
+                    'selected_rooms.*.board_title' => 'nullable|string',
+                    'selected_rooms.*.price' => 'required|numeric',
+                    'selected_rooms.*.room_name' => 'required|string',
+                    'selected_rooms.*.booking_code' => 'required|string',
+                    'selected_rooms.*.supplier_total_fare' => 'nullable|numeric',
 
-                'booking.guests' => 'nullable|array',
-                'booking.extras' => 'nullable|array',
+                    'booking.lead_guest.title' => 'required|string',
+                    'booking.lead_guest.first_name' => 'required|string',
+                    'booking.lead_guest.last_name' => 'required|string',
+                    'booking.lead_guest.email' => 'required|email',
+                    'booking.lead_guest.phone' => 'required|string',
+                    'booking.lead_guest.address' => 'required|string',
 
-                'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
-                'use_wallet' => 'nullable|in:1',
-                'wallet_amount' => 'nullable|numeric|min:0',
-                'flight_details' => 'nullable|array',
-            ]);
+                    'booking.guests' => 'nullable|array',
 
-            // Get hotel information from POST data
-            $hotelId = $validated['hotel_id'];
-            $hotel = Hotel::where('yalago_id', $hotelId)->first();
+                    'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
+                    'use_wallet' => 'nullable|in:1',
+                    'wallet_amount' => 'nullable|numeric|min:0',
+                ]);
+            } else {
+                $validated = $request->validate([
+                    'supplier' => 'nullable|string',
+                    'hotel_id' => 'required|integer',
+                    'check_in' => 'required|date',
+                    'check_out' => 'required|date|after:check_in',
 
+                    'rooms' => 'required|array|min:1',
+                    'rooms.*.adults' => 'required|integer|min:1',
+                    'rooms.*.child_ages' => 'nullable|string',
 
-            if (!$hotel) {
-                return redirect()->route('user.hotels.index')
-                    ->with('notify_error', 'Hotel not found.');
+                    'selected_rooms' => 'required|array|min:1',
+                    'selected_rooms.*.room_code' => 'required|string',
+                    'selected_rooms.*.board_code' => 'required|string',
+                    'selected_rooms.*.board_title' => 'required|string',
+                    'selected_rooms.*.price' => 'required|numeric',
+                    'selected_rooms.*.room_name' => 'required|string',
+
+                    'booking.lead_guest.title' => 'required|string',
+                    'booking.lead_guest.first_name' => 'required|string',
+                    'booking.lead_guest.last_name' => 'required|string',
+                    'booking.lead_guest.email' => 'required|email',
+                    'booking.lead_guest.phone' => 'required|string',
+                    'booking.lead_guest.address' => 'required|string',
+
+                    'booking.guests' => 'nullable|array',
+                    'booking.extras' => 'nullable|array',
+
+                    'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
+                    'use_wallet' => 'nullable|in:1',
+                    'wallet_amount' => 'nullable|numeric|min:0',
+                    'flight_details' => 'nullable|array',
+                ]);
             }
 
-            if (count($validated['rooms']) !== count($validated['selected_rooms'])) {
-                return back()->with('notify_error', 'Room selection mismatch.');
+            $supplier = strtolower((string) ($validated['supplier'] ?? 'yalago'));
+
+            if ($supplier !== 'tbo') {
+                // Get hotel information from POST data
+                $hotelId = $validated['hotel_id'];
+                $hotel = Hotel::where('yalago_id', $hotelId)->first();
+
+                if (!$hotel) {
+                    return redirect()->route('user.hotels.index')
+                        ->with('notify_error', 'Hotel not found.');
+                }
+
+                if (count($validated['rooms']) !== count($validated['selected_rooms'])) {
+                    return back()->with('notify_error', 'Room selection mismatch.');
+                }
+            } else {
+                $hotel = null;
+                if (count($validated['rooms']) !== count($validated['selected_rooms'])) {
+                    return back()->with('notify_error', 'Room selection mismatch.');
+                }
             }
 
 
@@ -845,7 +1058,7 @@ class HotelController extends Controller
             $extrasTotal = 0;
             $extrasData = [];
 
-            if (!empty($validated['booking']['extras'])) {
+            if (!empty($validated['booking']['extras'] ?? null)) {
                 foreach ($validated['booking']['extras'] as $extra) {
                     $price = (float) ($extra['price'] ?? 0);
 
@@ -872,9 +1085,9 @@ class HotelController extends Controller
 
             // Prepare booking data
             $bookingData = [
-                'yalago_hotel_id' => $hotel->yalago_id,
-                'hotel_name' => $hotel->name,
-                'hotel_address' => $hotel->address,
+                'yalago_hotel_id' => $supplier === 'tbo' ? $validated['hotel_id'] : $hotel->yalago_id,
+                'hotel_name' => $supplier === 'tbo' ? $validated['hotel_name'] : $hotel->name,
+                'hotel_address' => $supplier === 'tbo' ? ($validated['hotel_address'] ?? null) : $hotel->address,
 
                 'check_in_date' => $validated['check_in'],
                 'check_out_date' => $validated['check_out'],
@@ -894,6 +1107,8 @@ class HotelController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'flight_details' => $validated['flight_details'] ?? null,
                 'source_market' => $this->getSourceMarketFromIP(),
+                'supplier' => $supplier,
+                'currency' => $supplier === 'tbo' ? ($validated['currency'] ?? 'AED') : 'AED',
             ];
 
 
@@ -905,17 +1120,19 @@ class HotelController extends Controller
             $booking = $hotelService->createBookingRecord($bookingData);
 
 
-            // Verify availability
-            $availabilityCheck = $hotelService->verifyAvailability($booking);
+            if ($supplier !== 'tbo') {
+                // Verify availability
+                $availabilityCheck = $hotelService->verifyAvailability($booking);
 
-            if (!$availabilityCheck['success']) {
-                $booking->update([
-                    'booking_status' => 'failed',
-                    'payment_status' => 'failed',
-                ]);
+                if (!$availabilityCheck['success']) {
+                    $booking->update([
+                        'booking_status' => 'failed',
+                        'payment_status' => 'failed',
+                    ]);
 
-                return redirect()->route('user.hotels.index')
-                    ->with('notify_error', $availabilityCheck['error']);
+                    return redirect()->route('user.hotels.index')
+                        ->with('notify_error', $availabilityCheck['error']);
+                }
             }
 
             // Store wallet intent on booking (do NOT deduct yet — only on verified success)

@@ -18,7 +18,7 @@ class HotelProviderManager
         $providers = [
             new YalagoHotelProvider($commissionPercentage),
             new TripInDealHotelProvider(),
-            new TboHotelProvider(),
+            new TboHotelProvider($commissionPercentage),
         ];
 
         if (!empty($enabledProviders)) {

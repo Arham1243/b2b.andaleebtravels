@@ -81,4 +81,54 @@ class BookingController extends Controller
             return back()->with('notify_error', 'Unable to cancel booking: ' . $e->getMessage());
         }
     }
+
+    public function cancelTboBooking(Request $request, HotelService $hotelService)
+    {
+        $request->validate([
+            'booking_id' => 'required|integer',
+        ]);
+
+        $booking = B2bHotelBooking::where('b2b_vendor_id', Auth::id())
+            ->findOrFail($request->booking_id);
+
+        if (($booking->supplier ?? '') !== 'tbo') {
+            return back()->with('notify_error', 'Invalid booking supplier.');
+        }
+
+        if ($booking->booking_status === 'cancelled') {
+            return back()->with('notify_error', 'Booking already cancelled.');
+        }
+
+        if ($booking->payment_status !== 'paid') {
+            return back()->with('notify_error', 'Only paid bookings can be cancelled.');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $cancelResponse = $hotelService->cancelTboBooking($booking);
+
+            $booking->update([
+                'booking_status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => 'vendor',
+                'cancel_response' => $cancelResponse,
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('user.bookings.index')
+                ->with('notify_success', 'Booking #' . $booking->booking_number . ' cancelled successfully.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('TBO booking cancellation failed', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('notify_error', 'Unable to cancel booking: ' . $e->getMessage());
+        }
+    }
 }
