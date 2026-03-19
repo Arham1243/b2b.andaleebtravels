@@ -49,7 +49,11 @@ class ConfigController extends Controller
 
     public function saveDetails(Request $request)
     {
-        foreach ($request->all() as $field => $value) {
+        foreach ($request->except(['_token', '_method']) as $field => $value) {
+            if (is_array($value)) {
+                $value = json_encode(array_values($value));
+            }
+
             Config::updateOrCreate(
                 ['config_key' => $field],
                 ['config_value' => $value]

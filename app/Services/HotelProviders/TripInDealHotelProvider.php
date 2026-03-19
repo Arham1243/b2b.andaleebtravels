@@ -34,7 +34,7 @@ class TripInDealHotelProvider implements HotelProviderInterface
             return collect();
         }
 
-        $details = $this->fetchPropertyDetails($propertyIds);
+        $details = $this->fetchDetailsForRequest($propertyIds, $destination, $request);
 
         if ($destination instanceof Province) {
             $city = strtolower(trim($destination->name));
@@ -45,6 +45,28 @@ class TripInDealHotelProvider implements HotelProviderInterface
         }
 
         return $this->formatHotels($details);
+    }
+
+    private function fetchDetailsForRequest(array $propertyIds, Province|Country $destination, Request $request): Collection
+    {
+        $paginate = (bool) $request->attributes->get('tripindeal_only', false);
+        if (!$paginate || $destination instanceof Province) {
+            return $this->fetchPropertyDetails($propertyIds);
+        }
+
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = max(1, (int) $request->input('per_page', 10));
+        $offset = ($page - 1) * $perPage;
+        $pageIds = array_slice($propertyIds, $offset, $perPage);
+
+        $request->attributes->set('tripindeal_paginated', true);
+        $request->attributes->set('tripindeal_total', count($propertyIds));
+
+        if (empty($pageIds)) {
+            return collect();
+        }
+
+        return $this->fetchPropertyDetails($pageIds);
     }
 
     private function fetchPropertyIds(string $countryCode): array

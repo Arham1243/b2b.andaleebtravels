@@ -22,10 +22,12 @@ use Carbon\Carbon;
 class HotelController extends Controller
 {
     protected $hotelCommissionPercentage;
+    protected ?array $enabledHotelProviders = null;
     public function __construct()
     {
         $config = Config::pluck('config_value', 'config_key')->toArray();
         $this->hotelCommissionPercentage = $config['HOTEL_COMMISSION_PERCENTAGE'] ?? 10;
+        $this->enabledHotelProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null);
     }
 
     public function index()
@@ -68,12 +70,22 @@ class HotelController extends Controller
         [$province, $country] = $this->resolveDestination($request);
 
         $hotels = collect();
+        $perPage = 10;
+        $request->merge(['per_page' => $perPage]);
+
+        $tripInDealOnly = is_array($this->enabledHotelProviders)
+            && count($this->enabledHotelProviders) === 1
+            && $this->enabledHotelProviders[0] === 'tripindeal';
+
+        if ($tripInDealOnly) {
+            $request->attributes->set('tripindeal_only', true);
+        }
 
         if ($province) {
-            $providerManager = new HotelProviderManager($this->hotelCommissionPercentage);
+            $providerManager = new HotelProviderManager($this->hotelCommissionPercentage, $this->enabledHotelProviders);
             $hotels = $providerManager->search($province, $rooms, $request);
         } elseif ($country) {
-            $providerManager = new HotelProviderManager($this->hotelCommissionPercentage);
+            $providerManager = new HotelProviderManager($this->hotelCommissionPercentage, $this->enabledHotelProviders);
             $hotels = $providerManager->search($country, $rooms, $request);
         }
 
@@ -86,10 +98,20 @@ class HotelController extends Controller
         }
 
         // Paginate results
-        $perPage = 15;
         $page = max(1, (int) $request->input('page', 1));
+        $tripInDealPaginated = (bool) $request->attributes->get('tripindeal_paginated', false);
         $total = $hotels->count();
-        $pagedHotels = $hotels->values()->forPage($page, $perPage)->values();
+        $pagedHotels = $hotels->values();
+
+        if (!$tripInDealPaginated) {
+            $pagedHotels = $pagedHotels->forPage($page, $perPage)->values();
+        } else {
+            $tripInDealTotal = (int) $request->attributes->get('tripindeal_total', 0);
+            if (!$this->hasSearchFilters($request) && $tripInDealTotal > 0) {
+                $total = $tripInDealTotal;
+            }
+        }
+
         $hasMore = ($page * $perPage) < $total;
 
         return view('user.hotels.search', [
@@ -240,6 +262,59 @@ class HotelController extends Controller
         }
 
         return $hotels;
+    }
+
+    private function parseProviderConfig($raw): ?array
+    {
+        if (empty($raw)) {
+            return null;
+        }
+
+        $providers = [];
+
+        if (is_array($raw)) {
+            $providers = $raw;
+        } elseif (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $providers = $decoded;
+            } else {
+                $providers = array_map('trim', explode(',', $raw));
+            }
+        }
+
+        $providers = array_values(array_unique(array_filter(array_map(function ($value) {
+            return strtolower(trim((string) $value));
+        }, $providers))));
+
+        $allowed = ['yalago', 'tbo', 'tripindeal'];
+        $providers = array_values(array_intersect($providers, $allowed));
+
+        return empty($providers) ? null : $providers;
+    }
+
+    private function hasSearchFilters(Request $request): bool
+    {
+        $keys = [
+            'min_price',
+            'max_price',
+            'rating',
+            'rating_range_min',
+            'rating_range_max',
+            'property_type',
+            'hotel_name',
+            'board_type',
+            'supplier',
+            'sort_by',
+        ];
+
+        foreach ($keys as $key) {
+            if ($request->filled($key)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 

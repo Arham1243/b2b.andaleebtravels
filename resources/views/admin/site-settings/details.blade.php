@@ -86,6 +86,48 @@
 
                     <div class="form-box">
                         <div class="form-box__header">
+                            <div class="title">Hotel Search Providers</div>
+                        </div>
+                        <div class="form-box__body">
+                            @php
+                                $selectedProviders = $config['HOTEL_SEARCH_PROVIDERS'] ?? null;
+                                if (is_string($selectedProviders)) {
+                                    $decoded = json_decode($selectedProviders, true);
+                                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                                        $selectedProviders = $decoded;
+                                    } else {
+                                        $selectedProviders = array_filter(array_map('trim', explode(',', $selectedProviders)));
+                                    }
+                                }
+                                if (!is_array($selectedProviders)) {
+                                    $selectedProviders = [];
+                                }
+                                $providerOptions = [
+                                    'yalago' => 'Yalago',
+                                    'tbo' => 'TBO',
+                                    'tripindeal' => 'TripInDeal',
+                                ];
+                            @endphp
+                            <div class="row">
+                                <div class="col-lg-6 col-md-6 col-12 mt-3">
+                                    <div class="form-fields">
+                                        <label class="title">Enable Providers</label>
+                                        <select name="HOTEL_SEARCH_PROVIDERS[]" class="field" multiple>
+                                            @foreach ($providerOptions as $key => $label)
+                                                <option value="{{ $key }}" {{ in_array($key, $selectedProviders, true) ? 'selected' : '' }}>
+                                                    {{ $label }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted">If none selected, all providers are enabled.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="form-box__header">
                             <div class="title">Footer Content</div>
                         </div>
                         <div class="form-box__body">
