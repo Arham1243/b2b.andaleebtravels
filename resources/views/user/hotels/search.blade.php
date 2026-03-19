@@ -76,7 +76,7 @@
                                         $selectedSuppliers = explode(',', $selectedSuppliers);
                                     }
                                     $selectedSuppliers = array_map('strtolower', $selectedSuppliers);
-                                    $suppliers = ['Yalago', 'TBO', 'TripInDeal'];
+                                    $suppliers = $availableSuppliers ?? ['Yalago', 'TBO', 'TripInDeal'];
                                 @endphp
                                 @foreach ($suppliers as $supplier)
                                     <label class="hl-checkbox">

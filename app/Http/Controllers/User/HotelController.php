@@ -116,12 +116,15 @@ class HotelController extends Controller
 
         $hasMore = ($page * $perPage) < $total;
 
+        $availableSuppliers = $this->getEnabledProviderLabels();
+
         return view('user.hotels.search', [
             'hotels' => $pagedHotels,
             'totalHotels' => $total,
             'currentPage' => $page,
             'perPage' => $perPage,
             'hasMore' => $hasMore,
+            'availableSuppliers' => $availableSuppliers,
         ]);
     }
 
@@ -340,6 +343,29 @@ class HotelController extends Controller
         }
 
         return false;
+    }
+
+    private function getEnabledProviderLabels(): array
+    {
+        $labelMap = [
+            'yalago' => 'Yalago',
+            'tbo' => 'TBO',
+            'tripindeal' => 'TripInDeal',
+        ];
+
+        if (empty($this->enabledHotelProviders)) {
+            return array_values($labelMap);
+        }
+
+        $labels = [];
+        foreach ($this->enabledHotelProviders as $provider) {
+            $key = strtolower((string) $provider);
+            if (isset($labelMap[$key])) {
+                $labels[] = $labelMap[$key];
+            }
+        }
+
+        return $labels;
     }
 
 
