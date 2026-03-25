@@ -26,7 +26,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($subAgents as $agent)
+                                @foreach ($subAgents as $agent)
                                     <tr>
                                         <td>{{ $agent->name }}</td>
                                         <td>{{ $agent->email }}</td>
@@ -39,11 +39,7 @@
                                         </td>
                                         <td>{{ formatDateTime($agent->created_at) }}</td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6">No sub agents found.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
