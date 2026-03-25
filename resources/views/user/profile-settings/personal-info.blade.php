@@ -86,6 +86,39 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-box">
+                                <div class="form-box__header">
+                                    <div class="title">Hotel Search Providers</div>
+                                </div>
+                                <div class="form-box__body">
+                                    @php
+                                        $selectedProviders = $user->hotel_search_providers ?? null;
+                                        if (!is_array($selectedProviders) || empty($selectedProviders)) {
+                                            $selectedProviders = $adminProviders ?? [];
+                                        }
+                                        $providerOptions = [
+                                            'yalago' => 'Yalago',
+                                            'tbo' => 'TBO',
+                                            'tripindeal' => 'TripInDeal',
+                                        ];
+                                    @endphp
+                                    <div class="row">
+                                        <div class="col-md-6 mb-4">
+                                            <div class="form-fields">
+                                                <label class="title">Enable Providers</label>
+                                                <select name="hotel_search_providers[]" class="field select2-select" multiple>
+                                                    @foreach ($providerOptions as $key => $label)
+                                                        <option value="{{ $key }}" {{ in_array($key, $selectedProviders, true) ? 'selected' : '' }}>
+                                                            {{ $label }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                <small class="text-muted">If none selected, all providers are enabled.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

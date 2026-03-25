@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bVendor;
+use App\Models\Config;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,8 +16,12 @@ class ProfileSettingsController extends Controller
     public function personalInfo()
     {
         $user = Auth::user();
+        $config = Config::pluck('config_value', 'config_key')->toArray();
+        $adminProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null);
 
-        return view('user.profile-settings.personal-info')->with('title', 'Personal Information')->with(compact('user'));
+        return view('user.profile-settings.personal-info')
+            ->with('title', 'Personal Information')
+            ->with(compact('user', 'adminProviders'));
     }
 
     public function updatePersonalInfo(Request $request)
@@ -26,19 +31,51 @@ class ProfileSettingsController extends Controller
             'username' => 'required|string|max:255',
             'agent_code' => 'required|string|max:255',
             'avatar' => 'nullable|image|max:2048',
+            'hotel_search_providers' => 'nullable|array',
+            'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
         ]);
+
+        $data = $validatedData;
 
         if ($request->hasFile('avatar')) {
             $avatar = $this->uploadImage($request->file('avatar'), 'Users/Avatar');
+            $data['avatar'] = $avatar;
         }
 
-        $data = array_merge($validatedData, [
-            'avatar' => $avatar,
-        ]);
+        $data['hotel_search_providers'] = $this->parseProviderConfig($request->input('hotel_search_providers'));
 
         B2bVendor::where('id', Auth::user()->id)->update($data);
 
         return redirect()->back()->with('notify_success', 'Information Updated Successfully');
+    }
+
+    private function parseProviderConfig($raw): ?array
+    {
+        if (empty($raw)) {
+            return null;
+        }
+
+        $providers = [];
+
+        if (is_array($raw)) {
+            $providers = $raw;
+        } elseif (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $providers = $decoded;
+            } else {
+                $providers = array_map('trim', explode(',', $raw));
+            }
+        }
+
+        $providers = array_values(array_unique(array_filter(array_map(function ($value) {
+            return strtolower(trim((string) $value));
+        }, $providers))));
+
+        $allowed = ['yalago', 'tbo', 'tripindeal'];
+        $providers = array_values(array_intersect($providers, $allowed));
+
+        return empty($providers) ? null : $providers;
     }
 
     public function changePassword()
