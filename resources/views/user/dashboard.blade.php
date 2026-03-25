@@ -31,6 +31,12 @@
                     </div>
                     <span class="quick-action-label">My Bookings</span>
                 </a>
+                <a href="{{ route('user.sub-agents.index') }}" class="quick-action-item">
+                    <div class="quick-action-circle">
+                        <i class='bx bx-user-plus'></i>
+                    </div>
+                    <span class="quick-action-label">Sub Agents</span>
+                </a>
             </div>
         </div>
     </div>

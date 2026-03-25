@@ -24,6 +24,11 @@ return [
                 'icon' => 'bx bx-key',
                 'route' => route('user.profile.changePassword'),
             ],
+            [
+                'title' => 'Sub Agents',
+                'icon' => 'bx bx-user-plus',
+                'route' => route('user.sub-agents.index'),
+            ],
         ],
     ],
 ];

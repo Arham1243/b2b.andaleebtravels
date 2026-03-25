@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -17,6 +18,16 @@ class B2bVendor extends Authenticatable
     public function hotelBookings(): HasMany
     {
         return $this->hasMany(B2bHotelBooking::class, 'b2b_vendor_id');
+    }
+
+    public function parentVendor(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_vendor_id');
+    }
+
+    public function subAgents(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_vendor_id');
     }
 
     public function walletRecharges(): HasMany

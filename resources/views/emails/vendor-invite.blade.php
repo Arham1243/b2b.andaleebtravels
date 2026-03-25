@@ -48,6 +48,9 @@
             <p>Please use the button below to login to your account:</p>
             <a href="{{ route('auth.login') }}" class="btn">Login to Your Account</a>
 
+            <p style="margin-top: 16px;">If you want to reset your password, you can do it here:</p>
+            <a href="{{ route('password.request') }}" class="btn">Reset Password</a>
+
             <div class="note">
                 <strong>Important:</strong> Please change your password after your first login for security purposes.
             </div>

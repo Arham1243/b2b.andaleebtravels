@@ -1,16 +1,16 @@
-@extends('admin.layouts.main')
+@extends('user.layouts.main')
 @section('content')
     <div class="col-md-12">
         <div class="dashboard-content">
-            {{ Breadcrumbs::render('admin.vendors.create') }}
-            <form action="{{ route('admin.vendors.store') }}" method="POST" id="validation-form">
+            {{ Breadcrumbs::render('user.sub-agents.create') }}
+            <form action="{{ route('user.sub-agents.store') }}" method="POST" id="validation-form">
                 @csrf
                 <div class="row">
                     <div class="col-md-8">
                         <div class="form-wrapper">
                             <div class="form-box">
                                 <div class="form-box__header">
-                                    <div class="title">Vendor Details</div>
+                                    <div class="title">Sub Agent Details</div>
                                 </div>
                                 <div class="form-box__body">
                                     <div class="form-fields">
@@ -50,7 +50,7 @@
                                     </div>
 
                                     <div class="form-fields">
-                                        <small class="text-muted">Default password is 12345678. The vendor will receive a welcome email with a password reset link.</small>
+                                        <small class="text-muted">Default password is 12345678. The sub agent will receive a welcome email with a password reset link.</small>
                                     </div>
                                 </div>
                             </div>
@@ -75,7 +75,7 @@
                                     </div>
 
                                     <div class="text-end mt-4">
-                                        <button class="themeBtn" type="submit">Create Vendor</button>
+                                        <button class="themeBtn" type="submit">Create Sub Agent</button>
                                     </div>
                                 </div>
                             </div>
@@ -86,7 +86,7 @@
                                 </div>
                                 <div class="form-box__body">
                                     <p class="text-muted mb-0" style="font-size: 13px;">
-                                        Upon creation, the vendor will receive an invite email containing their agent code,
+                                        Upon creation, the sub agent will receive an invite email containing their agent code,
                                         username, default password, and a password reset link.
                                     </p>
                                 </div>

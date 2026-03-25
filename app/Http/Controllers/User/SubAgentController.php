@@ -1,26 +1,28 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Mail\VendorInviteMail;
 use App\Models\B2bVendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
-class VendorController extends Controller
+class SubAgentController extends Controller
 {
     public function index()
     {
-        $vendors = B2bVendor::latest()->get();
-        return view('admin.vendors.index', compact('vendors'));
+        $subAgents = B2bVendor::where('parent_vendor_id', Auth::id())->latest()->get();
+
+        return view('user.sub-agents.index', compact('subAgents'));
     }
 
     public function create()
     {
-        return view('admin.vendors.create');
+        return view('user.sub-agents.create');
     }
 
     public function store(Request $request)
@@ -42,38 +44,16 @@ class VendorController extends Controller
             'agent_code' => $validated['agent_code'],
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
+            'parent_vendor_id' => Auth::id(),
         ]);
 
         try {
             Mail::to($vendor->email)->send(new VendorInviteMail($vendor, $plainPassword));
         } catch (\Exception $e) {
-            Log::error('Failed to send vendor invite email: ' . $e->getMessage());
+            Log::error('Failed to send sub-agent invite email: ' . $e->getMessage());
         }
 
-        return redirect()->route('admin.vendors.index')
-            ->with('notify_success', 'Vendor created successfully! Invite email sent.');
-    }
-
-    public function show(B2bVendor $vendor)
-    {
-        $walletLedger = $vendor->walletLedger()->latest()->get();
-        $hotelBookings = $vendor->hotelBookings()->latest()->get();
-
-        return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings'));
-    }
-
-    public function changeStatus(B2bVendor $vendor)
-    {
-        $vendor->update([
-            'status' => $vendor->status === 'active' ? 'inactive' : 'active',
-        ]);
-
-        return redirect()->back()->with('notify_success', 'Vendor status changed successfully!');
-    }
-
-    public function destroy(B2bVendor $vendor)
-    {
-        $vendor->delete();
-        return redirect()->route('admin.vendors.index')->with('notify_success', 'Vendor deleted successfully!');
+        return redirect()->route('user.sub-agents.index')
+            ->with('notify_success', 'Sub agent created successfully! Invite email sent.');
     }
 }

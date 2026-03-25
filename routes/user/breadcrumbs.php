@@ -16,3 +16,13 @@ Breadcrumbs::for('user.profile.changePassword', function (BreadcrumbTrail $trail
     $trail->parent('user.dashboard');
     $trail->push('Change Password', route('user.profile.changePassword'));
 });
+
+Breadcrumbs::for('user.sub-agents.index', function (BreadcrumbTrail $trail) {
+    $trail->parent('user.dashboard');
+    $trail->push('Sub Agents', route('user.sub-agents.index'));
+});
+
+Breadcrumbs::for('user.sub-agents.create', function (BreadcrumbTrail $trail) {
+    $trail->parent('user.sub-agents.index');
+    $trail->push('Add Sub Agent', route('user.sub-agents.create'));
+});
