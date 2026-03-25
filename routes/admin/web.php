@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\EnvEditorController;
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\TerminalController;
+use App\Http\Controllers\Admin\AdminHotelController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/admins', function () {
@@ -24,6 +25,8 @@ Route::middleware('guest')->prefix('admin')->namespace('Admin')->group(function 
 Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashController::class, 'dashboard'])->name('dashboard');
     Route::post('/logout', [AdminLoginController::class, 'logout'])->name('logout');
+
+    Route::get('/hotels/start', [AdminHotelController::class, 'start'])->name('hotels.start');
 
     Route::get('/terminal', [TerminalController::class, 'index']);
     Route::post('/terminal/run', [TerminalController::class, 'run']);

@@ -12,6 +12,11 @@ return [
         'route' => route('admin.vendors.index'),
     ],
     [
+        'title' => 'Hotel Booking',
+        'icon' => 'bx bxs-hotel',
+        'route' => route('admin.hotels.start'),
+    ],
+    [
         'title' => 'Inquiries',
         'icon' => 'bx bxs-message-dots',
         'route' => route('admin.inquiries.index'),
