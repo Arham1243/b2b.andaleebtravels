@@ -24,8 +24,8 @@ class AdminHotelController extends Controller
     private function getOrCreateAdminBookingVendor(): B2bVendor
     {
         $agentCode = 'ADMINBOOKING';
-        $email = 'admin-booking@system.local';
-        $username = 'admin.booking';
+        $email = 'admin@andaleebtravels.com';
+        $username = 'Andaleeb Travel Agency';
 
         $vendor = B2bVendor::where('agent_code', $agentCode)->first();
         if ($vendor) {
@@ -33,7 +33,7 @@ class AdminHotelController extends Controller
         }
 
         return B2bVendor::create([
-            'name' => 'Admin Booking',
+            'name' => 'Andaleeb Travel Agency',
             'email' => $email,
             'username' => $username,
             'agent_code' => $agentCode,
