@@ -342,14 +342,16 @@
                             @endif
                         </div>
                     @else
-                        <div class="hl-empty">
-                            <i class="bx bx-search-alt"></i>
+                        <div class="fc-empty-state">
+                            <div class="fc-empty-icon">
+                                <i class='bx bx-search-alt'></i>
+                            </div>
                             <h3>No hotels found</h3>
                             <p>We couldn't find any properties matching your criteria. Try adjusting your filters or
                                 searching for different dates.</p>
-                            <div class="hl-empty__actions">
-                                <a href="{{ route('user.hotels.index') }}" class="themeBtn">Search alternative dates</a>
-                                <a href="{{ route('user.hotels.search', $query) }}" class="themeBtn">Reset filters</a>
+                            <div class="fc-empty-actions">
+                                <a href="{{ route('user.hotels.index') }}" class="fc-btn-outline">Search alternative dates</a>
+                                <a href="{{ route('user.hotels.search', $query) }}" class="fc-btn-outline">Reset filters</a>
                             </div>
                         </div>
                     @endif
@@ -471,6 +473,57 @@
             opacity: 0.6;
             cursor: not-allowed;
             pointer-events: none;
+        }
+        .fc-empty-state {
+            background: #ffffff;
+            border-radius: 24px;
+            border: 1px dashed #cbd5e1;
+            padding: 60px 30px;
+            text-align: center;
+            max-width: 600px;
+            margin: 40px auto;
+        }
+        .fc-empty-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(205, 27, 79, 0.05);
+            color: #cd1b4f;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 20px;
+        }
+        .fc-empty-state h3 {
+            color: #1e293b;
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .fc-empty-state p {
+            color: #64748b;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .fc-btn-outline {
+            display: inline-block;
+            border: 2px solid #cd1b4f;
+            color: #cd1b4f;
+            padding: 12px 30px;
+            border-radius: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .fc-btn-outline:hover {
+            background: #cd1b4f;
+            color: white !important;
+            box-shadow: 0 8px 15px rgba(205, 27, 79, 0.2);
         }
     </style>
 @endpush
