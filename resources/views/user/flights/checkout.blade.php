@@ -208,64 +208,80 @@
 
                         <div class="hc-card mb-3">
                             <div class="hc-card__header">
-                                <i class="bx bx-wallet"></i>
-                                <div class="hc-card__title">Use Wallet</div>
-                            </div>
-                            <div class="hc-wallet-box">
-                                <div class="hc-wallet-balance">Available Balance: <span class="dirham">D</span> {{ number_format($walletBalance, 2) }}</div>
-                                <label class="hc-wallet-toggle">
-                                    <input type="checkbox" id="use-wallet" name="use_wallet" value="1">
-                                    <span>Use wallet balance</span>
-                                </label>
-                                <input type="hidden" id="wallet-amount-input" name="wallet_amount" value="0">
-                                <div class="hc-wallet-info" id="wallet-applied-info" style="display:none;">
-                                    Wallet will deduct <strong><span class="dirham">D</span> <span id="wallet-deduct-amount">0.00</span></strong>.
-                                    Remaining: <strong><span class="dirham">D</span> <span id="remaining-amount">0.00</span></strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="hc-card mb-3" id="remaining-payment-section">
-                            <div class="hc-card__header">
                                 <i class="bx bx-credit-card"></i>
-                                <div class="hc-card__title" id="remaining-payment-title">Select Payment Method</div>
+                                <div class="hc-card__title">Payment Method</div>
                             </div>
-                            <div class="hc-payment-options">
-                                <label class="hc-payment-option">
-                                    <input type="radio" name="payment_method" value="payby" required checked>
-                                    <div class="hc-payment-option__body">
-                                        <div class="hc-payment-option__icon"><i class="bx bx-card"></i></div>
-                                        <div class="hc-payment-option__info">
-                                            <div class="hc-payment-option__name">PayBy</div>
-                                            <div class="hc-payment-option__desc">Credit / Debit card checkout</div>
-                                        </div>
-                                        <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
-                                    </div>
-                                </label>
 
-                                <label class="hc-payment-option">
-                                    <input type="radio" name="payment_method" value="tabby" required>
-                                    <div class="hc-payment-option__body">
-                                        <div class="hc-payment-option__icon"><i class="bx bx-calendar-check"></i></div>
-                                        <div class="hc-payment-option__info">
-                                            <div class="hc-payment-option__name">Tabby - Buy Now Pay Later</div>
-                                            <div class="hc-payment-option__desc">4 interest-free installments</div>
+                            @if ($walletBalance > 0)
+                                <div class="hc-wallet-toggle" id="wallet-toggle-section">
+                                    <label class="hc-wallet-toggle__label">
+                                        <input type="checkbox" id="use-wallet" name="use_wallet" value="1">
+                                        <div class="hc-wallet-toggle__body">
+                                            <div class="hc-wallet-toggle__left">
+                                                <div class="hc-payment-option__icon"><i class="bx bxs-wallet"></i></div>
+                                                <div class="hc-payment-option__info">
+                                                    <div class="hc-payment-option__name">Use Wallet Balance</div>
+                                                    <div class="hc-payment-option__desc">Available: <strong><span class="dirham">D</span> {{ number_format($walletBalance, 2) }}</strong></div>
+                                                </div>
+                                            </div>
+                                            <div class="hc-wallet-toggle__switch">
+                                                <span class="hc-wallet-toggle__slider"></span>
+                                            </div>
                                         </div>
-                                        <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
+                                    </label>
+                                    <div class="hc-wallet-applied" id="wallet-applied-info" style="display: none;">
+                                        <div class="hc-wallet-applied__row">
+                                            <span>Wallet deduction</span>
+                                            <span><span class="dirham">D</span> <span id="wallet-deduct-amount">0.00</span></span>
+                                        </div>
+                                        <div class="hc-wallet-applied__row hc-wallet-applied__row--remaining">
+                                            <span>Remaining to pay</span>
+                                            <span><span class="dirham">D</span> <span id="remaining-amount">0.00</span></span>
+                                        </div>
                                     </div>
-                                </label>
+                                    <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="0">
+                                </div>
+                            @endif
 
-                                <label class="hc-payment-option">
-                                    <input type="radio" name="payment_method" value="tamara" required>
-                                    <div class="hc-payment-option__body">
-                                        <div class="hc-payment-option__icon"><i class="bx bx-wallet-alt"></i></div>
-                                        <div class="hc-payment-option__info">
-                                            <div class="hc-payment-option__name">Tamara - Buy Now Pay Later</div>
-                                            <div class="hc-payment-option__desc">Split payment with Tamara installments</div>
+                            <div class="hc-payment-remaining" id="remaining-payment-section">
+                                <div class="hc-payment-remaining__title" id="remaining-payment-title">Select Payment Method</div>
+                                <div class="hc-payment-options">
+                                    <label class="hc-payment-option">
+                                        <input type="radio" name="payment_method" value="payby" required checked>
+                                        <div class="hc-payment-option__body">
+                                            <div class="hc-payment-option__icon"><i class="bx bx-card"></i></div>
+                                            <div class="hc-payment-option__info">
+                                                <div class="hc-payment-option__name">PayBy</div>
+                                                <div class="hc-payment-option__desc">Credit / Debit card checkout</div>
+                                            </div>
+                                            <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
                                         </div>
-                                        <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
-                                    </div>
-                                </label>
+                                    </label>
+
+                                    <label class="hc-payment-option">
+                                        <input type="radio" name="payment_method" value="tabby" required>
+                                        <div class="hc-payment-option__body">
+                                            <div class="hc-payment-option__icon"><i class="bx bx-calendar-check"></i></div>
+                                            <div class="hc-payment-option__info">
+                                                <div class="hc-payment-option__name">Tabby - Buy Now Pay Later</div>
+                                                <div class="hc-payment-option__desc">4 interest-free installments</div>
+                                            </div>
+                                            <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
+                                        </div>
+                                    </label>
+
+                                    <label class="hc-payment-option">
+                                        <input type="radio" name="payment_method" value="tamara" required>
+                                        <div class="hc-payment-option__body">
+                                            <div class="hc-payment-option__icon"><i class="bx bx-wallet-alt"></i></div>
+                                            <div class="hc-payment-option__info">
+                                                <div class="hc-payment-option__name">Tamara - Buy Now Pay Later</div>
+                                                <div class="hc-payment-option__desc">Split payment with Tamara installments</div>
+                                            </div>
+                                            <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
