@@ -3827,7 +3827,7 @@ body .search-box__input.search-box__input {
     background: var(--color-primary);
 }
 .hs-trip-badge__count {
-    font-size: 0.78rem;
+    font-size: 0.62rem;
     font-weight: 800;
     color: #fff;
     line-height: 1;
