@@ -94,7 +94,14 @@
                                     <div class="hl-card__price-col">
                                         <span class="hl-card__price-label">Total price</span>
                                         <div class="hl-card__price">
-                                            {{ $result['currency'] ?? '' }} {{ $result['totalPrice'] ?? '-' }}
+                                            @php
+                                                $currency = strtoupper((string) ($result['currency'] ?? ''));
+                                            @endphp
+                                            @if ($currency === 'AED')
+                                                <span class="dirham">D</span> {{ $result['totalPrice'] ?? '-' }}
+                                            @else
+                                                {{ $currency }} {{ $result['totalPrice'] ?? '-' }}
+                                            @endif
                                         </div>
                                         <a href="javascript:void(0)" class="hl-card__btn">Select</a>
                                         <span class="fl-card__note">No hidden charges</span>

@@ -218,6 +218,10 @@
                     return;
                 }
                 isSearching.value = true;
+                window.__enablePageLoaderOnNav = true;
+                if (typeof window.showPageLoader === 'function') {
+                    window.showPageLoader('Finding the best flights for your trip...');
+                }
             };
 
             onMounted(async () => {
