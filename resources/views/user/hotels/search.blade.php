@@ -483,26 +483,26 @@
             margin: 40px auto;
         }
         .fc-empty-icon {
-            width: 80px;
-            height: 80px;
+            width: 64px;
+            height: 64px;
             background: rgba(205, 27, 79, 0.05);
             color: #cd1b4f;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
+            font-size: 32px;
             margin: 0 auto 20px;
         }
         .fc-empty-state h3 {
             color: #1e293b;
             font-weight: 800;
-            font-size: 1.5rem;
+            font-size: 1.15rem;
             margin-bottom: 10px;
         }
         .fc-empty-state p {
             color: #64748b;
-            font-size: 1rem;
+            font-size: 0.9rem;
             line-height: 1.6;
             margin-bottom: 30px;
             max-width: 400px;
