@@ -3805,6 +3805,43 @@ body .search-box__input.search-box__input {
 .flight-search-redesign .hs-field--date {
     min-width: 150px;
 }
+.hs-trip-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    flex-shrink: 0;
+    min-width: 46px;
+    align-self: center;
+    background: #2a5faa;
+    color: #fff;
+    border-radius: 50%;
+    width: 46px;
+    height: 46px;
+    left: -22px;
+    position: relative;
+    box-shadow: 0 6px 14px #0000001f;
+}
+.hs-trip-badge--round {
+    background: var(--color-primary);
+}
+.hs-trip-badge__count {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+}
+.hs-trip-badge__label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #fff;
+    line-height: 1;
+    margin-top: 2px;
+    opacity: 0.9;
+}
 
 /* Rows */
 .hs-row {
@@ -4109,6 +4146,15 @@ body .search-box__input.search-box__input {
         height: auto;
         border-radius: 20px;
         padding: 6px 14px;
+    }
+    .hs-trip-badge {
+        flex-direction: row;
+        gap: 4px;
+        padding: 6px 14px;
+        width: auto;
+        height: auto;
+        border-radius: 20px;
+        left: 0;
     }
     .hs-row--bottom {
         flex-wrap: wrap;

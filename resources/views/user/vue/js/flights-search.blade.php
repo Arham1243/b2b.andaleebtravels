@@ -48,6 +48,7 @@
             const selectedFrom = ref(null);
             const selectedTo = ref(null);
             const departureDate = ref('');
+            const returnDate = ref('');
 
             const fromInputRef = ref(null);
             const toInputRef = ref(null);
@@ -178,6 +179,10 @@
                 return parts.join(', ');
             });
 
+            const hasReturnDate = computed(() => !!returnDate.value);
+            const tripBadgeTop = computed(() => hasReturnDate.value ? 'ROUND' : 'ONE');
+            const tripBadgeBottom = computed(() => hasReturnDate.value ? 'TRIP' : 'WAY');
+
             const isSearching = ref(false);
             const isSearchEnabled = computed(() => {
                 return !!(selectedFrom.value && selectedTo.value && departureDate.value);
@@ -204,6 +209,7 @@
                 selectedFrom,
                 selectedTo,
                 departureDate,
+                returnDate,
                 fromInputRef,
                 toInputRef,
                 fromDropdownOpen,
@@ -231,6 +237,9 @@
                 incrementInfants,
                 decrementInfants,
                 travellersText,
+                hasReturnDate,
+                tripBadgeTop,
+                tripBadgeBottom,
                 isSearching,
                 isSearchEnabled,
                 onFlightSearchSubmit
@@ -283,6 +292,8 @@
                 updateFlightDateDisplay(displayPrefix, picker.startDate);
                 if (displayPrefix === 'flight-departure' && window.__flightsSearchVue) {
                     window.__flightsSearchVue.departureDate = picker.startDate.format(format);
+                } else if (displayPrefix === 'flight-return' && window.__flightsSearchVue) {
+                    window.__flightsSearchVue.returnDate = picker.startDate.format(format);
                 }
             });
 
@@ -314,6 +325,9 @@
                         if (currentReturn.isSameOrBefore(departureDate)) {
                             $returnInput.val('');
                             clearFlightDateDisplay('flight-return');
+                            if (window.__flightsSearchVue) {
+                                window.__flightsSearchVue.returnDate = '';
+                            }
                         }
                     }
                 }

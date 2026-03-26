@@ -154,6 +154,12 @@
                 </div>
             </div>
 
+            <!-- TRIP BADGE -->
+            <div class="hs-trip-badge" :class="{ 'hs-trip-badge--round': hasReturnDate }">
+                <span class="hs-trip-badge__count">@{{ tripBadgeTop }}</span>
+                <span class="hs-trip-badge__label">@{{ tripBadgeBottom }}</span>
+            </div>
+
             <!-- RETURN DATE -->
             <div class="hs-field hs-field--date" id="flight-return-box">
                 <div class="hs-field__inner">
