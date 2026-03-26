@@ -19,36 +19,12 @@
             <div class="hl-results-header">
                 <div class="hl-results-header__left">
                     <span class="hl-results-count">{{ $itineraryCount ?? 0 }} results found</span>
-                    <span class="fl-results-note">Filters coming soon</span>
-                </div>
-                <div class="hl-results-header__right">
-                    <label class="hl-sort-label">Sort by:</label>
-                    <select class="hl-sort-select" disabled>
-                        <option>Recommended</option>
-                        <option>Price Low to High</option>
-                        <option>Price High to Low</option>
-                        <option>Fastest</option>
-                    </select>
                 </div>
             </div>
 
             <div class="row">
                 {{-- FLIGHT CARDS --}}
                 <div class="col-lg-12">
-                    @if (!empty($messages))
-                        <div class="mb-3">
-                            @foreach ($messages as $msg)
-                                @php
-                                    $isError = strtolower($msg['severity'] ?? '') === 'error';
-                                @endphp
-                                <div class="hc-alert {{ $isError ? 'hc-alert--warning' : '' }}">
-                                    <i class='bx {{ $isError ? 'bx-error-circle' : 'bx-info-circle' }}'></i>
-                                    <span>{{ $msg['text'] ?? 'Notice' }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-
                     @if (!empty($results))
                         @foreach ($results as $result)
                             @php
@@ -145,12 +121,6 @@
 
 @push('css')
     <style>
-        .fl-results-note {
-            margin-left: 10px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #888;
-        }
         .hl-card--flight {
             padding: 0;
             overflow: hidden;
