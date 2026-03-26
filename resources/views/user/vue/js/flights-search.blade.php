@@ -155,6 +155,31 @@
                 }
             };
 
+            const applyParamsFromUrl = () => {
+                const params = new URLSearchParams(window.location.search);
+                const fromCode = (params.get('from') || '').toUpperCase();
+                const toCode = (params.get('to') || '').toUpperCase();
+
+                if (fromCode) {
+                    const fromAirport = airports.value.find(a => a.code === fromCode);
+                    selectedFrom.value = fromAirport || { code: fromCode, city: fromCode };
+                    fromInput.value = formatAirportInput(selectedFrom.value);
+                }
+
+                if (toCode) {
+                    const toAirport = airports.value.find(a => a.code === toCode);
+                    selectedTo.value = toAirport || { code: toCode, city: toCode };
+                    toInput.value = formatAirportInput(selectedTo.value);
+                }
+
+                const adultsParam = parseInt(params.get('adults') || '1', 10);
+                const childrenParam = parseInt(params.get('children') || '0', 10);
+                const infantsParam = parseInt(params.get('infants') || '0', 10);
+                adults.value = Number.isNaN(adultsParam) || adultsParam < 1 ? 1 : adultsParam;
+                children.value = Number.isNaN(childrenParam) || childrenParam < 0 ? 0 : childrenParam;
+                infants.value = Number.isNaN(infantsParam) || infantsParam < 0 ? 0 : infantsParam;
+            };
+
             const adults = ref(1);
             const children = ref(0);
             const infants = ref(0);
@@ -195,8 +220,9 @@
                 isSearching.value = true;
             };
 
-            onMounted(() => {
-                loadAirports();
+            onMounted(async () => {
+                await loadAirports();
+                applyParamsFromUrl();
             });
 
             return {
@@ -313,6 +339,41 @@
 
             const $departureInput = $("#flight-departure-input");
             const $returnInput = $("#flight-return-input");
+
+            (function populateFromUrl() {
+                const params = new URLSearchParams(window.location.search);
+                const vue = window.__flightsSearchVue;
+                if (!vue) return;
+
+                const dep = params.get('departure_date');
+                const ret = params.get('return_date');
+
+                if (dep) {
+                    const depMoment = moment(dep, 'MMM D, YYYY');
+                    if (depMoment.isValid()) {
+                        const depPicker = $departureInput.data('daterangepicker');
+                        if (depPicker) {
+                            depPicker.setStartDate(depMoment);
+                            $departureInput.val(depMoment.format('MMM D, YYYY'));
+                            updateFlightDateDisplay('flight-departure', depMoment);
+                            vue.departureDate = depMoment.format('MMM D, YYYY');
+                        }
+                    }
+                }
+
+                if (ret) {
+                    const retMoment = moment(ret, 'MMM D, YYYY');
+                    if (retMoment.isValid()) {
+                        const retPicker = $returnInput.data('daterangepicker');
+                        if (retPicker) {
+                            retPicker.setStartDate(retMoment);
+                            $returnInput.val(retMoment.format('MMM D, YYYY'));
+                            updateFlightDateDisplay('flight-return', retMoment);
+                            vue.returnDate = retMoment.format('MMM D, YYYY');
+                        }
+                    }
+                }
+            })();
 
             $departureInput.on("apply.daterangepicker", function(ev, picker) {
                 const departureDate = picker.startDate;

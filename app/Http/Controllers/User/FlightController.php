@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Http;
 
 class FlightController extends Controller
 {
+    private string $sabreBasicAuth = 'VmpFNk1qVTROak13T2poT1NrdzZRVUU9OlJtRnBjMkZzTVRBPQ==';
+
     public function index()
     {
         return view('user.flights.index');
@@ -65,18 +67,17 @@ class FlightController extends Controller
 
     private function getSabreToken(): string
     {
-        $clientId = env('SABRE_CLIENT_ID');
-        $clientSecret = env('SABRE_CLIENT_SECRET');
-
-        if (!$clientId || !$clientSecret) {
+        if (empty($this->sabreBasicAuth)) {
             throw new \Exception('Sabre credentials are not configured.');
         }
 
-        $response = Http::asForm()
-            ->withBasicAuth($clientId, $clientSecret)
-            ->post('https://api.cert.platform.sabre.com/v2/auth/token', [
-                'grant_type' => 'client_credentials',
-            ]);
+        $request = Http::asForm()->withHeaders([
+            'Authorization' => 'Basic ' . $this->sabreBasicAuth,
+        ]);
+
+        $response = $request->post('https://api.cert.platform.sabre.com/v2/auth/token', [
+            'grant_type' => 'client_credentials',
+        ]);
 
         if (!$response->successful()) {
             throw new \Exception('Unable to fetch Sabre token.');
