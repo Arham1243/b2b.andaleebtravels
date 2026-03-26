@@ -33,45 +33,8 @@
             </div>
 
             <div class="row">
-                {{-- FILTERS SIDEBAR --}}
-                <div class="col-lg-3">
-                    <div class="hl-sidebar">
-                        <div class="hl-sidebar__title">Filters</div>
-
-                        <div class="hl-filter-group collapsed">
-                            <div class="hl-filter-group__header">
-                                <span>Stops</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                <div class="fl-placeholder">Coming soon</div>
-                            </div>
-                        </div>
-
-                        <div class="hl-filter-group collapsed">
-                            <div class="hl-filter-group__header">
-                                <span>Airlines</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                <div class="fl-placeholder">Coming soon</div>
-                            </div>
-                        </div>
-
-                        <div class="hl-filter-group collapsed">
-                            <div class="hl-filter-group__header">
-                                <span>Departure Time</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                <div class="fl-placeholder">Coming soon</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 {{-- FLIGHT CARDS --}}
-                <div class="col-lg-9">
+                <div class="col-lg-12">
                     @if (!empty($messages))
                         <div class="mb-3">
                             @foreach ($messages as $msg)
@@ -97,37 +60,58 @@
                                 }
                             @endphp
                             <div class="hl-card hl-card--flight">
-                                <div class="hl-card__img fl-card__thumb">
-                                    <i class="bx bx-paper-plane"></i>
+                                <div class="fl-card__header">
+                                    <div class="fl-card__route">
+                                        <span class="fl-card__code">{{ $firstSeg['from'] ?? '-' }}</span>
+                                        <i class="bx bx-transfer"></i>
+                                        <span class="fl-card__code">{{ $lastSeg['to'] ?? '-' }}</span>
+                                    </div>
+                                    <div class="fl-card__meta">
+                                        <span><i class="bx bx-time-five"></i> {{ $firstLeg['elapsedTime'] ?? '-' }} min</span>
+                                        <span><i class="bx bx-stopwatch"></i>
+                                            {{ (int) (($firstLeg['segments'][0]['stop_count'] ?? 0)) }} stop{{ ((int) (($firstLeg['segments'][0]['stop_count'] ?? 0))) === 1 ? '' : 's' }}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="hl-card__body">
                                     <div class="hl-card__info">
-                                        <div class="hl-card__name">
-                                            {{ $firstSeg['from'] ?? '-' }} → {{ $lastSeg['to'] ?? '-' }}
-                                        </div>
-                                        <div class="hl-card__location">
-                                            <i class="bx bx-time-five"></i>
-                                            {{ $firstLeg['elapsedTime'] ?? '-' }} min
-                                        </div>
-
-                                        <div class="fl-card__segments">
+                                        <div class="fl-card__timeline">
                                             @foreach ($result['legs'] as $legIndex => $leg)
+                                                @php
+                                                    $segCount = count($leg['segments'] ?? []);
+                                                @endphp
                                                 <div class="fl-card__leg">
-                                                    <span>Leg {{ $legIndex + 1 }}</span>
-                                                </div>
-                                                @foreach ($leg['segments'] as $seg)
-                                                    <div class="fl-card__segment">
-                                                        <span class="fl-card__segment-code">
-                                                            {{ $seg['from'] }} → {{ $seg['to'] }}
-                                                        </span>
-                                                        <span class="fl-card__segment-time">
-                                                            {{ $seg['departure_time'] }} - {{ $seg['arrival_time'] }}
-                                                        </span>
-                                                        <span class="fl-card__segment-flight">
-                                                            {{ $seg['carrier'] }}{{ $seg['flight_number'] }}
-                                                        </span>
+                                                    <div class="fl-card__leg-title">
+                                                        Leg {{ $legIndex + 1 }}
+                                                        <span>{{ $segCount }} segment{{ $segCount === 1 ? '' : 's' }}</span>
                                                     </div>
-                                                @endforeach
+                                                    @foreach ($leg['segments'] as $seg)
+                                                        <div class="fl-card__segment">
+                                                            <div class="fl-card__segment-left">
+                                                                <div class="fl-card__segment-time">
+                                                                    {{ $seg['departure_time'] }}
+                                                                </div>
+                                                                <div class="fl-card__segment-airport">
+                                                                    {{ $seg['from'] }}
+                                                                </div>
+                                                            </div>
+                                                            <div class="fl-card__segment-line">
+                                                                <span class="fl-card__segment-flight">
+                                                                    {{ $seg['carrier'] }}{{ $seg['flight_number'] }}
+                                                                </span>
+                                                                <div class="fl-card__segment-dots"></div>
+                                                            </div>
+                                                            <div class="fl-card__segment-right">
+                                                                <div class="fl-card__segment-time">
+                                                                    {{ $seg['arrival_time'] }}
+                                                                </div>
+                                                                <div class="fl-card__segment-airport">
+                                                                    {{ $seg['to'] }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
                                             @endforeach
                                         </div>
                                     </div>
@@ -137,6 +121,7 @@
                                             {{ $result['currency'] ?? '' }} {{ $result['totalPrice'] ?? '-' }}
                                         </div>
                                         <a href="javascript:void(0)" class="hl-card__btn">Select</a>
+                                        <span class="fl-card__note">No hidden charges</span>
                                     </div>
                                 </div>
                             </div>
@@ -166,52 +151,126 @@
             font-weight: 600;
             color: #888;
         }
-        .fl-placeholder {
-            font-size: 0.85rem;
-            color: #777;
-            background: #f7f7f7;
-            border: 1px dashed #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
+        .hl-card--flight {
+            padding: 0;
+            overflow: hidden;
         }
-        .hl-card--flight .hl-card__img.fl-card__thumb {
+        .fl-card__header {
+            padding: 16px 20px;
+            background: #f7f6fa;
+            border-bottom: 1px solid #eee;
             display: flex;
             align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #f5f3f7 0%, #fff 100%);
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
         }
-        .fl-card__thumb i {
-            font-size: 2rem;
+        .fl-card__route {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .fl-card__route i {
             color: var(--color-primary);
         }
-        .fl-card__segments {
-            margin-top: 0.6rem;
+        .fl-card__meta {
+            display: flex;
+            gap: 14px;
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: 600;
+        }
+        .fl-card__meta i {
+            color: var(--color-primary);
+        }
+        .fl-card__timeline {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 14px;
         }
         .fl-card__leg {
+            background: #fff;
+            border: 1px solid #f0f0f0;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .fl-card__leg-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             font-size: 0.78rem;
             font-weight: 700;
-            color: #444;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            color: #444;
+            margin-bottom: 10px;
+        }
+        .fl-card__leg-title span {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #888;
+            text-transform: none;
         }
         .fl-card__segment {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            font-size: 0.78rem;
-            color: #666;
+            display: grid;
+            grid-template-columns: 80px 1fr 80px;
+            gap: 12px;
+            align-items: center;
+            padding: 8px 0;
+            border-top: 1px dashed #eee;
         }
-        .fl-card__segment-code {
+        .fl-card__segment:first-of-type {
+            border-top: none;
+        }
+        .fl-card__segment-time {
+            font-size: 0.85rem;
             font-weight: 700;
-            color: #333;
+            color: #222;
+        }
+        .fl-card__segment-airport {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #777;
+        }
+        .fl-card__segment-line {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            color: #999;
+            font-size: 0.72rem;
+        }
+        .fl-card__segment-dots {
+            width: 100%;
+            height: 2px;
+            background: repeating-linear-gradient(
+                to right,
+                #d9d9d9,
+                #d9d9d9 6px,
+                transparent 6px,
+                transparent 12px
+            );
         }
         .fl-card__segment-flight {
-            font-weight: 600;
+            font-weight: 700;
             color: var(--color-primary);
+        }
+        .fl-card__note {
+            margin-top: 6px;
+            font-size: 0.72rem;
+            color: #999;
+            font-weight: 600;
+        }
+        @media (max-width: 768px) {
+            .fl-card__segment {
+                grid-template-columns: 1fr;
+            }
+            .fl-card__segment-line {
+                align-items: flex-start;
+            }
         }
     </style>
 @endpush
