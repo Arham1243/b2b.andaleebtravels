@@ -157,7 +157,7 @@
             <!-- RETURN DATE -->
             <div class="hs-field hs-field--date" id="flight-return-box">
                 <div class="hs-field__inner">
-                    <div class="hs-field__label"><i class='bx bx-calendar'></i> RETURN (OPTIONAL) <i
+                    <div class="hs-field__label"><i class='bx bx-calendar'></i> RETURN <i
                             class='bx bx-chevron-down' style="font-size:11px"></i></div>
                     <div class="hs-date-display">
                         <span class="hs-date-display__day" id="flight-return-dd">&mdash;</span>
@@ -170,10 +170,6 @@
                         id="flight-return-input">
                 </div>
             </div>
-        </div>
-
-        <div class="flight-roundtrip-banner">
-            <i class='bx bx-bulb'></i> Book a round trip to save more
         </div>
 
         <!-- ROW 2: Travellers + Search -->
@@ -267,7 +263,7 @@
 
             <!-- SEARCH BUTTON -->
             <div class="hs-field hs-field--btn">
-                <button type="submit" class="hs-search-btn" :disabled="isSearching">
+                <button type="submit" class="hs-search-btn" :disabled="!isSearchEnabled || isSearching">
                     <template v-if="isSearching">
                         <i class='bx bx-loader-alt bx-spin'></i> Searching...
                     </template>

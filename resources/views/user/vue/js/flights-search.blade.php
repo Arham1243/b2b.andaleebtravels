@@ -47,6 +47,7 @@
             const toQuery = ref('');
             const selectedFrom = ref(null);
             const selectedTo = ref(null);
+            const departureDate = ref('');
 
             const fromInputRef = ref(null);
             const toInputRef = ref(null);
@@ -178,7 +179,14 @@
             });
 
             const isSearching = ref(false);
-            const onFlightSearchSubmit = () => {
+            const isSearchEnabled = computed(() => {
+                return !!(selectedFrom.value && selectedTo.value && departureDate.value);
+            });
+            const onFlightSearchSubmit = (event) => {
+                if (!isSearchEnabled.value) {
+                    event.preventDefault();
+                    return;
+                }
                 isSearching.value = true;
             };
 
@@ -195,6 +203,7 @@
                 toQuery,
                 selectedFrom,
                 selectedTo,
+                departureDate,
                 fromInputRef,
                 toInputRef,
                 fromDropdownOpen,
@@ -223,6 +232,7 @@
                 decrementInfants,
                 travellersText,
                 isSearching,
+                isSearchEnabled,
                 onFlightSearchSubmit
             };
         },
@@ -271,6 +281,9 @@
             $input.on("apply.daterangepicker", function(ev, picker) {
                 $input.val(picker.startDate.format(format));
                 updateFlightDateDisplay(displayPrefix, picker.startDate);
+                if (displayPrefix === 'flight-departure' && window.__flightsSearchVue) {
+                    window.__flightsSearchVue.departureDate = picker.startDate.format(format);
+                }
             });
 
             $wrapper.on("click", function(e) {
