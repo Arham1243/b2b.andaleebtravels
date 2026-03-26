@@ -3798,14 +3798,12 @@ body .search-box__input.search-box__input {
     align-items: center;
     gap: 8px;
 }
-.flight-search-redesign .hs-row--top {
-    flex-wrap: wrap;
-}
 .flight-search-redesign .hs-field--destination {
-    min-width: 220px;
+    flex: 1 1 0;
+    min-width: 0;
 }
 .flight-search-redesign .hs-field--date {
-    min-width: 190px;
+    min-width: 150px;
 }
 
 /* Rows */
