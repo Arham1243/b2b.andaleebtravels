@@ -81,11 +81,10 @@
                             <div class="fc-side">
                                 <span class="fc-price-label">Price per adult</span>
                                 <div class="fc-price">
-                                    <small>{{ $result['currency'] }}</small>
+                                    <small><span class="dirham">D</span></small>
                                     <b>{{ number_format($result['totalPrice'], 0) }}</b>
                                 </div>
                                 <a href="#" class="fc-btn">Select Flight</a>
-                                <a href="#" class="fc-details">View Details <i class="bx bx-chevron-down"></i></a>
                             </div>
                         </div>
                     @endforeach
