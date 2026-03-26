@@ -351,7 +351,6 @@
                                 searching for different dates.</p>
                             <div class="fc-empty-actions">
                                 <a href="{{ route('user.hotels.index') }}" class="fc-btn-outline">Search alternative dates</a>
-                                <a href="{{ route('user.hotels.search', $query) }}" class="fc-btn-outline">Reset filters</a>
                             </div>
                         </div>
                     @endif
