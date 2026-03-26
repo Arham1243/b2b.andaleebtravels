@@ -3810,15 +3810,20 @@ body .search-box__input.search-box__input {
 .flight-roundtrip-banner {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #2a5faa;
-    background: #eef4ff;
-    border: 1px solid #d6e4ff;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #2a2a2a;
+    background: linear-gradient(90deg, #fff3c9 0%, #ffe2a8 100%);
+    border: 1px solid #f3cc8a;
     border-radius: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    margin: 0 0 0.85rem;
+    padding: 0.6rem 0.9rem;
+    margin: 0 0 0.9rem;
+    box-shadow: 0 6px 14px #00000012;
+}
+.flight-roundtrip-banner i {
+    font-size: 1.1rem;
+    color: #b87000;
 }
 
 /* Rows */

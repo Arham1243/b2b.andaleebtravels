@@ -138,24 +138,42 @@
             </div>
 
             <!-- DEPARTURE DATE -->
-            <div class="hs-field hs-field--date">
+            <div class="hs-field hs-field--date" id="flight-departure-box">
                 <div class="hs-field__inner">
-                    <div class="hs-field__label"><i class='bx bx-calendar'></i> DEPARTURE</div>
-                    <input type="date" class="hs-field__input" name="departure_date">
+                    <div class="hs-field__label"><i class='bx bx-calendar'></i> DEPARTURE <i class='bx bx-chevron-down'
+                            style="font-size:11px"></i></div>
+                    <div class="hs-date-display">
+                        <span class="hs-date-display__day" id="flight-departure-dd">&mdash;</span>
+                        <div class="hs-date-display__meta">
+                            <span class="hs-date-display__month" id="flight-departure-mon">&nbsp;</span>
+                            <span class="hs-date-display__weekday" id="flight-departure-day">&nbsp;</span>
+                        </div>
+                    </div>
+                    <input readonly autocomplete="off" type="hidden" name="departure_date"
+                        id="flight-departure-input">
                 </div>
             </div>
 
             <!-- RETURN DATE -->
-            <div class="hs-field hs-field--date">
+            <div class="hs-field hs-field--date" id="flight-return-box">
                 <div class="hs-field__inner">
-                    <div class="hs-field__label"><i class='bx bx-calendar'></i> RETURN (OPTIONAL)</div>
-                    <input type="date" class="hs-field__input" name="return_date">
+                    <div class="hs-field__label"><i class='bx bx-calendar'></i> RETURN (OPTIONAL) <i
+                            class='bx bx-chevron-down' style="font-size:11px"></i></div>
+                    <div class="hs-date-display">
+                        <span class="hs-date-display__day" id="flight-return-dd">&mdash;</span>
+                        <div class="hs-date-display__meta">
+                            <span class="hs-date-display__month" id="flight-return-mon">&nbsp;</span>
+                            <span class="hs-date-display__weekday" id="flight-return-day">&nbsp;</span>
+                        </div>
+                    </div>
+                    <input readonly autocomplete="off" type="hidden" name="return_date"
+                        id="flight-return-input">
                 </div>
             </div>
         </div>
 
         <div class="flight-roundtrip-banner">
-            <i class='bx bx-info-circle'></i> Book a round trip to save more
+            <i class='bx bx-bulb'></i> Book a round trip to save more
         </div>
 
         <!-- ROW 2: Travellers + Search -->

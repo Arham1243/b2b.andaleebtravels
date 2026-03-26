@@ -87,8 +87,16 @@
                 }).slice(0, 20);
             };
 
-            const filteredFromAirports = computed(() => filterAirports(fromQuery.value || fromInput.value));
-            const filteredToAirports = computed(() => filterAirports(toQuery.value || toInput.value));
+            const filteredFromAirports = computed(() => {
+                const filtered = filterAirports(fromQuery.value || fromInput.value);
+                if (!selectedTo.value) return filtered;
+                return filtered.filter((airport) => airport.code !== selectedTo.value.code);
+            });
+            const filteredToAirports = computed(() => {
+                const filtered = filterAirports(toQuery.value || toInput.value);
+                if (!selectedFrom.value) return filtered;
+                return filtered.filter((airport) => airport.code !== selectedFrom.value.code);
+            });
 
             const formatAirportInput = (airport) => {
                 if (!airport) return '';
@@ -222,4 +230,81 @@
     const flightsSearchInstance = FlightsSearch.mount('#flights-search');
     window.__flightsSearchVue = flightsSearchInstance;
 </script>
+@endpush
+@push('css')
+    <link rel="stylesheet" href="{{ asset('user/assets/css/daterangepicker.css') }}" />
+@endpush
+@push('js')
+    <script src="{{ asset('user/assets/js/moment.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('user/assets/js/daterangepicker.min.js') }}"></script>
+    <script>
+        function updateFlightDateDisplay(prefix, dateMoment) {
+            $(`#${prefix}-dd`).text(dateMoment.format('D'));
+            $(`#${prefix}-mon`).text(dateMoment.format("MMM'YY"));
+            $(`#${prefix}-day`).text(dateMoment.format('dddd'));
+        }
+
+        function clearFlightDateDisplay(prefix) {
+            $(`#${prefix}-dd`).html('&mdash;');
+            $(`#${prefix}-mon`).html('&nbsp;');
+            $(`#${prefix}-day`).html('&nbsp;');
+        }
+
+        function initFlightSingleDatePicker(wrapperId, inputId, displayPrefix) {
+            const format = "MMM D, YYYY";
+            const $wrapper = $(`#${wrapperId}`);
+            const $input = $(`#${inputId}`);
+            if (!$wrapper.length || !$input.length) return;
+
+            $input.daterangepicker({
+                singleDatePicker: true,
+                autoApply: true,
+                showDropdowns: true,
+                minDate: moment(),
+                autoUpdateInput: false,
+                parentEl: $wrapper,
+                locale: {
+                    format
+                }
+            });
+
+            $input.on("apply.daterangepicker", function(ev, picker) {
+                $input.val(picker.startDate.format(format));
+                updateFlightDateDisplay(displayPrefix, picker.startDate);
+            });
+
+            $wrapper.on("click", function(e) {
+                if (!$(e.target).is($input)) {
+                    const pickerInstance = $input.data('daterangepicker');
+                    if (pickerInstance) {
+                        pickerInstance.show();
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            initFlightSingleDatePicker("flight-departure-box", "flight-departure-input", "flight-departure");
+            initFlightSingleDatePicker("flight-return-box", "flight-return-input", "flight-return");
+
+            const $departureInput = $("#flight-departure-input");
+            const $returnInput = $("#flight-return-input");
+
+            $departureInput.on("apply.daterangepicker", function(ev, picker) {
+                const departureDate = picker.startDate;
+                const returnPicker = $returnInput.data('daterangepicker');
+
+                if (returnPicker) {
+                    returnPicker.minDate = departureDate.clone().add(1, 'day');
+                    if ($returnInput.val()) {
+                        const currentReturn = moment($returnInput.val(), "MMM D, YYYY");
+                        if (currentReturn.isSameOrBefore(departureDate)) {
+                            $returnInput.val('');
+                            clearFlightDateDisplay('flight-return');
+                        }
+                    }
+                }
+            });
+        });
+    </script>
 @endpush
