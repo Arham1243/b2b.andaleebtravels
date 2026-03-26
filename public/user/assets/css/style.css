@@ -3798,6 +3798,28 @@ body .search-box__input.search-box__input {
     align-items: center;
     gap: 8px;
 }
+.flight-search-redesign .hs-row--top {
+    flex-wrap: wrap;
+}
+.flight-search-redesign .hs-field--destination {
+    min-width: 220px;
+}
+.flight-search-redesign .hs-field--date {
+    min-width: 190px;
+}
+.flight-roundtrip-banner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #2a5faa;
+    background: #eef4ff;
+    border: 1px solid #d6e4ff;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin: 0 0 0.85rem;
+}
 
 /* Rows */
 .hs-row {

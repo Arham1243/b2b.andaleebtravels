@@ -5,6 +5,7 @@ use App\Http\Controllers\Frontend\Auth\PasswordResetController;
 use App\Http\Controllers\User\UserDashController;
 use App\Http\Controllers\User\ProfileSettingsController;
 use App\Http\Controllers\User\HotelController;
+use App\Http\Controllers\User\FlightController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\User\WalletRechargeController;
 use App\Http\Controllers\User\ProvinceSyncController;
@@ -57,6 +58,10 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/payment/success/{booking}', [HotelController::class, 'paymentSuccess'])->name('payment.success');
         Route::get('/payment/success/view/{booking}', [HotelController::class, 'paymentSuccessView'])->name('payment.success.view');
         Route::get('/payment/failed/{booking?}', [HotelController::class, 'paymentFailed'])->name('payment.failed');
+    });
+
+    Route::prefix('flights')->name('flights.')->group(function () {
+        Route::get('/', [FlightController::class, 'index'])->name('index');
     });
 
     Route::prefix('bookings')->name('bookings.')->group(function () {
