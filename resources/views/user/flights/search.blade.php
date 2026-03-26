@@ -41,7 +41,7 @@
                                 <!-- Journey Details -->
                                 <div class="fc-details">
                                     <div class="fc-airline">
-                                        <img src="https://img.logo.dev/{{ $firstSeg['carrier'] }}.png?token=YOUR_TOKEN"
+                                        <img src="https://logo.clearbit.com/{{ strtolower($firstSeg['carrier']) }}.com"
                                             onerror="this.src='https://ui-avatars.com/api/?name={{ $firstSeg['carrier'] }}&background=cd1b4f&color=fff'"
                                             alt="Airline">
                                         <div class="fc-airline-text">
@@ -49,7 +49,6 @@
                                             <span>FLIGHT {{ $firstSeg['carrier'] }}{{ $firstSeg['flight_number'] }}</span>
                                         </div>
                                     </div>
-
                                     <div class="fc-route">
                                         <div class="fc-point">
                                             <span class="time">{{ $depTime }}</span>
@@ -75,14 +74,10 @@
                                 <div class="fc-action">
                                     <span class="fc-price-label">Price Per Adult</span>
                                     <div class="fc-price">
-                                        <span class="curr">{{ $result['currency'] }}</span>
+                                        <span class="curr"><span class="dirham">D</span></span>
                                         <span class="amt">{{ number_format($result['totalPrice'], 0) }}</span>
                                     </div>
                                     <a href="javascript:void(0)" class="fc-btn">Select Flight</a>
-                                    <a href="#"
-                                        style="margin-top:15px; font-size:0.8rem; color:#94a3b8; text-decoration:none; font-weight:600;">
-                                        View Details <i class="bx bx-chevron-down"></i>
-                                    </a>
                                 </div>
                             </div>
                         @endforeach
@@ -264,7 +259,7 @@
         }
 
         .fc-price .curr {
-            font-size: 1.1rem;
+            font-size: 2rem;
             font-weight: 700;
             margin-right: 2px;
         }
