@@ -62,6 +62,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
 
     Route::prefix('flights')->name('flights.')->group(function () {
         Route::get('/', [FlightController::class, 'index'])->name('index');
+        Route::get('/search', [FlightController::class, 'search'])->name('search');
     });
 
     Route::prefix('bookings')->name('bookings.')->group(function () {

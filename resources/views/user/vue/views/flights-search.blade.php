@@ -2,7 +2,7 @@
     <div class="hotel-search-redesign__title">
         <i class='bx bx-plane'></i> Book Domestic and International Flights
     </div>
-    <form method="GET" action="{{ route('user.flights.index') }}" @submit="onFlightSearchSubmit">
+    <form method="GET" action="{{ route('user.flights.search') }}" @submit="onFlightSearchSubmit">
         <!-- ROW 1: From + To + Dates -->
         <div class="hs-row hs-row--top">
             <!-- FROM -->
