@@ -8,7 +8,7 @@
         <!-- Navigation Menu -->
         <ul class="topbar-nav">
             <li class="topbar-nav__item">
-                <a href="javascript:void(0)" class="topbar-nav__link">
+                <a href="{{ route('user.flights.index') }}" class="topbar-nav__link">
                     <i class='bx bxs-plane-alt'></i> Flights
                 </a>
             </li>
