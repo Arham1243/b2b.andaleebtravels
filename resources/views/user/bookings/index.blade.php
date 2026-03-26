@@ -150,6 +150,11 @@
             color: #2e7d32;
         }
 
+        .badge-status--issued {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
         .booking-actions {
             display: flex;
             gap: 6px;
@@ -285,20 +290,89 @@
                 @endif
             </div>
 
-            {{-- Future: Flight Bookings --}}
-            {{-- <div class="bookings-section">
+            {{-- Flight Bookings --}}
+            <div class="bookings-section">
                 <div class="bookings-section__header">
                     <div class="bookings-section__title">
                         <i class="bx bx-plane"></i>
                         Flight Bookings
                     </div>
-                    <span class="bookings-section__count">0</span>
+                    <span class="bookings-section__count">{{ $flightBookings->count() }}</span>
                 </div>
-                <div class="bookings-empty">
-                    <i class="bx bx-plane"></i>
-                    <p>No flight bookings yet.</p>
-                </div>
-            </div> --}}
+
+                @if ($flightBookings->isNotEmpty())
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Booking #</th>
+                                    <th>Route</th>
+                                    <th>Dates</th>
+                                    <th>Amount</th>
+                                    <th>Payment</th>
+                                    <th>Status</th>
+                                    <th>Ticket</th>
+                                    <th>Booked On</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($flightBookings as $booking)
+                                    <tr>
+                                        <td><span class="booking-number">{{ $booking->booking_number }}</span></td>
+                                        <td>
+                                            <span class="booking-hotel-name">{{ $booking->from_airport }} → {{ $booking->to_airport }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="booking-dates">
+                                                {{ $booking->departure_date?->format('d M Y') }}
+                                                @if ($booking->return_date)
+                                                    &mdash; {{ $booking->return_date?->format('d M Y') }}
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td><span class="booking-amount"><span class="dirham">D</span> {{ number_format($booking->total_amount, 2) }}</span></td>
+                                        <td>
+                                            <span class="badge-status badge-status--{{ $booking->payment_status }}">
+                                                {{ ucfirst($booking->payment_status) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge-status badge-status--{{ $booking->booking_status }}">
+                                                {{ ucfirst($booking->booking_status) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge-status badge-status--{{ $booking->ticket_status }}">
+                                                {{ ucfirst($booking->ticket_status) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="booking-dates">{{ $booking->created_at->format('d M Y, h:i A') }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="booking-actions">
+                                                @if ($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
+                                                    <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}" class="btn-cancel-booking">
+                                                        <i class="bx bx-x"></i> Cancel
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted">&mdash;</span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="bookings-empty">
+                        <i class="bx bx-plane"></i>
+                        <p>No flight bookings yet.</p>
+                    </div>
+                @endif
+            </div>
 
             {{-- Future: Tour Bookings --}}
             {{-- <div class="bookings-section">

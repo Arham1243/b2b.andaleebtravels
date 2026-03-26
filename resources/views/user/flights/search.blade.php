@@ -76,7 +76,8 @@
                                         <span class="curr"><span class="dirham">D</span></span>
                                         <span class="amt">{{ number_format($result['totalPrice'], 0) }}</span>
                                     </div>
-                                    <a href="javascript:void(0)" class="fc-btn">Select Flight</a>
+                                    <a href="{{ route('user.flights.checkout', ['itinerary' => $result['id']] + $query) }}"
+                                        class="fc-btn">Select Flight</a>
                                 </div>
                             </div>
                         @endforeach

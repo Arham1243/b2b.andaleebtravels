@@ -57,6 +57,14 @@ class FlightController extends Controller
         $itineraryCount = (int) ($grouped['statistics']['itineraryCount'] ?? 0);
 
         $results = $this->extractItineraries($grouped);
+        $resultsById = collect($results)->keyBy('id')->toArray();
+
+        session([
+            'flight_search_payload' => $payload,
+            'flight_search_response' => $grouped,
+            'flight_search_results' => $resultsById,
+            'flight_search_params' => $validated,
+        ]);
 
         return view('user.flights.search', [
             'results' => $results,
@@ -226,12 +234,20 @@ class FlightController extends Controller
                         continue;
                     }
                     $segments[] = [
+                        'schedule_id' => $schedule['id'] ?? null,
                         'from' => $schedule['departure']['airport'] ?? '',
                         'to' => $schedule['arrival']['airport'] ?? '',
+                        'departure_city' => $schedule['departure']['city'] ?? '',
+                        'arrival_city' => $schedule['arrival']['city'] ?? '',
                         'departure_time' => $schedule['departure']['time'] ?? '',
                         'arrival_time' => $schedule['arrival']['time'] ?? '',
                         'carrier' => $schedule['carrier']['marketing'] ?? '',
                         'flight_number' => $schedule['carrier']['marketingFlightNumber'] ?? '',
+                        'operating_carrier' => $schedule['carrier']['operating'] ?? '',
+                        'operating_flight_number' => $schedule['carrier']['operatingFlightNumber'] ?? '',
+                        'equipment' => $schedule['carrier']['equipment']['code'] ?? '',
+                        'equipment_type_first' => $schedule['carrier']['equipment']['typeForFirstLeg'] ?? '',
+                        'equipment_type_last' => $schedule['carrier']['equipment']['typeForLastLeg'] ?? '',
                         'stop_count' => $schedule['stopCount'] ?? 0,
                     ];
                 }

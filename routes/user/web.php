@@ -6,6 +6,7 @@ use App\Http\Controllers\User\UserDashController;
 use App\Http\Controllers\User\ProfileSettingsController;
 use App\Http\Controllers\User\HotelController;
 use App\Http\Controllers\User\FlightController;
+use App\Http\Controllers\User\FlightBookingController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\User\WalletRechargeController;
 use App\Http\Controllers\User\ProvinceSyncController;
@@ -63,6 +64,11 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     Route::prefix('flights')->name('flights.')->group(function () {
         Route::get('/', [FlightController::class, 'index'])->name('index');
         Route::get('/search', [FlightController::class, 'search'])->name('search');
+        Route::get('/checkout/{itinerary}', [FlightBookingController::class, 'checkout'])->name('checkout');
+        Route::post('/payment/process', [FlightBookingController::class, 'processPayment'])->name('payment.process');
+        Route::get('/payment/success/{booking}', [FlightBookingController::class, 'paymentSuccess'])->name('payment.success');
+        Route::get('/payment/success/view/{booking}', [FlightBookingController::class, 'paymentSuccessView'])->name('payment.success.view');
+        Route::get('/payment/failed/{booking?}', [FlightBookingController::class, 'paymentFailed'])->name('payment.failed');
     });
 
     Route::prefix('bookings')->name('bookings.')->group(function () {
@@ -70,6 +76,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::post('/hotels/cancellation-charges', [BookingController::class, 'getCancellationCharges'])->name('hotels.cancellation-charges');
         Route::post('/hotels/cancel-tbo', [BookingController::class, 'cancelTboBooking'])->name('hotels.cancel-tbo');
         Route::get('/hotels/cancel/{id}', [BookingController::class, 'cancelHotelBooking'])->name('hotels.cancel');
+        Route::get('/flights/cancel/{id}', [BookingController::class, 'cancelFlightBooking'])->name('flights.cancel');
     });
 
     Route::prefix('wallet')->name('wallet.')->group(function () {

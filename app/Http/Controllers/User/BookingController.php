@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\B2bFlightBooking;
 use App\Models\B2bHotelBooking;
+use App\Services\FlightService;
 use App\Services\HotelService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +22,11 @@ class BookingController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return view('user.bookings.index', compact('hotelBookings'));
+        $flightBookings = B2bFlightBooking::where('b2b_vendor_id', $vendorId)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('user.bookings.index', compact('hotelBookings', 'flightBookings'));
     }
 
     public function getCancellationCharges(Request $request, HotelService $hotelService)
@@ -124,6 +130,48 @@ class BookingController extends Controller
             DB::rollBack();
 
             Log::error('TBO booking cancellation failed', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('notify_error', 'Unable to cancel booking: ' . $e->getMessage());
+        }
+    }
+
+    public function cancelFlightBooking(int $id, FlightService $flightService)
+    {
+        $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
+            ->findOrFail($id);
+
+        if ($booking->booking_status === 'cancelled') {
+            return back()->with('notify_error', 'Booking already cancelled.');
+        }
+
+        if ($booking->payment_status !== 'paid') {
+            return back()->with('notify_error', 'Only paid bookings can be cancelled.');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $cancelResponse = $flightService->cancelSabreBooking($booking);
+
+            $booking->update([
+                'booking_status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => 'vendor',
+                'cancel_response' => $cancelResponse,
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('user.bookings.index')
+                ->with('notify_success', 'Booking #' . $booking->booking_number . ' cancelled successfully.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Flight booking cancellation failed', [
                 'booking_id' => $booking->id,
                 'error' => $e->getMessage(),
             ]);
