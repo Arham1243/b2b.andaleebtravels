@@ -32,7 +32,6 @@
                                 $lastSeg = end($leg['segments']);
                                 $stopCount = (int) ($firstSeg['stop_count'] ?? 0);
 
-                                // Clean Time Formatting (Removes +04:00 and Seconds)
                                 $depTime = \Carbon\Carbon::parse($firstSeg['departure_time'])->format('H:i');
                                 $arrTime = \Carbon\Carbon::parse($lastSeg['arrival_time'])->format('H:i');
                             @endphp
@@ -81,6 +80,19 @@
                                 </div>
                             </div>
                         @endforeach
+                    @else
+                        <!-- Empty State -->
+                        <div class="fc-empty-state">
+                            <div class="fc-empty-icon">
+                                <i class='bx bx-search-alt'></i>
+                            </div>
+                            <h3>No flights found</h3>
+                            <p>We couldn't find any flights matching your criteria. Try adjusting your dates or searching
+                                for nearby airports.</p>
+                            <div class="fc-empty-actions">
+                                <a href="{{ route('user.flights.index') }}" class="fc-btn-outline">Modify Search</a>
+                            </div>
+                        </div>
                     @endif
                 </div>
             </div>
@@ -308,6 +320,64 @@
             .fc-point .time {
                 font-size: 1.5rem;
             }
+        }
+
+        /* Empty State Styles */
+        .fc-empty-state {
+            background: var(--card-bg);
+            border-radius: 24px;
+            border: 1px dashed #cbd5e1;
+            padding: 60px 30px;
+            text-align: center;
+            max-width: 600px;
+            margin: 40px auto;
+        }
+
+        .fc-empty-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--brand-pink-soft);
+            color: var(--brand-pink);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 20px;
+        }
+
+        .fc-empty-state h3 {
+            color: var(--text-main);
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .fc-empty-state p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .fc-btn-outline {
+            display: inline-block;
+            border: 2px solid var(--brand-pink);
+            color: var(--brand-pink);
+            padding: 12px 30px;
+            border-radius: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .fc-btn-outline:hover {
+            background: var(--brand-pink);
+            color: white !important;
+            box-shadow: 0 8px 15px rgba(205, 27, 79, 0.2);
         }
     </style>
 @endpush
