@@ -26,72 +26,66 @@
                 @if (!empty($results))
                     @foreach ($results as $result)
                         @php
-                            $firstLeg = $result['legs'][0] ?? null;
-                            $segments = $firstLeg['segments'] ?? [];
-                            $firstSeg = $segments[0] ?? null;
-                            $lastSeg = end($segments);
-                            $stopCount = (int) ($firstSeg['stop_count'] ?? 0);
-                            $currency = strtoupper((string) ($result['currency'] ?? 'AED'));
+                            $leg = $result['legs'][0];
+                            $first = $leg['segments'][0];
+                            $last = end($leg['segments']);
+                            $stopCount = (int) ($first['stop_count'] ?? 0);
+
+                            // Formatter to remove the +04:00 and seconds
+                            $depTime = date('H:i', strtotime($first['departure_time']));
+                            $arrTime = date('H:i', strtotime($last['arrival_time']));
                         @endphp
 
-                        <div class="fl-card">
-                            <div class="fl-card__body">
+                        <div class="flight-card">
+                            <div class="fc-main">
+                                <!-- Airline Info -->
+                                <div class="fc-airline">
+                                    <div class="fc-logo">
+                                        <img src="https://img.logo.dev/{{ $first['carrier'] }}.png?token=YOUR_TOKEN"
+                                            onerror="this.src='https://ui-avatars.com/api/?name={{ $first['carrier'] }}&background=cd1b4f&color=fff'"
+                                            alt="Airline">
+                                    </div>
+                                    <div class="fc-airline-info">
+                                        <b>{{ $first['carrier_name'] ?? $first['carrier'] }}</b>
+                                        <span>Flight {{ $first['carrier'] }}{{ $first['flight_number'] }}</span>
+                                    </div>
+                                </div>
 
-                                <!-- Journey Details -->
-                                <div class="fl-info-section">
-                                    <!-- Airline Header -->
-                                    <div class="fl-airline-row">
-                                        <div class="fl-airline-logo">
-                                            <img src="https://img.logo.dev/{{ $firstSeg['carrier'] }}.png?token=YOUR_API_KEY"
-                                                onerror="this.src='https://ui-avatars.com/api/?name={{ $firstSeg['carrier'] }}&background=cd1b4f&color=fff'"
-                                                alt="Airline" width="30">
+                                <!-- Route Info -->
+                                <div class="fc-route">
+                                    <div class="fc-point">
+                                        <span class="time">{{ $depTime }}</span>
+                                        <span class="iata">{{ $first['from'] }}</span>
+                                    </div>
+
+                                    <div class="fc-path">
+                                        <span class="fc-duration">{{ $leg['elapsedTime'] }}m</span>
+                                        <div class="fc-line">
+                                            <div class="fc-icon">
+                                                <i class="bx bxs-plane-takeoff"></i>
+                                            </div>
                                         </div>
-                                        <span class="fl-airline-name">
-                                            {{ $firstSeg['carrier_name'] ?? $firstSeg['carrier'] }}
-                                            <span style="font-weight:400; color:#94a3b8; margin-left:5px;">•
-                                                {{ $firstSeg['carrier'] }}{{ $firstSeg['flight_number'] }}</span>
+                                        <span class="fc-stop-badge">
+                                            {{ $stopCount === 0 ? 'Non-Stop' : $stopCount . ' Stop' . ($stopCount > 1 ? 's' : '') }}
                                         </span>
                                     </div>
 
-                                    <!-- Route Display -->
-                                    <div class="fl-route-display">
-                                        <div class="fl-node">
-                                            <span class="time">{{ $firstSeg['departure_time'] }}</span>
-                                            <span class="code">{{ $firstSeg['from'] }}</span>
-                                        </div>
-
-                                        <div class="fl-path">
-                                            <span class="fl-duration">{{ $firstLeg['elapsedTime'] ?? '-' }}m</span>
-                                            <div class="fl-line-art">
-                                                <i class="bx bxs-plane-takeoff fl-plane-icon"></i>
-                                            </div>
-                                            <span class="fl-stops">
-                                                {{ $stopCount === 0 ? 'Non-stop' : $stopCount . ' Stop' . ($stopCount > 1 ? 's' : '') }}
-                                            </span>
-                                        </div>
-
-                                        <div class="fl-node text-end">
-                                            <span class="time">{{ $lastSeg['arrival_time'] ?? '-' }}</span>
-                                            <span class="code">{{ $lastSeg['to'] ?? '-' }}</span>
-                                        </div>
+                                    <div class="fc-point text-end">
+                                        <span class="time">{{ $arrTime }}</span>
+                                        <span class="iata">{{ $last['to'] }}</span>
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Price & Booking (Pink Section) -->
-                                <div class="fl-price-section">
-                                    <span class="fl-price-label">Price per adult</span>
-                                    <div class="fl-price-amount">
-                                        <span class="fl-currency">{{ $currency }}</span>
-                                        <span class="fl-amount">{{ number_format($result['totalPrice'], 0) }}</span>
-                                    </div>
-
-                                    <a href="javascript:void(0)" class="fl-select-btn">Select Flight</a>
-
-                                    <a href="#" class="fl-details-link">
-                                        View details <i class="bx bx-chevron-down"></i>
-                                    </a>
+                            <!-- Price Section -->
+                            <div class="fc-side">
+                                <span class="fc-price-label">Price per adult</span>
+                                <div class="fc-price">
+                                    <small>{{ $result['currency'] }}</small>
+                                    <b>{{ number_format($result['totalPrice'], 0) }}</b>
                                 </div>
-
+                                <a href="#" class="fc-btn">Select Flight</a>
+                                <a href="#" class="fc-details">View Details <i class="bx bx-chevron-down"></i></a>
                             </div>
                         </div>
                     @endforeach
@@ -117,245 +111,219 @@
 @push('css')
     <style>
         :root {
-            --brand-pink: #cd1b4f;
-            --brand-pink-dark: #c0073e;
-            --brand-pink-light: rgba(205, 27, 79, 0.05);
-            --text-main: #2d3748;
-            --text-light: #718096;
-            --border-color: #edf2f7;
-            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-        }
+    --brand-pink: #cd1b4f;
+    --brand-pink-dark: #c0073e;
+    --brand-pink-soft: rgba(205, 27, 79, 0.04);
+    --text-deep: #1e293b;
+    --text-gray: #64748b;
+}
 
-        .flight-results-container {
-            font-family: 'Inter', sans-serif;
-            /* Modern clean font */
-        }
+.flight-card {
+    background: #fff;
+    border-radius: 24px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    display: flex;
+    overflow: hidden;
+}
 
-        .fl-card {
-            background: #ffffff;
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 1.5rem;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
+.flight-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px -10px rgba(205, 27, 79, 0.15);
+    border-color: rgba(205, 27, 79, 0.2);
+}
 
-        .fl-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
-            border-color: var(--brand-pink);
-        }
+/* Left Section: Flight Info */
+.fc-main {
+    flex: 1;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
 
-        .fl-card__body {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            padding: 0;
-        }
+.fc-airline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
 
-        /* --- Left Side: Flight Info --- */
-        .fl-info-section {
-            flex: 1;
-            padding: 2rem;
-            min-width: 300px;
-        }
+.fc-logo {
+    width: 44px;
+    height: 44px;
+    background: #f8fafc;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border: 1px solid #f1f5f9;
+}
 
-        .fl-airline-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
+.fc-airline-info b {
+    color: var(--text-deep);
+    font-size: 1rem;
+    display: block;
+}
 
-        .fl-airline-logo {
-            width: 40px;
-            height: 40px;
-            background: #f8fafc;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-        }
+.fc-airline-info span {
+    color: var(--text-gray);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
 
-        .fl-airline-name {
-            font-weight: 700;
-            color: var(--text-main);
-            font-size: 0.95rem;
-            letter-spacing: -0.2px;
-        }
+/* The Route Timeline */
+.fc-route {
+    display: grid;
+    grid-template-columns: 100px 1fr 100px;
+    align-items: center;
+    gap: 15px;
+}
 
-        /* --- The Route Timeline --- */
-        .fl-route-display {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-        }
+.fc-point .time {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-deep);
+    letter-spacing: -1px;
+    display: block;
+}
 
-        .fl-node .time {
-            display: block;
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: var(--text-main);
-            line-height: 1;
-        }
+.fc-point .iata {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-gray);
+    margin-top: 4px;
+    display: block;
+}
 
-        .fl-node .code {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-light);
-            margin-top: 5px;
-            display: block;
-        }
+.fc-path {
+    text-align: center;
+    padding-bottom: 10px;
+}
 
-        .fl-path {
-            flex: 1;
-            text-align: center;
-            position: relative;
-        }
+.fc-duration {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-gray);
+    margin-bottom: 8px;
+    display: block;
+}
 
-        .fl-duration {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-light);
-            margin-bottom: 8px;
-            display: block;
-        }
+.fc-line {
+    height: 2px;
+    background: #e2e8f0;
+    width: 100%;
+    position: relative;
+    border-radius: 2px;
+}
 
-        .fl-line-art {
-            height: 2px;
-            background: #e2e8f0;
-            width: 100%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+.fc-line::before, .fc-line::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #cbd5e1;
+}
+.fc-line::before { left: 0; }
+.fc-line::after { right: 0; }
 
-        .fl-line-art::before,
-        .fl-line-art::after {
-            content: '';
-            width: 8px;
-            height: 8px;
-            border: 2px solid #e2e8f0;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-        }
+.fc-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    padding: 0 10px;
+    color: var(--brand-pink);
+    font-size: 1.2rem;
+}
 
-        .fl-line-art::before {
-            left: -4px;
-        }
+.fc-stop-badge {
+    display: inline-block;
+    margin-top: 12px;
+    background: var(--brand-pink-soft);
+    color: var(--brand-pink);
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 4px 14px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
 
-        .fl-line-art::after {
-            right: -4px;
-        }
+/* Right Section: Price */
+.fc-side {
+    width: 260px;
+    background: linear-gradient(145deg, #ffffff 0%, #fdf2f5 100%);
+    border-left: 1px solid #f1f5f9;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
 
-        .fl-plane-icon {
-            background: white;
-            color: var(--brand-pink);
-            padding: 0 10px;
-            font-size: 1.2rem;
-            z-index: 2;
-        }
+.fc-price-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-gray);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
 
-        .fl-stops {
-            margin-top: 8px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--brand-pink);
-            text-transform: uppercase;
-            background: var(--brand-pink-light);
-            padding: 2px 12px;
-            border-radius: 50px;
-            display: inline-block;
-        }
+.fc-price {
+    color: var(--brand-pink);
+    margin-bottom: 20px;
+}
 
-        /* --- Right Side: Price Section --- */
-        .fl-price-section {
-            width: 240px;
-            background: #fcfcfd;
-            border-left: 1px solid var(--border-color);
-            padding: 2rem;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
+.fc-price small {
+    font-size: 1rem;
+    font-weight: 700;
+}
 
-        .fl-price-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-light);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+.fc-price b {
+    font-size: 2.4rem;
+    font-weight: 900;
+    letter-spacing: -1.5px;
+}
 
-        .fl-price-amount {
-            margin: 8px 0 20px;
-        }
+.fc-btn {
+    background: var(--brand-pink);
+    color: white;
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 8px 20px -6px rgba(205, 27, 79, 0.4);
+    transition: all 0.3s;
+}
 
-        .fl-currency {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--brand-pink);
-            vertical-align: top;
-        }
+.fc-btn:hover {
+    background: var(--brand-pink-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 25px -6px rgba(205, 27, 79, 0.5);
+    color: white;
+}
 
-        .fl-amount {
-            font-size: 2.2rem;
-            font-weight: 900;
-            color: var(--brand-pink);
-            letter-spacing: -1px;
-        }
+.fc-details {
+    margin-top: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-gray);
+    text-decoration: none;
+}
 
-        .fl-select-btn {
-            background: var(--brand-pink);
-            color: white;
-            border: none;
-            padding: 14px 20px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1rem;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: block;
-            box-shadow: 0 4px 12px rgba(205, 27, 79, 0.2);
-        }
-
-        .fl-select-btn:hover {
-            background: var(--brand-pink-dark);
-            transform: scale(1.02);
-            color: white;
-        }
-
-        /* Details toggle link */
-        .fl-details-link {
-            margin-top: 15px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-light);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-        }
-
-        /* --- Mobile Responsive --- */
-        @media (max-width: 768px) {
-            .fl-price-section {
-                width: 100%;
-                border-left: none;
-                border-top: 1px solid var(--border-color);
-                padding: 1.5rem;
-            }
-
-            .fl-info-section {
-                padding: 1.5rem;
-            }
-        }
+@media (max-width: 768px) {
+    .flight-card { flex-direction: column; }
+    .fc-side { width: 100%; border-left: none; border-top: 1px solid #f1f5f9; }
+}
     </style>
 @endpush
