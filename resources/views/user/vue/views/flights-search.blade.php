@@ -187,7 +187,13 @@
                             style="font-size:11px"></i></div>
                     <div class="hs-field__value">
                         <span class="hs-rooms-text">
-                            @{{ travellersText }}
+                            <strong>@{{ adults }}</strong> Adult<template v-if="adults !== 1">s</template>
+                            <template v-if="children > 0">
+                                , <strong>@{{ children }}</strong> Child<template v-if="children !== 1">ren</template>
+                            </template>
+                            <template v-if="infants > 0">
+                                , <strong>@{{ infants }}</strong> Infant<template v-if="infants !== 1">s</template>
+                            </template>
                         </span>
                     </div>
                 </div>

@@ -22,85 +22,93 @@
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-lg-12">
-                    @if (!empty($results))
-                        @foreach ($results as $result)
-                            @php
-                                $firstLeg = $result['legs'][0] ?? null;
-                                $segments = $firstLeg['segments'] ?? [];
-                                $firstSeg = $segments[0] ?? null;
-                                $lastSeg = end($segments);
-                                $stopCount = (int) ($firstSeg['stop_count'] ?? 0);
-                                $currency = strtoupper((string) ($result['currency'] ?? 'AED'));
-                            @endphp
+            <div class="flight-results-container">
+                @if (!empty($results))
+                    @foreach ($results as $result)
+                        @php
+                            $firstLeg = $result['legs'][0] ?? null;
+                            $segments = $firstLeg['segments'] ?? [];
+                            $firstSeg = $segments[0] ?? null;
+                            $lastSeg = end($segments);
+                            $stopCount = (int) ($firstSeg['stop_count'] ?? 0);
+                            $currency = strtoupper((string) ($result['currency'] ?? 'AED'));
+                        @endphp
 
-                            <div class="flight-card">
-                                <div class="flight-card__main">
+                        <div class="fl-card">
+                            <div class="fl-card__body">
 
-                                    <!-- 1. Airline Logo & Info -->
-                                    <div class="airline-wrapper">
-                                        <div class="airline-logo-box">
-                                            <img src="https://img.logo.dev/{{ $firstSeg['carrier'] }}.png?token=YOUR_TOKEN"
+                                <!-- Journey Details -->
+                                <div class="fl-info-section">
+                                    <!-- Airline Header -->
+                                    <div class="fl-airline-row">
+                                        <div class="fl-airline-logo">
+                                            <img src="https://img.logo.dev/{{ $firstSeg['carrier'] }}.png?token=YOUR_API_KEY"
                                                 onerror="this.src='https://ui-avatars.com/api/?name={{ $firstSeg['carrier'] }}&background=cd1b4f&color=fff'"
-                                                alt="Airline">
+                                                alt="Airline" width="30">
                                         </div>
-                                        <div class="airline-details">
-                                            <span
-                                                class="airline-name">{{ $firstSeg['carrier_name'] ?? $firstSeg['carrier'] }}</span>
-                                            <div style="font-size: 0.7rem; color: #94a3b8;">
-                                                {{ $firstSeg['carrier'] }}{{ $firstSeg['flight_number'] }}</div>
-                                        </div>
+                                        <span class="fl-airline-name">
+                                            {{ $firstSeg['carrier_name'] ?? $firstSeg['carrier'] }}
+                                            <span style="font-weight:400; color:#94a3b8; margin-left:5px;">•
+                                                {{ $firstSeg['carrier'] }}{{ $firstSeg['flight_number'] }}</span>
+                                        </span>
                                     </div>
 
-                                    <!-- 2. The Route Path -->
-                                    <div class="route-wrapper">
-                                        <div class="route-point">
+                                    <!-- Route Display -->
+                                    <div class="fl-route-display">
+                                        <div class="fl-node">
                                             <span class="time">{{ $firstSeg['departure_time'] }}</span>
-                                            <span class="airport-code">{{ $firstSeg['from'] }}</span>
+                                            <span class="code">{{ $firstSeg['from'] }}</span>
                                         </div>
 
-                                        <div class="route-path">
-                                            <span class="duration-text">{{ $firstLeg['elapsedTime'] ?? '-' }} min</span>
-                                            <div class="path-line">
-                                                <i class="bx bxs-plane-alt plane-icon"></i>
+                                        <div class="fl-path">
+                                            <span class="fl-duration">{{ $firstLeg['elapsedTime'] ?? '-' }}m</span>
+                                            <div class="fl-line-art">
+                                                <i class="bx bxs-plane-takeoff fl-plane-icon"></i>
                                             </div>
-                                            <span class="stops-badge">
+                                            <span class="fl-stops">
                                                 {{ $stopCount === 0 ? 'Non-stop' : $stopCount . ' Stop' . ($stopCount > 1 ? 's' : '') }}
                                             </span>
                                         </div>
 
-                                        <div class="route-point">
+                                        <div class="fl-node text-end">
                                             <span class="time">{{ $lastSeg['arrival_time'] ?? '-' }}</span>
-                                            <span class="airport-code">{{ $lastSeg['to'] ?? '-' }}</span>
+                                            <span class="code">{{ $lastSeg['to'] ?? '-' }}</span>
                                         </div>
                                     </div>
-
-                                    <!-- 3. Action Section -->
-                                    <div class="action-wrapper">
-                                        <span class="price-label">Total Price</span>
-                                        <div class="price-value">
-                                            <small style="font-size: 1rem; font-weight: 600;">{{ $currency }}</small>
-                                            {{ number_format($result['totalPrice'], 0) }}
-                                        </div>
-                                        <a href="javascript:void(0)" class="select-btn">Select Flight</a>
-                                    </div>
-
                                 </div>
+
+                                <!-- Price & Booking (Pink Section) -->
+                                <div class="fl-price-section">
+                                    <span class="fl-price-label">Price per adult</span>
+                                    <div class="fl-price-amount">
+                                        <span class="fl-currency">{{ $currency }}</span>
+                                        <span class="fl-amount">{{ number_format($result['totalPrice'], 0) }}</span>
+                                    </div>
+
+                                    <a href="javascript:void(0)" class="fl-select-btn">Select Flight</a>
+
+                                    <a href="#" class="fl-details-link">
+                                        View details <i class="bx bx-chevron-down"></i>
+                                    </a>
+                                </div>
+
                             </div>
-                        @endforeach
-                    @else
-                        <!-- Keep your existing Empty State here -->
-                        <div class="text-center py-5">
-                            <i class="bx bx-search-alt"
-                                style="font-size: 4rem; color: var(--color-primary); opacity: 0.3;"></i>
-                            <h3 class="mt-3">No flights found</h3>
-                            <p class="text-muted">Try adjusting your search filters.</p>
-                            <a href="{{ route('user.flights.index') }}"
-                                class="btn btn-outline-secondary rounded-pill px-4">Search Again</a>
                         </div>
-                    @endif
-                </div>
+                    @endforeach
+                @else
+                    <!-- Professional Empty State -->
+                    <div class="text-center py-5">
+                        <div
+                            style="background: var(--brand-pink-light); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                            <i class="bx bx-map-alt" style="font-size: 2.5rem; color: var(--brand-pink);"></i>
+                        </div>
+                        <h3 style="font-weight: 800; color: var(--text-main);">No Flights Available</h3>
+                        <p style="color: var(--text-light); max-width: 400px; margin: 10px auto 25px;">We couldn't find any
+                            flights for this route. Try changing your dates or search for nearby airports.</p>
+                        <a href="{{ route('user.flights.index') }}" class="fl-select-btn d-inline-block"
+                            style="width: auto; padding-left: 40px; padding-right: 40px;">Modify Search</a>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -109,214 +117,244 @@
 @push('css')
     <style>
         :root {
-            --color-primary: #cd1b4f;
-            --color-primary-dark: #c0073e;
-            --text-dark: #1a1f2b;
-            --text-muted: #64748b;
-            --bg-light: #f8fafc;
-            --border-color: #e2e8f0;
+            --brand-pink: #cd1b4f;
+            --brand-pink-dark: #c0073e;
+            --brand-pink-light: rgba(205, 27, 79, 0.05);
+            --text-main: #2d3748;
+            --text-light: #718096;
+            --border-color: #edf2f7;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
         }
 
-        .flight-card {
-            background: #fff;
-            border-radius: 16px;
+        .flight-results-container {
+            font-family: 'Inter', sans-serif;
+            /* Modern clean font */
+        }
+
+        .fl-card {
+            background: #ffffff;
+            border-radius: 20px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
             overflow: hidden;
         }
 
-        .flight-card:hover {
-            box-shadow: 0 10px 20px rgba(205, 27, 79, 0.1);
-            border-color: var(--color-primary);
+        .fl-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
+            border-color: var(--brand-pink);
         }
 
-        .flight-card__main {
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr;
-            padding: 24px;
+        .fl-card__body {
+            display: flex;
+            flex-wrap: wrap;
             align-items: center;
+            padding: 0;
         }
 
-        /* 1. Airline Section */
-        .airline-wrapper {
+        /* --- Left Side: Flight Info --- */
+        .fl-info-section {
+            flex: 1;
+            padding: 2rem;
+            min-width: 300px;
+        }
+
+        .fl-airline-row {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        .airline-logo-box {
-            width: 50px;
-            height: 50px;
-            background: var(--bg-light);
-            border-radius: 12px;
+        .fl-airline-logo {
+            width: 40px;
+            height: 40px;
+            background: #f8fafc;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px;
+            padding: 5px;
         }
 
-        .airline-logo-box img {
-            max-width: 100%;
-            filter: grayscale(0.2);
-        }
-
-        .airline-name {
+        .fl-airline-name {
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--text-main);
             font-size: 0.95rem;
+            letter-spacing: -0.2px;
         }
 
-        /* 2. Route Timeline Section */
-        .route-wrapper {
+        /* --- The Route Timeline --- */
+        .fl-route-display {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 30px;
-            position: relative;
+            gap: 20px;
         }
 
-        .route-point {
-            text-align: center;
-            min-width: 80px;
-        }
-
-        .time {
+        .fl-node .time {
             display: block;
-            font-size: 1.4rem;
+            font-size: 1.6rem;
             font-weight: 800;
-            color: var(--text-dark);
-            letter-spacing: -0.5px;
+            color: var(--text-main);
+            line-height: 1;
         }
 
-        .airport-code {
-            display: block;
+        .fl-node .code {
             font-size: 0.85rem;
             font-weight: 600;
-            color: var(--text-muted);
-            margin-top: 2px;
+            color: var(--text-light);
+            margin-top: 5px;
+            display: block;
         }
 
-        .route-path {
+        .fl-path {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            text-align: center;
             position: relative;
-            padding: 0 15px;
         }
 
-        .duration-text {
+        .fl-duration {
             font-size: 0.75rem;
-            color: var(--text-muted);
+            font-weight: 600;
+            color: var(--text-light);
             margin-bottom: 8px;
-            font-weight: 500;
+            display: block;
         }
 
-        .path-line {
-            width: 100%;
+        .fl-line-art {
             height: 2px;
             background: #e2e8f0;
+            width: 100%;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .path-line::before,
-        .path-line::after {
+        .fl-line-art::before,
+        .fl-line-art::after {
             content: '';
-            position: absolute;
             width: 8px;
             height: 8px;
+            border: 2px solid #e2e8f0;
+            background: white;
             border-radius: 50%;
-            background: #cbd5e1;
+            position: absolute;
         }
 
-        .path-line::before {
-            left: 0;
+        .fl-line-art::before {
+            left: -4px;
         }
 
-        .path-line::after {
-            right: 0;
+        .fl-line-art::after {
+            right: -4px;
         }
 
-        .plane-icon {
-            background: #fff;
-            padding: 0 8px;
-            color: var(--color-primary);
+        .fl-plane-icon {
+            background: white;
+            color: var(--brand-pink);
+            padding: 0 10px;
             font-size: 1.2rem;
-            z-index: 1;
+            z-index: 2;
         }
 
-        .stops-badge {
+        .fl-stops {
             margin-top: 8px;
             font-size: 0.7rem;
             font-weight: 700;
+            color: var(--brand-pink);
             text-transform: uppercase;
-            color: var(--color-primary);
-            background: rgba(205, 27, 79, 0.08);
-            padding: 2px 10px;
-            border-radius: 20px;
-        }
-
-        /* 3. Price & Action Section */
-        .action-wrapper {
-            text-align: right;
-            border-left: 1px solid var(--border-color);
-            padding-left: 30px;
-        }
-
-        .price-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            display: block;
-        }
-
-        .price-value {
-            font-size: 1.8rem;
-            font-weight: 900;
-            color: var(--color-primary);
-            margin: 4px 0;
-        }
-
-        .select-btn {
-            background: var(--color-primary);
-            color: #fff;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 10px;
-            font-weight: 700;
-            width: 100%;
-            transition: background 0.2s;
-            text-decoration: none;
+            background: var(--brand-pink-light);
+            padding: 2px 12px;
+            border-radius: 50px;
             display: inline-block;
         }
 
-        .select-btn:hover {
-            background: var(--color-primary-dark);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(205, 27, 79, 0.3);
+        /* --- Right Side: Price Section --- */
+        .fl-price-section {
+            width: 240px;
+            background: #fcfcfd;
+            border-left: 1px solid var(--border-color);
+            padding: 2rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        /* Responsive fixes */
-        @media (max-width: 992px) {
-            .flight-card__main {
-                grid-template-columns: 1fr;
-                gap: 20px;
-                text-align: center;
-            }
+        .fl-price-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-            .action-wrapper {
+        .fl-price-amount {
+            margin: 8px 0 20px;
+        }
+
+        .fl-currency {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--brand-pink);
+            vertical-align: top;
+        }
+
+        .fl-amount {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--brand-pink);
+            letter-spacing: -1px;
+        }
+
+        .fl-select-btn {
+            background: var(--brand-pink);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: block;
+            box-shadow: 0 4px 12px rgba(205, 27, 79, 0.2);
+        }
+
+        .fl-select-btn:hover {
+            background: var(--brand-pink-dark);
+            transform: scale(1.02);
+            color: white;
+        }
+
+        /* Details toggle link */
+        .fl-details-link {
+            margin-top: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        /* --- Mobile Responsive --- */
+        @media (max-width: 768px) {
+            .fl-price-section {
+                width: 100%;
                 border-left: none;
                 border-top: 1px solid var(--border-color);
-                padding: 20px 0 0 0;
-                text-align: center;
+                padding: 1.5rem;
             }
 
-            .route-wrapper {
-                padding: 0;
+            .fl-info-section {
+                padding: 1.5rem;
             }
         }
     </style>
