@@ -93,6 +93,9 @@
                             <a href="{{ route('user.dashboard') }}" class="hc-btn hc-btn--primary">
                                 <i class="bx bx-home"></i> Dashboard
                             </a>
+                            <a href="{{ route('user.bookings.index') }}" class="hc-btn hc-btn--outline">
+                                <i class="bx bx-list-ul"></i> View My Bookings
+                            </a>
                             <a href="{{ route('user.flights.index') }}" class="hc-btn hc-btn--outline">
                                 <i class="bx bx-search"></i> Search Flights
                             </a>

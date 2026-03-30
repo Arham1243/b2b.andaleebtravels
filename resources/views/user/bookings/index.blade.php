@@ -225,6 +225,7 @@
                                     <th>Supplier</th>
                                     <th>Check In / Out</th>
                                     <th>Amount</th>
+                                    <th>Payment Method</th>
                                     <th>Payment</th>
                                     <th>Status</th>
                                     <th>Booked On</th>
@@ -243,6 +244,11 @@
                                             </div>
                                         </td>
                                         <td><span class="booking-amount">{!! formatPrice($booking->total_amount) !!}</span></td>
+                                        <td>
+                                            <span class="text-uppercase">
+                                                {{ $booking->payment_method ? $booking->payment_method : 'N/A' }}
+                                            </span>
+                                        </td>
                                         <td>
                                             <span class="badge-status badge-status--{{ $booking->payment_status }}">
                                                 {{ ucfirst($booking->payment_status) }}
@@ -314,6 +320,7 @@
                                     <th>Route</th>
                                     <th>Dates</th>
                                     <th>Amount</th>
+                                    <th>Payment Method</th>
                                     <th>Payment</th>
                                     <th>Status</th>
                                     <th>Ticket</th>
@@ -337,6 +344,11 @@
                                             </div>
                                         </td>
                                         <td><span class="booking-amount"><span class="dirham">D</span> {{ number_format($booking->total_amount, 2) }}</span></td>
+                                        <td>
+                                            <span class="text-uppercase">
+                                                {{ $booking->payment_method ? $booking->payment_method : 'N/A' }}
+                                            </span>
+                                        </td>
                                         <td>
                                             <span class="badge-status badge-status--{{ $booking->payment_status }}">
                                                 {{ ucfirst($booking->payment_status) }}

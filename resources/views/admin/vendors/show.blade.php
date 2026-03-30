@@ -133,6 +133,7 @@
                                         <th>Check In / Out</th>
                                         <th>Amount</th>
                                         <th>Wallet Used</th>
+                                        <th>Payment Method</th>
                                         <th>Payment</th>
                                         <th>Status</th>
                                         <th>Booked On</th>
@@ -164,6 +165,9 @@
                                             </td>
                                             <td class="fw-bold">{!! formatPrice($booking->total_amount) !!}</td>
                                             <td>{!! formatPrice($booking->wallet_amount ?? 0) !!}</td>
+                                            <td class="text-uppercase">
+                                                {{ $booking->payment_method ? $booking->payment_method : 'N/A' }}
+                                            </td>
                                             <td>
                                                 <span
                                                     class="badge rounded-pill bg-{{ $booking->payment_status === 'paid' ? 'success' : ($booking->payment_status === 'pending' ? 'warning' : 'danger') }}">
@@ -238,6 +242,7 @@
                                         <th>Dates</th>
                                         <th>Amount</th>
                                         <th>Wallet Used</th>
+                                        <th>Payment Method</th>
                                         <th>Payment</th>
                                         <th>Status</th>
                                         <th>Ticket</th>
@@ -262,6 +267,9 @@
                                             </td>
                                             <td class="fw-bold">{!! formatPrice($booking->total_amount) !!}</td>
                                             <td>{!! formatPrice($booking->wallet_amount ?? 0) !!}</td>
+                                            <td class="text-uppercase">
+                                                {{ $booking->payment_method ? $booking->payment_method : 'N/A' }}
+                                            </td>
                                             <td>
                                                 <span class="badge rounded-pill bg-{{ $booking->payment_status === 'paid' ? 'success' : ($booking->payment_status === 'pending' ? 'warning' : 'danger') }}">
                                                     {{ ucfirst($booking->payment_status) }}
