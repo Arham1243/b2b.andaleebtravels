@@ -249,7 +249,12 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="badge-status badge-status--{{ $booking->booking_status }}">
+                                            @php
+                                                $bookingStatusClass = $booking->booking_status === 'completed'
+                                                    ? 'confirmed'
+                                                    : $booking->booking_status;
+                                            @endphp
+                                            <span class="badge-status badge-status--{{ $bookingStatusClass }}">
                                                 {{ ucfirst($booking->booking_status) }}
                                             </span>
                                         </td>
@@ -338,7 +343,12 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="badge-status badge-status--{{ $booking->booking_status }}">
+                                            @php
+                                                $bookingStatusClass = $booking->booking_status === 'completed'
+                                                    ? 'confirmed'
+                                                    : $booking->booking_status;
+                                            @endphp
+                                            <span class="badge-status badge-status--{{ $bookingStatusClass }}">
                                                 {{ ucfirst($booking->booking_status) }}
                                             </span>
                                         </td>

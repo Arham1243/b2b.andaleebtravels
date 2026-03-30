@@ -172,7 +172,7 @@
                                             </td>
                                             <td>
                                                 <span
-                                                    class="badge rounded-pill bg-{{ $booking->booking_status === 'confirmed' ? 'success' : ($booking->booking_status === 'pending' ? 'warning' : 'danger') }}">
+                                                    class="badge rounded-pill bg-{{ in_array($booking->booking_status, ['confirmed', 'completed'], true) ? 'success' : ($booking->booking_status === 'pending' ? 'warning' : 'danger') }}">
                                                     {{ ucfirst($booking->booking_status) }}
                                                 </span>
                                             </td>
@@ -268,7 +268,7 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="badge rounded-pill bg-{{ $booking->booking_status === 'confirmed' ? 'success' : ($booking->booking_status === 'pending' ? 'warning' : 'danger') }}">
+                                                <span class="badge rounded-pill bg-{{ in_array($booking->booking_status, ['confirmed', 'completed'], true) ? 'success' : ($booking->booking_status === 'pending' ? 'warning' : 'danger') }}">
                                                     {{ ucfirst($booking->booking_status) }}
                                                 </span>
                                             </td>
