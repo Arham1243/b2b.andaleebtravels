@@ -21,6 +21,11 @@ class B2bVendor extends Authenticatable
         return $this->hasMany(B2bHotelBooking::class, 'b2b_vendor_id');
     }
 
+    public function flightBookings(): HasMany
+    {
+        return $this->hasMany(B2bFlightBooking::class, 'b2b_vendor_id');
+    }
+
     public function parentVendor(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_vendor_id');

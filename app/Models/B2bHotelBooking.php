@@ -51,6 +51,7 @@ class B2bHotelBooking extends Model
         'source_market',
         'ip_address',
         'user_agent',
+        'cancel_response',
         'cancelled_at',
         'cancelled_by',
     ];

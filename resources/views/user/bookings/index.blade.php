@@ -353,7 +353,7 @@
                                         <td>
                                             <div class="booking-actions">
                                                 @if ($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
-                                                    <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}" class="btn-cancel-booking">
+                                                    <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}" class="btn-cancel-booking" onclick="return confirm('Are you sure you want to cancel this flight booking?');">
                                                         <i class="bx bx-x"></i> Cancel
                                                     </a>
                                                 @else

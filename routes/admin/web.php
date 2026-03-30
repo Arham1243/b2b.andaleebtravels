@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\TerminalController;
 use App\Http\Controllers\Admin\AdminHotelController;
 use App\Http\Controllers\Admin\AdminFlightController;
+use App\Http\Controllers\Admin\AdminBookingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/admins', function () {
@@ -46,6 +47,11 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 
     Route::resource('vendors', VendorController::class);
     Route::get('vendors/change-status/{vendor}', [VendorController::class, 'changeStatus'])->name('vendors.change-status');
+
+    Route::post('bookings/hotels/{booking}/status', [AdminBookingController::class, 'updateHotelStatus'])->name('bookings.hotels.status');
+    Route::post('bookings/hotels/{booking}/cancel', [AdminBookingController::class, 'cancelHotelBooking'])->name('bookings.hotels.cancel');
+    Route::post('bookings/flights/{booking}/status', [AdminBookingController::class, 'updateFlightStatus'])->name('bookings.flights.status');
+    Route::post('bookings/flights/{booking}/cancel', [AdminBookingController::class, 'cancelFlightBooking'])->name('bookings.flights.cancel');
 
     Route::resource('inquiries', InquiryController::class);
     Route::get('logo-management', [ConfigController::class, 'logoManagement'])->name('settings.logo');

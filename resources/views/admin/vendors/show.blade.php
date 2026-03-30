@@ -136,6 +136,7 @@
                                         <th>Payment</th>
                                         <th>Status</th>
                                         <th>Booked On</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -178,6 +179,32 @@
                                             <td style="white-space:nowrap; font-size:12px;">
                                                 {{ $booking->created_at->format('d M Y, h:i A') }}
                                             </td>
+                                            <td>
+                                                <div class="d-flex flex-column gap-2">
+                                                    <form method="POST" action="{{ route('admin.bookings.hotels.status', $booking->id) }}" class="d-flex gap-2 align-items-center flex-wrap">
+                                                        @csrf
+                                                        <select name="payment_status" class="form-select form-select-sm" style="min-width:120px;">
+                                                            @foreach (['pending', 'paid', 'failed', 'refunded'] as $status)
+                                                                <option value="{{ $status }}" {{ $booking->payment_status === $status ? 'selected' : '' }}>
+                                                                    {{ ucfirst($status) }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <select name="booking_status" class="form-select form-select-sm" style="min-width:140px;">
+                                                            @foreach (['pending', 'confirmed', 'cancelled', 'completed', 'refunded', 'failed'] as $status)
+                                                                <option value="{{ $status }}" {{ $booking->booking_status === $status ? 'selected' : '' }}>
+                                                                    {{ ucfirst($status) }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                                                    </form>
+                                                    <form method="POST" action="{{ route('admin.bookings.hotels.cancel', $booking->id) }}" onsubmit="return confirm('Cancel this hotel booking?');">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
+                                                    </form>
+                                                </div>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -187,6 +214,112 @@
                         <div class="text-center py-4 text-muted">
                             <i class="bx bx-building-house" style="font-size: 36px;"></i>
                             <p class="mt-2 mb-0">No hotel bookings yet.</p>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Flight Bookings --}}
+                <div class="custom-sec mb-4">
+                    <div class="custom-sec__header">
+                        <div class="section-content">
+                            <h3 class="heading">Flight Bookings</h3>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ $flightBookings->count() }} bookings</span>
+                    </div>
+                    @if ($flightBookings->isNotEmpty())
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Booking #</th>
+                                        <th>Route</th>
+                                        <th>Dates</th>
+                                        <th>Amount</th>
+                                        <th>Wallet Used</th>
+                                        <th>Payment</th>
+                                        <th>Status</th>
+                                        <th>Ticket</th>
+                                        <th>Booked On</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($flightBookings as $booking)
+                                        <tr>
+                                            <td>
+                                                <span class="fw-semibold" style="color: var(--color-primary);">
+                                                    {{ $booking->booking_number }}
+                                                </span>
+                                            </td>
+                                            <td>{{ $booking->from_airport }} &mdash; {{ $booking->to_airport }}</td>
+                                            <td style="white-space:nowrap; font-size:12px;">
+                                                {{ $booking->departure_date?->format('d M Y') }}
+                                                @if ($booking->return_date)
+                                                    &mdash; {{ $booking->return_date?->format('d M Y') }}
+                                                @endif
+                                            </td>
+                                            <td class="fw-bold">{!! formatPrice($booking->total_amount) !!}</td>
+                                            <td>{!! formatPrice($booking->wallet_amount ?? 0) !!}</td>
+                                            <td>
+                                                <span class="badge rounded-pill bg-{{ $booking->payment_status === 'paid' ? 'success' : ($booking->payment_status === 'pending' ? 'warning' : 'danger') }}">
+                                                    {{ ucfirst($booking->payment_status) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill bg-{{ $booking->booking_status === 'confirmed' ? 'success' : ($booking->booking_status === 'pending' ? 'warning' : 'danger') }}">
+                                                    {{ ucfirst($booking->booking_status) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill bg-{{ $booking->ticket_status === 'issued' ? 'success' : ($booking->ticket_status === 'pending' ? 'warning' : 'danger') }}">
+                                                    {{ ucfirst($booking->ticket_status) }}
+                                                </span>
+                                            </td>
+                                            <td style="white-space:nowrap; font-size:12px;">
+                                                {{ $booking->created_at->format('d M Y, h:i A') }}
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column gap-2">
+                                                    <form method="POST" action="{{ route('admin.bookings.flights.status', $booking->id) }}" class="d-flex gap-2 align-items-center flex-wrap">
+                                                        @csrf
+                                                        <select name="payment_status" class="form-select form-select-sm" style="min-width:120px;">
+                                                            @foreach (['pending', 'paid', 'failed', 'refunded'] as $status)
+                                                                <option value="{{ $status }}" {{ $booking->payment_status === $status ? 'selected' : '' }}>
+                                                                    {{ ucfirst($status) }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <select name="booking_status" class="form-select form-select-sm" style="min-width:140px;">
+                                                            @foreach (['pending', 'confirmed', 'cancelled', 'completed', 'refunded', 'failed'] as $status)
+                                                                <option value="{{ $status }}" {{ $booking->booking_status === $status ? 'selected' : '' }}>
+                                                                    {{ ucfirst($status) }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <select name="ticket_status" class="form-select form-select-sm" style="min-width:120px;">
+                                                            @foreach (['pending', 'issued', 'failed', 'refunded'] as $status)
+                                                                <option value="{{ $status }}" {{ $booking->ticket_status === $status ? 'selected' : '' }}>
+                                                                    {{ ucfirst($status) }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                                                    </form>
+                                                    <form method="POST" action="{{ route('admin.bookings.flights.cancel', $booking->id) }}" onsubmit="return confirm('Cancel this flight booking?');">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-4 text-muted">
+                            <i class="bx bx-plane" style="font-size: 36px;"></i>
+                            <p class="mt-2 mb-0">No flight bookings yet.</p>
                         </div>
                     @endif
                 </div>
