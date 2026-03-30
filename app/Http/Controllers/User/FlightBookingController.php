@@ -72,6 +72,19 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Flight selection expired. Please search again.');
         }
 
+        $revalidate = $flightService->revalidateItinerary(
+            session('flight_search_response', []),
+            $itineraryId,
+            (int) ($params['adults'] ?? 1),
+            (int) ($params['children'] ?? 0),
+            (int) ($params['infants'] ?? 0)
+        );
+
+        if (!($revalidate['success'] ?? false)) {
+            return redirect()->route('user.flights.index')
+                ->with('notify_error', $revalidate['error'] ?? 'Unable to revalidate flight itinerary. Please search again.');
+        }
+
         $totalAmount = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency = $itineraryData['currency'] ?? 'AED';
 

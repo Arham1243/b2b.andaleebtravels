@@ -659,21 +659,22 @@ class FlightService
             throw new \Exception('Missing Sabre record locator.');
         }
 
-        $session = $this->createSoapSession();
+        $bearerToken = $this->getSabreToken();
+        $session = $this->createSoapSession($bearerToken);
         $binaryToken = $session['token'] ?? null;
 
         if (!$binaryToken) {
             throw new \Exception('Unable to establish Sabre session.');
         }
 
-        $reservation = $this->getReservation($binaryToken, $locator);
+        $reservation = $this->getReservation($binaryToken, $locator, $bearerToken);
         if (!($reservation['success'] ?? false)) {
             throw new \Exception($reservation['error'] ?? 'Unable to retrieve reservation.');
         }
 
-        $cancel = $this->cancelItinerary($binaryToken);
-        $end = $this->endTransaction($binaryToken);
-        $close = $this->closeSession($binaryToken);
+        $cancel = $this->cancelItinerary($binaryToken, $bearerToken);
+        $end = $this->endTransaction($binaryToken, $bearerToken);
+        $close = $this->closeSession($binaryToken, $bearerToken);
 
         return [
             'success' => (bool) ($cancel['success'] ?? false),
@@ -682,6 +683,46 @@ class FlightService
             'end' => $end,
             'close' => $close,
         ];
+    }
+
+    public function revalidateItinerary(array $searchResponse, int $itineraryId, int $adults, int $children, int $infants): array
+    {
+        try {
+            $token = $this->getSabreToken();
+
+            $itineraryRaw = $this->findRawItinerary($searchResponse, $itineraryId);
+            if (!$itineraryRaw) {
+                throw new \Exception('Unable to locate itinerary for revalidation.');
+            }
+
+            $payload = $this->buildRevalidatePayload($searchResponse, $itineraryRaw, $adults, $children, $infants);
+            if (empty($payload['OTA_AirLowFareSearchRQ']['OriginDestinationInformation'])) {
+                throw new \Exception('Unable to build revalidation payload.');
+            }
+
+            $response = Http::withToken($token)
+                ->withHeaders(['Accept' => 'application/json'])
+                ->post('https://api.cert.platform.sabre.com/v4/shop/flights/revalidate', $payload);
+
+            if (!$response->successful()) {
+                throw new \Exception('Sabre revalidation failed: ' . $response->body());
+            }
+
+            return [
+                'success' => true,
+                'data' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            Log::error('Sabre revalidation failed', [
+                'itinerary_id' => $itineraryId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 
     private function getSabreToken(): string
@@ -817,6 +858,195 @@ class FlightService
         ];
     }
 
+    private function buildRevalidatePayload(array $grouped, array $itineraryRaw, int $adults, int $children, int $infants): array
+    {
+        $originDestinations = $this->buildRevalidateOriginDestinations($grouped, $itineraryRaw);
+        $passengerTypes = $this->buildRevalidatePassengerTypes($adults, $children, $infants);
+        $totalPassengers = max(1, $adults + $children + $infants);
+
+        return [
+            'OTA_AirLowFareSearchRQ' => [
+                'Version' => '4',
+                'AvailableFlightsOnly' => true,
+                'POS' => [
+                    'Source' => [
+                        [
+                            'PseudoCityCode' => $this->sabrePcc,
+                            'RequestorID' => [
+                                'CompanyName' => [
+                                    'Code' => $this->sabreCompanyCode,
+                                ],
+                                'ID' => '1',
+                                'Type' => '1',
+                            ],
+                        ],
+                    ],
+                ],
+                'OriginDestinationInformation' => $originDestinations,
+                'TravelerInfoSummary' => [
+                    'SeatsRequested' => [$totalPassengers],
+                    'AirTravelerAvail' => [
+                        [
+                            'PassengerTypeQuantity' => $passengerTypes,
+                        ],
+                    ],
+                    'PriceRequestInformation' => [
+                        'TPA_Extensions' => new \stdClass(),
+                    ],
+                ],
+                'TravelPreferences' => [
+                    'ValidInterlineTicket' => true,
+                    'TPA_Extensions' => [
+                        'DataSources' => [
+                            'NDC' => 'Disable',
+                            'ATPCO' => 'Enable',
+                            'LCC' => 'Disable',
+                        ],
+                        'PreferNDCSourceOnTie' => [
+                            'Value' => false,
+                        ],
+                        'ExcludeCallDirectCarriers' => [
+                            'Enabled' => true,
+                        ],
+                        'KeepSameCabin' => [
+                            'Enabled' => true,
+                        ],
+                        'VerificationItinCallLogic' => [
+                            'AlwaysCheckAvailability' => true,
+                            'Value' => 'M',
+                        ],
+                    ],
+                    'AncillaryFees' => [
+                        'AncillaryFeeGroup' => [
+                            ['Code' => 'BG'],
+                            ['Code' => 'ML'],
+                        ],
+                        'Enable' => true,
+                        'Summary' => true,
+                    ],
+                    'Baggage' => [
+                        'Description' => true,
+                        'RequestType' => 'A',
+                        'CarryOnInfo' => true,
+                    ],
+                    'CabinPref' => [
+                        [
+                            'Cabin' => 'Y',
+                            'PreferLevel' => 'Only',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    private function buildRevalidatePassengerTypes(int $adults, int $children, int $infants): array
+    {
+        $types = [
+            ['Code' => 'ADT', 'Quantity' => max(1, $adults)],
+        ];
+
+        if ($children > 0) {
+            $types[] = ['Code' => 'C06', 'Quantity' => $children];
+        }
+
+        if ($infants > 0) {
+            $types[] = ['Code' => 'INF', 'Quantity' => $infants];
+        }
+
+        return $types;
+    }
+
+    private function buildRevalidateOriginDestinations(array $grouped, array $itineraryRaw): array
+    {
+        $scheduleById = collect($grouped['scheduleDescs'] ?? [])->keyBy('id');
+        $legById = collect($grouped['legDescs'] ?? [])->keyBy('id');
+
+        $group = $grouped['itineraryGroups'][0] ?? [];
+        $legDescriptions = $group['groupDescription']['legDescriptions'] ?? [];
+
+        $bookingCodes = $this->extractBookingCodes($itineraryRaw);
+        $bookingCodeIndex = 0;
+
+        $originDestinations = [];
+
+        foreach ($itineraryRaw['legs'] ?? [] as $legIndex => $legRef) {
+            $leg = $legById->get($legRef['ref'] ?? null);
+            if (!$leg) {
+                continue;
+            }
+
+            $legDate = $legDescriptions[$legIndex]['departureDate'] ?? null;
+            $flights = [];
+            $origin = null;
+            $destination = null;
+            $departureDateTime = null;
+
+            foreach ($leg['schedules'] ?? [] as $scheduleRef) {
+                $schedule = $scheduleById->get($scheduleRef['ref'] ?? null);
+                if (!$schedule) {
+                    continue;
+                }
+
+                $departureTime = $schedule['departure']['time'] ?? '00:00:00';
+                $arrivalTime = $schedule['arrival']['time'] ?? '00:00:00';
+                $departureDate = $legDate ? $legDate . 'T' . $departureTime : $departureTime;
+                $arrivalDate = $legDate ? $legDate . 'T' . $arrivalTime : $arrivalTime;
+
+                if (!$origin) {
+                    $origin = $schedule['departure']['airport'] ?? '';
+                    $departureDateTime = $departureDate;
+                }
+
+                $destination = $schedule['arrival']['airport'] ?? '';
+
+                $flights[] = [
+                    'ClassOfService' => $bookingCodes[$bookingCodeIndex] ?? 'Y',
+                    'Number' => (int) ($schedule['carrier']['marketingFlightNumber'] ?? 0) ?: (string) ($schedule['carrier']['marketingFlightNumber'] ?? ''),
+                    'DepartureDateTime' => $departureDate,
+                    'ArrivalDateTime' => $arrivalDate,
+                    'Type' => 'A',
+                    'OriginLocation' => [
+                        'LocationCode' => $schedule['departure']['airport'] ?? '',
+                    ],
+                    'DestinationLocation' => [
+                        'LocationCode' => $schedule['arrival']['airport'] ?? '',
+                    ],
+                    'Airline' => [
+                        'Operating' => $schedule['carrier']['operating'] ?? ($schedule['carrier']['marketing'] ?? ''),
+                        'Marketing' => $schedule['carrier']['marketing'] ?? '',
+                    ],
+                ];
+
+                $bookingCodeIndex++;
+            }
+
+            if (!$origin || !$destination || empty($flights)) {
+                continue;
+            }
+
+            $originDestinations[] = [
+                'DepartureDateTime' => $departureDateTime,
+                'DestinationLocation' => [
+                    'LocationCode' => $destination,
+                    'LocationType' => 'A',
+                ],
+                'OriginLocation' => [
+                    'LocationCode' => $origin,
+                    'LocationType' => 'A',
+                ],
+                'TPA_Extensions' => [
+                    'SegmentType' => [
+                        'Code' => $legIndex === 0 ? 'O' : 'R',
+                    ],
+                    'Flight' => $flights,
+                ],
+            ];
+        }
+
+        return $originDestinations;
+    }
+
     private function buildPassengerTypes(B2bFlightBooking $booking): array
     {
         $types = [
@@ -907,7 +1137,7 @@ class FlightService
         return $codes;
     }
 
-    private function createSoapSession(): array
+    private function createSoapSession(?string $bearerToken = null): array
     {
         $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
         $messageId = 'mid:' . now()->format('Ymd-Hi') . '-' . rand(1000, 9999) . '@andaleebtravels.com';
@@ -950,9 +1180,17 @@ class FlightService
 </soap-env:Envelope>
 XML;
 
-        $response = Http::withHeaders([
+        $headers = [
             'Content-Type' => 'text/xml; charset=utf-8',
-        ])->post('https://sws-crt.cert.sabre.com', $xml);
+            'SOAPAction' => 'SessionCreateRQ',
+        ];
+
+        if ($bearerToken) {
+            $headers['Authorization'] = 'Bearer ' . $bearerToken;
+        }
+
+        $response = Http::withHeaders($headers)
+            ->post('https://sws-crt.cert.sabre.com', $xml);
 
         if (!$response->successful()) {
             throw new \Exception('Sabre session create failed: ' . $response->body());
@@ -967,7 +1205,7 @@ XML;
         ];
     }
 
-    private function getReservation(string $binaryToken, string $locator): array
+    private function getReservation(string $binaryToken, string $locator, ?string $bearerToken = null): array
     {
         $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
 
@@ -1003,9 +1241,17 @@ XML;
 </soapenv:Envelope>
 XML;
 
-        $response = Http::withHeaders([
+        $headers = [
             'Content-Type' => 'text/xml; charset=utf-8',
-        ])->post('https://webservices.cert.platform.sabre.com', $xml);
+            'SOAPAction' => 'getReservationRQ',
+        ];
+
+        if ($bearerToken) {
+            $headers['Authorization'] = 'Bearer ' . $bearerToken;
+        }
+
+        $response = Http::withHeaders($headers)
+            ->post('https://webservices.cert.platform.sabre.com', $xml);
 
         if (!$response->successful()) {
             return [
@@ -1027,7 +1273,7 @@ XML;
         ];
     }
 
-    private function cancelItinerary(string $binaryToken): array
+    private function cancelItinerary(string $binaryToken, ?string $bearerToken = null): array
     {
         $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
 
@@ -1058,9 +1304,17 @@ XML;
 </soap-env:Envelope>
 XML;
 
-        $response = Http::withHeaders([
+        $headers = [
             'Content-Type' => 'text/xml; charset=utf-8',
-        ])->post('https://sws-crt.cert.sabre.com', $xml);
+            'SOAPAction' => 'OTA_CancelLLSRQ',
+        ];
+
+        if ($bearerToken) {
+            $headers['Authorization'] = 'Bearer ' . $bearerToken;
+        }
+
+        $response = Http::withHeaders($headers)
+            ->post('https://sws-crt.cert.sabre.com', $xml);
 
         if (!$response->successful()) {
             return [
@@ -1075,7 +1329,7 @@ XML;
         ];
     }
 
-    private function endTransaction(string $binaryToken): array
+    private function endTransaction(string $binaryToken, ?string $bearerToken = null): array
     {
         $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
 
@@ -1107,9 +1361,17 @@ XML;
 </soap-env:Envelope>
 XML;
 
-        $response = Http::withHeaders([
+        $headers = [
             'Content-Type' => 'text/xml; charset=utf-8',
-        ])->post('https://sws-crt.cert.sabre.com', $xml);
+            'SOAPAction' => 'EndTransactionLLSRQ',
+        ];
+
+        if ($bearerToken) {
+            $headers['Authorization'] = 'Bearer ' . $bearerToken;
+        }
+
+        $response = Http::withHeaders($headers)
+            ->post('https://sws-crt.cert.sabre.com', $xml);
 
         if (!$response->successful()) {
             return [
@@ -1124,7 +1386,7 @@ XML;
         ];
     }
 
-    private function closeSession(string $binaryToken): array
+    private function closeSession(string $binaryToken, ?string $bearerToken = null): array
     {
         $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
 
@@ -1157,9 +1419,17 @@ XML;
 </soap-env:Envelope>
 XML;
 
-        $response = Http::withHeaders([
+        $headers = [
             'Content-Type' => 'text/xml; charset=utf-8',
-        ])->post('https://sws-crt.cert.sabre.com', $xml);
+            'SOAPAction' => 'SessionCloseRQ',
+        ];
+
+        if ($bearerToken) {
+            $headers['Authorization'] = 'Bearer ' . $bearerToken;
+        }
+
+        $response = Http::withHeaders($headers)
+            ->post('https://sws-crt.cert.sabre.com', $xml);
 
         if (!$response->successful()) {
             return [
