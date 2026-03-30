@@ -183,25 +183,27 @@
                                                 <div class="d-flex flex-column gap-2">
                                                     <form method="POST" action="{{ route('admin.bookings.hotels.status', $booking->id) }}" class="d-flex gap-2 align-items-center flex-wrap">
                                                         @csrf
-                                                        <select name="payment_status" class="form-select form-select-sm" style="min-width:120px;">
+                                                        <div class="d-flex flex-column">
+                                                            <small class="text-muted">Payment Status</small>
+                                                            <select name="payment_status" class="form-select form-select-sm" style="min-width:120px;">
                                                             @foreach (['pending', 'paid', 'failed', 'refunded'] as $status)
                                                                 <option value="{{ $status }}" {{ $booking->payment_status === $status ? 'selected' : '' }}>
                                                                     {{ ucfirst($status) }}
                                                                 </option>
                                                             @endforeach
-                                                        </select>
-                                                        <select name="booking_status" class="form-select form-select-sm" style="min-width:140px;">
+                                                            </select>
+                                                        </div>
+                                                        <div class="d-flex flex-column">
+                                                            <small class="text-muted">Booking Status</small>
+                                                            <select name="booking_status" class="form-select form-select-sm" style="min-width:140px;">
                                                             @foreach (['pending', 'confirmed', 'cancelled', 'completed', 'refunded', 'failed'] as $status)
                                                                 <option value="{{ $status }}" {{ $booking->booking_status === $status ? 'selected' : '' }}>
                                                                     {{ ucfirst($status) }}
                                                                 </option>
                                                             @endforeach
-                                                        </select>
+                                                            </select>
+                                                        </div>
                                                         <button type="submit" class="btn btn-sm btn-primary">Update</button>
-                                                    </form>
-                                                    <form method="POST" action="{{ route('admin.bookings.hotels.cancel', $booking->id) }}" onsubmit="return confirm('Cancel this hotel booking?');">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
                                                     </form>
                                                 </div>
                                             </td>
@@ -282,32 +284,37 @@
                                                 <div class="d-flex flex-column gap-2">
                                                     <form method="POST" action="{{ route('admin.bookings.flights.status', $booking->id) }}" class="d-flex gap-2 align-items-center flex-wrap">
                                                         @csrf
-                                                        <select name="payment_status" class="form-select form-select-sm" style="min-width:120px;">
+                                                        <div class="d-flex flex-column">
+                                                            <small class="text-muted">Payment Status</small>
+                                                            <select name="payment_status" class="form-select form-select-sm" style="min-width:120px;">
                                                             @foreach (['pending', 'paid', 'failed', 'refunded'] as $status)
                                                                 <option value="{{ $status }}" {{ $booking->payment_status === $status ? 'selected' : '' }}>
                                                                     {{ ucfirst($status) }}
                                                                 </option>
                                                             @endforeach
-                                                        </select>
-                                                        <select name="booking_status" class="form-select form-select-sm" style="min-width:140px;">
+                                                            </select>
+                                                        </div>
+                                                        <div class="d-flex flex-column">
+                                                            <small class="text-muted">Booking Status</small>
+                                                            <select name="booking_status" class="form-select form-select-sm" style="min-width:140px;">
                                                             @foreach (['pending', 'confirmed', 'cancelled', 'completed', 'refunded', 'failed'] as $status)
                                                                 <option value="{{ $status }}" {{ $booking->booking_status === $status ? 'selected' : '' }}>
                                                                     {{ ucfirst($status) }}
                                                                 </option>
                                                             @endforeach
-                                                        </select>
-                                                        <select name="ticket_status" class="form-select form-select-sm" style="min-width:120px;">
+                                                            </select>
+                                                        </div>
+                                                        <div class="d-flex flex-column">
+                                                            <small class="text-muted">Ticket Status</small>
+                                                            <select name="ticket_status" class="form-select form-select-sm" style="min-width:120px;">
                                                             @foreach (['pending', 'issued', 'failed', 'refunded'] as $status)
                                                                 <option value="{{ $status }}" {{ $booking->ticket_status === $status ? 'selected' : '' }}>
                                                                     {{ ucfirst($status) }}
                                                                 </option>
                                                             @endforeach
-                                                        </select>
+                                                            </select>
+                                                        </div>
                                                         <button type="submit" class="btn btn-sm btn-primary">Update</button>
-                                                    </form>
-                                                    <form method="POST" action="{{ route('admin.bookings.flights.cancel', $booking->id) }}" onsubmit="return confirm('Cancel this flight booking?');">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
                                                     </form>
                                                 </div>
                                             </td>
