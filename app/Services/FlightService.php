@@ -659,16 +659,6 @@ class FlightService
             throw new \Exception('Missing Sabre record locator.');
         }
 
-        if (str_starts_with($locator, 'TEST-')) {
-            return [
-                'success' => true,
-                'reservation' => ['success' => true, 'response' => 'Test booking reservation lookup skipped.'],
-                'cancel' => ['success' => true, 'response' => 'Test booking cancellation skipped.'],
-                'end' => ['success' => true, 'response' => 'Test booking end transaction skipped.'],
-                'close' => ['success' => true, 'response' => 'Test booking session close skipped.'],
-            ];
-        }
-
         $bearerToken = $this->getSabreToken();
         $session = $this->createSoapSession($bearerToken);
         $binaryToken = $session['token'] ?? null;

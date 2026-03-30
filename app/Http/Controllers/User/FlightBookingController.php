@@ -144,13 +144,6 @@ class FlightBookingController extends Controller
             return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
         }
 
-        if (($validated['payment_method'] ?? null) === 'payby') {
-            return redirect()->route('user.flights.payment.success', [
-                'booking' => $booking->id,
-                'test_payby' => 1,
-            ]);
-        }
-
         try {
             $redirectUrl = $flightService->getRedirectUrl($booking, $validated['payment_method']);
             return redirect($redirectUrl);
@@ -194,11 +187,6 @@ class FlightBookingController extends Controller
                 }
 
                 $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
-            } elseif (
-                $booking->payment_method === 'payby'
-                && $request->boolean('test_payby')
-            ) {
-                $verificationResult = ['success' => true, 'data' => ['method' => 'payby-test']];
             } elseif ($booking->payment_method === 'payby') {
                 $verificationResult = $flightService->verifyPayByPayment($booking);
             } elseif ($booking->payment_method === 'tabby') {
@@ -234,19 +222,6 @@ class FlightBookingController extends Controller
                 'payment_status' => 'paid',
                 'payment_response' => $verificationResult['data'] ?? null,
             ]);
-
-            if (
-                $booking->payment_method === 'payby'
-                && $request->boolean('test_payby')
-            ) {
-                $booking->update([
-                    'sabre_record_locator' => 'TEST-' . $booking->booking_number,
-                    'booking_status' => 'confirmed',
-                    'ticket_status' => 'issued',
-                ]);
-
-                return redirect()->route('user.flights.payment.success.view', ['booking' => $booking->id]);
-            }
 
             $pnrResult = $flightService->createSabrePnr($booking);
             if (!$pnrResult['success']) {
