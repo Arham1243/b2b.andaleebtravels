@@ -119,6 +119,37 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-box">
+                                <div class="form-box__header">
+                                    <div class="title">Flight Search Providers</div>
+                                </div>
+                                <div class="form-box__body">
+                                    @php
+                                        $selectedFlightProviders = $user->flight_search_providers ?? null;
+                                        if (!is_array($selectedFlightProviders) || empty($selectedFlightProviders)) {
+                                            $selectedFlightProviders = $adminFlightProviders ?? [];
+                                        }
+                                        $flightProviderOptions = [
+                                            'sabre' => 'Sabre',
+                                        ];
+                                    @endphp
+                                    <div class="row">
+                                        <div class="col-md-6 mb-4">
+                                            <div class="form-fields">
+                                                <label class="title">Enable Providers</label>
+                                                <select name="flight_search_providers[]" class="field select2-select" multiple>
+                                                    @foreach ($flightProviderOptions as $key => $label)
+                                                        <option value="{{ $key }}" {{ in_array($key, $selectedFlightProviders, true) ? 'selected' : '' }}>
+                                                            {{ $label }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                <small class="text-muted">If none selected, all providers are enabled.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

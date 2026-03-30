@@ -17,11 +17,12 @@ class ProfileSettingsController extends Controller
     {
         $user = Auth::user();
         $config = Config::pluck('config_value', 'config_key')->toArray();
-        $adminProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null);
+        $adminProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null, ['yalago', 'tbo', 'tripindeal']);
+        $adminFlightProviders = $this->parseProviderConfig($config['FLIGHT_SEARCH_PROVIDERS'] ?? null, ['sabre']) ?? ['sabre'];
 
         return view('user.profile-settings.personal-info')
             ->with('title', 'Personal Information')
-            ->with(compact('user', 'adminProviders'));
+            ->with(compact('user', 'adminProviders', 'adminFlightProviders'));
     }
 
     public function updatePersonalInfo(Request $request)
@@ -33,6 +34,8 @@ class ProfileSettingsController extends Controller
             'avatar' => 'nullable|image|max:2048',
             'hotel_search_providers' => 'nullable|array',
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
+            'flight_search_providers' => 'nullable|array',
+            'flight_search_providers.*' => 'in:sabre',
         ]);
 
         $data = $validatedData;
@@ -42,14 +45,15 @@ class ProfileSettingsController extends Controller
             $data['avatar'] = $avatar;
         }
 
-        $data['hotel_search_providers'] = $this->parseProviderConfig($request->input('hotel_search_providers'));
+        $data['hotel_search_providers'] = $this->parseProviderConfig($request->input('hotel_search_providers'), ['yalago', 'tbo', 'tripindeal']);
+        $data['flight_search_providers'] = $this->parseProviderConfig($request->input('flight_search_providers'), ['sabre']);
 
         B2bVendor::where('id', Auth::user()->id)->update($data);
 
         return redirect()->back()->with('notify_success', 'Information Updated Successfully');
     }
 
-    private function parseProviderConfig($raw): ?array
+    private function parseProviderConfig($raw, array $allowed): ?array
     {
         if (empty($raw)) {
             return null;
@@ -72,7 +76,6 @@ class ProfileSettingsController extends Controller
             return strtolower(trim((string) $value));
         }, $providers))));
 
-        $allowed = ['yalago', 'tbo', 'tripindeal'];
         $providers = array_values(array_intersect($providers, $allowed));
 
         return empty($providers) ? null : $providers;

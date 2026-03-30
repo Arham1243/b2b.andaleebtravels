@@ -46,6 +46,9 @@
                                         <div class="fc-airline-text">
                                             <b>{{ $firstSeg['carrier_name'] ?? $firstSeg['carrier'] }}</b>
                                             <span>FLIGHT {{ $firstSeg['carrier'] }}{{ $firstSeg['flight_number'] }}</span>
+                                            @if (!empty($result['supplier']))
+                                                <span class="fc-supplier">Supplier: {{ strtoupper($result['supplier']) }}</span>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="fc-route">
@@ -166,6 +169,19 @@
             font-size: 0.75rem;
             display: block;
             letter-spacing: 0.5px;
+        }
+
+        .fc-supplier {
+            margin-top: 4px;
+            display: inline-block;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 999px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
         }
 
         /* Timeline/Route */

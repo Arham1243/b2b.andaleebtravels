@@ -993,6 +993,9 @@ class FlightService
                 $departureDate = $legDate ? $legDate . 'T' . $departureTime : $departureTime;
                 $arrivalDate = $legDate ? $legDate . 'T' . $arrivalTime : $arrivalTime;
 
+                $departureDate = $this->normalizeSabreDateTime($departureDate);
+                $arrivalDate = $this->normalizeSabreDateTime($arrivalDate);
+
                 if (!$origin) {
                     $origin = $schedule['departure']['airport'] ?? '';
                     $departureDateTime = $departureDate;
@@ -1037,7 +1040,7 @@ class FlightService
                 ],
                 'TPA_Extensions' => [
                     'SegmentType' => [
-                        'Code' => $legIndex === 0 ? 'O' : 'R',
+                        'Code' => 'O',
                     ],
                     'Flight' => $flights,
                 ],
@@ -1045,6 +1048,16 @@ class FlightService
         }
 
         return $originDestinations;
+    }
+
+    private function normalizeSabreDateTime(string $value): string
+    {
+        $normalized = preg_replace('/([+-][0-9]{2}:[0-9]{2}|Z)$/', '', $value);
+        if (preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}$/', $normalized)) {
+            return $normalized . ':00';
+        }
+
+        return $normalized;
     }
 
     private function buildPassengerTypes(B2bFlightBooking $booking): array

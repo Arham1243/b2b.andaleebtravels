@@ -13,6 +13,7 @@ class B2bVendor extends Authenticatable
     protected $guarded = ['id', 'created_at', 'updated_at'];
     protected $casts = [
         'hotel_search_providers' => 'array',
+        'flight_search_providers' => 'array',
     ];
 
     public function hotelBookings(): HasMany

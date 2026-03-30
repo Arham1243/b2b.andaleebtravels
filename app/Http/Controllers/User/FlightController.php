@@ -3,13 +3,27 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\Config;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
 class FlightController extends Controller
 {
     private string $sabreBasicAuth = 'VmpFNk1qVTROak13T2poT1NrdzZRVUU9OlJtRnBjMkZzTVRBPQ==';
+    private ?array $enabledFlightProviders = null;
+
+    public function __construct()
+    {
+        $config = Config::pluck('config_value', 'config_key')->toArray();
+        $adminProviders = $this->parseProviderConfig($config['FLIGHT_SEARCH_PROVIDERS'] ?? null);
+
+        $user = Auth::user();
+        $userProviders = $this->parseProviderConfig($user?->flight_search_providers ?? null);
+
+        $this->enabledFlightProviders = $userProviders ?? $adminProviders ?? ['sabre'];
+    }
 
     public function index()
     {
@@ -18,6 +32,14 @@ class FlightController extends Controller
 
     public function search(Request $request)
     {
+        if (!$this->isProviderEnabled('sabre')) {
+            return view('user.flights.search', [
+                'results' => [],
+                'messages' => [['severity' => 'Error', 'text' => 'Sabre is disabled for your account.']],
+                'itineraryCount' => 0,
+            ]);
+        }
+
         $validated = $request->validate([
             'from' => 'required|string|size:3',
             'to' => 'required|string|size:3|different:from',
@@ -264,9 +286,48 @@ class FlightController extends Controller
                 'totalPrice' => $fare['totalPrice'] ?? null,
                 'currency' => $fare['currency'] ?? null,
                 'legs' => $legs,
+                'supplier' => 'sabre',
             ];
         }
 
         return $results;
+    }
+
+    private function parseProviderConfig($raw): ?array
+    {
+        if (empty($raw)) {
+            return null;
+        }
+
+        $providers = [];
+
+        if (is_array($raw)) {
+            $providers = $raw;
+        } elseif (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $providers = $decoded;
+            } else {
+                $providers = array_map('trim', explode(',', $raw));
+            }
+        }
+
+        $providers = array_values(array_unique(array_filter(array_map(function ($value) {
+            return strtolower(trim((string) $value));
+        }, $providers))));
+
+        $allowed = ['sabre'];
+        $providers = array_values(array_intersect($providers, $allowed));
+
+        return empty($providers) ? null : $providers;
+    }
+
+    private function isProviderEnabled(string $provider): bool
+    {
+        if (empty($this->enabledFlightProviders)) {
+            return true;
+        }
+
+        return in_array(strtolower($provider), $this->enabledFlightProviders, true);
     }
 }
