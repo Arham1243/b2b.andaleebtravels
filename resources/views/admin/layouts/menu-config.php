@@ -17,6 +17,11 @@ return [
         'route' => route('admin.hotels.start'),
     ],
     [
+        'title' => 'Flight Booking',
+        'icon' => 'bx bxs-plane',
+        'route' => route('admin.flights.start'),
+    ],
+    [
         'title' => 'Inquiries',
         'icon' => 'bx bxs-message-dots',
         'route' => route('admin.inquiries.index'),

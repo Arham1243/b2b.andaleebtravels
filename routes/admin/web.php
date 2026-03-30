@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\TerminalController;
 use App\Http\Controllers\Admin\AdminHotelController;
+use App\Http\Controllers\Admin\AdminFlightController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/admins', function () {
@@ -27,6 +28,7 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/logout', [AdminLoginController::class, 'logout'])->name('logout');
 
     Route::get('/hotels/start', [AdminHotelController::class, 'start'])->name('hotels.start');
+    Route::get('/flights/start', [AdminFlightController::class, 'start'])->name('flights.start');
 
     Route::get('/terminal', [TerminalController::class, 'index']);
     Route::post('/terminal/run', [TerminalController::class, 'run']);
