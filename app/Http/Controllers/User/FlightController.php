@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator;
 
 class FlightController extends Controller
 {
@@ -40,15 +41,93 @@ class FlightController extends Controller
             ]);
         }
 
-        $validated = $request->validate([
-            'from' => 'required|string|size:3',
-            'to' => 'required|string|size:3|different:from',
-            'departure_date' => 'required|string',
+        $validator = Validator::make($request->all(), [
+            'trip_type' => 'required|string|in:one_way,round_trip,multi_city',
+            'from' => 'nullable|string|size:3',
+            'to' => 'nullable|string|size:3',
+            'departure_date' => 'nullable|string',
             'return_date' => 'nullable|string',
             'adults' => 'required|integer|min:1',
             'children' => 'nullable|integer|min:0',
             'infants' => 'nullable|integer|min:0',
+            'direct_flight' => 'nullable',
+            'nearby_airports' => 'nullable',
+            'student_fare' => 'nullable',
+            'segments' => 'nullable|array|min:2|max:5',
+            'segments.*.from' => 'nullable|string|size:3',
+            'segments.*.to' => 'nullable|string|size:3',
+            'segments.*.departure_date' => 'nullable|string',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $tripType = $request->input('trip_type', 'one_way');
+
+            if ((int) $request->input('infants', 0) > (int) $request->input('adults', 1)) {
+                $validator->errors()->add('infants', 'Infants cannot exceed the number of adults.');
+            }
+
+            if ($tripType === 'multi_city') {
+                $segments = $request->input('segments', []);
+
+                if (!is_array($segments) || count($segments) < 2) {
+                    $validator->errors()->add('segments', 'At least two flight segments are required for a multi-city search.');
+                    return;
+                }
+
+                foreach ($segments as $index => $segment) {
+                    $from = strtoupper(trim((string) ($segment['from'] ?? '')));
+                    $to = strtoupper(trim((string) ($segment['to'] ?? '')));
+                    $departureDate = trim((string) ($segment['departure_date'] ?? ''));
+                    $segmentLabel = 'Segment ' . ($index + 1);
+
+                    if ($from === '') {
+                        $validator->errors()->add("segments.$index.from", "{$segmentLabel} origin is required.");
+                    }
+
+                    if ($to === '') {
+                        $validator->errors()->add("segments.$index.to", "{$segmentLabel} destination is required.");
+                    }
+
+                    if ($from !== '' && $to !== '' && $from === $to) {
+                        $validator->errors()->add("segments.$index.to", "{$segmentLabel} destination must be different from the origin.");
+                    }
+
+                    if ($departureDate === '') {
+                        $validator->errors()->add("segments.$index.departure_date", "{$segmentLabel} departure date is required.");
+                    }
+                }
+
+                return;
+            }
+
+            $from = strtoupper(trim((string) $request->input('from', '')));
+            $to = strtoupper(trim((string) $request->input('to', '')));
+            $departureDate = trim((string) $request->input('departure_date', ''));
+            $returnDate = trim((string) $request->input('return_date', ''));
+
+            if ($from === '') {
+                $validator->errors()->add('from', 'Origin is required.');
+            }
+
+            if ($to === '') {
+                $validator->errors()->add('to', 'Destination is required.');
+            }
+
+            if ($from !== '' && $to !== '' && $from === $to) {
+                $validator->errors()->add('to', 'Destination must be different from the origin.');
+            }
+
+            if ($departureDate === '') {
+                $validator->errors()->add('departure_date', 'Departure date is required.');
+            }
+
+            if ($tripType === 'round_trip' && $returnDate === '') {
+                $validator->errors()->add('return_date', 'Return date is required for a round trip.');
+            }
+        });
+
+        $validated = $validator->validate();
+        $searchData = $this->normalizeSearchData($validated);
 
         try {
             $token = $this->getSabreToken();
@@ -60,7 +139,7 @@ class FlightController extends Controller
             ]);
         }
 
-        $payload = $this->buildSabrePayload($validated);
+        $payload = $this->buildSabrePayload($searchData);
         $response = Http::withToken($token)
             ->withHeaders(['Accept' => 'application/json'])
             ->post('https://api.cert.platform.sabre.com/v5/offers/shop', $payload);
@@ -85,7 +164,7 @@ class FlightController extends Controller
             'flight_search_payload' => $payload,
             'flight_search_response' => $grouped,
             'flight_search_results' => $resultsById,
-            'flight_search_params' => $validated,
+            'flight_search_params' => $searchData,
         ]);
 
         return view('user.flights.search', [
@@ -93,6 +172,56 @@ class FlightController extends Controller
             'messages' => $messages,
             'itineraryCount' => $itineraryCount,
         ]);
+    }
+
+    private function normalizeSearchData(array $data): array
+    {
+        $tripType = $data['trip_type'] ?? 'one_way';
+        $normalized = [
+            'trip_type' => $tripType,
+            'adults' => (int) ($data['adults'] ?? 1),
+            'children' => (int) ($data['children'] ?? 0),
+            'infants' => (int) ($data['infants'] ?? 0),
+            'direct_flight' => filter_var($data['direct_flight'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'nearby_airports' => filter_var($data['nearby_airports'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'student_fare' => filter_var($data['student_fare'] ?? false, FILTER_VALIDATE_BOOLEAN),
+        ];
+
+        if ($tripType === 'multi_city') {
+            $segments = collect($data['segments'] ?? [])
+                ->map(function ($segment) {
+                    return [
+                        'from' => strtoupper(trim((string) ($segment['from'] ?? ''))),
+                        'to' => strtoupper(trim((string) ($segment['to'] ?? ''))),
+                        'departure_date' => trim((string) ($segment['departure_date'] ?? '')),
+                    ];
+                })
+                ->filter(function ($segment) {
+                    return $segment['from'] !== '' && $segment['to'] !== '' && $segment['departure_date'] !== '';
+                })
+                ->values()
+                ->all();
+
+            $firstSegment = $segments[0] ?? [];
+            $lastSegment = !empty($segments) ? $segments[count($segments) - 1] : [];
+
+            $normalized['segments'] = $segments;
+            $normalized['from'] = $firstSegment['from'] ?? null;
+            $normalized['to'] = $lastSegment['to'] ?? null;
+            $normalized['departure_date'] = $firstSegment['departure_date'] ?? null;
+            $normalized['return_date'] = null;
+
+            return $normalized;
+        }
+
+        $normalized['from'] = strtoupper(trim((string) ($data['from'] ?? '')));
+        $normalized['to'] = strtoupper(trim((string) ($data['to'] ?? '')));
+        $normalized['departure_date'] = trim((string) ($data['departure_date'] ?? ''));
+        $normalized['return_date'] = $tripType === 'round_trip'
+            ? trim((string) ($data['return_date'] ?? ''))
+            : null;
+
+        return $normalized;
     }
 
     private function getSabreToken(): string
@@ -123,11 +252,9 @@ class FlightController extends Controller
 
     private function buildSabrePayload(array $data): array
     {
-        $origin = strtoupper($data['from']);
-        $destination = strtoupper($data['to']);
-
-        $departureDate = $this->formatSabreDateTime($data['departure_date']);
-        $returnDate = !empty($data['return_date']) ? $this->formatSabreDateTime($data['return_date']) : null;
+        $tripType = $data['trip_type'] ?? 'one_way';
+        $origin = strtoupper((string) ($data['from'] ?? ''));
+        $destination = strtoupper((string) ($data['to'] ?? ''));
 
         $adults = (int) $data['adults'];
         $children = (int) ($data['children'] ?? 0);
@@ -159,30 +286,57 @@ class FlightController extends Controller
             }, $passengerTypes);
         }
 
-        $originDestinations = [
-            [
+        $originDestinations = [];
+
+        if ($tripType === 'multi_city') {
+            foreach ($data['segments'] ?? [] as $segment) {
+                $originDestinations[] = [
+                    'DepartureDateTime' => $this->formatSabreDateTime($segment['departure_date']),
+                    'OriginLocation' => ['LocationCode' => strtoupper($segment['from'])],
+                    'DestinationLocation' => ['LocationCode' => strtoupper($segment['to'])],
+                ];
+            }
+        } else {
+            $departureDate = $this->formatSabreDateTime($data['departure_date']);
+            $returnDate = !empty($data['return_date']) ? $this->formatSabreDateTime($data['return_date']) : null;
+
+            $originDestinations[] = [
                 'DepartureDateTime' => $departureDate,
                 'OriginLocation' => ['LocationCode' => $origin],
                 'DestinationLocation' => ['LocationCode' => $destination],
-            ],
-        ];
-
-        if ($returnDate) {
-            $originDestinations[] = [
-                'DepartureDateTime' => $returnDate,
-                'OriginLocation' => ['LocationCode' => $destination],
-                'DestinationLocation' => ['LocationCode' => $origin],
             ];
+
+            if ($tripType === 'round_trip' && $returnDate) {
+                $originDestinations[] = [
+                    'DepartureDateTime' => $returnDate,
+                    'OriginLocation' => ['LocationCode' => $destination],
+                    'DestinationLocation' => ['LocationCode' => $origin],
+                ];
+            }
         }
 
         $travelPreferences = [
-            'MaxStopsQuantity' => 1,
+            'MaxStopsQuantity' => !empty($data['direct_flight']) ? 0 : 1,
         ];
 
-        if ($children > 0) {
+        if ($children > 0 && $infants === 0) {
             $travelPreferences['Baggage'] = [
                 'RequestType' => 'C',
                 'Description' => true,
+            ];
+        }
+
+        $travelerInfoSummary = [
+            'AirTravelerAvail' => [
+                [
+                    'PassengerTypeQuantity' => $passengerTypes,
+                ],
+            ],
+        ];
+
+        if ($children > 0 && $infants === 0) {
+            $travelerInfoSummary['PriceRequestInformation'] = [
+                'TPA_Extensions' => new \stdClass(),
             ];
         }
 
@@ -203,13 +357,7 @@ class FlightController extends Controller
                 ],
                 'OriginDestinationInformation' => $originDestinations,
                 'TravelPreferences' => $travelPreferences,
-                'TravelerInfoSummary' => [
-                    'AirTravelerAvail' => [
-                        [
-                            'PassengerTypeQuantity' => $passengerTypes,
-                        ],
-                    ],
-                ],
+                'TravelerInfoSummary' => $travelerInfoSummary,
                 'TPA_Extensions' => [
                     'IntelliSellTransaction' => [
                         'RequestType' => [
