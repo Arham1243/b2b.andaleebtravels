@@ -162,18 +162,17 @@
                     <div class="hs-field__inner">
                         <div class="hs-field__label"><i class='bx bx-calendar'></i> RETURN <i
                                 class='bx bx-chevron-down' style="font-size:11px"></i></div>
-                        <template v-if="tripType === 'round_trip'">
-                            <div class="hs-date-display">
-                                <span class="hs-date-display__day" id="flight-return-dd">&mdash;</span>
-                                <div class="hs-date-display__meta">
-                                    <span class="hs-date-display__month" id="flight-return-mon">&nbsp;</span>
-                                    <span class="hs-date-display__weekday" id="flight-return-day">&nbsp;</span>
-                                </div>
-                            </div>
-                        </template>
-                        <template v-else>
+                        <template v-if="tripType === 'round_trip' && !returnDate">
                             <div class="hs-field__note">Add a return to search round-trip fares.</div>
                         </template>
+                        <div class="hs-date-display"
+                            v-show="tripType === 'round_trip' && !!returnDate">
+                            <span class="hs-date-display__day" id="flight-return-dd">&mdash;</span>
+                            <div class="hs-date-display__meta">
+                                <span class="hs-date-display__month" id="flight-return-mon">&nbsp;</span>
+                                <span class="hs-date-display__weekday" id="flight-return-day">&nbsp;</span>
+                            </div>
+                        </div>
                         <input readonly autocomplete="off" type="hidden" name="return_date"
                             id="flight-return-input">
                     </div>

@@ -41,7 +41,7 @@
 
             const airports = ref([]);
             const loadingAirports = ref(true);
-            const tripType = ref('round_trip');
+            const tripType = ref('one_way');
             const directFlight = ref(false);
             const nearbyAirports = ref(false);
             const studentFare = ref(false);
@@ -419,8 +419,8 @@
             const applyParamsFromUrl = () => {
                 const params = new URLSearchParams(window.location.search);
                 const tripTypeParam = params.get('trip_type');
-                const rawTrip = tripTypeParam || 'round_trip';
-                tripType.value = ['one_way', 'round_trip', 'multi_city'].includes(rawTrip) ? rawTrip : 'round_trip';
+                const rawTrip = tripTypeParam || (params.get('return_date') ? 'round_trip' : 'one_way');
+                tripType.value = ['one_way', 'round_trip', 'multi_city'].includes(rawTrip) ? rawTrip : 'one_way';
                 directFlight.value = ['1', 'true', 'on'].includes((params.get('direct_flight') || '').toLowerCase());
                 nearbyAirports.value = ['1', 'true', 'on'].includes((params.get('nearby_airports') || '').toLowerCase());
                 studentFare.value = ['1', 'true', 'on'].includes((params.get('student_fare') || '').toLowerCase());
@@ -729,7 +729,11 @@
                 if (displayPrefix === 'flight-departure' && window.__flightsSearchVue) {
                     window.__flightsSearchVue.departureDate = picker.startDate.format(format);
                 } else if (displayPrefix === 'flight-return' && window.__flightsSearchVue) {
-                    window.__flightsSearchVue.returnDate = picker.startDate.format(format);
+                    const vue = window.__flightsSearchVue;
+                    vue.returnDate = picker.startDate.format(format);
+                    if (vue.tripType !== 'round_trip' && typeof vue.setTripType === 'function') {
+                        vue.setTripType('round_trip');
+                    }
                 }
             });
 
