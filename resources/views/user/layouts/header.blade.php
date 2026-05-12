@@ -92,9 +92,8 @@
                             <span class="topbar-nav__label">{{ __('Hotels') }}</span>
                         </a>
                     </li>
-                    <li class="topbar-nav__item topbar-nav__item--badge">
+                    <li class="topbar-nav__item">
                         <a href="javascript:void(0)" class="topbar-nav__link">
-                            <span class="topbar-nav__badge">New</span>
                             <i class='bx bxs-shield-plus topbar-nav__icon'></i>
                             <span class="topbar-nav__label">{{ __('Insurance') }}</span>
                         </a>
