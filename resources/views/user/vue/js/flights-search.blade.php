@@ -41,7 +41,7 @@
 
             const airports = ref([]);
             const loadingAirports = ref(true);
-            const tripType = ref('one_way');
+            const tripType = ref('round_trip');
             const directFlight = ref(false);
             const nearbyAirports = ref(false);
             const studentFare = ref(false);
@@ -419,8 +419,8 @@
             const applyParamsFromUrl = () => {
                 const params = new URLSearchParams(window.location.search);
                 const tripTypeParam = params.get('trip_type');
-                const parsedTripType = tripTypeParam || (params.get('return_date') ? 'round_trip' : 'one_way');
-                tripType.value = ['one_way', 'round_trip', 'multi_city'].includes(parsedTripType) ? parsedTripType : 'one_way';
+                const rawTrip = tripTypeParam || 'round_trip';
+                tripType.value = ['one_way', 'round_trip', 'multi_city'].includes(rawTrip) ? rawTrip : 'round_trip';
                 directFlight.value = ['1', 'true', 'on'].includes((params.get('direct_flight') || '').toLowerCase());
                 nearbyAirports.value = ['1', 'true', 'on'].includes((params.get('nearby_airports') || '').toLowerCase());
                 studentFare.value = ['1', 'true', 'on'].includes((params.get('student_fare') || '').toLowerCase());
@@ -688,6 +688,22 @@
             $(`#${prefix}-day`).html('&nbsp;');
         }
 
+        function syncFlightReturnPickerMinDate() {
+            const $departureInput = $("#flight-departure-input");
+            const $returnInput = $("#flight-return-input");
+            const returnPicker = $returnInput.data('daterangepicker');
+            if (!returnPicker) return;
+            const depVal = ($departureInput.val() || '').trim();
+            if (depVal) {
+                const depMoment = moment(depVal, 'MMM D, YYYY', true);
+                if (depMoment.isValid()) {
+                    returnPicker.minDate = depMoment.clone().add(1, 'day');
+                    return;
+                }
+            }
+            returnPicker.minDate = moment().startOf('day');
+        }
+
         function initFlightSingleDatePicker(wrapperId, inputId, displayPrefix) {
             const format = "MMM D, YYYY";
             const $wrapper = $(`#${wrapperId}`);
@@ -718,13 +734,28 @@
             });
 
             $wrapper.on("click", function(e) {
-                if (wrapperId === "flight-return-box" && window.__flightsSearchVue?.tripType !== 'round_trip') {
-                    return;
+                const vue = window.__flightsSearchVue;
+
+                if (wrapperId === "flight-return-box") {
+                    if (vue?.tripType !== 'round_trip') {
+                        if (vue && typeof vue.setTripType === 'function') {
+                            vue.setTripType('round_trip');
+                        }
+                        setTimeout(function() {
+                            if ($(e.target).is($input)) return;
+                            const pickerInstance = $input.data('daterangepicker');
+                            if (!pickerInstance || window.__flightsSearchVue?.tripType !== 'round_trip') return;
+                            syncFlightReturnPickerMinDate();
+                            pickerInstance.show();
+                        }, 50);
+                        return;
+                    }
                 }
 
                 if (!$(e.target).is($input)) {
                     const pickerInstance = $input.data('daterangepicker');
                     if (pickerInstance) {
+                        if (wrapperId === "flight-return-box") syncFlightReturnPickerMinDate();
                         pickerInstance.show();
                     }
                 }
@@ -824,6 +855,7 @@
 
                 const dep = params.get('departure_date');
                 const ret = params.get('return_date');
+                const tripParam = params.get('trip_type');
 
                 if (dep) {
                     const depMoment = moment(dep, 'MMM D, YYYY');
@@ -838,7 +870,9 @@
                     }
                 }
 
-                if (ret && vue.tripType === 'round_trip') {
+                const shouldUseReturnDate = ret && tripParam !== 'one_way' && tripParam !== 'multi_city';
+
+                if (shouldUseReturnDate) {
                     const retMoment = moment(ret, 'MMM D, YYYY');
                     if (retMoment.isValid()) {
                         const retPicker = $returnInput.data('daterangepicker');
