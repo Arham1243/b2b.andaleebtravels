@@ -1,40 +1,15 @@
 @extends('user.layouts.main')
 @section('content')
-    <div class="my-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-8">
-                    @include('user.vue.main', [
-                        'appId' => 'flights-search',
-                        'appComponent' => 'flights-search',
-                        'appJs' => 'flights-search',
-                    ])
-
-                </div>
-                <div class="col-md-4">
-                    <div class="hs-sidebar-grid">
-                        <div class="hs-sidebar-card hs-sidebar-card--yellow">
-                            <div class="hs-sidebar-card__icon"><i class='bx bxs-bell-ring'></i></div>
-                            <div class="hs-sidebar-card__title">Notice Board</div>
-                        </div>
-                        <div class="hs-sidebar-card hs-sidebar-card--teal">
-                            <div class="hs-sidebar-card__icon"><i class='bx bx-time-five'></i></div>
-                            <div class="hs-sidebar-card__title">Hold Itineraries</div>
-                        </div>
-                        <div class="hs-sidebar-card hs-sidebar-card--mint">
-                            <div class="hs-sidebar-card__icon"><i class='bx bxs-calendar-event'></i></div>
-                            <div class="hs-sidebar-card__title">Travel Calendar</div>
-                        </div>
-                        <div class="hs-sidebar-card hs-sidebar-card--blue">
-                            <div class="hs-sidebar-card__icon"><i class='bx bx-support'></i></div>
-                            <div class="hs-sidebar-card__title">24/7 Support</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="flight-page-shell my-4">
+        <div class="container px-2 px-lg-3">
+            @include('user.vue.main', [
+                'appId' => 'flights-search',
+                'appComponent' => 'flights-search',
+                'appJs' => 'flights-search',
+            ])
 
             {{-- Contact Support Strip --}}
-            <div class="hs-support-strip">
+            <div class="hs-support-strip mt-4">
                 <div class="hs-support-strip__left">
                     <i class='bx bx-support'></i>
                     <div>

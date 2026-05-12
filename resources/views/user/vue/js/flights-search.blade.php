@@ -43,8 +43,13 @@
             const loadingAirports = ref(true);
             const tripType = ref('one_way');
             const directFlight = ref(false);
-            const nearbyAirports = ref(false);
+            const nearbyAirports = ref(true);
             const studentFare = ref(false);
+            const onwardCabin = ref('Economy');
+            const returnCabin = ref('Economy');
+            const airlineAll = ref(true);
+            const airlineLowCost = ref(true);
+            const airlineGds = ref(true);
 
             const fromInput = ref('');
             const toInput = ref('');
@@ -215,6 +220,20 @@
                 closeToDropdown();
             };
 
+            const swapRoutes = () => {
+                const tmpSel = selectedFrom.value;
+                selectedFrom.value = selectedTo.value;
+                selectedTo.value = tmpSel;
+
+                const tmpIn = fromInput.value;
+                fromInput.value = toInput.value;
+                toInput.value = tmpIn;
+                fromQuery.value = '';
+                toQuery.value = '';
+                closeFromDropdown();
+                closeToDropdown();
+            };
+
             const ensureMinSegments = () => {
                 while (multiCitySegments.value.length < minMultiCitySegments) {
                     multiCitySegments.value.push(createEmptySegment());
@@ -332,6 +351,10 @@
                 const $returnInput = $("#flight-return-input");
                 $returnInput.val('');
                 clearFlightDateDisplay('flight-return');
+            };
+
+            const clearQuickReturn = () => {
+                clearReturnDate();
             };
 
             const seedMultiCityFromSingle = () => {
@@ -525,8 +548,13 @@
                 return parts.join(', ');
             });
 
-            const tripBadgeTop = computed(() => tripType.value === 'round_trip' ? 'ROUND' : 'ONE');
-            const tripBadgeBottom = computed(() => tripType.value === 'round_trip' ? 'TRIP' : 'WAY');
+            const totalPaxCount = computed(() =>
+                adults.value + children.value + infants.value);
+
+            const travellersTextCompact = computed(() => {
+                const t = totalPaxCount.value;
+                return `${t} ${t === 1 ? 'Passenger' : 'Passengers'}`;
+            });
 
             const isSearching = ref(false);
             const isSearchEnabled = computed(() => {
@@ -627,6 +655,13 @@
                 onToInput,
                 selectFromAirport,
                 selectToAirport,
+                swapRoutes,
+                clearQuickReturn,
+                onwardCabin,
+                returnCabin,
+                airlineAll,
+                airlineLowCost,
+                airlineGds,
                 travellersOpen,
                 travellersRef,
                 toggleTravellers,
@@ -640,8 +675,7 @@
                 incrementInfants,
                 decrementInfants,
                 travellersText,
-                tripBadgeTop,
-                tripBadgeBottom,
+                travellersTextCompact,
                 multiCitySegments,
                 minMultiCitySegments,
                 maxMultiCitySegments,
