@@ -157,8 +157,7 @@
                     <span class="hs-trip-badge__label">@{{ tripBadgeBottom }}</span>
                 </div>
 
-                <div class="hs-field hs-field--date" id="flight-return-box"
-                    :class="{ 'hs-field--disabled': tripType === 'one_way' }">
+                <div class="hs-field hs-field--date" id="flight-return-box">
                     <div class="hs-field__inner">
                         <div class="hs-field__label"><i class='bx bx-calendar'></i> RETURN <i
                                 class='bx bx-chevron-down' style="font-size:11px"></i></div>

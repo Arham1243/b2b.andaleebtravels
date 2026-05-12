@@ -4033,6 +4033,13 @@ body .search-box__input.search-box__input {
     left: -22px;
     position: relative;
     box-shadow: 0 6px 14px #0000001f;
+    /* Decorative only — sits above the junction; clicks must reach RETURN field */
+    pointer-events: none;
+    z-index: 1;
+}
+.flight-search-redesign #flight-return-box {
+    position: relative;
+    z-index: 2;
 }
 .hs-trip-badge--round {
     background: var(--color-primary);
