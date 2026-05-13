@@ -525,7 +525,7 @@ class FlightService
 
             $payload = $this->buildPnrPayload($booking, $searchResponse, $itineraryRaw);
 
-            // Log JSON string — logging nested arrays can be truncated with "Over 9 levels deep"
+            // Log JSON string  -  logging nested arrays can be truncated with "Over 9 levels deep"
             // placeholders in some handlers, which is misleading.
             Log::debug('Sabre PNR payload', [
                 'booking_id'   => $booking->id,

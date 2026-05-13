@@ -667,7 +667,7 @@
 
                             if ($bkType === 'flight') {
                                 $bkRoute = strtoupper($bkObj->from_airport ?? '') . ' → ' . strtoupper($bkObj->to_airport ?? '');
-                                $bkMeta  = $bkObj->departure_date?->format('d M Y') ?? '—';
+                                $bkMeta  = $bkObj->departure_date?->format('d M Y') ?? ' - ';
                             } else {
                                 $bkRoute = $bkObj->hotel_name ?? 'Hotel Booking';
                                 $bkMeta  = ($bkObj->check_in_date?->format('d M') ?? '') . ' – ' . ($bkObj->check_out_date?->format('d M Y') ?? '');
@@ -725,7 +725,7 @@
 
                     // duration helper
                     $bkFmt = function(?int $m): string {
-                        if (!$m || $m < 1) return '—';
+                        if (!$m || $m < 1) return ' - ';
                         $h = intdiv($m, 60); $r = $m % 60;
                         return $h ? ($r ? "{$h}h {$r}m" : "{$h}h") : "{$r}m";
                     };
@@ -745,7 +745,7 @@
                             <div class="bk-hold-banner__text">
                                 PNR <strong>{{ $booking->sabre_record_locator ?? 'Pending' }}</strong> has been created on Sabre.
                                 Ticketing time limit is set by the airline on the PNR.
-                                Typical hold window is <strong>1–24 hours</strong> — confirm ticketing before it expires to avoid auto-cancellation.<br>
+                                Typical hold window is <strong>1–24 hours</strong>  -  confirm ticketing before it expires to avoid auto-cancellation.<br>
                                 @if($ttlDate) Ticketing deadline: <strong>{{ $ttlDate }}</strong>. @endif
                                 Hold created: <strong>{{ $booking->created_at->format('d M Y, h:i A') }}</strong>.
                             </div>
@@ -787,7 +787,7 @@
                                 @endif
                                 <div class="bk-info-item">
                                     <div class="bk-info-label">Departure</div>
-                                    <div class="bk-info-value">{{ $booking->departure_date?->format('d M Y') ?? '—' }}</div>
+                                    <div class="bk-info-value">{{ $booking->departure_date?->format('d M Y') ?? ' - ' }}</div>
                                 </div>
                                 @if($booking->return_date)
                                 <div class="bk-info-item">
@@ -959,7 +959,7 @@
                                 @if($bkStatus === 'cancelled')
                                     <p style="font-size:.8rem;color:#b91c1c;margin:0;">
                                         <i class="bx bx-x-circle"></i>
-                                        Booking cancelled on {{ $booking->cancelled_at?->format('d M Y, h:i A') ?? '—' }}.
+                                        Booking cancelled on {{ $booking->cancelled_at?->format('d M Y, h:i A') ?? ' - ' }}.
                                     </p>
                                 @elseif($isHold)
                                     <div class="bk-actions">
@@ -1021,11 +1021,11 @@
                             <div class="bk-info-grid mb-4">
                                 <div class="bk-info-item">
                                     <div class="bk-info-label">Check-in</div>
-                                    <div class="bk-info-value">{{ $booking->check_in_date?->format('d M Y') ?? '—' }}</div>
+                                    <div class="bk-info-value">{{ $booking->check_in_date?->format('d M Y') ?? ' - ' }}</div>
                                 </div>
                                 <div class="bk-info-item">
                                     <div class="bk-info-label">Check-out</div>
-                                    <div class="bk-info-value">{{ $booking->check_out_date?->format('d M Y') ?? '—' }}</div>
+                                    <div class="bk-info-value">{{ $booking->check_out_date?->format('d M Y') ?? ' - ' }}</div>
                                 </div>
                                 <div class="bk-info-item">
                                     <div class="bk-info-label">Supplier</div>

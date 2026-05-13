@@ -79,12 +79,21 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     });
 
     Route::prefix('bookings')->name('bookings.')->group(function () {
-        Route::get('/', [BookingController::class, 'index'])->name('index');
+        // Index redirects to flights list
+        Route::get('/', fn() => redirect()->route('user.bookings.flights'))->name('index');
+
+        // Flight bookings
+        Route::get('/flights', [BookingController::class, 'flights'])->name('flights');
+        Route::post('/flights/release-hold/{id}', [BookingController::class, 'releaseHold'])->name('flights.release-hold');
+        Route::get('/flights/cancel/{id}', [BookingController::class, 'cancelFlightBooking'])->name('flights.cancel');
+        Route::get('/flights/{id}', [BookingController::class, 'flightDetail'])->name('flights.detail');
+
+        // Hotel bookings
+        Route::get('/hotels', [BookingController::class, 'hotels'])->name('hotels');
         Route::post('/hotels/cancellation-charges', [BookingController::class, 'getCancellationCharges'])->name('hotels.cancellation-charges');
         Route::post('/hotels/cancel-tbo', [BookingController::class, 'cancelTboBooking'])->name('hotels.cancel-tbo');
         Route::get('/hotels/cancel/{id}', [BookingController::class, 'cancelHotelBooking'])->name('hotels.cancel');
-        Route::get('/flights/cancel/{id}', [BookingController::class, 'cancelFlightBooking'])->name('flights.cancel');
-        Route::post('/flights/release-hold/{id}', [BookingController::class, 'releaseHold'])->name('flights.release-hold');
+        Route::get('/hotels/{id}', [BookingController::class, 'hotelDetail'])->name('hotels.detail');
     });
 
     Route::prefix('wallet')->name('wallet.')->group(function () {

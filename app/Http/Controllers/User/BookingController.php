@@ -16,17 +16,54 @@ class BookingController extends Controller
 {
     public function index()
     {
-        $vendorId = Auth::id();
+        return redirect()->route('user.bookings.flights');
+    }
 
-        $hotelBookings = B2bHotelBooking::where('b2b_vendor_id', $vendorId)
+    public function flights()
+    {
+        $flightBookings = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
             ->orderByDesc('created_at')
             ->get();
 
-        $flightBookings = B2bFlightBooking::where('b2b_vendor_id', $vendorId)
+        $counts = $this->bookingCounts();
+
+        return view('user.bookings.flights', compact('flightBookings', 'counts'));
+    }
+
+    public function flightDetail(int $id)
+    {
+        $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($id);
+        $counts  = $this->bookingCounts();
+
+        return view('user.bookings.flight-detail', compact('booking', 'counts'));
+    }
+
+    public function hotels()
+    {
+        $hotelBookings = B2bHotelBooking::where('b2b_vendor_id', Auth::id())
             ->orderByDesc('created_at')
             ->get();
 
-        return view('user.bookings.index', compact('hotelBookings', 'flightBookings'));
+        $counts = $this->bookingCounts();
+
+        return view('user.bookings.hotels', compact('hotelBookings', 'counts'));
+    }
+
+    public function hotelDetail(int $id)
+    {
+        $booking = B2bHotelBooking::where('b2b_vendor_id', Auth::id())->findOrFail($id);
+        $counts  = $this->bookingCounts();
+
+        return view('user.bookings.hotel-detail', compact('booking', 'counts'));
+    }
+
+    private function bookingCounts(): array
+    {
+        $vid = Auth::id();
+        return [
+            'flights' => B2bFlightBooking::where('b2b_vendor_id', $vid)->count(),
+            'hotels'  => B2bHotelBooking::where('b2b_vendor_id', $vid)->count(),
+        ];
     }
 
     public function getCancellationCharges(Request $request, HotelService $hotelService)
