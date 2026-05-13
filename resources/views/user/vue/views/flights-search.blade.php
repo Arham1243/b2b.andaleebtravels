@@ -1529,122 +1529,203 @@
             z-index: 5500 !important;
         }
 
-        /* Picker attaches under date cells (#flight-departure-box); keep above promos/footer overlap */
+        /* ═══════════════════════════════════════════════════════════
+           DATERANGEPICKER — full reset + redesign
+           style.css uses `body .daterangepicker` (lower specificity);
+           we win with `.flight-search-redesign .daterangepicker`.
+           ═══════════════════════════════════════════════════════════ */
+
+        /* ── Picker container ── */
         .flight-search-redesign .daterangepicker {
             z-index: 5600 !important;
-            border-radius: 16px !important;
+            background: #fff !important;
             border: 1px solid #dde3ef !important;
-            box-shadow: 0 16px 48px rgba(15,23,42,.18) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 20px 60px rgba(15,23,42,.18) !important;
             font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-            padding: 6px 4px 4px !important;
-            /* Force both month panels onto one horizontal line */
+            /* style.css sets width:auto; reinforce + force wide enough for 2 panels */
             width: auto !important;
-            min-width: 560px !important;
+            min-width: 680px !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+        /* Suppress the default caret arrows (::before / ::after on the picker) */
+        .flight-search-redesign .daterangepicker::before,
+        .flight-search-redesign .daterangepicker::after {
+            display: none !important;
         }
 
-        /* Keep both calendar panels floating side-by-side, never stacked */
+        /* ── Two calendar panels side by side ── */
         .flight-search-redesign .daterangepicker .drp-calendar {
             float: left !important;
             clear: none !important;
-            max-width: 270px !important;
-            min-width: 260px !important;
+            display: block !important;
+            min-width: 320px !important;
+            max-width: 340px !important;
+            /* style.css removes all padding — restore it */
+            padding: 14px 12px 10px !important;
         }
         .flight-search-redesign .daterangepicker .drp-calendar.left {
             border-right: 1px solid #edf0f7 !important;
         }
-        .flight-search-redesign .daterangepicker .drp-calendar.right {
-            border-left: none !important;
-        }
-        /* Clearfix so the picker box wraps the floated calendars */
-        .flight-search-redesign .daterangepicker::after {
-            content: '';
-            display: table;
-            clear: both;
-        }
-
-        /* ── Month / Year select dropdowns ── */
-        .flight-search-redesign .daterangepicker select.monthselect,
-        .flight-search-redesign .daterangepicker select.yearselect {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            border: 1.5px solid #dde3ef;
-            border-radius: 7px;
-            padding: 4px 22px 4px 9px;
-            font-size: 0.79rem;
-            font-weight: 700;
-            color: #1a2540;
-            background-color: #fff;
-            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%238492a6' d='M5 8l5 5 5-5z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 4px center;
-            background-size: 16px;
-            cursor: pointer;
-            outline: none;
-            transition: border-color .15s, box-shadow .15s;
-            line-height: 1.4;
-        }
-        .flight-search-redesign .daterangepicker select.monthselect:hover,
-        .flight-search-redesign .daterangepicker select.yearselect:hover {
-            border-color: #cd1b4f;
-        }
-        .flight-search-redesign .daterangepicker select.monthselect:focus,
-        .flight-search-redesign .daterangepicker select.yearselect:focus {
-            border-color: #cd1b4f;
-            box-shadow: 0 0 0 2px rgba(205,27,79,.14);
+        /* Clearfix */
+        .flight-search-redesign .daterangepicker .drp-buttons {
+            clear: both !important;
+            border-top: 1px solid #edf0f7 !important;
+            padding: 10px 16px !important;
+            background: #f9fafc !important;
+            border-radius: 0 0 16px 16px !important;
         }
 
-        /* ── Calendar header row ── */
-        .flight-search-redesign .daterangepicker .drp-calendar th.month {
-            padding: 6px 4px 8px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: #1a2540;
+        /* ── Cell sizing — override style.css 44px ── */
+        .flight-search-redesign .daterangepicker .calendar-table th,
+        .flight-search-redesign .daterangepicker .calendar-table td {
+            width:  38px !important;
+            height: 36px !important;
+            min-width: 38px !important;
+            line-height: 36px !important;
+            font-size: 0.82rem !important;
+            font-weight: 500 !important;
+            font-family: inherit !important;
+            color: #1a2540 !important;
+            border-radius: 6px !important;
         }
+
+        /* ── Month header row ── */
+        .flight-search-redesign .daterangepicker .calendar-table th {
+            color: #8492a6 !important;
+            font-size: 0.68rem !important;
+            font-weight: 700 !important;
+            letter-spacing: .04em !important;
+            text-transform: uppercase !important;
+        }
+        .flight-search-redesign .daterangepicker .calendar-table th.month {
+            color: #1a2540 !important;
+            font-size: 0.84rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0 !important;
+            text-transform: none !important;
+            position: static !important;    /* kills the ::after oval from style.css */
+        }
+        /* Kill the style.css pill outline on month header */
+        .flight-search-redesign .daterangepicker .drp-calendar:not(.single) .calendar-table th.month::after {
+            display: none !important;
+            content: none !important;
+        }
+
+        /* ── Navigation arrows ── */
         .flight-search-redesign .daterangepicker th.prev,
         .flight-search-redesign .daterangepicker th.next {
             border-radius: 8px !important;
-            transition: background .13s;
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            transition: background .13s !important;
+            color: #cd1b4f !important;
         }
         .flight-search-redesign .daterangepicker th.prev:hover,
         .flight-search-redesign .daterangepicker th.next:hover {
-            background-color: rgba(205,27,79,.1) !important;
-            color: #cd1b4f;
+            background: rgba(205,27,79,.1) !important;
         }
         .flight-search-redesign .daterangepicker .prev span,
         .flight-search-redesign .daterangepicker .next span {
             border-color: #cd1b4f !important;
         }
+        /* Hide inner-facing arrows (left.next + right.prev create "> <" clutter between panels) */
+        .flight-search-redesign .daterangepicker .drp-calendar.left th.next,
+        .flight-search-redesign .daterangepicker .drp-calendar.right th.prev {
+            visibility: hidden !important;
+        }
 
-        /* ── Day cells ── */
+        /* ── Month / Year selects ── */
+        .flight-search-redesign .daterangepicker select.monthselect,
+        .flight-search-redesign .daterangepicker select.yearselect {
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            border: 1.5px solid #dde3ef !important;
+            border-radius: 7px !important;
+            padding: 4px 22px 4px 9px !important;
+            font-size: 0.8rem !important;
+            font-weight: 700 !important;
+            color: #1a2540 !important;
+            background-color: #fff !important;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%238492a6' d='M5 8l5 5 5-5z'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 4px center !important;
+            background-size: 16px !important;
+            cursor: pointer !important;
+            outline: none !important;
+            height: auto !important;
+            line-height: 1.4 !important;
+            transition: border-color .15s !important;
+        }
+        .flight-search-redesign .daterangepicker select.monthselect { width: 58% !important; }
+        .flight-search-redesign .daterangepicker select.yearselect  { width: 38% !important; }
+        .flight-search-redesign .daterangepicker select.monthselect:hover,
+        .flight-search-redesign .daterangepicker select.yearselect:hover  { border-color: #cd1b4f !important; }
+        .flight-search-redesign .daterangepicker select.monthselect:focus,
+        .flight-search-redesign .daterangepicker select.yearselect:focus  {
+            border-color: #cd1b4f !important;
+            box-shadow: 0 0 0 2px rgba(205,27,79,.14) !important;
+        }
+
+        /* ── Calendar table ── */
+        .flight-search-redesign .daterangepicker .calendar-table {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+        .flight-search-redesign .daterangepicker .calendar-table table {
+            border-spacing: 1px !important;
+        }
+
+        /* ── Day states ── */
         .flight-search-redesign .daterangepicker td.available {
-            border-radius: 6px;
-            transition: background .1s, color .1s;
+            border-radius: 6px !important;
+            transition: background .1s, color .1s !important;
         }
         .flight-search-redesign .daterangepicker td.available:hover {
-            background-color: rgba(205,27,79,.1) !important;
+            background: rgba(205,27,79,.1) !important;
             color: #cd1b4f !important;
         }
         .flight-search-redesign .daterangepicker td.today:not(.active) {
-            font-weight: 700;
+            font-weight: 700 !important;
             border-bottom: 2px solid #cd1b4f !important;
         }
         .flight-search-redesign .daterangepicker td.off {
             color: #c9d0dc !important;
         }
-
-        /* ── Buttons (apply / cancel) ── */
-        .flight-search-redesign .daterangepicker .drp-buttons {
-            border-top: 1px solid #edf0f7 !important;
-            padding: 8px 12px !important;
+        .flight-search-redesign .daterangepicker td.in-range {
+            background: #fdeef3 !important;   /* solid, no transparency */
+            color: #cd1b4f !important;
+            border-radius: 0 !important;
         }
+        .flight-search-redesign .daterangepicker td.in-range:not(.active) {
+            background: #fdeef3 !important;
+            color: #cd1b4f !important;
+        }
+        .flight-search-redesign .daterangepicker td.start-date,
+        .flight-search-redesign .daterangepicker td.active,
+        .flight-search-redesign .daterangepicker td.active:hover {
+            background: #cd1b4f !important;
+            border-color: transparent !important;
+            color: #fff !important;
+            border-radius: 6px !important;
+        }
+        .flight-search-redesign .daterangepicker td.start-date { border-radius: 6px 0 0 6px !important; }
+        .flight-search-redesign .daterangepicker td.end-date   { border-radius: 0 6px 6px 0 !important; }
+        .flight-search-redesign .daterangepicker td.start-date.end-date { border-radius: 6px !important; }
+
+        /* ── Apply / Cancel buttons ── */
         .flight-search-redesign .daterangepicker .applyBtn {
             background: linear-gradient(180deg, #cd1b4f 0%, #a8173f 100%) !important;
             border-color: #cd1b4f !important;
             border-radius: 8px !important;
             font-weight: 700 !important;
             font-size: .82rem !important;
-            padding: .38rem .95rem !important;
+            padding: .4rem 1rem !important;
+            color: #fff !important;
         }
         .flight-search-redesign .daterangepicker .cancelBtn {
             border-radius: 8px !important;
@@ -1652,6 +1733,7 @@
             color: #4a5568 !important;
             font-weight: 600 !important;
             font-size: .82rem !important;
+            background: #fff !important;
         }
         .flight-search-redesign .daterangepicker .cancelBtn:hover {
             background: #f3f5fb !important;
@@ -2569,17 +2651,7 @@
             background: var(--fs-canvas);
         }
 
-        /* Date picker selected day  -  match SA pink (library default is blue) */
-        .flight-search-redesign .daterangepicker td.active,
-        .flight-search-redesign .daterangepicker td.active:hover {
-            background-color: var(--fs-brand) !important;
-            border-color: transparent !important;
-            color: #fff !important;
-        }
-
-        .flight-search-redesign .daterangepicker td.in-range:not(.active) {
-            background-color: rgba(205, 27, 79, 0.12) !important;
-        }
+        /* (td.active + td.in-range rules moved to the unified daterangepicker block above) */
 
         /*
          * Results listing (/flights/search): compact reference-style toolbar
