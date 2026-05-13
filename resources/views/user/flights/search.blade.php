@@ -728,7 +728,7 @@
     --c-slate:       #4a5568;
     --c-muted:       #8492a6;
     --c-line:        #dde3ef;
-    --c-bg:          #f3f5fb;
+    --c-bg:          #ffffff;
     --c-white:       #ffffff;
     --c-green:       #0f9d58;
     --c-green-soft:  #e8f9f1;

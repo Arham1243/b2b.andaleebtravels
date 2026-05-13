@@ -202,6 +202,7 @@
 
 .bk-item__badge--confirmed { background: #dcfce7; color: #15803d; }
 .bk-item__badge--hold      { background: #fef9c3; color: #a16207; }
+.bk-item__badge--expired   { background: #fee2e2; color: #991b1b; }
 .bk-item__badge--cancelled { background: #fee2e2; color: #b91c1c; }
 .bk-item__badge--failed    { background: #fee2e2; color: #b91c1c; }
 .bk-item__badge--pending   { background: #fff7ed; color: #c2410c; }
@@ -289,10 +290,20 @@
 
 .bk-badge--confirmed { background: #dcfce7; color: #15803d; }
 .bk-badge--hold      { background: #fef9c3; color: #a16207; }
+.bk-badge--expired   { background: #fee2e2; color: #991b1b; }
 .bk-badge--cancelled { background: #fee2e2; color: #b91c1c; }
 .bk-badge--failed    { background: #fee2e2; color: #b91c1c; }
 .bk-badge--pending   { background: #fff7ed; color: #c2410c; }
 .bk-badge--issued    { background: #dbeafe; color: #1d4ed8; }
+
+/* hold-expired banner */
+.bk-hold-banner--expired {
+    background: linear-gradient(135deg, #fff1f2, #fee2e2);
+    border-color: #fca5a5;
+}
+.bk-hold-banner--expired i { color: #b91c1c; }
+.bk-hold-banner--expired .bk-hold-banner__title { color: #7f1d1d; }
+.bk-hold-banner--expired .bk-hold-banner__text  { color: #991b1b; }
 
 /* hold alert banner */
 .bk-hold-banner {
@@ -596,10 +607,29 @@
         return match($s) {
             'confirmed', 'completed' => 'confirmed',
             'hold'      => 'hold',
+            'expired'   => 'expired',
             'cancelled' => 'cancelled',
             'failed'    => 'failed',
             default     => 'pending',
         };
+    };
+
+    /* Resolve hold expiry: returns true if a hold booking's deadline has passed */
+    $isHoldExpired = function ($bookingObj): bool {
+        if (($bookingObj->booking_status ?? '') !== 'hold') return false;
+        // 1. Explicit column
+        if (!empty($bookingObj->hold_expires_at)) {
+            try { return \Carbon\Carbon::parse($bookingObj->hold_expires_at)->isPast(); } catch (\Throwable $e) {}
+        }
+        // 2. Ticketing deadline from Sabre response
+        $ttl = data_get($bookingObj->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.ticketingDeadline')
+            ?? data_get($bookingObj->booking_response, 'CreatePassengerNameRecordRS.TravelItineraryAddInfo.AgencyInfo.Ticketing.Date')
+            ?? null;
+        if ($ttl) {
+            try { return \Carbon\Carbon::parse($ttl)->isPast(); } catch (\Throwable $e) {}
+        }
+        // 3. Fallback: 24 h after creation
+        return $bookingObj->created_at->addHours(24)->isPast();
     };
 @endphp
 
@@ -651,6 +681,7 @@
                 <div class="bk-filters">
                     <button class="bk-filter-chip active" data-bk-status="all">All</button>
                     <button class="bk-filter-chip" data-bk-status="hold">On Hold</button>
+                    <button class="bk-filter-chip" data-bk-status="expired" style="border-color:#fca5a5;color:#991b1b;">Expired</button>
                     <button class="bk-filter-chip" data-bk-status="confirmed">Confirmed</button>
                     <button class="bk-filter-chip" data-bk-status="cancelled">Cancelled</button>
                 </div>
@@ -664,6 +695,7 @@
                             $bkKey  = $bkType . '-' . $bkObj->id;
                             $bkStatus = $bkObj->booking_status;
                             if ($bkStatus === 'completed') $bkStatus = 'confirmed';
+                            if ($bkStatus === 'hold' && $isHoldExpired($bkObj)) $bkStatus = 'expired';
 
                             if ($bkType === 'flight') {
                                 $bkRoute = strtoupper($bkObj->from_airport ?? '') . ' → ' . strtoupper($bkObj->to_airport ?? '');
@@ -688,7 +720,10 @@
                                 <div class="bk-item__meta">{{ $bkMeta }}</div>
                             </div>
                             <span class="bk-item__badge bk-item__badge--{{ $bkStatus }}">
-                                {{ $bkStatus === 'hold' ? 'On Hold' : ucfirst($bkStatus) }}
+                                @if($bkStatus === 'hold') On Hold
+                                @elseif($bkStatus === 'expired') Expired
+                                @else {{ ucfirst($bkStatus) }}
+                                @endif
                             </span>
                         </div>
                     @endforeach
@@ -713,6 +748,7 @@
                     $bkKey     = 'flight-' . $booking->id;
                     $bkStatus  = $booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status;
                     $isHold    = ($booking->payment_method === 'hold');
+                    if ($bkStatus === 'hold' && $isHoldExpired($booking)) $bkStatus = 'expired';
                     $passengers = $booking->passengers_data['passengers'] ?? [];
                     $lead       = $booking->passengers_data['lead'] ?? [];
                     $legs       = $booking->itinerary_data['legs'] ?? [];
@@ -736,19 +772,29 @@
                 @endphp
                 <div id="detail-{{ $bkKey }}" class="bk-detail {{ $bkKey === $defaultKey ? 'active' : '' }}">
 
-                    {{-- Hold banner --}}
-                    @if($isHold && $bkStatus !== 'cancelled')
-                    <div class="bk-hold-banner">
-                        <i class="bx bx-time-five"></i>
+                    {{-- Hold / Expired banner --}}
+                    @if($isHold && !in_array($bkStatus, ['cancelled']))
+                    <div class="bk-hold-banner {{ $bkStatus === 'expired' ? 'bk-hold-banner--expired' : '' }}">
+                        <i class="bx {{ $bkStatus === 'expired' ? 'bx-error-circle' : 'bx-time-five' }}"></i>
                         <div class="bk-hold-banner__body">
-                            <div class="bk-hold-banner__title">This booking is On Hold &mdash; no payment charged</div>
-                            <div class="bk-hold-banner__text">
-                                PNR <strong>{{ $booking->sabre_record_locator ?? 'Pending' }}</strong> has been created on Sabre.
-                                Ticketing time limit is set by the airline on the PNR.
-                                Typical hold window is <strong>1–24 hours</strong>  -  confirm ticketing before it expires to avoid auto-cancellation.<br>
-                                @if($ttlDate) Ticketing deadline: <strong>{{ $ttlDate }}</strong>. @endif
-                                Hold created: <strong>{{ $booking->created_at->format('d M Y, h:i A') }}</strong>.
-                            </div>
+                            @if($bkStatus === 'expired')
+                                <div class="bk-hold-banner__title">Hold Expired &mdash; ticketing deadline has passed</div>
+                                <div class="bk-hold-banner__text">
+                                    PNR <strong>{{ $booking->sabre_record_locator ?? 'Pending' }}</strong> may have been auto-cancelled by the airline.
+                                    @if($ttlDate) The ticketing deadline was <strong>{{ $ttlDate }}</strong>. @endif
+                                    Please contact support or check the PNR directly on Sabre.
+                                    Hold created: <strong>{{ $booking->created_at->format('d M Y, h:i A') }}</strong>.
+                                </div>
+                            @else
+                                <div class="bk-hold-banner__title">This booking is On Hold &mdash; no payment charged</div>
+                                <div class="bk-hold-banner__text">
+                                    PNR <strong>{{ $booking->sabre_record_locator ?? 'Pending' }}</strong> has been created on Sabre.
+                                    Ticketing time limit is set by the airline on the PNR.
+                                    Typical hold window is <strong>1–24 hours</strong>  -  confirm ticketing before it expires to avoid auto-cancellation.<br>
+                                    @if($ttlDate) Ticketing deadline: <strong>{{ $ttlDate }}</strong>. @endif
+                                    Hold created: <strong>{{ $booking->created_at->format('d M Y, h:i A') }}</strong>.
+                                </div>
+                            @endif
                         </div>
                     </div>
                     @endif
@@ -766,8 +812,20 @@
                             </div>
                             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
                                 <span class="bk-badge bk-badge--{{ $bkStatus }}">
-                                    <i class="bx {{ $bkStatus === 'hold' ? 'bx-time-five' : ($bkStatus === 'confirmed' ? 'bx-check-circle' : 'bx-x-circle') }}"></i>
-                                    {{ $bkStatus === 'hold' ? 'On Hold' : ucfirst($bkStatus) }}
+                                    @php
+                                        $badgeIcon = match($bkStatus) {
+                                            'hold'      => 'bx-time-five',
+                                            'expired'   => 'bx-error-circle',
+                                            'confirmed' => 'bx-check-circle',
+                                            default     => 'bx-x-circle',
+                                        };
+                                        $badgeLabel = match($bkStatus) {
+                                            'hold'    => 'On Hold',
+                                            'expired' => 'Hold Expired',
+                                            default   => ucfirst($bkStatus),
+                                        };
+                                    @endphp
+                                    <i class="bx {{ $badgeIcon }}"></i> {{ $badgeLabel }}
                                 </span>
                                 @if($booking->ticket_status)
                                     <span class="bk-badge bk-badge--{{ $booking->ticket_status }}">
@@ -960,6 +1018,24 @@
                                     <p style="font-size:.8rem;color:#b91c1c;margin:0;">
                                         <i class="bx bx-x-circle"></i>
                                         Booking cancelled on {{ $booking->cancelled_at?->format('d M Y, h:i A') ?? ' - ' }}.
+                                    </p>
+                                @elseif($bkStatus === 'expired')
+                                    <p style="font-size:.8rem;color:#991b1b;margin:0 0 10px;">
+                                        <i class="bx bx-error-circle"></i>
+                                        <strong>Hold has expired.</strong> The airline may have auto-cancelled PNR <strong>{{ $booking->sabre_record_locator ?? 'N/A' }}</strong>.
+                                    </p>
+                                    <div class="bk-actions">
+                                        <form action="{{ route('user.bookings.flights.release-hold', $booking->id) }}"
+                                              method="POST"
+                                              onsubmit="return confirm('Mark this expired hold as released/cancelled?');">
+                                            @csrf
+                                            <button type="submit" class="bk-btn bk-btn--danger">
+                                                <i class="bx bx-x-circle"></i> Mark as Cancelled
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <p style="font-size:.7rem;color:#8492a6;margin-top:8px;">
+                                        No payment was made. Marking as cancelled will update the booking status and remove it from active holds.
                                     </p>
                                 @elseif($isHold)
                                     <div class="bk-actions">
