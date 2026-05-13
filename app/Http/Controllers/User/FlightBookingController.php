@@ -197,6 +197,18 @@ class FlightBookingController extends Controller
             return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
         }
 
+        if ($this->flightSkipPaymentGatewayForTesting()) {
+            $booking->update([
+                'payment_method' => 'test_skip',
+            ]);
+            Log::warning('Flight checkout: payment gateway skipped (services.flight.skip_payment_for_testing)', [
+                'booking_id' => $booking->id,
+                'booking_number' => $booking->booking_number,
+            ]);
+
+            return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
+        }
+
         try {
             $redirectUrl = $flightService->getRedirectUrl($booking, $validated['payment_method']);
             return redirect($redirectUrl);
@@ -244,6 +256,8 @@ class FlightBookingController extends Controller
                     }
 
                     $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
+                } elseif ($booking->payment_method === 'test_skip' && $this->flightSkipPaymentGatewayForTesting()) {
+                    $verificationResult = ['success' => true, 'data' => ['method' => 'test_skip', 'note' => 'skip_payment_for_testing']];
                 } elseif ($booking->payment_method === 'payby') {
                     $verificationResult = $flightService->verifyPayByPayment($booking);
                 } elseif ($booking->payment_method === 'tabby') {
@@ -565,6 +579,15 @@ class FlightBookingController extends Controller
             return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
         }
 
+        if ($this->flightSkipPaymentGatewayForTesting()) {
+            $booking->update(['payment_method' => 'test_skip']);
+            Log::warning('Hold confirm: payment gateway skipped (services.flight.skip_payment_for_testing)', [
+                'booking_id' => $booking->id,
+            ]);
+
+            return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
+        }
+
         // External gateway
         $method = $validated['payment_method'] ?? null;
         if (!$method) {
@@ -655,6 +678,15 @@ class FlightBookingController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * When true in config (and not production), skip external payment redirect for Sabre testing.
+     */
+    protected function flightSkipPaymentGatewayForTesting(): bool
+    {
+        return (bool) config('services.flight.skip_payment_for_testing', false)
+            && ! app()->environment('production');
     }
 
     protected function getSourceMarketFromIP(): string

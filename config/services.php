@@ -60,4 +60,12 @@ return [
         'http_timeout' => (int) env('SABRE_HTTP_TIMEOUT', 90),
         'http_connect_timeout' => (int) env('SABRE_HTTP_CONNECT_TIMEOUT', 30),
     ],
+
+    /*
+    | TEMPORARY: Skip PayBy/Tabby/Tamara redirect (Sabre PNR/ticket testing).
+    | Revert to false (or use env) before go-live. Still blocked when APP_ENV=production.
+    */
+    'flight' => [
+        'skip_payment_for_testing' => true,
+    ],
 ];
