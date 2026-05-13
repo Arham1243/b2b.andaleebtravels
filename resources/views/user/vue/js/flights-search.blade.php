@@ -50,6 +50,7 @@
             const airlineAll = ref(true);
             const airlineLowCost = ref(true);
             const airlineGds = ref(true);
+            const airlineNdc = ref(false);
 
             const fromInput = ref('');
             const toInput = ref('');
@@ -662,6 +663,7 @@
                 airlineAll,
                 airlineLowCost,
                 airlineGds,
+                airlineNdc,
                 travellersOpen,
                 travellersRef,
                 toggleTravellers,
