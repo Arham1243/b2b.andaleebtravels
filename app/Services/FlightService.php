@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\B2bFlightBooking;
 use App\Models\Config;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -38,6 +39,15 @@ class FlightService
         $this->commissionPercentage = ((float) ($config['FLIGHT_COMMISSION_PERCENTAGE'] ?? 0)) / 100;
         $this->tamaraApiUrl = rtrim(env('TAMARA_API_URL', $this->tamaraApiUrl), '/');
         $this->tamaraApiToken = env('TAMARA_API_TOKEN');
+    }
+
+    /**
+     * Sabre CERT/PROD calls (shop, revalidate, PNR, ticket, SOAP) often exceed default Guzzle timeouts (~10s).
+     */
+    private function sabreHttp(): PendingRequest
+    {
+        return Http::timeout((int) config('services.sabre.http_timeout', 90))
+            ->connectTimeout((int) config('services.sabre.http_connect_timeout', 30));
     }
 
     public function createBookingRecord(array $data): B2bFlightBooking
@@ -525,7 +535,7 @@ class FlightService
 
             $payload = $this->buildPnrPayload($booking, $searchResponse, $itineraryRaw);
 
-            $response = Http::withToken($token)
+            $response = $this->sabreHttp()->withToken($token)
                 ->withHeaders(['Accept' => 'application/json'])
                 ->post('https://api.cert.platform.sabre.com/v2.5.0/passenger/records?mode=create', $payload);
 
@@ -627,7 +637,7 @@ class FlightService
                 ],
             ];
 
-            $response = Http::withToken($token)
+            $response = $this->sabreHttp()->withToken($token)
                 ->withHeaders(['Accept' => 'application/json'])
                 ->post('https://api.cert.platform.sabre.com/v1.3.0/air/ticket', $payload);
 
@@ -719,7 +729,7 @@ class FlightService
                 throw new \Exception('Unable to build revalidation payload.');
             }
 
-            $response = Http::withToken($token)
+            $response = $this->sabreHttp()->withToken($token)
                 ->withHeaders(['Accept' => 'application/json'])
                 ->post('https://api.cert.platform.sabre.com/v4/shop/flights/revalidate', $payload);
 
@@ -750,7 +760,7 @@ class FlightService
             throw new \Exception('Sabre credentials are not configured.');
         }
 
-        $response = Http::asForm()->withHeaders([
+        $response = $this->sabreHttp()->asForm()->withHeaders([
             'Authorization' => 'Basic ' . $this->sabreBasicAuth,
         ])->post('https://api.cert.platform.sabre.com/v2/auth/token', [
             'grant_type' => 'client_credentials',
@@ -1207,7 +1217,7 @@ XML;
             $headers['Authorization'] = 'Bearer ' . $bearerToken;
         }
 
-        $response = Http::withHeaders($headers)
+        $response = $this->sabreHttp()->withHeaders($headers)
             ->withBody($xml, 'text/xml')
             ->post('https://sws-crt.cert.sabre.com');
 
@@ -1285,7 +1295,7 @@ XML;
             $headers['Authorization'] = 'Bearer ' . $bearerToken;
         }
 
-        $response = Http::withHeaders($headers)
+        $response = $this->sabreHttp()->withHeaders($headers)
             ->withBody($xml, 'text/xml')
             ->post('https://webservices.cert.platform.sabre.com');
 
@@ -1349,7 +1359,7 @@ XML;
             $headers['Authorization'] = 'Bearer ' . $bearerToken;
         }
 
-        $response = Http::withHeaders($headers)
+        $response = $this->sabreHttp()->withHeaders($headers)
             ->withBody($xml, 'text/xml')
             ->post('https://sws-crt.cert.sabre.com');
 
@@ -1407,7 +1417,7 @@ XML;
             $headers['Authorization'] = 'Bearer ' . $bearerToken;
         }
 
-        $response = Http::withHeaders($headers)
+        $response = $this->sabreHttp()->withHeaders($headers)
             ->withBody($xml, 'text/xml')
             ->post('https://sws-crt.cert.sabre.com');
 
@@ -1466,7 +1476,7 @@ XML;
             $headers['Authorization'] = 'Bearer ' . $bearerToken;
         }
 
-        $response = Http::withHeaders($headers)
+        $response = $this->sabreHttp()->withHeaders($headers)
             ->withBody($xml, 'text/xml')
             ->post('https://sws-crt.cert.sabre.com');
 

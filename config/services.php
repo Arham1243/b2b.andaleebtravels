@@ -51,5 +51,13 @@ return [
         'api_key' => env('TABBY_API_KEY'),
         'api_url' => env('TABBY_API_URL', 'https://api.tabby.ai'),
         'merchant_code' => env('TABBY_MERCHANT_CODE'),
-    ]
+    ],
+
+    /*
+    | Sabre REST/SOAP can exceed default Guzzle timeouts (often ~10s). Raise for shop, revalidate, PNR, ticket.
+    */
+    'sabre' => [
+        'http_timeout' => (int) env('SABRE_HTTP_TIMEOUT', 90),
+        'http_connect_timeout' => (int) env('SABRE_HTTP_CONNECT_TIMEOUT', 30),
+    ],
 ];

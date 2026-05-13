@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Config;
 use Carbon\Carbon;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -24,6 +25,12 @@ class FlightController extends Controller
         $userProviders = $this->parseProviderConfig($user?->flight_search_providers ?? null);
 
         $this->enabledFlightProviders = $userProviders ?? $adminProviders ?? ['sabre'];
+    }
+
+    private function sabreHttp(): PendingRequest
+    {
+        return Http::timeout((int) config('services.sabre.http_timeout', 90))
+            ->connectTimeout((int) config('services.sabre.http_connect_timeout', 30));
     }
 
     public function index()
@@ -146,7 +153,7 @@ class FlightController extends Controller
         }
 
         $payload = $this->buildSabrePayload($searchData);
-        $response = Http::withToken($token)
+        $response = $this->sabreHttp()->withToken($token)
             ->withHeaders(['Accept' => 'application/json'])
             ->post('https://api.cert.platform.sabre.com/v5/offers/shop', $payload);
 
@@ -262,11 +269,9 @@ class FlightController extends Controller
             throw new \Exception('Sabre credentials are not configured.');
         }
 
-        $request = Http::asForm()->withHeaders([
+        $response = $this->sabreHttp()->asForm()->withHeaders([
             'Authorization' => 'Basic ' . $this->sabreBasicAuth,
-        ]);
-
-        $response = $request->post('https://api.cert.platform.sabre.com/v2/auth/token', [
+        ])->post('https://api.cert.platform.sabre.com/v2/auth/token', [
             'grant_type' => 'client_credentials',
         ]);
 
