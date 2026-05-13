@@ -1021,6 +1021,15 @@
             width: 100%;
         }
 
+        /* Swap sits at route-pair center; halo + diameter intrude ~22px each side — keep text clear */
+        .fs-pro-route-field.fs-pro-route-field--from .hs-field__inner {
+            padding-right: calc(0.95rem + 22px) !important;
+        }
+
+        .fs-pro-route-field.fs-pro-route-field--to .hs-field__inner {
+            padding-left: calc(0.95rem + 22px) !important;
+        }
+
         .fs-pro-route-field__label {
             font-weight: 500;
             font-size: 0.72rem !important;
@@ -2716,6 +2725,14 @@
             padding: 0.42rem 0.55rem !important;
         }
 
+        .fs-mount--flight-listing .fs-pro-route-field.fs-pro-route-field--from .hs-field__inner {
+            padding: 0.42rem calc(0.55rem + 22px) 0.42rem 0.55rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-route-field.fs-pro-route-field--to .hs-field__inner {
+            padding: 0.42rem 0.55rem 0.42rem calc(0.55rem + 26px) !important;
+        }
+
         .fs-mount--flight-listing .fs-pro-route-chosen__city {
             font-size: 1.18rem !important;
         }
@@ -2945,6 +2962,31 @@
             .fs-mount--flight-listing .fs-pro-date-pair {
                 flex-basis: 100% !important;
                 max-width: none !important;
+            }
+
+            /* Stacked columns: rotated swap overlaps lower FROM / upper TO vertically */
+            .fs-pro-route-field.fs-pro-route-field--from .hs-field__inner {
+                padding-right: 0.95rem !important;
+                padding-bottom: calc(0.7rem + 26px) !important;
+            }
+
+            .fs-pro-route-field.fs-pro-route-field--to .hs-field__inner {
+                padding-left: 0.95rem !important;
+                padding-top: calc(0.7rem + 26px) !important;
+            }
+
+            .fs-mount--flight-listing .fs-pro-route-field.fs-pro-route-field--from .hs-field__inner {
+                padding-bottom: calc(0.42rem + 24px) !important;
+                padding-left: 0.55rem !important;
+                padding-right: 0.55rem !important;
+                padding-top: 0.42rem !important;
+            }
+
+            .fs-mount--flight-listing .fs-pro-route-field.fs-pro-route-field--to .hs-field__inner {
+                padding-top: calc(0.42rem + 24px) !important;
+                padding-left: 0.55rem !important;
+                padding-right: 0.55rem !important;
+                padding-bottom: 0.42rem !important;
             }
         }
     </style>
