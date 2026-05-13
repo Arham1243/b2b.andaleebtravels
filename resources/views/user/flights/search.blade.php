@@ -148,9 +148,13 @@
                             <label class="sf__stoplbl">
                                 <input type="checkbox" class="sf__stopchk" value="{{ $_s }}" data-sf="stops">
                                 <span class="sf__stoppill">
-                                    @if($_s === 0)<i class="bx bxs-plane"></i> Direct
-                                    @elseif($_s === 1)1 Stop
-                                    @else{{ $_s }}+ Stops@endif
+                                    @if($_s === 0)
+                                        <i class="bx bxs-plane"></i> Direct
+                                    @elseif($_s === 1)
+                                        1 Stop
+                                    @else
+                                        {{ $_s }}+ Stops
+                                    @endif
                                 </span>
                             </label>
                             @endforeach
