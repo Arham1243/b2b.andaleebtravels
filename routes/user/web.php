@@ -84,6 +84,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::post('/hotels/cancel-tbo', [BookingController::class, 'cancelTboBooking'])->name('hotels.cancel-tbo');
         Route::get('/hotels/cancel/{id}', [BookingController::class, 'cancelHotelBooking'])->name('hotels.cancel');
         Route::get('/flights/cancel/{id}', [BookingController::class, 'cancelFlightBooking'])->name('flights.cancel');
+        Route::post('/flights/release-hold/{id}', [BookingController::class, 'releaseHold'])->name('flights.release-hold');
     });
 
     Route::prefix('wallet')->name('wallet.')->group(function () {

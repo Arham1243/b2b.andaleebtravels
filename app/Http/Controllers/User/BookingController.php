@@ -138,6 +138,51 @@ class BookingController extends Controller
         }
     }
 
+    public function releaseHold(int $id, FlightService $flightService)
+    {
+        $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
+            ->findOrFail($id);
+
+        if ($booking->booking_status === 'cancelled') {
+            return back()->with('notify_error', 'Booking is already cancelled.');
+        }
+
+        if ($booking->payment_method !== 'hold') {
+            return back()->with('notify_error', 'This action is only available for held bookings.');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $cancelResponse = [];
+            if (!empty($booking->sabre_record_locator)) {
+                $cancelResponse = $flightService->cancelSabreBooking($booking);
+            }
+
+            $booking->update([
+                'booking_status' => 'cancelled',
+                'cancelled_at'   => now(),
+                'cancelled_by'   => 'vendor_release',
+                'cancel_response' => $cancelResponse,
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('user.bookings.index')
+                ->with('notify_success', 'Hold booking #' . $booking->booking_number . ' released. PNR ' . $booking->sabre_record_locator . ' cancelled on Sabre.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Hold release failed', [
+                'booking_id' => $booking->id,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return back()->with('notify_error', 'Unable to release hold: ' . $e->getMessage());
+        }
+    }
+
     public function cancelFlightBooking(int $id, FlightService $flightService)
     {
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
