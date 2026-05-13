@@ -333,9 +333,10 @@ class FlightBookingController extends Controller
     {
         $validated = $request->validate([
             'itinerary_id'              => 'required|integer',
-            'lead.title'                => 'required|string',
-            'lead.first_name'           => 'required|string|max:60',
-            'lead.last_name'            => 'required|string|max:60',
+            // lead name fields are synced from passenger[0] via JS as hidden inputs
+            'lead.title'                => 'nullable|string',
+            'lead.first_name'           => 'nullable|string|max:60',
+            'lead.last_name'            => 'nullable|string|max:60',
             'lead.email'                => 'required|email',
             'lead.phone'                => 'required|string|max:25',
             'passengers'                => 'required|array|min:1',

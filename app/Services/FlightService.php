@@ -525,6 +525,11 @@ class FlightService
 
             $payload = $this->buildPnrPayload($booking, $searchResponse, $itineraryRaw);
 
+            Log::debug('Sabre PNR payload', [
+                'booking_id' => $booking->id,
+                'payload'    => $payload,
+            ]);
+
             $response = Http::withToken($token)
                 ->withHeaders(['Accept' => 'application/json'])
                 ->post('https://api.cert.platform.sabre.com/v2.5.0/passenger/records?mode=create', $payload);
@@ -557,14 +562,14 @@ class FlightService
                 'locator' => $locator,
             ];
         } catch (\Exception $e) {
-            Log::error('Sabre PNR creation failed', [
+            Log::error('Sabre PNR creation exception', [
                 'booking_id' => $booking->id,
-                'error' => $e->getMessage(),
+                'error'      => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
             ];
         }
     }
@@ -782,27 +787,17 @@ class FlightService
             $index++;
         }
 
+        // Flatten passenger types for pricing – avoids deep array nesting that
+        // triggers Sabre's "Over 9 levels deep, aborting normalization" error.
+        $passengerTypes = $this->buildPassengerTypes($booking);
+
         return [
             'CreatePassengerNameRecordRQ' => [
                 'version' => '2.5.0',
                 'targetCity' => $this->sabrePcc,
                 'TravelItineraryAddInfo' => [
                     'AgencyInfo' => [
-                        'Address' => [
-                            'AddressLine' => 'SABRE TRAVEL',
-                            'CityName' => 'SOUTHLAKE',
-                            'CountryCode' => 'US',
-                            'PostalCode' => '76092',
-                            'StateCountyProv' => [
-                                'StateCode' => 'TX',
-                            ],
-                            'StreetNmbr' => '3150 SABRE DRIVE',
-                            'VendorPrefs' => [
-                                'Airline' => [
-                                    'Hosted' => true,
-                                ],
-                            ],
-                        ],
+                        // Address block omitted – unnecessary depth for PNR creation.
                         'Ticketing' => [
                             'TicketType' => '7TAW',
                         ],
@@ -810,11 +805,9 @@ class FlightService
                     'CustomerInfo' => [
                         'ContactNumbers' => [
                             'ContactNumber' => [
-                                [
-                                    'NameNumber' => '1.1',
-                                    'Phone' => $lead['phone'] ?? '',
-                                    'PhoneUseType' => 'H',
-                                ],
+                                'NameNumber'    => '1.1',
+                                'Phone'         => $lead['phone'] ?? '',
+                                'PhoneUseType'  => 'H',
                             ],
                         ],
                         'PersonName' => $personNames,
@@ -825,24 +818,13 @@ class FlightService
                         'FlightSegment' => $segments,
                     ],
                 ],
+                // Single object (not array) keeps nesting ≤ 8 levels.
                 'AirPrice' => [
-                    [
-                        'PriceRequestInformation' => [
-                            'Retain' => true,
-                            'OptionalQualifiers' => [
-                                'FOP_Qualifiers' => [
-                                    'BasicFOP' => [
-                                        'Type' => 'CA',
-                                    ],
-                                ],
-                                'PricingQualifiers' => [
-                                    'PassengerType' => $this->buildPassengerTypes($booking),
-                                ],
-                                'MiscQualifiers' => [
-                                    'Commission' => [
-                                        'Percent' => '0',
-                                    ],
-                                ],
+                    'PriceRequestInformation' => [
+                        'Retain'            => true,
+                        'OptionalQualifiers' => [
+                            'PricingQualifiers' => [
+                                'PassengerType' => $passengerTypes,
                             ],
                         ],
                     ],
