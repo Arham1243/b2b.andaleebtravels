@@ -18,17 +18,30 @@
     if ($booking->children) $paxStr .= ', ' . $booking->children . ' Child' . ($booking->children > 1 ? 'ren' : '');
     if ($booking->infants)  $paxStr .= ', ' . $booking->infants . ' Infant' . ($booking->infants > 1 ? 's' : '');
 
-    $ttlRaw = data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.ticketingDeadline') ?? null;
-    $ttl    = null;
+    // Try multiple paths Sabre uses for the ticketing deadline
+    $ttlRaw = data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.ticketingDeadline')
+        ?? data_get($booking->booking_response, 'CreatePassengerNameRecordRS.TravelItineraryReadRS.TravelItinerary.ItineraryInfo.ItineraryPricing.PriceQuote.MiscInformation.SignatureLine.ExpirationDateTime')
+        ?? data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.0.ticketingDeadline')
+        ?? null;
+
+    $ttlIsEstimate = false;
+
+    // Fallback: estimate based on booking creation time + 1 hour
+    if (!$ttlRaw && $isHold && $status !== 'cancelled') {
+        $ttlRaw       = $booking->created_at->copy()->addHour()->toIso8601String();
+        $ttlIsEstimate = true;
+    }
+
+    $ttl           = null;
     $ttlFormatted  = null;
     $ttlRemaining  = null;
     $ttlExpired    = false;
-    $ttlUrgent     = false; // < 2 hours left
+    $ttlUrgent     = false;
 
     if ($ttlRaw) {
         try {
             $ttl = \Carbon\Carbon::parse($ttlRaw);
-            $ttlFormatted = $ttl->format('D, d M Y \a\t h:i A');   // e.g. "Wed, 13 May 2026 at 10:30 AM"
+            $ttlFormatted = $ttl->format('D, d M Y \a\t h:i A');
             $now = now();
             if ($ttl->isPast()) {
                 $ttlExpired   = true;
@@ -38,10 +51,10 @@
                 $h = intdiv($diffMins, 60);
                 $m = $diffMins % 60;
                 $ttlRemaining = $h ? ($m ? "{$h}h {$m}m remaining" : "{$h}h remaining") : "{$m}m remaining";
-                $ttlUrgent = $diffMins < 120; // < 2 hours = urgent
+                $ttlUrgent = $diffMins < 120;
             }
         } catch (\Throwable $e) {
-            $ttlFormatted = $ttlRaw; // show raw if parsing fails
+            $ttlFormatted = $ttlRaw;
         }
     }
 
@@ -79,15 +92,19 @@
                     <div class="bkpd-hold-expiry__body">
                         <div class="bkpd-hold-expiry__title">
                             @if($ttlExpired)
-                                Hold Expired — ticketing window has passed
+                                Hold Expired  -  ticketing window has passed
                             @elseif($ttlFormatted)
-                                This hold expires on <strong>{{ $ttlFormatted }}</strong>
+                                @if($ttlIsEstimate)
+                                    Estimated hold expiry: <strong>{{ $ttlFormatted }}</strong>
+                                @else
+                                    This hold expires on <strong>{{ $ttlFormatted }}</strong>
+                                @endif
                             @else
-                                Booking is on hold — ticketing window typically 1–24 hours
+                                Booking is on hold  -  ticketing window typically 1–24 hours
                             @endif
                         </div>
                         <div class="bkpd-hold-expiry__meta">
-                            PNR: <strong>{{ $booking->sabre_record_locator ?? '—' }}</strong>
+                            PNR: <strong>{{ $booking->sabre_record_locator ?? ' - ' }}</strong>
                             &nbsp;·&nbsp; Held on {{ $booking->created_at->format('d M Y, h:i A') }}
                             @if(!empty($ttlRemaining) && !$ttlExpired)
                                 &nbsp;·&nbsp; <span class="bkpd-hold-expiry__remaining {{ $ttlUrgent ? 'bkpd-hold-expiry__remaining--urgent' : '' }}">
@@ -101,7 +118,7 @@
                     @if($ttlFormatted && !$ttlExpired)
                     <div class="bkpd-hold-expiry__pill {{ $ttlUrgent ? 'bkpd-hold-expiry__pill--urgent' : '' }}">
                         <div class="bkpd-hold-expiry__pill-top">{{ $ttlRemaining }}</div>
-                        <div class="bkpd-hold-expiry__pill-bot">to ticket</div>
+                        <div class="bkpd-hold-expiry__pill-bot">{{ $ttlIsEstimate ? 'estimated' : 'to ticket' }}</div>
                     </div>
                     @elseif($ttlExpired)
                     <div class="bkpd-hold-expiry__pill bkpd-hold-expiry__pill--expired">
@@ -285,13 +302,17 @@
                                         <div class="bkpd-pax__meta">
                                             {{ $paxType }}
                                             @if(!empty($pax['nationality'])) &bull; {{ strtoupper($pax['nationality']) }} @endif
-                                            @if(!empty($pax['dob'])) &bull; DOB: {{ $pax['dob'] }} @endif
+                                            @if(!empty($pax['dob'])) &bull; DOB: {{ \Carbon\Carbon::parse($pax['dob'])->format('d M Y') }} @endif
                                         </div>
                                     </div>
                                     @if(!empty($pax['passport_no']))
                                     <div class="bkpd-pax__passport">
                                         <i class="bx bx-id-card"></i> {{ $pax['passport_no'] }}
-                                        @if(!empty($pax['passport_exp'])) &nbsp;(exp {{ $pax['passport_exp'] }}) @endif
+                                        @if(!empty($pax['passport_exp']))
+                                            &nbsp;<span style="font-size:.65rem;color:#8492a6;font-weight:500;">
+                                                exp {{ \Carbon\Carbon::parse($pax['passport_exp'])->format('d M Y') }}
+                                            </span>
+                                        @endif
                                     </div>
                                     @endif
                                 </div>
