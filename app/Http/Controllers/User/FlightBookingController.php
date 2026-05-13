@@ -224,14 +224,14 @@ class FlightBookingController extends Controller
                 'payment_response' => $verificationResult['data'] ?? null,
             ]);
 
-            $pnrResult = $flightService->createSabrePnr($booking);
-            if (!$pnrResult['success']) {
-                $booking->update([
-                    'booking_status' => 'failed',
-                ]);
-
-                return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
-                    ->with('notify_error', 'Unable to confirm your booking. Our team will contact you shortly.');
+            // Hold conversions: PNR already exists — skip creation, go straight to ticketing.
+            if (empty($booking->sabre_record_locator)) {
+                $pnrResult = $flightService->createSabrePnr($booking);
+                if (!$pnrResult['success']) {
+                    $booking->update(['booking_status' => 'failed']);
+                    return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
+                        ->with('notify_error', 'Unable to confirm your booking. Our team will contact you shortly.');
+                }
             }
 
             $ticketResult = $flightService->issueSabreTicket($booking);
@@ -435,6 +435,89 @@ class FlightBookingController extends Controller
             return view('user.flights.hold-success', compact('booking'));
         } catch (\Exception $e) {
             return redirect()->route('user.flights.index')->with('notify_error', 'Booking not found.');
+        }
+    }
+
+    /* =====================================================================
+       HOLD → CONFIRM (pay & issue ticket for an existing hold PNR)
+       ===================================================================== */
+
+    public function holdConfirmPage(int $booking)
+    {
+        $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
+            ->findOrFail($booking);
+
+        if ($booking->booking_status !== 'hold' || $booking->payment_method !== 'hold') {
+            return redirect()->route('user.bookings.flights.detail', $booking->id)
+                ->with('notify_error', 'This booking is not in a hold state.');
+        }
+
+        if (empty($booking->sabre_record_locator)) {
+            return redirect()->route('user.bookings.flights.detail', $booking->id)
+                ->with('notify_error', 'No PNR found for this booking. Cannot proceed to payment.');
+        }
+
+        $walletBalance = (float) (Auth::user()->main_balance ?? 0);
+
+        return view('user.flights.hold-confirm', compact('booking', 'walletBalance'));
+    }
+
+    public function holdConfirmPay(Request $request, int $booking, FlightService $flightService)
+    {
+        $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
+            ->findOrFail($booking);
+
+        if ($booking->booking_status !== 'hold' || $booking->payment_method !== 'hold') {
+            return back()->with('notify_error', 'This booking is not in a hold state.');
+        }
+
+        $validated = $request->validate([
+            'payment_method' => 'required_without:use_wallet|nullable|in:payby,tabby,tamara',
+            'use_wallet'     => 'nullable|in:1',
+            'wallet_amount'  => 'nullable|numeric|min:0',
+        ]);
+
+        $totalAmount    = (float) $booking->total_amount;
+        $useWallet      = !empty($validated['use_wallet']);
+        $walletDeduction = 0;
+
+        if ($useWallet) {
+            $user                = Auth::user();
+            $requestedAmount     = (float) ($validated['wallet_amount'] ?? 0);
+            $walletDeduction     = min($requestedAmount, (float) $user->main_balance, $totalAmount);
+        }
+
+        $remainingAmount = $totalAmount - $walletDeduction;
+
+        // Update booking: keep PNR, just update payment method + wallet amount
+        $booking->update([
+            'wallet_amount'  => $walletDeduction > 0 ? $walletDeduction : 0,
+        ]);
+
+        // Full wallet payment
+        if ($remainingAmount <= 0) {
+            $booking->update(['payment_method' => 'wallet']);
+            return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
+        }
+
+        // External gateway
+        $method = $validated['payment_method'] ?? null;
+        if (!$method) {
+            return back()->with('notify_error', 'Please select a payment method.');
+        }
+
+        $booking->update(['payment_method' => $method]);
+
+        try {
+            $redirectUrl = $flightService->getRedirectUrl($booking, $method);
+            return redirect($redirectUrl);
+        } catch (\Exception $e) {
+            $booking->update(['payment_method' => 'hold']); // revert on failure
+            Log::error('Hold confirm payment redirect failed', [
+                'booking_id' => $booking->id,
+                'error'      => $e->getMessage(),
+            ]);
+            return back()->with('notify_error', 'Unable to initiate payment. Please try again.');
         }
     }
 

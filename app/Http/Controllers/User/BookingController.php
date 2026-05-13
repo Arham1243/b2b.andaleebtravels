@@ -19,15 +19,34 @@ class BookingController extends Controller
         return redirect()->route('user.bookings.flights');
     }
 
-    public function flights()
+    public function flights(Request $request)
     {
-        $flightBookings = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
-            ->orderByDesc('created_at')
-            ->get();
+        $query = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
+            ->orderByDesc('created_at');
 
-        $counts = $this->bookingCounts();
+        $status = $request->query('status', 'all');
+        if ($status && $status !== 'all') {
+            if ($status === 'confirmed') {
+                $query->whereIn('booking_status', ['confirmed', 'completed']);
+            } else {
+                $query->where('booking_status', $status);
+            }
+        }
 
-        return view('user.bookings.flights', compact('flightBookings', 'counts'));
+        $search = $request->query('search', '');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('booking_number', 'like', "%{$search}%")
+                  ->orWhere('sabre_record_locator', 'like', "%{$search}%")
+                  ->orWhere('from_airport', 'like', "%{$search}%")
+                  ->orWhere('to_airport', 'like', "%{$search}%");
+            });
+        }
+
+        $flightBookings = $query->paginate(15)->withQueryString();
+        $counts         = $this->bookingCounts();
+
+        return view('user.bookings.flights', compact('flightBookings', 'counts', 'status', 'search'));
     }
 
     public function flightDetail(int $id)
@@ -38,15 +57,32 @@ class BookingController extends Controller
         return view('user.bookings.flight-detail', compact('booking', 'counts'));
     }
 
-    public function hotels()
+    public function hotels(Request $request)
     {
-        $hotelBookings = B2bHotelBooking::where('b2b_vendor_id', Auth::id())
-            ->orderByDesc('created_at')
-            ->get();
+        $query = B2bHotelBooking::where('b2b_vendor_id', Auth::id())
+            ->orderByDesc('created_at');
 
-        $counts = $this->bookingCounts();
+        $status = $request->query('status', 'all');
+        if ($status && $status !== 'all') {
+            if ($status === 'confirmed') {
+                $query->whereIn('booking_status', ['confirmed', 'completed']);
+            } else {
+                $query->where('booking_status', $status);
+            }
+        }
 
-        return view('user.bookings.hotels', compact('hotelBookings', 'counts'));
+        $search = $request->query('search', '');
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('booking_number', 'like', "%{$search}%")
+                  ->orWhere('hotel_name', 'like', "%{$search}%");
+            });
+        }
+
+        $hotelBookings = $query->paginate(15)->withQueryString();
+        $counts        = $this->bookingCounts();
+
+        return view('user.bookings.hotels', compact('hotelBookings', 'counts', 'status', 'search'));
     }
 
     public function hotelDetail(int $id)

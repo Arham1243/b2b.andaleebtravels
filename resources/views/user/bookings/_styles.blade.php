@@ -486,9 +486,10 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    padding: 16px 18px 14px;
-    border-bottom: 1px solid #f0f3f8;
+    padding: 14px 18px 12px;
+    border-bottom: 2px solid #f0f3f8;
     flex-wrap: wrap;
+    background: linear-gradient(to right, #fafbff, #fff);
 }
 
 .bkpd-card__title {
@@ -505,16 +506,23 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: .72rem;
+    font-size: .7rem;
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: #8492a6;
-    padding: 13px 18px 10px;
+    color: var(--c-brand, #cd1b4f);
+    padding: 10px 18px 8px;
     border-bottom: 1px solid #f0f3f8;
+    background: #fdf1f4;
 }
 
 .bkpd-card__section-head i { font-size: 1rem; }
+
+/* Section head color variants */
+.bkpd-card__section-head--blue   { color: #1d4ed8; background: #eff6ff; }
+.bkpd-card__section-head--green  { color: #15803d; background: #f0fdf4; }
+.bkpd-card__section-head--purple { color: #6d28d9; background: #f5f3ff; }
+.bkpd-card__section-head--slate  { color: #4a5568; background: #f8fafc; }
 
 /* PNR row */
 .bkpd-pnr-row {
@@ -522,8 +530,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 18px;
-    background: #f8faff;
-    border-top: 1px solid #e4e9f0;
+    background: linear-gradient(135deg, #f8faff, #f0f7ff);
+    border-top: 1px solid #e0e7ff;
 }
 
 .bkpd-pnr-label { font-size: .62rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8492a6; margin-bottom: 4px; }
@@ -557,8 +565,11 @@
 .bkpd-pnr-copy.copied { background: #10b981; color: #fff; border-color: #10b981; }
 
 /* Flight leg visual */
-.bkpd-leg { padding: 16px 18px; }
-.bkpd-leg--border { border-top: 1px solid #f0f3f8; }
+.bkpd-leg { padding: 16px 18px; background: #fff; }
+.bkpd-leg--border {
+    border-top: 1px solid #bfdbfe;
+    background: linear-gradient(135deg, #eff6ff 0%, #fff 60%);
+}
 
 .bkpd-leg__label {
     display: flex;
@@ -694,9 +705,10 @@
     align-items: flex-start;
     gap: 10px;
     padding: 10px 12px;
-    background: #f8faff;
-    border: 1px solid #e4e9f0;
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
     border-radius: 9px;
+    border-left: 3px solid #7c3aed;
 }
 
 .bkpd-pax__avatar {
@@ -741,9 +753,17 @@
     border-top: 2px solid #e4e9f0;
     padding-top: 10px;
     margin-top: 4px;
-    font-size: .9rem;
+    font-size: .95rem;
     font-weight: 800;
     color: #1a2540;
+    background: #f0fdf4;
+    margin-left: -18px;
+    margin-right: -18px;
+    padding-left: 18px;
+    padding-right: 18px;
+    padding-bottom: 10px;
+    border-top: 2px solid #86efac;
+    color: #15803d;
 }
 
 /* Info rows */
@@ -786,13 +806,15 @@
     align-items: center;
     padding: 18px 18px 16px;
     gap: 0;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+    border-top: 1px solid #bfdbfe;
 }
 
 .bkpd-stay__col { flex: 1; }
 .bkpd-stay__col--right { text-align: right; }
-.bkpd-stay__label { font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8492a6; margin-bottom: 4px; }
+.bkpd-stay__label { font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #3b82f6; margin-bottom: 4px; }
 .bkpd-stay__date { font-size: 2rem; font-weight: 800; color: #1a2540; line-height: 1; }
-.bkpd-stay__month { font-size: .72rem; color: #8492a6; font-weight: 600; }
+.bkpd-stay__month { font-size: .72rem; color: #4a5568; font-weight: 600; }
 
 .bkpd-stay__mid {
     flex: 1;

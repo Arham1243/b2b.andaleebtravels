@@ -104,7 +104,7 @@
                         {{-- Flight legs --}}
                         @if(!empty($legs))
                         <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head">
+                            <div class="bkpd-card__section-head bkpd-card__section-head--blue">
                                 <i class="bx bx-plane"></i> Flight Route
                             </div>
                             @foreach($legs as $li => $leg)
@@ -206,7 +206,7 @@
                         {{-- Passengers --}}
                         @if(!empty($passengers))
                         <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head">
+                            <div class="bkpd-card__section-head bkpd-card__section-head--purple">
                                 <i class="bx bx-group"></i> Passengers
                             </div>
                             <div class="bkpd-pax-list">
@@ -250,7 +250,7 @@
 
                         {{-- Fare summary --}}
                         <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head"><i class="bx bx-receipt"></i> Fare Summary</div>
+                            <div class="bkpd-card__section-head bkpd-card__section-head--green"><i class="bx bx-receipt"></i> Fare Summary</div>
                             <div class="bkpd-fare">
                                 <div class="bkpd-fare__row">
                                     <span>Base Fare <span style="color:#8492a6;font-weight:400;">(× {{ $totalPax }} pax)</span></span>
@@ -271,7 +271,7 @@
 
                         {{-- Booking meta --}}
                         <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head"><i class="bx bx-info-circle"></i> Booking Info</div>
+                            <div class="bkpd-card__section-head bkpd-card__section-head--slate"><i class="bx bx-info-circle"></i> Booking Info</div>
                             <div class="bkpd-info-rows">
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Booking #</span>
@@ -319,10 +319,21 @@
                         {{-- Actions --}}
                         <div class="bkpd-card">
                             <div class="bkpd-card__section-head"><i class="bx bx-cog"></i> Actions</div>
+
                             <div class="bkpd-actions">
                                 @if($status === 'cancelled')
                                     <p class="bkpd-no-action"><i class="bx bx-x-circle"></i> Booking has been cancelled.</p>
                                 @elseif($isHold)
+                                    {{-- Primary: Confirm & Pay --}}
+                                    <a href="{{ route('user.flights.hold.confirm', $booking->id) }}"
+                                       class="bkp-btn bkp-btn--primary w-100 mb-2">
+                                        <i class="bx bx-lock-alt"></i> Confirm &amp; Pay
+                                    </a>
+                                    <p style="font-size:.7rem;color:#8492a6;margin-bottom:12px;text-align:center;">
+                                        Pay and issue the ticket before the hold expires.
+                                    </p>
+
+                                    {{-- Secondary: Release / cancel the hold --}}
                                     <form action="{{ route('user.bookings.flights.release-hold', $booking->id) }}" method="POST"
                                           onsubmit="return confirm('Release hold on PNR {{ $booking->sabre_record_locator }}? The booking will be cancelled at the airline end.');">
                                         @csrf
@@ -330,8 +341,8 @@
                                             <i class="bx bx-x-circle"></i> Release Hold
                                         </button>
                                     </form>
-                                    <p style="font-size:.7rem;color:#8492a6;margin-top:8px;text-align:center;">
-                                        This cancels the PNR at Sabre  - no charges since no payment was made.
+                                    <p style="font-size:.7rem;color:#8492a6;margin-top:6px;text-align:center;">
+                                        Releases the PNR at Sabre — no charges since no payment was made.
                                     </p>
                                 @elseif($status === 'confirmed' && $booking->payment_status === 'paid')
                                     <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}"

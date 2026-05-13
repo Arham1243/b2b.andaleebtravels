@@ -77,7 +77,7 @@
                         @endphp
                         @if($rooms || $guestName)
                         <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head"><i class="bx bx-user"></i> Guest & Room Info</div>
+                            <div class="bkpd-card__section-head bkpd-card__section-head--purple"><i class="bx bx-user"></i> Guest & Room Info</div>
                             <div class="bkpd-info-rows">
                                 @if($guestName)
                                 <div class="bkpd-info-row">
@@ -101,7 +101,7 @@
                     <div>
 
                         <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head"><i class="bx bx-receipt"></i> Fare Summary</div>
+                            <div class="bkpd-card__section-head bkpd-card__section-head--green"><i class="bx bx-receipt"></i> Fare Summary</div>
                             <div class="bkpd-fare">
                                 <div class="bkpd-fare__row">
                                     <span>Room Charge</span>
@@ -115,7 +115,7 @@
                         </div>
 
                         <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head"><i class="bx bx-info-circle"></i> Booking Info</div>
+                            <div class="bkpd-card__section-head bkpd-card__section-head--slate"><i class="bx bx-info-circle"></i> Booking Info</div>
                             <div class="bkpd-info-rows">
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Booking #</span>

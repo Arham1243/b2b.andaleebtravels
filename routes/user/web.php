@@ -73,6 +73,9 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/hold/{itinerary}', [FlightBookingController::class, 'holdCheckout'])->name('hold');
         Route::post('/hold/process', [FlightBookingController::class, 'processHold'])->name('hold.process');
         Route::get('/hold/success/{booking}', [FlightBookingController::class, 'holdSuccess'])->name('hold.success');
+        // Convert hold → confirmed booking (pay & issue ticket)
+        Route::get('/hold/confirm/{booking}', [FlightBookingController::class, 'holdConfirmPage'])->name('hold.confirm');
+        Route::post('/hold/confirm/{booking}/pay', [FlightBookingController::class, 'holdConfirmPay'])->name('hold.confirm.pay');
         // Saved passengers (AJAX)
         Route::get('/passengers/saved', [FlightBookingController::class, 'getSavedPassengers'])->name('passengers.saved');
         Route::post('/passengers/save', [FlightBookingController::class, 'savePassenger'])->name('passengers.save');

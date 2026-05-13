@@ -141,27 +141,18 @@
 }
 .hs-route__date { font-size: .62rem; color: #8492a6; margin-top: 1px; }
 
-/* Info chips row */
-.hs-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+/* Info key-value table */
+.hs-kv { width: 100%; border-collapse: collapse; }
+.hs-kv tr + tr td { border-top: 1px solid #f0f3f8; }
+.hs-kv td { padding: 7px 0; vertical-align: middle; font-size: .82rem; }
+.hs-kv td:first-child {
+    width: 42%; color: #8492a6; font-weight: 600; font-size: .75rem;
+    text-transform: uppercase; letter-spacing: .05em;
 }
-.hs-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: #f5f7fa;
-    border: 1px solid #e4e9f0;
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: .71rem;
-    font-weight: 600;
-    color: #1a2540;
-}
-.hs-chip i { color: #8492a6; font-size: .8rem; }
-.hs-chip--green { background: #dcfce7; border-color: #a7f3d0; color: #15803d; }
-.hs-chip--red   { background: #fdf2f5; border-color: #fbcfe8; color: #cd1b4f; }
+.hs-kv td:first-child i { font-size: .88rem; color: #b0bac8; margin-right: 5px; vertical-align: middle; }
+.hs-kv td:last-child { color: #1a2540; font-weight: 700; }
+.hs-kv .kv-green { color: #15803d; }
+.hs-kv .kv-red   { color: #cd1b4f; }
 
 /* Amber notice */
 .hs-notice {
@@ -254,19 +245,37 @@
         </div>
       </div>
 
-      {{-- Info chips --}}
-      <div class="hs-chips">
-        <span class="hs-chip"><i class="bx bx-user"></i> {{ $paxStr }}</span>
+      {{-- Info key-value pairs --}}
+      <table class="hs-kv">
+        <tr>
+          <td><i class="bx bx-user"></i> Passengers</td>
+          <td>{{ $paxStr }}</td>
+        </tr>
         @if($leadName)
-          <span class="hs-chip"><i class="bx bx-id-card"></i> {{ $leadName }}</span>
+        <tr>
+          <td><i class="bx bx-id-card"></i> Lead Name</td>
+          <td>{{ $leadName }}</td>
+        </tr>
         @endif
-        <span class="hs-chip hs-chip--red"><span class="dirham" style="font-size:.72rem;">AED</span> {{ number_format((float)$booking->total_amount, 2) }}</span>
-        <span class="hs-chip hs-chip--green"><i class="bx bx-lock-open"></i> Hold Deposit FREE</span>
-        <span class="hs-chip"><i class="bx bx-calendar"></i> {{ $booking->created_at->format('d M Y, h:i A') }}</span>
+        <tr>
+          <td><i class="bx bx-money"></i> Total Fare</td>
+          <td class="kv-red">AED {{ number_format((float)$booking->total_amount, 2) }}</td>
+        </tr>
+        <tr>
+          <td><i class="bx bx-lock-open"></i> Hold Deposit</td>
+          <td class="kv-green">FREE</td>
+        </tr>
+        <tr>
+          <td><i class="bx bx-calendar"></i> Booked On</td>
+          <td>{{ $booking->created_at->format('d M Y, h:i A') }}</td>
+        </tr>
         @if(!empty($lead['email']))
-          <span class="hs-chip"><i class="bx bx-envelope"></i> {{ $lead['email'] }}</span>
+        <tr>
+          <td><i class="bx bx-envelope"></i> Email</td>
+          <td>{{ $lead['email'] }}</td>
+        </tr>
         @endif
-      </div>
+      </table>
 
       {{-- Amber notice --}}
       <div class="hs-notice">
@@ -283,11 +292,11 @@
 
       {{-- Actions --}}
       <div class="hs-actions">
-        <a href="{{ route('user.bookings.index') }}" class="hs-btn hs-btn--primary">
-          <i class="bx bx-list-ul"></i> View My Bookings
+        <a href="{{ route('user.flights.hold.confirm', $booking->id) }}" class="hs-btn hs-btn--primary">
+          <i class="bx bx-lock-alt"></i> Confirm &amp; Pay Now
         </a>
-        <a href="{{ route('user.flights.index') }}" class="hs-btn hs-btn--outline">
-          <i class="bx bxs-plane-take-off"></i> New Search
+        <a href="{{ route('user.bookings.flights.detail', $booking->id) }}" class="hs-btn hs-btn--outline">
+          <i class="bx bx-list-ul"></i> View Booking
         </a>
       </div>
 
