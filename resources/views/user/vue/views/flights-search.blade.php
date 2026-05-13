@@ -764,6 +764,23 @@
             align-items: start;
         }
 
+        /* Main search column must stack above sibling grid tracks (aside + promo strip)
+           when absolutely positioned overlays extend past the card. */
+        .fs-pro-layout__main {
+            position: relative;
+            z-index: 40;
+        }
+
+        .fs-pro-layout > .fs-pro-aside {
+            position: relative;
+            z-index: 2;
+        }
+
+        .fs-pro-layout > .fs-pro-promos {
+            position: relative;
+            z-index: 1;
+        }
+
         @media (max-width: 1100px) {
             .fs-pro-layout {
                 grid-template-columns: 1fr;
@@ -1233,7 +1250,12 @@
             border-radius: 10px;
             overflow: visible;
             position: relative;
-            isolation: isolate;
+        }
+
+        /* Lift entire row above airline bar + filter row when a menu is open (no isolation: isolate — that trapped z-index). */
+        .fs-pro-pax-cabin-row:has(.options-dropdown-wrapper.open),
+        .fs-pro-pax-cabin-row:has(.fs-pro-cabin-dropdown.is-open) {
+            z-index: 500;
         }
 
         @media (max-width: 720px) {
@@ -1253,11 +1275,19 @@
 
         /* Ensure passenger & cabin overlays stack above neighbouring cells */
         .fs-pro-enterprise .fs-pro-travellers:has(.options-dropdown-wrapper.open) {
-            z-index: 50;
+            z-index: 600;
         }
 
         .fs-pro-select-group.fs-pro-select-group--cabin:has(.fs-pro-cabin-dropdown.is-open) {
-            z-index: 50;
+            z-index: 600;
+        }
+
+        /* Sibling sections after the cabin row paint later in DOM — pin them behind open overlays */
+        .fs-pro-airline-pref,
+        .fs-pro-actions-footer,
+        .fs-pro-trust-strip {
+            position: relative;
+            z-index: 0;
         }
 
         .fs-pro-pax-cabin-row > :last-child {
@@ -1471,7 +1501,17 @@
         }
 
         .fs-pro-enterprise .options-dropdown-wrapper--pax.open {
-            z-index: 55 !important;
+            z-index: 6000 !important;
+        }
+
+        /* date / airport overlays inside the redesigned card — stay above promo strip siblings */
+        .fs-pro-enterprise .options-dropdown-wrapper--from.open {
+            z-index: 5500 !important;
+        }
+
+        /* Picker attaches under date cells (#flight-departure-box); keep above promos/footer overlap */
+        .flight-search-redesign .daterangepicker {
+            z-index: 5600 !important;
         }
 
         /* Airline preference — lavender strip */
