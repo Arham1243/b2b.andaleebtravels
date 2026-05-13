@@ -100,37 +100,26 @@
                         <div class="as-track" id="as-track">
 
                             {{-- All pill --}}
-                            <button class="as-pill as-pill--all as-pill--active" data-as-code="all">
-                                <div class="as-pill__logo-wrap as-pill__logo-wrap--all">
-                                    <i class="bx bxs-plane"></i>
+                            <button class="as-pill as-pill--active" data-as-code="all">
+                                <div class="as-pill__logo as-pill__logo--all">
+                                    <i class="bx bxs-plane-take-off"></i>
                                 </div>
                                 <div class="as-pill__body">
-                                    <span class="as-pill__name">All Airlines</span>
-                                    <span class="as-pill__meta">
-                                        <span class="as-pill__count">{{ $itineraryCount }} flights</span>
-                                    </span>
+                                    <span class="as-pill__nameline">All <span class="as-pill__cnt">({{ $itineraryCount }})</span></span>
+                                    <span class="as-pill__price">All Airlines</span>
                                 </div>
                             </button>
 
                             @foreach($airlineMap as $_al)
                             <button class="as-pill" data-as-code="{{ $_al['code'] }}">
-                                <div class="as-pill__logo-wrap">
-                                    <img class="as-pill__logo"
-                                        src="{{ fl_carrier_logo($_al['code']) }}"
-                                        loading="lazy"
-                                        alt="{{ $_al['name'] }}"
-                                        onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($_al['code']) }}&background=cd1b4f&color=fff&size=80'">
-                                </div>
+                                <img class="as-pill__logo"
+                                    src="{{ fl_carrier_logo($_al['code']) }}"
+                                    loading="lazy"
+                                    alt="{{ $_al['name'] }}"
+                                    onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($_al['code']) }}&background=cd1b4f&color=fff&size=80'">
                                 <div class="as-pill__body">
-                                    <span class="as-pill__name">{{ $_al['name'] }}</span>
-                                    <span class="as-pill__meta">
-                                        <span class="as-pill__count">{{ $_al['count'] }}</span>
-                                        <span class="as-pill__sep">·</span>
-                                        <span class="as-pill__price">
-                                            {{ $currencyCode === 'AED' ? 'AED' : $currencyCode }}
-                                            {{ number_format($_al['min_price'], 0) }}
-                                        </span>
-                                    </span>
+                                    <span class="as-pill__nameline">{{ $_al['name'] }} <span class="as-pill__cnt">({{ $_al['count'] }})</span></span>
+                                    <span class="as-pill__price">{{ $currencyCode }} {{ number_format($_al['min_price'], 2) }}</span>
                                 </div>
                             </button>
                             @endforeach
@@ -1063,181 +1052,147 @@
 .as-wrap {
     display: flex;
     align-items: stretch;
-    gap: 0;
     margin-bottom: .85rem;
     background: var(--c-white);
     border: 1px solid var(--c-line);
-    border-radius: 14px;
+    border-radius: 12px;
     box-shadow: var(--c-shadow);
     overflow: hidden;
-    position: relative;
 }
 
-/* scroll arrows */
+/* arrow buttons */
 .as-arrow {
     flex-shrink: 0;
-    width: 36px;
+    width: 34px;
     border: none;
     background: transparent;
-    color: var(--c-slate);
+    color: var(--c-muted);
     cursor: pointer;
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background .13s, color .13s;
-    z-index: 2;
+    transition: color .13s, background .13s;
 }
-.as-arrow:hover:not(:disabled) { background: var(--c-brand-soft); color: var(--c-brand); }
-.as-arrow:disabled { opacity: .3; cursor: default; }
+.as-arrow:hover:not(:disabled) { color: var(--c-brand); background: var(--c-brand-soft); }
+.as-arrow:disabled { opacity: .28; cursor: default; }
 .as-arrow--prev { border-right: 1px solid var(--c-line); }
 .as-arrow--next { border-left:  1px solid var(--c-line); }
 
-/* viewport + track */
+/* viewport */
 .as-viewport {
     flex: 1;
     overflow: hidden;
     position: relative;
 }
-/* fade edges */
 .as-viewport::before,
 .as-viewport::after {
     content: '';
     position: absolute;
-    top: 0; bottom: 0;
-    width: 28px;
-    pointer-events: none;
-    z-index: 1;
+    top: 0; bottom: 0; width: 24px;
+    pointer-events: none; z-index: 1;
 }
-.as-viewport::before { left: 0;  background: linear-gradient(to right,  #fff 0%, transparent 100%); }
-.as-viewport::after  { right: 0; background: linear-gradient(to left,   #fff 0%, transparent 100%); }
+.as-viewport::before { left:  0; background: linear-gradient(to right, #fff 0%, transparent 100%); }
+.as-viewport::after  { right: 0; background: linear-gradient(to left,  #fff 0%, transparent 100%); }
 
+/* scrollable track */
 .as-track {
     display: flex;
-    gap: 0;
+    align-items: stretch;
     overflow-x: auto;
     scroll-behavior: smooth;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding: .55rem .5rem;
-    gap: .4rem;
 }
 .as-track::-webkit-scrollbar { display: none; }
 
-/* pill card */
+/* each airline item */
 .as-pill {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: .55rem;
-    padding: .48rem .75rem .48rem .52rem;
-    border: 1.5px solid var(--c-line);
-    border-radius: 10px;
-    background: #fff;
+    gap: .6rem;
+    padding: .7rem 1.1rem;
+    border: none;
+    border-right: 1px solid var(--c-line);
+    background: transparent;
     cursor: pointer;
-    transition: border-color .13s, background .13s, box-shadow .13s, color .13s;
-    white-space: nowrap;
-    min-width: 0;
-    text-align: left;
-    box-shadow: 0 1px 3px rgba(26,37,64,.05);
     font: inherit;
+    text-align: left;
+    white-space: nowrap;
+    position: relative;
+    transition: background .13s;
 }
-.as-pill:hover {
-    border-color: rgba(205,27,79,.35);
-    background: var(--c-brand-soft);
-    box-shadow: 0 3px 10px rgba(205,27,79,.1);
+.as-pill:last-child { border-right: none; }
+.as-pill::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--c-brand);
+    border-radius: 3px 3px 0 0;
+    transform: scaleX(0);
+    transition: transform .15s ease;
 }
-.as-pill--active {
-    border-color: var(--c-brand);
-    background: linear-gradient(135deg, var(--c-brand) 0%, var(--c-brand2) 100%);
-    box-shadow: 0 4px 14px rgba(205,27,79,.28);
-    color: #fff;
-}
-.as-pill--active:hover {
-    background: linear-gradient(135deg, #d91d56 0%, #b01844 100%);
-    border-color: var(--c-brand2);
-}
+.as-pill:hover { background: var(--c-brand-soft); }
+.as-pill--active { background: var(--c-brand-soft); }
+.as-pill--active::after { transform: scaleX(1); }
 
-/* logo box */
-.as-pill__logo-wrap {
-    width: 40px; height: 40px;
-    flex-shrink: 0;
-    border-radius: 8px;
-    border: 1.5px solid var(--c-line);
-    background: #fff;
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
-    padding: 3px;
-    box-shadow: 0 1px 4px rgba(26,37,64,.08);
-    transition: border-color .13s;
-}
-.as-pill__logo-wrap--all {
-    background: var(--c-brand-soft);
-    border-color: rgba(205,27,79,.2);
-    font-size: 1.2rem;
-    color: var(--c-brand);
-}
-.as-pill--active .as-pill__logo-wrap {
-    border-color: rgba(255,255,255,.35);
-    background: rgba(255,255,255,.18);
-}
-.as-pill--active .as-pill__logo-wrap--all {
-    background: rgba(255,255,255,.2);
-    color: #fff;
-}
+/* logo */
 .as-pill__logo {
-    width: 100%; height: 100%;
-    object-fit: contain; display: block;
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    flex-shrink: 0;
+    border-radius: 6px;
+    display: block;
+}
+.as-pill__logo--all {
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    background: var(--c-brand-soft);
+    color: var(--c-brand);
+    font-size: 1.2rem;
+    flex-shrink: 0;
 }
 
-/* text body */
+/* text */
 .as-pill__body {
     display: flex;
     flex-direction: column;
-    gap: .08rem;
+    gap: .12rem;
     min-width: 0;
 }
-.as-pill__name {
-    font-size: .78rem;
-    font-weight: 700;
+.as-pill__nameline {
+    font-size: .8rem;
+    font-weight: 600;
     color: var(--c-ink);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 110px;
+    max-width: 120px;
     line-height: 1.2;
 }
-.as-pill--active .as-pill__name { color: #fff; }
-
-.as-pill__meta {
-    display: flex;
-    align-items: center;
-    gap: .2rem;
-    font-size: .66rem;
-    line-height: 1;
+.as-pill--active .as-pill__nameline { color: var(--c-brand); }
+.as-pill__cnt {
+    font-weight: 400;
+    color: var(--c-muted);
+    font-size: .78rem;
 }
-.as-pill__count {
+.as-pill--active .as-pill__cnt { color: var(--c-brand); opacity: .75; }
+
+.as-pill__price {
+    font-size: .76rem;
     font-weight: 700;
     color: var(--c-brand);
     font-family: var(--mono);
+    white-space: nowrap;
 }
-.as-pill--active .as-pill__count { color: rgba(255,255,255,.85); }
-
-.as-pill__sep { color: var(--c-muted); opacity: .5; }
-.as-pill--active .as-pill__sep { color: rgba(255,255,255,.5); }
-
-.as-pill__price {
-    color: var(--c-slate);
-    font-weight: 600;
-    font-family: var(--mono);
-    font-size: .66rem;
-}
-.as-pill--active .as-pill__price { color: rgba(255,255,255,.9); }
+.as-pill:not(.as-pill--active) .as-pill__price { color: var(--c-slate); font-weight: 600; }
 
 /* filtered-out cards */
-.rc.as-hidden {
-    display: none;
-}
+.rc.as-hidden { display: none; }
 
 /* =========================================================
    RESPONSIVE
@@ -1261,10 +1216,11 @@
     .fd-seg__pt--arr { align-items: flex-start; text-align: left; }
     .fd-box { max-height: 95vh; border-radius: 12px; }
     /* airline slider on mobile */
-    .as-arrow { width: 28px; font-size: 1.1rem; }
-    .as-pill__name { max-width: 80px; }
-    .as-pill { padding: .4rem .55rem .4rem .45rem; gap: .4rem; }
-    .as-pill__logo-wrap { width: 34px; height: 34px; }
+    .as-arrow { width: 26px; font-size: 1rem; }
+    .as-pill { padding: .6rem .75rem; gap: .45rem; }
+    .as-pill__logo, .as-pill__logo--all { width: 30px; height: 30px; }
+    .as-pill__nameline { max-width: 90px; font-size: .74rem; }
+    .as-pill__price { font-size: .7rem; }
 }
 </style>
 @endpush
