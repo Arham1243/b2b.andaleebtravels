@@ -1,4 +1,4 @@
-<div id="{{ $appId }}">
+<div id="{{ $appId }}"@if (!empty($flightSearchListingMode)) class="fs-mount fs-mount--flight-listing"@endif>
     @include('user.vue.views.' . $appComponent)
 </div>
 @push('vue-js')

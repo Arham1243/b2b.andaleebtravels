@@ -7,11 +7,12 @@
     <div class="hl-page">
         <div class="container">
             {{-- SEARCH BAR --}}
-            <div class="hl-search-bar mb-5">
+            <div class="hl-search-bar mb-3">
                 @include('user.vue.main', [
                     'appId' => 'flights-search',
                     'appComponent' => 'flights-search',
                     'appJs' => 'flights-search',
+                    'flightSearchListingMode' => true,
                 ])
             </div>
 

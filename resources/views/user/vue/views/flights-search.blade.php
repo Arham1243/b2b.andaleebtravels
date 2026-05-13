@@ -2525,5 +2525,334 @@
         .flight-search-redesign .daterangepicker td.in-range:not(.active) {
             background-color: rgba(205, 27, 79, 0.12) !important;
         }
+
+        /*
+         * Results listing (/flights/search): compact reference-style toolbar
+         * — one slim bar (trip / pax / cabins / airlines · route / dates · filters / search).
+         */
+        .fs-mount--flight-listing .fs-pro-layout {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+            align-items: stretch;
+        }
+
+        .fs-mount--flight-listing .fs-pro-aside,
+        .fs-mount--flight-listing .fs-pro-promos {
+            display: none !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-layout__main {
+            z-index: 40;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card__head {
+            display: none !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) .fs-pro-footer {
+            display: contents;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card {
+            padding: 0.42rem 0.62rem !important;
+            border-radius: 12px !important;
+            box-shadow:
+                var(--fs-shadow-sm),
+                0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
+            display: flex;
+            flex-flow: row wrap;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.35rem 0.55rem !important;
+            background:
+                repeating-linear-gradient(
+                    -10deg,
+                    #f8fafc 0,
+                    #f8fafc 11px,
+                    #f4f6f9 11px,
+                    #f4f6f9 22px
+                );
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) > .fs-pro-controls-row {
+            order: 1;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) > .fs-pro-pax-cabin-row {
+            order: 2;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) > .fs-pro-airline-pref {
+            order: 3;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) > .fs-pro-route-sheet {
+            order: 4;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) > .fs-pro-actions-footer {
+            order: 5;
+        }
+
+        .fs-mount--flight-listing .fs-pro-controls-row {
+            margin-bottom: 0 !important;
+            gap: 0.3rem !important;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .fs-mount--flight-listing .fs-pro-trip-types {
+            gap: 0.15rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-trip-types__item {
+            padding: 0.38rem 0.62rem !important;
+            font-size: 0.72rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-pax-cabin-row {
+            flex: 0 2 auto;
+            max-width: 440px;
+            min-width: 0;
+            border-radius: 8px !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-travellers,
+        .fs-mount--flight-listing .fs-pro-select-group {
+            padding: 0.42rem 0.58rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-select-group__label {
+            font-size: 0.6rem !important;
+            letter-spacing: 0.06em !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-label {
+            font-size: 0.66rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-pax-line {
+            font-size: 0.86rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-cabin-trigger {
+            font-size: 0.78rem !important;
+            padding-block: 0.12rem;
+        }
+
+        .fs-mount--flight-listing .fs-pro-airline-pref {
+            flex: 1 1 200px;
+            min-width: 0;
+            margin-left: auto;
+            justify-content: flex-end;
+            padding: 0.42rem 0.55rem !important;
+            border-radius: 8px !important;
+            gap: 0.4rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-airline-pref__toggles {
+            flex-wrap: nowrap;
+            justify-content: flex-end;
+            min-width: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            gap: 0.35rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-air-chip {
+            font-size: 0.7rem !important;
+            padding: 0.3rem 0.62rem !important;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .fs-mount--flight-listing .fs-air-chip__indicator {
+            width: 11px !important;
+            height: 11px !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-route-sheet {
+            flex-wrap: nowrap !important;
+            gap: 0.35rem !important;
+            align-items: stretch;
+            margin-bottom: 0 !important;
+            flex: 1 1 440px !important;
+            min-width: 0 !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-route-pair,
+        .fs-mount--flight-listing .fs-pro-date-pair {
+            gap: 0.38rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-route-pair {
+            flex: 2 1 160px !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-date-pair {
+            flex: 1 1 130px !important;
+            max-width: 280px !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-route-field__shell {
+            min-height: 56px !important;
+            border-radius: 8px !important;
+            background: #fff !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-route-field .hs-field__inner {
+            padding: 0.42rem 0.55rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-route-chosen__city {
+            font-size: 1.18rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-route-chosen__airport {
+            font-size: 0.64rem !important;
+            margin-top: 0 !important;
+            line-height: 1.2 !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-date-cell .hs-field__inner {
+            min-height: 56px !important;
+            padding: 0.42rem 0.55rem !important;
+            border-radius: 8px !important;
+            background: #fff !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-enterprise .hs-date-display__day {
+            font-size: 1.15rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-enterprise .hs-date-display__month {
+            font-size: 0.75rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-enterprise .hs-date-display__weekday {
+            font-size: 0.64rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-swap-btn {
+            width: 28px !important;
+            height: 28px !important;
+            font-size: 1rem !important;
+            box-shadow:
+                0 0 0 4px #fff,
+                0 3px 8px rgba(15, 23, 42, 0.1) !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-actions-footer {
+            flex: 0 0 auto !important;
+            padding-top: 0 !important;
+            gap: 0.48rem !important;
+            justify-content: flex-end;
+            align-self: stretch;
+            display: flex !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-actions-footer .fs-search-filters {
+            gap: 0.35rem !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .fs-mount--flight-listing .fs-filter-chip__label {
+            font-size: 0.64rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-search-btn {
+            padding: 0.5rem 1.05rem !important;
+            font-size: 0.82rem !important;
+            border-radius: 8px !important;
+            white-space: nowrap;
+            box-shadow: 0 3px 10px rgba(205, 27, 79, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.42) !important;
+        }
+
+        /* Multi-city: keep predictable stacked layout */
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-footer {
+            display: flex !important;
+            flex-direction: column;
+            gap: 0.55rem;
+            margin-top: 0.55rem !important;
+            padding-top: 0.55rem !important;
+            border-top: 1px solid var(--fs-line-soft);
+            width: 100%;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) > * {
+            order: unset !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-airline-pref {
+            margin-left: 0 !important;
+            justify-content: flex-start !important;
+        }
+
+        /* Narrow / tablet: readable wrap */
+        @media (max-width: 991px) {
+            .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) .fs-pro-footer {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.52rem !important;
+                margin-top: 0 !important;
+                width: 100%;
+                overflow: visible;
+            }
+
+            .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.48rem !important;
+            }
+
+            .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) > * {
+                order: unset !important;
+                width: 100%;
+            }
+
+            .fs-mount--flight-listing .fs-pro-airline-pref {
+                margin-left: 0 !important;
+                justify-content: flex-start !important;
+                flex-wrap: wrap !important;
+            }
+
+            .fs-mount--flight-listing .fs-pro-airline-pref__toggles {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                overflow-x: visible;
+                white-space: normal;
+            }
+
+            .fs-mount--flight-listing .fs-pro-route-sheet {
+                flex-wrap: wrap !important;
+            }
+
+            .fs-mount--flight-listing .fs-pro-actions-footer {
+                flex-wrap: wrap !important;
+                justify-content: flex-start !important;
+            }
+
+            .fs-mount--flight-listing .fs-pro-actions-footer .fs-search-filters {
+                margin-right: 0 !important;
+                flex-wrap: wrap !important;
+            }
+        }
+
+        /* Stack route pair + dates vertically on phones (same as enterprise base) */
+        @media (max-width: 640px) {
+            .fs-mount--flight-listing .fs-pro-route-pair,
+            .fs-mount--flight-listing .fs-pro-date-pair {
+                flex-basis: 100% !important;
+                max-width: none !important;
+            }
+        }
     </style>
 @endpush
