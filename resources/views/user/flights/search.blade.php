@@ -328,18 +328,21 @@
 
                                     @foreach (($result['legs'] ?? []) as $legIndex => $leg)
                                         @php
-                                            $seg0 = $leg['segments'][0] ?? [];
-
-                                            $lastSeg =
-                                                !empty($leg['segments'])
-                                                ? end($leg['segments'])
+                                            $segments = isset($leg['segments']) && is_array($leg['segments'])
+                                                ? $leg['segments']
                                                 : [];
-
-                                            reset($leg['segments'] ?? []);
-
-                                            $tierConn = max(0, count($leg['segments'] ?? []) - 1);
-                                            $tierStop = collect($leg['segments'] ?? [])->sum(
-                                                fn($s) => (int) ($s['stop_count'] ?? 0),
+                                            $seg0 = $segments[0] ?? [];
+                                            $lastSeg = [];
+                                            if ($segments !== []) {
+                                                $lk = array_key_last($segments);
+                                                $lastSeg =
+                                                    isset($segments[$lk]) && is_array($segments[$lk])
+                                                        ? $segments[$lk]
+                                                        : [];
+                                            }
+                                            $tierConn = max(0, count($segments) - 1);
+                                            $tierStop = collect($segments)->sum(
+                                                fn ($s) => (int) ($s['stop_count'] ?? 0),
                                             );
 
                                             $stopsPhrase =
