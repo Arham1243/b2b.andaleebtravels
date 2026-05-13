@@ -1537,6 +1537,29 @@
             box-shadow: 0 16px 48px rgba(15,23,42,.18) !important;
             font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
             padding: 6px 4px 4px !important;
+            /* Force both month panels onto one horizontal line */
+            width: auto !important;
+            min-width: 560px !important;
+        }
+
+        /* Keep both calendar panels floating side-by-side, never stacked */
+        .flight-search-redesign .daterangepicker .drp-calendar {
+            float: left !important;
+            clear: none !important;
+            max-width: 270px !important;
+            min-width: 260px !important;
+        }
+        .flight-search-redesign .daterangepicker .drp-calendar.left {
+            border-right: 1px solid #edf0f7 !important;
+        }
+        .flight-search-redesign .daterangepicker .drp-calendar.right {
+            border-left: none !important;
+        }
+        /* Clearfix so the picker box wraps the floated calendars */
+        .flight-search-redesign .daterangepicker::after {
+            content: '';
+            display: table;
+            clear: both;
         }
 
         /* ── Month / Year select dropdowns ── */
