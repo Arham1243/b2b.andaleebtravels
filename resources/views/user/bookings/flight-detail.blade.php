@@ -18,43 +18,37 @@
     if ($booking->children) $paxStr .= ', ' . $booking->children . ' Child' . ($booking->children > 1 ? 'ren' : '');
     if ($booking->infants)  $paxStr .= ', ' . $booking->infants . ' Infant' . ($booking->infants > 1 ? 's' : '');
 
-    // Try multiple paths Sabre uses for the ticketing deadline
-    $ttlRaw = data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.ticketingDeadline')
-        ?? data_get($booking->booking_response, 'CreatePassengerNameRecordRS.TravelItineraryReadRS.TravelItinerary.ItineraryInfo.ItineraryPricing.PriceQuote.MiscInformation.SignatureLine.ExpirationDateTime')
-        ?? data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.0.ticketingDeadline')
-        ?? null;
-
+    // Resolve hold expiry: prefer the dedicated column, fall back to created_at + 1h for old records
     $ttlIsEstimate = false;
+    $ttl           = null;
 
-    // Fallback: estimate based on booking creation time + 1 hour
-    if (!$ttlRaw && $isHold && $status !== 'cancelled') {
-        $ttlRaw       = $booking->created_at->copy()->addHour()->toIso8601String();
-        $ttlIsEstimate = true;
+    if ($isHold) {
+        if ($booking->hold_expires_at) {
+            $ttl = $booking->hold_expires_at; // already a Carbon instance (cast: datetime)
+        } else {
+            // Legacy records created before the hold_expires_at column was added
+            $ttl           = $booking->created_at->copy()->addHour();
+            $ttlIsEstimate = true;
+        }
     }
 
-    $ttl           = null;
     $ttlFormatted  = null;
     $ttlRemaining  = null;
     $ttlExpired    = false;
     $ttlUrgent     = false;
 
-    if ($ttlRaw) {
-        try {
-            $ttl = \Carbon\Carbon::parse($ttlRaw);
-            $ttlFormatted = $ttl->format('D, d M Y \a\t h:i A');
-            $now = now();
-            if ($ttl->isPast()) {
-                $ttlExpired   = true;
-                $ttlRemaining = 'Expired';
-            } else {
-                $diffMins = (int) $now->diffInMinutes($ttl);
-                $h = intdiv($diffMins, 60);
-                $m = $diffMins % 60;
-                $ttlRemaining = $h ? ($m ? "{$h}h {$m}m remaining" : "{$h}h remaining") : "{$m}m remaining";
-                $ttlUrgent = $diffMins < 120;
-            }
-        } catch (\Throwable $e) {
-            $ttlFormatted = $ttlRaw;
+    if ($ttl) {
+        $ttlFormatted = $ttl->format('D, d M Y \a\t h:i A');
+        $now          = now();
+        if ($ttl->isPast()) {
+            $ttlExpired   = true;
+            $ttlRemaining = 'Expired';
+        } else {
+            $diffMins     = (int) $now->diffInMinutes($ttl);
+            $h            = intdiv($diffMins, 60);
+            $m            = $diffMins % 60;
+            $ttlRemaining = $h ? ($m ? "{$h}h {$m}m remaining" : "{$h}h remaining") : "{$m}m remaining";
+            $ttlUrgent    = $diffMins < 120;
         }
     }
 

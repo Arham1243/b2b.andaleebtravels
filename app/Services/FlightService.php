@@ -545,9 +545,14 @@ class FlightService
             ]);
 
             if ($locator) {
+                // Sabre does not return a ticketingDeadline in CreatePassengerNameRecordRS,
+                // so we default hold expiry to 1 hour from now as per airline standard policy.
+                $holdExpiresAt = now()->addHour();
+
                 $booking->update([
                     'sabre_record_locator' => $locator,
-                    'booking_status' => 'confirmed',
+                    'booking_status'       => 'confirmed',
+                    'hold_expires_at'      => $holdExpiresAt,
                 ]);
             } else {
                 // PNR creation returned a response but no locator  -  log payload for debugging.

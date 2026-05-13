@@ -79,10 +79,6 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         // Saved passengers (AJAX)
         Route::get('/passengers/saved', [FlightBookingController::class, 'getSavedPassengers'])->name('passengers.saved');
         Route::post('/passengers/save', [FlightBookingController::class, 'savePassenger'])->name('passengers.save');
-        // Temporary debug route — remove after use (any authenticated B2B user can open by id)
-        Route::get('/debug-response/{booking}', function (\App\Models\B2bFlightBooking $booking) {
-            return response()->json($booking->booking_response, 200, ['Content-Type' => 'application/json'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        })->name('debug.response');
     });
 
     Route::prefix('bookings')->name('bookings.')->group(function () {
