@@ -330,6 +330,7 @@
                                     'icon' => $li2 === 0 ? 'bxs-plane-take-off' : 'bxs-plane-land',
                                 ];
                             }
+                        @endphp
                         @php
                             $_fls    = $legs[0]['segments'] ?? [];
                             $_flLast = !empty($_fls) ? $_fls[array_key_last($_fls)] : [];
