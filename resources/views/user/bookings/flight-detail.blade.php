@@ -46,11 +46,11 @@
                 <div class="bkp-hold-banner">
                     <i class="bx bx-time-five"></i>
                     <div>
-                        <div class="bkp-hold-banner__title">Booking On Hold — no payment charged</div>
+                        <div class="bkp-hold-banner__title">Booking On Hold  - no payment charged</div>
                         <div class="bkp-hold-banner__text">
                             PNR <strong>{{ $booking->sabre_record_locator ?? '—' }}</strong> created on Sabre.
                             Held on <strong>{{ $booking->created_at->format('d M Y, h:i A') }}</strong>.
-                            @if($ttl) Ticketing deadline: <strong>{{ $ttl }}</strong>. @else Ticketing window is typically <strong>1–24 hours</strong> — check with the airline. @endif
+                            @if($ttl) Ticketing deadline: <strong>{{ $ttl }}</strong>. @else Ticketing window is typically <strong>1–24 hours</strong>  - check with the airline. @endif
                         </div>
                     </div>
                 </div>
@@ -331,7 +331,7 @@
                                         </button>
                                     </form>
                                     <p style="font-size:.7rem;color:#8492a6;margin-top:8px;text-align:center;">
-                                        This cancels the PNR at Sabre — no charges since no payment was made.
+                                        This cancels the PNR at Sabre  - no charges since no payment was made.
                                     </p>
                                 @elseif($status === 'confirmed' && $booking->payment_status === 'paid')
                                     <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}"

@@ -28,25 +28,5 @@
             <span class="bk-nav__item-text">Hotel Bookings</span>
             <span class="bk-nav__item-count">{{ $counts['hotels'] ?? 0 }}</span>
         </a>
-
-        <div class="bk-nav__section-label" style="margin-top:16px;">Coming Soon</div>
-
-        <div class="bk-nav__item bk-nav__item--disabled">
-            <span class="bk-nav__item-icon"><i class="bx bx-map-alt"></i></span>
-            <span class="bk-nav__item-text">Tour Bookings</span>
-            <span class="bk-nav__item-pill">Soon</span>
-        </div>
-
-        <div class="bk-nav__item bk-nav__item--disabled">
-            <span class="bk-nav__item-icon"><i class="bx bx-shield-alt-2"></i></span>
-            <span class="bk-nav__item-text">Insurance</span>
-            <span class="bk-nav__item-pill">Soon</span>
-        </div>
     </nav>
-
-    <div class="bk-nav__footer">
-        <a href="{{ route('user.flights.index') }}" class="bk-nav__new-btn">
-            <i class="bx bx-plus"></i> New Flight Search
-        </a>
-    </div>
 </aside>

@@ -135,7 +135,7 @@
                         @if($isHold && $status !== 'cancelled')
                         <div class="bkp-row__hold-strip">
                             <i class="bx bx-time-five"></i>
-                            This booking is on hold. PNR <strong>{{ $booking->sabre_record_locator }}</strong> — complete ticketing before it expires.
+                            This booking is on hold. PNR <strong>{{ $booking->sabre_record_locator }}</strong>  - complete ticketing before it expires.
                             <a href="{{ route('user.bookings.flights.detail', $booking->id) }}">View details →</a>
                         </div>
                         @endif
