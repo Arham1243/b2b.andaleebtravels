@@ -261,9 +261,10 @@
                                             {{ number_format($totalPrice, 2) }}
                                         </div>
                                     </div>
-                                    <button type="button" class="rc__hold">
+                                    <a href="{{ route('user.flights.hold', ['itinerary' => $lid] + $query) }}"
+                                        class="rc__hold">
                                         <i class="bx bx-time-five"></i> Hold
-                                    </button>
+                                    </a>
                                     <a href="{{ route('user.flights.checkout', ['itinerary' => $lid] + $query) }}"
                                         class="rc__cta">
                                         Book Now <i class="bx bx-right-arrow-alt"></i>
@@ -454,9 +455,10 @@
                                         </span>
                                     </div>
                                     <div class="fd-foot__btns">
-                                        <button type="button" class="fd-foot__hold">
+                                        <a href="{{ route('user.flights.hold', ['itinerary' => $lid] + $query) }}"
+                                            class="fd-foot__hold">
                                             <i class="bx bx-time-five"></i> Hold
-                                        </button>
+                                        </a>
                                         <a href="{{ route('user.flights.checkout', ['itinerary' => $lid] + $query) }}"
                                             class="fd-foot__book">
                                             Book Now <i class="bx bx-right-arrow-alt"></i>
@@ -724,7 +726,7 @@
     font-family: "UAEDirham", "Segoe UI", sans-serif;
     font-size: .8em;
     font-weight: 400;
-    color: var(--c-slate);
+    color: inherit;
     margin-right: .06rem;
     vertical-align: baseline;
 }

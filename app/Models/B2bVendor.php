@@ -45,4 +45,9 @@ class B2bVendor extends Authenticatable
     {
         return $this->hasMany(B2bWalletLedger::class, 'b2b_vendor_id');
     }
+
+    public function savedPassengers(): HasMany
+    {
+        return $this->hasMany(B2bSavedPassenger::class, 'b2b_vendor_id');
+    }
 }

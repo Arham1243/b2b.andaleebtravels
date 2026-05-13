@@ -69,6 +69,13 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/payment/success/{booking}', [FlightBookingController::class, 'paymentSuccess'])->name('payment.success');
         Route::get('/payment/success/view/{booking}', [FlightBookingController::class, 'paymentSuccessView'])->name('payment.success.view');
         Route::get('/payment/failed/{booking?}', [FlightBookingController::class, 'paymentFailed'])->name('payment.failed');
+        // Hold (PNR without payment)
+        Route::get('/hold/{itinerary}', [FlightBookingController::class, 'holdCheckout'])->name('hold');
+        Route::post('/hold/process', [FlightBookingController::class, 'processHold'])->name('hold.process');
+        Route::get('/hold/success/{booking}', [FlightBookingController::class, 'holdSuccess'])->name('hold.success');
+        // Saved passengers (AJAX)
+        Route::get('/passengers/saved', [FlightBookingController::class, 'getSavedPassengers'])->name('passengers.saved');
+        Route::post('/passengers/save', [FlightBookingController::class, 'savePassenger'])->name('passengers.save');
     });
 
     Route::prefix('bookings')->name('bookings.')->group(function () {

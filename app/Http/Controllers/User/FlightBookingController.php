@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
+use App\Models\B2bSavedPassenger;
 use App\Models\B2bWalletLedger;
 use App\Services\FlightService;
 use Carbon\Carbon;
@@ -290,6 +291,163 @@ class FlightBookingController extends Controller
         } catch (\Exception $e) {
             return view('user.flights.payment-failed', ['booking' => null]);
         }
+    }
+
+    /* =====================================================================
+       HOLD BOOKING (PNR created without payment)
+       ===================================================================== */
+
+    public function holdCheckout(Request $request, int $itinerary)
+    {
+        $results = session('flight_search_results', []);
+        $params  = session('flight_search_params', []);
+
+        $itineraryData = $results[$itinerary] ?? null;
+
+        if (!$itineraryData || empty($params)) {
+            return redirect()->route('user.flights.index')
+                ->with('notify_error', 'Please search for flights again.');
+        }
+
+        $savedPassengers = Auth::user()
+            ->savedPassengers()
+            ->orderBy('first_name')
+            ->get()
+            ->toArray();
+
+        return view('user.flights.hold', [
+            'itineraryId'     => $itinerary,
+            'itinerary'       => $itineraryData,
+            'searchParams'    => $params,
+            'totalAmount'     => (float) ($itineraryData['totalPrice'] ?? 0),
+            'currency'        => $itineraryData['currency'] ?? 'AED',
+            'savedPassengers' => $savedPassengers,
+        ]);
+    }
+
+    public function processHold(Request $request, FlightService $flightService)
+    {
+        $validated = $request->validate([
+            'itinerary_id'              => 'required|integer',
+            'lead.title'                => 'required|string',
+            'lead.first_name'           => 'required|string|max:60',
+            'lead.last_name'            => 'required|string|max:60',
+            'lead.email'                => 'required|email',
+            'lead.phone'                => 'required|string|max:25',
+            'passengers'                => 'required|array|min:1',
+            'passengers.*.type'         => 'required|in:ADT,C06,INF',
+            'passengers.*.title'        => 'required|string',
+            'passengers.*.first_name'   => 'required|string|max:60',
+            'passengers.*.last_name'    => 'required|string|max:60',
+            'passengers.*.dob'          => 'nullable|date',
+            'passengers.*.nationality'  => 'nullable|string|max:4',
+            'passengers.*.passport_no'  => 'nullable|string|max:20',
+            'passengers.*.passport_exp' => 'nullable|date',
+            'passengers.*.save_profile' => 'nullable|in:1',
+        ]);
+
+        $results       = session('flight_search_results', []);
+        $params        = session('flight_search_params', []);
+        $itineraryId   = (int) $validated['itinerary_id'];
+        $itineraryData = $results[$itineraryId] ?? null;
+
+        if (!$itineraryData || empty($params)) {
+            return redirect()->route('user.flights.index')
+                ->with('notify_error', 'Flight selection expired. Please search again.');
+        }
+
+        // Save any passenger profiles requested
+        foreach ($validated['passengers'] as $pax) {
+            if (!empty($pax['save_profile'])) {
+                Auth::user()->savedPassengers()->updateOrCreate(
+                    [
+                        'passport_no' => $pax['passport_no'] ?? null,
+                        'first_name'  => $pax['first_name'],
+                        'last_name'   => $pax['last_name'],
+                    ],
+                    [
+                        'title'        => $pax['title'],
+                        'dob'          => $pax['dob'] ?? null,
+                        'nationality'  => $pax['nationality'] ?? null,
+                        'passport_exp' => $pax['passport_exp'] ?? null,
+                    ]
+                );
+            }
+        }
+
+        $totalAmount  = (float) ($itineraryData['totalPrice'] ?? 0);
+        $currency     = $itineraryData['currency'] ?? 'AED';
+
+        $bookingData = [
+            'itinerary_id'    => $itineraryId,
+            'from_airport'    => $params['from'] ?? null,
+            'to_airport'      => $params['to'] ?? null,
+            'departure_date'  => !empty($params['departure_date']) ? Carbon::parse($params['departure_date'])->format('Y-m-d') : null,
+            'return_date'     => !empty($params['return_date'])    ? Carbon::parse($params['return_date'])->format('Y-m-d') : null,
+            'adults'          => (int) ($params['adults'] ?? 1),
+            'children'        => (int) ($params['children'] ?? 0),
+            'infants'         => (int) ($params['infants'] ?? 0),
+            'passengers_data' => ['lead' => $validated['lead'], 'passengers' => $validated['passengers']],
+            'itinerary_data'  => $itineraryData,
+            'search_request'  => session('flight_search_payload'),
+            'search_response' => session('flight_search_response'),
+            'total_amount'    => $totalAmount,
+            'currency'        => $currency,
+            'payment_method'  => 'hold',
+            'source_market'   => $this->getSourceMarketFromIP(),
+        ];
+
+        $booking = $flightService->createBookingRecord($bookingData);
+
+        // Create Sabre PNR (hold – TicketType 7TAW, no payment required)
+        $pnrResult = $flightService->createSabrePnr($booking);
+
+        if (!($pnrResult['success'] ?? false)) {
+            $booking->update(['booking_status' => 'failed']);
+            return redirect()
+                ->route('user.flights.hold', ['itinerary' => $itineraryId] + request()->query())
+                ->with('notify_error', $pnrResult['error'] ?? 'Unable to create hold booking. Please try again.');
+        }
+
+        $booking->update(['booking_status' => 'hold']);
+
+        return redirect()->route('user.flights.hold.success', ['booking' => $booking->id]);
+    }
+
+    public function holdSuccess(int $booking)
+    {
+        try {
+            $booking = B2bFlightBooking::findOrFail($booking);
+            return view('user.flights.hold-success', compact('booking'));
+        } catch (\Exception $e) {
+            return redirect()->route('user.flights.index')->with('notify_error', 'Booking not found.');
+        }
+    }
+
+    /* =====================================================================
+       SAVED PASSENGERS (AJAX)
+       ===================================================================== */
+
+    public function getSavedPassengers()
+    {
+        $passengers = Auth::user()->savedPassengers()->orderBy('first_name')->get();
+        return response()->json($passengers);
+    }
+
+    public function savePassenger(Request $request)
+    {
+        $data = $request->validate([
+            'title'        => 'required|string',
+            'first_name'   => 'required|string|max:60',
+            'last_name'    => 'required|string|max:60',
+            'dob'          => 'nullable|date',
+            'nationality'  => 'nullable|string|max:4',
+            'passport_no'  => 'nullable|string|max:20',
+            'passport_exp' => 'nullable|date',
+        ]);
+
+        $pax = Auth::user()->savedPassengers()->create($data);
+        return response()->json(['success' => true, 'passenger' => $pax]);
     }
 
     protected function getSourceMarketFromIP(): string
