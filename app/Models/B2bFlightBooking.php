@@ -48,6 +48,7 @@ class B2bFlightBooking extends Model
         'cancelled_at',
         'cancelled_by',
         'hold_expires_at',
+        'confirmation_email_sent_at',
     ];
 
     protected $casts = [
@@ -66,6 +67,7 @@ class B2bFlightBooking extends Model
         'total_amount' => 'decimal:2',
         'wallet_amount' => 'decimal:2',
         'hold_expires_at' => 'datetime',
+        'confirmation_email_sent_at' => 'datetime',
     ];
 
     public static function generateBookingNumber(): string

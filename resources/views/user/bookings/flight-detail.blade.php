@@ -422,6 +422,9 @@
                                        onclick="return confirm('Cancel this confirmed booking? Cancellation charges may apply.');">
                                         <i class="bx bx-x"></i> Cancel Booking
                                     </a>
+                                    <p style="font-size:.7rem;color:#8492a6;margin-top:10px;text-align:center;line-height:1.4;">
+                                        Cancellation is sent to the airline via our GDS. If the carrier does not allow cancel for this fare, you will see an error and the booking will stay active.
+                                    </p>
                                 @else
                                     <p class="bkpd-no-action"><i class="bx bx-info-circle"></i> No actions available.</p>
                                 @endif

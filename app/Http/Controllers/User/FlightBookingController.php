@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bSavedPassenger;
 use App\Models\B2bWalletLedger;
+use App\Models\Config;
 use App\Services\FlightService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class FlightBookingController extends Controller
 {
@@ -168,15 +170,41 @@ class FlightBookingController extends Controller
     public function paymentSuccess(Request $request, int $booking, FlightService $flightService)
     {
         try {
-            $booking = B2bFlightBooking::findOrFail($booking);
+            $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($booking);
 
-            if ($booking->isPaid() && $booking->isConfirmed()) {
+            // Idempotent: do not re-verify payment or re-issue ticket on reload
+            if ($booking->payment_status === 'paid' && $booking->ticket_status === 'issued') {
                 return redirect()->route('user.flights.payment.success.view', ['booking' => $booking->id]);
             }
 
-            if ($booking->payment_method === 'wallet' && $booking->wallet_amount >= $booking->total_amount) {
-                $vendor = $booking->vendor;
-                if ((float) $vendor->main_balance < (float) $booking->wallet_amount) {
+            $needsPaymentStep = ($booking->payment_status !== 'paid');
+
+            if ($needsPaymentStep) {
+                if ($booking->payment_method === 'wallet' && (float) $booking->wallet_amount >= (float) $booking->total_amount) {
+                    $vendor = $booking->vendor;
+                    if ((float) $vendor->main_balance < (float) $booking->wallet_amount) {
+                        $booking->update([
+                            'payment_status' => 'failed',
+                            'booking_status' => 'failed',
+                            'wallet_amount' => 0,
+                        ]);
+
+                        return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
+                            ->with('notify_error', 'Insufficient wallet balance.');
+                    }
+
+                    $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
+                } elseif ($booking->payment_method === 'payby') {
+                    $verificationResult = $flightService->verifyPayByPayment($booking);
+                } elseif ($booking->payment_method === 'tabby') {
+                    $verificationResult = $flightService->verifyTabbyPayment($booking);
+                } elseif ($booking->payment_method === 'tamara') {
+                    $verificationResult = $flightService->verifyTamaraPayment($booking);
+                } else {
+                    throw new \Exception('Invalid payment method');
+                }
+
+                if (!($verificationResult['success'] ?? false)) {
                     $booking->update([
                         'payment_status' => 'failed',
                         'booking_status' => 'failed',
@@ -184,60 +212,44 @@ class FlightBookingController extends Controller
                     ]);
 
                     return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
-                        ->with('notify_error', 'Insufficient wallet balance.');
+                        ->with('notify_error', 'Payment verification failed. Please contact support.');
                 }
 
-                $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
-            } elseif ($booking->payment_method === 'payby') {
-                $verificationResult = $flightService->verifyPayByPayment($booking);
-            } elseif ($booking->payment_method === 'tabby') {
-                $verificationResult = $flightService->verifyTabbyPayment($booking);
-            } elseif ($booking->payment_method === 'tamara') {
-                $verificationResult = $flightService->verifyTamaraPayment($booking);
-            } else {
-                throw new \Exception('Invalid payment method');
-            }
+                if ((float) $booking->wallet_amount > 0) {
+                    B2bWalletLedger::recordDebit(
+                        $booking->b2b_vendor_id,
+                        (float) $booking->wallet_amount,
+                        'Flight Booking #' . $booking->booking_number,
+                        B2bFlightBooking::class,
+                        $booking->id
+                    );
+                }
 
-            if (!$verificationResult['success']) {
                 $booking->update([
-                    'payment_status' => 'failed',
-                    'booking_status' => 'failed',
-                    'wallet_amount' => 0,
+                    'payment_status' => 'paid',
+                    'payment_response' => $verificationResult['data'] ?? null,
                 ]);
-
-                return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
-                    ->with('notify_error', 'Payment verification failed. Please contact support.');
+                $booking->refresh();
             }
 
-            if ($booking->wallet_amount > 0) {
-                B2bWalletLedger::recordDebit(
-                    $booking->b2b_vendor_id,
-                    (float) $booking->wallet_amount,
-                    'Flight Booking #' . $booking->booking_number,
-                    B2bFlightBooking::class,
-                    $booking->id
-                );
-            }
-
-            $booking->update([
-                'payment_status' => 'paid',
-                'payment_response' => $verificationResult['data'] ?? null,
-            ]);
-
-            // Hold conversions: PNR already exists  -  skip creation, go straight to ticketing.
             if (empty($booking->sabre_record_locator)) {
                 $pnrResult = $flightService->createSabrePnr($booking);
                 if (!$pnrResult['success']) {
                     $booking->update(['booking_status' => 'failed']);
+
                     return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
                         ->with('notify_error', 'Unable to confirm your booking. Our team will contact you shortly.');
                 }
+                $booking->refresh();
             }
 
-            $ticketResult = $flightService->issueSabreTicket($booking);
-            if (!$ticketResult['success']) {
-                return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
-                    ->with('notify_error', 'Booking confirmed but ticketing failed. Please contact support.');
+            if ($booking->ticket_status !== 'issued') {
+                $ticketResult = $flightService->issueSabreTicket($booking);
+                if (!$ticketResult['success']) {
+                    return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
+                        ->with('notify_error', 'Booking confirmed but ticketing failed. Please contact support.');
+                }
+                $booking->refresh();
             }
 
             return redirect()->route('user.flights.payment.success.view', ['booking' => $booking->id]);
@@ -256,12 +268,15 @@ class FlightBookingController extends Controller
     public function paymentSuccessView(int $booking)
     {
         try {
-            $booking = B2bFlightBooking::findOrFail($booking);
+            $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($booking);
 
-            if (!$booking->isPaid()) {
+            if ($booking->payment_status !== 'paid' || $booking->ticket_status !== 'issued') {
                 return redirect()->route('user.flights.index')
-                    ->with('notify_error', 'Invalid booking access.');
+                    ->with('notify_error', 'This booking is not ready yet or payment is incomplete.');
             }
+
+            $this->sendFlightBookingConfirmationEmailsOnce($booking);
+            $booking->refresh();
 
             return view('user.flights.payment-success', compact('booking'));
         } catch (\Exception $e) {
@@ -545,6 +560,51 @@ class FlightBookingController extends Controller
 
         $pax = Auth::user()->savedPassengers()->create($data);
         return response()->json(['success' => true, 'passenger' => $pax]);
+    }
+
+    protected function sendFlightBookingConfirmationEmailsOnce(B2bFlightBooking $booking): void
+    {
+        if ($booking->confirmation_email_sent_at) {
+            return;
+        }
+
+        $leadEmail = (string) data_get($booking->passengers_data, 'lead.email', '');
+        $adminEmail = (string) Config::where('config_key', 'ADMIN_NOTIFICATION_EMAIL')->value('config_value');
+
+        $data = fn (string $intro) => [
+            'booking' => $booking,
+            'intro' => $intro,
+            'leadEmail' => $leadEmail,
+        ];
+
+        try {
+            if ($leadEmail !== '' && filter_var($leadEmail, FILTER_VALIDATE_EMAIL)) {
+                Mail::send(
+                    'emails.flight-booking-confirmed',
+                    $data('Your flight booking is confirmed. Details below.'),
+                    function ($message) use ($leadEmail, $booking) {
+                        $message->to($leadEmail)->subject('Booking confirmed — ' . $booking->booking_number);
+                    }
+                );
+            }
+
+            if ($adminEmail !== '' && filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                Mail::send(
+                    'emails.flight-booking-confirmed',
+                    $data('A flight booking was confirmed (B2B).'),
+                    function ($message) use ($adminEmail, $booking) {
+                        $message->to($adminEmail)->subject('[Booking] Flight confirmed ' . $booking->booking_number);
+                    }
+                );
+            }
+
+            $booking->update(['confirmation_email_sent_at' => now()]);
+        } catch (\Throwable $e) {
+            Log::error('Flight confirmation email failed', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function getSourceMarketFromIP(): string

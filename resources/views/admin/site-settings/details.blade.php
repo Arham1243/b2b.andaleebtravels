@@ -66,6 +66,26 @@
 
                     <div class="form-box">
                         <div class="form-box__header">
+                            <div class="title">Notifications</div>
+                        </div>
+                        <div class="form-box__body">
+                            <div class="row">
+                                <div class="col-lg-6 col-md-6 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Admin notification email</label>
+                                        <input type="email" name="ADMIN_NOTIFICATION_EMAIL" class="field"
+                                            value="{{ $config['ADMIN_NOTIFICATION_EMAIL'] ?? '' }}"
+                                            placeholder="e.g. ops@youragency.com"
+                                            autocomplete="email">
+                                        <small class="text-muted d-block mt-1">Flight booking confirmations and alerts are sent to this address.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="form-box__header">
                             <div class="title">Contact Information</div>
                         </div>
                         <div class="form-box__body">
