@@ -755,6 +755,10 @@
                     if (typeof window.initFlightMultiCityDatePickers === 'function') {
                         window.initFlightMultiCityDatePickers();
                     }
+                    // Re-init after airports + URL params are applied so picker reflects correct trip type
+                    if (typeof window.initFlightDateRangePicker === 'function') {
+                        window.initFlightDateRangePicker();
+                    }
                 });
             });
 
@@ -949,7 +953,10 @@
                 if (vue?.tripType !== 'round_trip') {
                     if (vue && typeof vue.setTripType === 'function') {
                         vue.setTripType('round_trip');
-                        // setTripType -> nextTick -> initFlightDateRangePicker() opens in range mode
+                        // setTripType -> nextTick -> initFlightDateRangePicker(); auto-open after re-init
+                        setTimeout(() => {
+                            $depIn.data('daterangepicker')?.show();
+                        }, 80);
                     }
                     return;
                 }

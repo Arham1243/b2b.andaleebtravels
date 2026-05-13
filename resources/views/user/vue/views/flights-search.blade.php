@@ -1532,6 +1532,106 @@
         /* Picker attaches under date cells (#flight-departure-box); keep above promos/footer overlap */
         .flight-search-redesign .daterangepicker {
             z-index: 5600 !important;
+            border-radius: 16px !important;
+            border: 1px solid #dde3ef !important;
+            box-shadow: 0 16px 48px rgba(15,23,42,.18) !important;
+            font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+            padding: 6px 4px 4px !important;
+        }
+
+        /* ── Month / Year select dropdowns ── */
+        .flight-search-redesign .daterangepicker select.monthselect,
+        .flight-search-redesign .daterangepicker select.yearselect {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            border: 1.5px solid #dde3ef;
+            border-radius: 7px;
+            padding: 4px 22px 4px 9px;
+            font-size: 0.79rem;
+            font-weight: 700;
+            color: #1a2540;
+            background-color: #fff;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%238492a6' d='M5 8l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 4px center;
+            background-size: 16px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color .15s, box-shadow .15s;
+            line-height: 1.4;
+        }
+        .flight-search-redesign .daterangepicker select.monthselect:hover,
+        .flight-search-redesign .daterangepicker select.yearselect:hover {
+            border-color: #cd1b4f;
+        }
+        .flight-search-redesign .daterangepicker select.monthselect:focus,
+        .flight-search-redesign .daterangepicker select.yearselect:focus {
+            border-color: #cd1b4f;
+            box-shadow: 0 0 0 2px rgba(205,27,79,.14);
+        }
+
+        /* ── Calendar header row ── */
+        .flight-search-redesign .daterangepicker .drp-calendar th.month {
+            padding: 6px 4px 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #1a2540;
+        }
+        .flight-search-redesign .daterangepicker th.prev,
+        .flight-search-redesign .daterangepicker th.next {
+            border-radius: 8px !important;
+            transition: background .13s;
+        }
+        .flight-search-redesign .daterangepicker th.prev:hover,
+        .flight-search-redesign .daterangepicker th.next:hover {
+            background-color: rgba(205,27,79,.1) !important;
+            color: #cd1b4f;
+        }
+        .flight-search-redesign .daterangepicker .prev span,
+        .flight-search-redesign .daterangepicker .next span {
+            border-color: #cd1b4f !important;
+        }
+
+        /* ── Day cells ── */
+        .flight-search-redesign .daterangepicker td.available {
+            border-radius: 6px;
+            transition: background .1s, color .1s;
+        }
+        .flight-search-redesign .daterangepicker td.available:hover {
+            background-color: rgba(205,27,79,.1) !important;
+            color: #cd1b4f !important;
+        }
+        .flight-search-redesign .daterangepicker td.today:not(.active) {
+            font-weight: 700;
+            border-bottom: 2px solid #cd1b4f !important;
+        }
+        .flight-search-redesign .daterangepicker td.off {
+            color: #c9d0dc !important;
+        }
+
+        /* ── Buttons (apply / cancel) ── */
+        .flight-search-redesign .daterangepicker .drp-buttons {
+            border-top: 1px solid #edf0f7 !important;
+            padding: 8px 12px !important;
+        }
+        .flight-search-redesign .daterangepicker .applyBtn {
+            background: linear-gradient(180deg, #cd1b4f 0%, #a8173f 100%) !important;
+            border-color: #cd1b4f !important;
+            border-radius: 8px !important;
+            font-weight: 700 !important;
+            font-size: .82rem !important;
+            padding: .38rem .95rem !important;
+        }
+        .flight-search-redesign .daterangepicker .cancelBtn {
+            border-radius: 8px !important;
+            border-color: #dde3ef !important;
+            color: #4a5568 !important;
+            font-weight: 600 !important;
+            font-size: .82rem !important;
+        }
+        .flight-search-redesign .daterangepicker .cancelBtn:hover {
+            background: #f3f5fb !important;
         }
 
         /* Airline preference  -  lavender strip */
