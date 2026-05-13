@@ -26,11 +26,22 @@
         }
 
         function bff_format_hm(?int $mins): string {
-            if (!$mins || $mins < 1) {
+            if ($mins === null || $mins < 1) {
                 return '?';
             }
 
-            return sprintf('%dh %02dm', intdiv((int) $mins, 60), (int) $mins % 60);
+            $m = (int) $mins;
+            $h = intdiv($m, 60);
+            $r = $m % 60;
+            if ($h > 0 && $r === 0) {
+                return "{$h}h";
+            }
+
+            if ($h === 0) {
+                return "{$r}m";
+            }
+
+            return "{$h}h {$r}m";
         }
     @endphp
 
