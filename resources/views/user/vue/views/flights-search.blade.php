@@ -19,14 +19,22 @@
                     </div>
                     <div class="fs-pro-specials">
                         <a href="#" class="fs-pro-special-chip" @click.prevent>
-                            <span class="fs-pro-special-chip__icon fs-pro-special-chip__icon--a2a"><i class='bx bxs-plane'></i></span>
-                            <span class="fs-pro-special-chip__text">A2A Special Fare</span>
-                            <span class="fs-pro-badge-new">NEW</span>
+                            <span class="fs-pro-special-chip__badge-row">
+                                <span class="fs-pro-badge-new">NEW</span>
+                            </span>
+                            <span class="fs-pro-special-chip__main">
+                                <span class="fs-pro-special-chip__icon fs-pro-special-chip__icon--a2a"><i class='bx bxs-plane'></i></span>
+                                <span class="fs-pro-special-chip__text">A2A Special Fare</span>
+                            </span>
                         </a>
                         <a href="#" class="fs-pro-special-chip" @click.prevent>
-                            <span class="fs-pro-special-chip__icon fs-pro-special-chip__icon--akbar"><i class='bx bxs-plane-alt'></i></span>
-                            <span class="fs-pro-special-chip__text">Akbar Special Fare</span>
-                            <span class="fs-pro-badge-new fs-pro-badge-new--blue">NEW</span>
+                            <span class="fs-pro-special-chip__badge-row">
+                                <span class="fs-pro-badge-new fs-pro-badge-new--blue">NEW</span>
+                            </span>
+                            <span class="fs-pro-special-chip__main">
+                                <span class="fs-pro-special-chip__icon fs-pro-special-chip__icon--ata"><i class='bx bxs-plane-alt'></i></span>
+                                <span class="fs-pro-special-chip__text">ATA Special Fare</span>
+                            </span>
                         </a>
                     </div>
                 </header>
@@ -631,41 +639,23 @@
                 </div>
             </div>
 
-            <div class="fs-pro-aside-card fs-pro-recent-panel">
+            <div class="fs-pro-aside-card fs-pro-recent-panel" v-if="recentSearches.length">
                 <div class="fs-pro-aside-card__head">
                     <span class="fs-pro-aside-card__label">Recent Searches</span>
+                    <button type="button" class="fs-pro-aside-card__action fs-pro-aside-card__action--btn"
+                        @click="clearRecentSearches">Clear</button>
                 </div>
-                <a href="#" class="fs-pro-recent-row" @click.prevent>
+                <a v-for="(item, idx) in recentSearches" :key="item.fingerprint + '-' + idx" href="#"
+                    class="fs-pro-recent-row" @click.prevent="applyRecentSearch(item)">
                     <span class="fs-pro-recent-row__route">
-                        <span class="fs-pro-recent-row__city">Dubai</span>
+                        <span class="fs-pro-recent-row__city">@{{ item.fromCity }}</span>
                         <i class='bx bxs-plane fs-pro-recent-row__arrow'></i>
-                        <span class="fs-pro-recent-row__city">Karachi</span>
+                        <span class="fs-pro-recent-row__city">@{{ item.toCity }}</span>
                     </span>
                     <span class="fs-pro-recent-row__meta">
-                        <span class="fs-pro-recent-row__dates">01 Jun 26 | 10 Jun 26</span>
+                        <span class="fs-pro-recent-row__dates">@{{ item.dateLine }}</span>
                     </span>
                 </a>
-            </div>
-
-            <div class="fs-pro-aside-card fs-pro-aside-card--quick">
-                <nav class="fs-pro-util-links" aria-label="Quick links">
-                    <a href="#" class="fs-util-link" @click.prevent>
-                        <span class="fs-util-dot fs-util-dot--amber"><i class='bx bxs-bell'></i></span>
-                        <span class="fs-util-link__text"><span>Notice Board</span></span>
-                    </a>
-                    <a href="#" class="fs-util-link" @click.prevent>
-                        <span class="fs-util-dot fs-util-dot--emerald"><i class='bx bx-wallet-alt'></i></span>
-                        <span class="fs-util-link__text"><span>Recharge</span></span>
-                    </a>
-                    <a href="#" class="fs-util-link" @click.prevent>
-                        <span class="fs-util-dot fs-util-dot--rose"><i class='bx bxs-bell-ring'></i></span>
-                        <span class="fs-util-link__text"><span>How to use<br>portal</span></span>
-                    </a>
-                    <a href="#" class="fs-util-link" @click.prevent>
-                        <span class="fs-util-dot fs-util-dot--sky"><i class='bx bx-news'></i></span>
-                        <span class="fs-util-link__text"><span>News letter</span></span>
-                    </a>
-                </nav>
             </div>
         </aside>
 
@@ -833,10 +823,10 @@
         }
 
         .fs-pro-special-chip {
-            position: relative;
             display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.28rem;
             padding: 0;
             border-radius: 0;
             border: none;
@@ -848,6 +838,20 @@
             cursor: pointer;
             transition: opacity 0.15s ease;
             box-shadow: none;
+        }
+
+        .fs-pro-special-chip__badge-row {
+            display: flex;
+            justify-content: flex-end;
+            width: 100%;
+            min-height: 1.05rem;
+        }
+
+        .fs-pro-special-chip__main {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            align-self: flex-start;
         }
 
         .fs-pro-special-chip:hover {
@@ -870,11 +874,11 @@
             color: var(--fs-brand);
         }
 
-        .fs-pro-special-chip__icon--akbar {
+        .fs-pro-special-chip__icon--ata {
             color: var(--fs-blue);
         }
 
-        .fs-pro-special-chip:has(.fs-pro-special-chip__icon--akbar) {
+        .fs-pro-special-chip:has(.fs-pro-special-chip__icon--ata) {
             color: var(--fs-blue);
         }
 
@@ -882,17 +886,21 @@
             letter-spacing: -0.005em;
         }
 
+        .fs-pro-special-chip .fs-pro-badge-new {
+            position: static;
+            flex-shrink: 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
         .fs-pro-badge-new {
-            position: absolute;
-            top: -10px;
-            right: -8px;
             font-size: 0.58rem;
             font-weight: 700;
-            padding: 0.1rem 0.42rem;
+            padding: 0.12rem 0.44rem;
             border-radius: 999px;
             background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
             color: #fff;
-            line-height: 1.3;
+            line-height: 1.2;
             letter-spacing: 0.04em;
             box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
         }
@@ -1916,89 +1924,12 @@
             display: none;
         }
 
-        /* Quick utility links — 2-column colorful dots */
-        .fs-pro-aside-card--quick {
-            padding: 0;
-        }
-
-        .fs-pro-aside-card--quick .fs-pro-aside-card__head {
-            display: none;
-        }
-
-        .fs-pro-util-links {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.65rem 0.6rem !important;
-        }
-
-        .fs-util-link {
-            display: inline-flex !important;
-            align-items: center !important;
-            gap: 0.55rem !important;
-            padding: 0.3rem 0.2rem !important;
-            border-radius: 8px !important;
-            margin: 0 !important;
-            cursor: pointer;
-            line-height: 1.2 !important;
-            color: #1f2937;
-            font-size: 0.78rem !important;
-            font-weight: 500 !important;
-            text-decoration: none !important;
-            transition: color 0.14s ease;
-            border: 0;
-            background: transparent;
-        }
-
-        .fs-util-link + .fs-util-link {
-            border-top: none;
-        }
-
-        .fs-util-link:hover {
-            color: var(--fs-brand);
-        }
-
-        .fs-util-link__text {
-            display: inline-flex;
-            flex-direction: column;
-            line-height: 1.15;
-        }
-
-        .fs-util-link__text em {
-            display: none;
-        }
-
-        .fs-util-dot {
-            width: 36px !important;
-            height: 36px !important;
-            flex-shrink: 0;
-            border-radius: 50% !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 1.1rem !important;
+        .fs-pro-aside-card__action--btn {
+            background: none;
             border: none;
-            color: #fff !important;
-            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
-        }
-
-        .fs-util-dot--amber {
-            background: #fbbf24;
-            color: #78350f !important;
-        }
-
-        .fs-util-dot--emerald {
-            background: #fbcfe8;
-            color: #861043 !important;
-        }
-
-        .fs-util-dot--rose {
-            background: #fda4af;
-            color: #881337 !important;
-        }
-
-        .fs-util-dot--sky {
-            background: #7dd3fc;
-            color: #075985 !important;
+            padding: 0;
+            font: inherit;
+            cursor: pointer;
         }
 
         /* ===== Promotions strip ===== */

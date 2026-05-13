@@ -1,5 +1,9 @@
 @push('js')
 <script>
+    const FLIGHT_SEARCH_ACTION = @json(route('user.flights.search'));
+    const RECENT_FLIGHTS_KEY = 'b2b_flight_recent_searches_v1';
+    const MAX_RECENT_FLIGHTS = 4;
+
     const FlightsSearch = createApp({
         setup() {
             function useDropdown() {
@@ -105,6 +109,100 @@
                 toggle: toggleReturnCabin,
                 close: closeReturnCabin
             } = useDropdown();
+
+            const stableQueryFingerprint = (queryString) => {
+                const params = new URLSearchParams(queryString);
+                const keys = [...new Set([...params.keys()])].sort();
+                const chunks = [];
+                keys.forEach((k) => {
+                    params.getAll(k).sort().forEach((v) => {
+                        chunks.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+                    });
+                });
+                return chunks.join('&');
+            };
+
+            const recentSearches = ref([]);
+
+            const loadRecentSearches = () => {
+                try {
+                    const raw = localStorage.getItem(RECENT_FLIGHTS_KEY);
+                    const parsed = raw ? JSON.parse(raw) : [];
+                    recentSearches.value = Array.isArray(parsed)
+                        ? parsed
+                            .filter((e) => e && typeof e.queryString === 'string')
+                            .slice(0, MAX_RECENT_FLIGHTS)
+                        : [];
+                } catch {
+                    recentSearches.value = [];
+                }
+            };
+
+            const pushRecentSearch = (entry) => {
+                const fp = stableQueryFingerprint(entry.queryString);
+                const next = recentSearches.value.filter(
+                    (e) => stableQueryFingerprint(e.queryString) !== fp
+                );
+                next.unshift({ ...entry, fingerprint: fp });
+                recentSearches.value = next.slice(0, MAX_RECENT_FLIGHTS);
+                try {
+                    localStorage.setItem(RECENT_FLIGHTS_KEY, JSON.stringify(recentSearches.value));
+                } catch {
+                    /* ignore quota */
+                }
+            };
+
+            const clearRecentSearches = () => {
+                recentSearches.value = [];
+                try {
+                    localStorage.removeItem(RECENT_FLIGHTS_KEY);
+                } catch {
+                    /* ignore */
+                }
+            };
+
+            const buildRecentEntry = (queryString) => {
+                let fromCity = '—';
+                let toCity = '—';
+                let dateLine = '—';
+
+                if (tripType.value === 'multi_city') {
+                    const segs = multiCitySegments.value;
+                    const first = segs[0];
+                    const last = segs[segs.length - 1];
+                    fromCity = first?.selectedFrom?.city || first?.selectedFrom?.code || fromCity;
+                    toCity = last?.selectedTo?.city || last?.selectedTo?.code || toCity;
+                    const parts = segs
+                        .map((s) => (s.departureDate ? formatIsoDateForDisplay(s.departureDate) : ''))
+                        .filter(Boolean);
+                    dateLine = parts.length ? parts.join(' · ') : '—';
+                } else {
+                    fromCity = selectedFrom.value?.city || selectedFrom.value?.code || fromCity;
+                    toCity = selectedTo.value?.city || selectedTo.value?.code || toCity;
+                    const dep = departureDate.value || '';
+                    const ret = tripType.value === 'round_trip' ? (returnDate.value || '') : '';
+                    if (dep && ret) {
+                        dateLine = `${dep} | ${ret}`;
+                    } else {
+                        dateLine = dep || ret || '—';
+                    }
+                }
+
+                return {
+                    queryString,
+                    fromCity,
+                    toCity,
+                    dateLine,
+                    tripType: tripType.value
+                };
+            };
+
+            const applyRecentSearch = (item) => {
+                const qs = item.queryString || '';
+                window.location.href = qs
+                    ? `${FLIGHT_SEARCH_ACTION}?${qs}`
+                    : FLIGHT_SEARCH_ACTION;
+            };
 
             const pickOnwardCabin = (value) => {
                 onwardCabin.value = value;
@@ -621,6 +719,14 @@
                     return;
                 }
 
+                try {
+                    const fd = new FormData(event.currentTarget);
+                    const queryString = new URLSearchParams(fd).toString();
+                    pushRecentSearch(buildRecentEntry(queryString));
+                } catch (err) {
+                    console.warn('Recent searches persist failed', err);
+                }
+
                 isSearching.value = true;
                 window.__enablePageLoaderOnNav = true;
                 if (typeof window.showPageLoader === 'function') {
@@ -641,6 +747,7 @@
             onMounted(async () => {
                 await loadAirports();
                 applyParamsFromUrl();
+                loadRecentSearches();
                 document.addEventListener('click', handleDocumentClick);
                 nextTick(() => {
                     if (typeof window.initFlightMultiCityDatePickers === 'function') {
@@ -713,6 +820,9 @@
                 decrementInfants,
                 travellersText,
                 travellersTextCompact,
+                recentSearches,
+                clearRecentSearches,
+                applyRecentSearch,
                 multiCitySegments,
                 minMultiCitySegments,
                 maxMultiCitySegments,
