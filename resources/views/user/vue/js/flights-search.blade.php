@@ -1,4 +1,4 @@
-@push('js')
+﻿@push('js')
 <script>
     const FLIGHT_SEARCH_ACTION = @json(route('user.flights.search'));
     const RECENT_FLIGHTS_KEY = 'b2b_flight_recent_searches_v1';
@@ -529,8 +529,10 @@
                     if (typeof window.initFlightMultiCityDatePickers === 'function') {
                         window.initFlightMultiCityDatePickers();
                     }
-                });
-            };
+                    if (type !== 'multi_city' && typeof window.initFlightDateRangePicker === 'function') {
+                        window.initFlightDateRangePicker();
+                    }
+                });            };
 
             const loadAirports = async () => {
                 loadingAirports.value = true;
@@ -869,114 +871,93 @@
             $(`#${prefix}-day`).html('&nbsp;');
         }
 
-        function syncFlightReturnPickerMinDate() {
-            const $departureInput = $("#flight-departure-input");
-            const $returnInput = $("#flight-return-input");
-            const returnPicker = $returnInput.data('daterangepicker');
-            if (!returnPicker) return;
-            const depVal = ($departureInput.val() || '').trim();
-            if (depVal) {
-                const depMoment = moment(depVal, 'MMM D, YYYY', true);
-                if (depMoment.isValid()) {
-                    returnPicker.minDate = depMoment.clone().add(1, 'day');
+        /* syncFlightReturnPickerMinDate removed — replaced by unified range picker */
+
+        
+
+        /**
+         * Unified date-range picker for Depart + Return.
+         * - round_trip: range mode (2 months side-by-side, pick start + end in one popup)
+         * - one_way:    single-date mode (1 month)
+         * Clicking either cell opens the same picker. Re-called on every trip-type change.
+         */
+        function initFlightDateRangePicker() {
+            const vue     = window.__flightsSearchVue;
+            const $depBox = $('#flight-departure-box');
+            const $retBox = $('#flight-return-box');
+            const $depIn  = $('#flight-departure-input');
+            const $retIn  = $('#flight-return-input');
+
+            if (!$depBox.length || !$depIn.length) return;
+
+            const fmt     = 'MMM D, YYYY';
+            const isRound = vue?.tripType === 'round_trip';
+
+            // Tear down previous instance and delegated click handlers
+            if ($depIn.data('daterangepicker')) {
+                $depIn.data('daterangepicker').remove();
+            }
+            $depBox.off('click.drp');
+            $retBox.off('click.drp');
+
+            const depVal = ($depIn.val() || '').trim();
+            const retVal = ($retIn.val() || '').trim();
+            const depM   = depVal ? moment(depVal, fmt, true) : null;
+            const retM   = retVal ? moment(retVal, fmt, true) : null;
+
+            const opts = {
+                autoApply:        !isRound,
+                showDropdowns:    true,
+                minDate:          moment().startOf('day'),
+                autoUpdateInput:  false,
+                parentEl:         $depBox,
+                opens:            'center',
+                drops:            'down',
+                linkedCalendars:  false,
+                singleDatePicker: !isRound,
+                locale:           { format: fmt }
+            };
+
+            if (depM?.isValid()) opts.startDate = depM.clone();
+            if (isRound && retM?.isValid()) opts.endDate = retM.clone();
+
+            $depIn.daterangepicker(opts);
+
+            $depIn.on('apply.daterangepicker', function (ev, picker) {
+                const dep = picker.startDate;
+                $depIn.val(dep.format(fmt));
+                updateFlightDateDisplay('flight-departure', dep);
+                if (vue) vue.departureDate = dep.format(fmt);
+
+                if (!picker.singleDatePicker) {
+                    const ret = picker.endDate;
+                    $retIn.val(ret.format(fmt));
+                    updateFlightDateDisplay('flight-return', ret);
+                    if (vue) vue.returnDate = ret.format(fmt);
+                }
+            });
+
+            // Depart cell click -> open the picker
+            $depBox.on('click.drp', function (e) {
+                if (!$(e.target).is($depIn)) {
+                    $depIn.data('daterangepicker')?.show();
+                }
+            });
+
+            // Return cell click: switch to round_trip (reinits picker in range mode), then open
+            $retBox.on('click.drp', function () {
+                if (vue?.tripType !== 'round_trip') {
+                    if (vue && typeof vue.setTripType === 'function') {
+                        vue.setTripType('round_trip');
+                        // setTripType -> nextTick -> initFlightDateRangePicker() opens in range mode
+                    }
                     return;
                 }
-            }
-            returnPicker.minDate = moment().startOf('day');
-        }
-
-        /** When return calendar opens, anchor the visible month to departure (not “today”). */
-        function alignFlightReturnPickerViewMonth() {
-            const $departureInput = $("#flight-departure-input");
-            const $returnInput = $("#flight-return-input");
-            const picker = $returnInput.data('daterangepicker');
-            if (!picker) return;
-
-            syncFlightReturnPickerMinDate();
-            const minM = moment.isMoment(picker.minDate)
-                ? picker.minDate.clone()
-                : moment().startOf('day');
-
-            const fmt = 'MMM D, YYYY';
-            const retVal = ($returnInput.val() || '').trim();
-            let anchor = null;
-
-            if (retVal) {
-                const parsedRet = moment(retVal, fmt, true);
-                if (parsedRet.isValid() && parsedRet.isSameOrAfter(minM, 'day')) {
-                    anchor = parsedRet.clone();
-                }
-            }
-
-            if (!anchor) {
-                anchor = minM.clone();
-            }
-
-            picker.setStartDate(anchor);
-        }
-
-        function initFlightSingleDatePicker(wrapperId, inputId, displayPrefix) {
-            const format = "MMM D, YYYY";
-            const $wrapper = $(`#${wrapperId}`);
-            const $input = $(`#${inputId}`);
-            if (!$wrapper.length || !$input.length) return;
-
-            $input.daterangepicker({
-                singleDatePicker: true,
-                autoApply: true,
-                showDropdowns: true,
-                minDate: moment(),
-                autoUpdateInput: false,
-                parentEl: $wrapper,
-                locale: {
-                    format
-                }
-            });
-
-            $input.on("apply.daterangepicker", function(ev, picker) {
-                $input.val(picker.startDate.format(format));
-                updateFlightDateDisplay(displayPrefix, picker.startDate);
-
-                if (displayPrefix === 'flight-departure' && window.__flightsSearchVue) {
-                    window.__flightsSearchVue.departureDate = picker.startDate.format(format);
-                } else if (displayPrefix === 'flight-return' && window.__flightsSearchVue) {
-                    const vue = window.__flightsSearchVue;
-                    vue.returnDate = picker.startDate.format(format);
-                    if (vue.tripType !== 'round_trip' && typeof vue.setTripType === 'function') {
-                        vue.setTripType('round_trip');
-                    }
-                }
-            });
-
-            $wrapper.on("click", function(e) {
-                const vue = window.__flightsSearchVue;
-
-                if (wrapperId === "flight-return-box") {
-                    if (vue?.tripType !== 'round_trip') {
-                        if (vue && typeof vue.setTripType === 'function') {
-                            vue.setTripType('round_trip');
-                        }
-                        setTimeout(function() {
-                            if ($(e.target).is($input)) return;
-                            const pickerInstance = $input.data('daterangepicker');
-                            if (!pickerInstance || window.__flightsSearchVue?.tripType !== 'round_trip') return;
-                            syncFlightReturnPickerMinDate();
-                            pickerInstance.show();
-                        }, 50);
-                        return;
-                    }
-                }
-
-                if (!$(e.target).is($input)) {
-                    const pickerInstance = $input.data('daterangepicker');
-                    if (pickerInstance) {
-                        if (wrapperId === "flight-return-box") syncFlightReturnPickerMinDate();
-                        pickerInstance.show();
-                    }
-                }
+                $depIn.data('daterangepicker')?.show();
             });
         }
 
+        window.initFlightDateRangePicker = initFlightDateRangePicker;
         function initFlightMultiCityDatePickers() {
             const vue = window.__flightsSearchVue;
             if (!vue) return;
@@ -1056,102 +1037,44 @@
         window.initFlightMultiCityDatePickers = initFlightMultiCityDatePickers;
 
         $(document).ready(function() {
-            initFlightSingleDatePicker("flight-departure-box", "flight-departure-input", "flight-departure");
-            initFlightSingleDatePicker("flight-return-box", "flight-return-input", "flight-return");
+            initFlightDateRangePicker();
             initFlightMultiCityDatePickers();
-
-            const $departureInput = $("#flight-departure-input");
-            const $returnInput = $("#flight-return-input");
 
             (function populateFromUrl() {
                 const params = new URLSearchParams(window.location.search);
                 const vue = window.__flightsSearchVue;
                 if (!vue) return;
 
-                const dep = params.get('departure_date');
-                const ret = params.get('return_date');
+                const fmt      = 'MMM D, YYYY';
+                const dep      = params.get('departure_date');
+                const ret      = params.get('return_date');
                 const tripParam = params.get('trip_type');
 
                 if (dep) {
-                    const depMoment = moment(dep, 'MMM D, YYYY');
-                    if (depMoment.isValid()) {
-                        const depPicker = $departureInput.data('daterangepicker');
-                        if (depPicker) {
-                            depPicker.setStartDate(depMoment);
-                            $departureInput.val(depMoment.format('MMM D, YYYY'));
-                            updateFlightDateDisplay('flight-departure', depMoment);
-                            vue.departureDate = depMoment.format('MMM D, YYYY');
-                        }
+                    const d = moment(dep, fmt);
+                    if (d.isValid()) {
+                        $('#flight-departure-input').val(d.format(fmt));
+                        updateFlightDateDisplay('flight-departure', d);
+                        vue.departureDate = d.format(fmt);
                     }
                 }
 
-                const shouldUseReturnDate = ret && tripParam !== 'one_way' && tripParam !== 'multi_city';
-
-                if (shouldUseReturnDate) {
-                    const retMoment = moment(ret, 'MMM D, YYYY');
-                    if (retMoment.isValid()) {
-                        const retPicker = $returnInput.data('daterangepicker');
-                        if (retPicker) {
-                            retPicker.setStartDate(retMoment);
-                            $returnInput.val(retMoment.format('MMM D, YYYY'));
-                            updateFlightDateDisplay('flight-return', retMoment);
-                            vue.returnDate = retMoment.format('MMM D, YYYY');
-                        }
+                const useReturn = ret && tripParam !== 'one_way' && tripParam !== 'multi_city';
+                if (useReturn) {
+                    const r = moment(ret, fmt);
+                    if (r.isValid()) {
+                        $('#flight-return-input').val(r.format(fmt));
+                        updateFlightDateDisplay('flight-return', r);
+                        vue.returnDate = r.format(fmt);
                     }
                 } else {
-                    $returnInput.val('');
+                    $('#flight-return-input').val('');
                     clearFlightDateDisplay('flight-return');
                     vue.returnDate = '';
                 }
+
+                // Re-init picker so it picks up the pre-populated dates
+                initFlightDateRangePicker();
             })();
-
-            syncFlightReturnPickerMinDate();
-            (function primeEmptyReturnPickerView() {
-                const rp = $returnInput.data('daterangepicker');
-                if (rp && !($returnInput.val() || '').trim()) {
-                    rp.setStartDate(rp.minDate.clone());
-                }
-            })();
-
-            $returnInput.on('show.daterangepicker', function() {
-                alignFlightReturnPickerViewMonth();
-            });
-
-            $departureInput.on("apply.daterangepicker", function(ev, picker) {
-                const departureDate = picker.startDate;
-                const returnPicker = $returnInput.data('daterangepicker');
-
-                if (returnPicker) {
-                    returnPicker.minDate = departureDate.clone().add(1, 'day');
-                    if ($returnInput.val()) {
-                        const currentReturn = moment($returnInput.val(), "MMM D, YYYY", true);
-                        if (!currentReturn.isValid()) {
-                            $returnInput.val('');
-                            clearFlightDateDisplay('flight-return');
-                            if (window.__flightsSearchVue) {
-                                window.__flightsSearchVue.returnDate = '';
-                            }
-                        } else if (currentReturn.isSameOrBefore(departureDate, 'day')) {
-                            $returnInput.val('');
-                            clearFlightDateDisplay('flight-return');
-                            if (window.__flightsSearchVue) {
-                                window.__flightsSearchVue.returnDate = '';
-                            }
-                        }
-                    }
-                    /* Keep calendar centred on departure month next time return opens */
-                    if (!($returnInput.val() || '').trim()) {
-                        returnPicker.setStartDate(returnPicker.minDate.clone());
-                    } else {
-                        const cur = moment($returnInput.val(), "MMM D, YYYY", true);
-                        if (cur.isValid() && cur.isSameOrAfter(returnPicker.minDate, 'day')) {
-                            returnPicker.setStartDate(cur);
-                        } else {
-                            returnPicker.setStartDate(returnPicker.minDate.clone());
-                        }
-                    }
-                }
-            });
-        });
-    </script>
+        });    </script>
 @endpush

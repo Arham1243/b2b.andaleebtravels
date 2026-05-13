@@ -217,7 +217,7 @@
                             </div>
                         </div>
 
-                        <div class="fs-pro-date-pair">
+                        <div class="fs-pro-date-pair" id="flight-date-pair-wrap">
                             <div class="fs-pro-date-cell hs-field hs-field--date" id="flight-departure-box">
                                 <div class="hs-field__inner fs-pro-date-inner">
                                     <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>Depart</span>
@@ -962,6 +962,7 @@
         }
 
         .fs-pro-date-pair {
+            position: relative;
             display: flex;
             flex: 1 1 280px;
             min-width: 0;
