@@ -36,17 +36,17 @@
                         <button type="button" class="fs-trip-types__item" role="tab"
                             :class="{ active: tripType === 'one_way' }" :aria-selected="tripType === 'one_way'"
                             @click="setTripType('one_way')">
-                            <i class='bx bx-right-arrow-alt fs-trip-types__icon'></i> One way
+                            One Way
                         </button>
                         <button type="button" class="fs-trip-types__item" role="tab"
                             :class="{ active: tripType === 'round_trip' }"
                             :aria-selected="tripType === 'round_trip'" @click="setTripType('round_trip')">
-                            <i class='bx bx-transfer fs-trip-types__icon'></i> Round trip
+                            Round Trip
                         </button>
                         <button type="button" class="fs-trip-types__item" role="tab"
                             :class="{ active: tripType === 'multi_city' }"
                             :aria-selected="tripType === 'multi_city'" @click="setTripType('multi_city')">
-                            <i class='bx bx-shuffle fs-trip-types__icon'></i> Multi-city
+                            Multi City
                         </button>
                     </div>
 
@@ -76,7 +76,7 @@
                                 ref="fromWrapperRef">
                                 <div class="fs-pro-route-field__shell">
                                     <div class="fs-pro-route-field__inner hs-field__inner" @click.stop="onFromBoxClick">
-                                        <span class="fs-pro-route-field__label hs-field__label">FROM</span>
+                                        <span class="fs-pro-route-field__label hs-field__label">From</span>
                                         <div v-if="selectedFrom && !fromDropdownOpen" class="fs-pro-route-chosen">
                                             <strong class="fs-pro-route-chosen__city">@{{ selectedFrom.city }}</strong>
                                             <div class="fs-pro-route-chosen__airport"><span class="mono">[<span>@{{ selectedFrom.code }}</span>]</span> @{{ selectedFrom.name }}</div>
@@ -148,7 +148,7 @@
                                 ref="toWrapperRef">
                                 <div class="fs-pro-route-field__shell">
                                     <div class="fs-pro-route-field__inner hs-field__inner" @click.stop="onToBoxClick">
-                                        <span class="fs-pro-route-field__label hs-field__label">TO</span>
+                                        <span class="fs-pro-route-field__label hs-field__label">To</span>
                                         <div v-if="selectedTo && !toDropdownOpen" class="fs-pro-route-chosen">
                                             <strong class="fs-pro-route-chosen__city">@{{ selectedTo.city }}</strong>
                                             <div class="fs-pro-route-chosen__airport"><span class="mono">[<span>@{{ selectedTo.code }}</span>]</span> @{{ selectedTo.name }}</div>
@@ -212,7 +212,7 @@
                         <div class="fs-pro-date-pair">
                             <div class="fs-pro-date-cell hs-field hs-field--date" id="flight-departure-box">
                                 <div class="hs-field__inner fs-pro-date-inner">
-                                    <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>DEPART</span>
+                                    <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>Depart</span>
                                         <i class='bx bx-chevron-down fs-pro-date-chevron'></i></div>
                                     <div class="hs-date-display">
                                         <span class="hs-date-display__day" id="flight-departure-dd">&mdash;</span>
@@ -237,7 +237,7 @@
                                         title="Clear return" aria-label="Clear return date">
                                         <i class='bx bx-x'></i>
                                     </button>
-                                    <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>RETURN</span>
+                                    <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>Return</span>
                                         <i class='bx bx-chevron-down fs-pro-date-chevron'></i></div>
                                     <div class="hs-date-display">
                                         <span class="hs-date-display__day" id="flight-return-dd">&mdash;</span>
@@ -418,7 +418,7 @@
                     <div class="fs-pro-pax-cabin-row">
                         <div class="hs-field hs-field--rooms fs-pro-travellers" ref="travellersRef">
                             <div class="hs-field__inner fs-pro-travellers__inner" @click.stop="toggleTravellers">
-                                <div class="hs-field__label fs-pro-label">TRAVELLERS
+                                <div class="hs-field__label fs-pro-label">Travellers
                                     <i class='bx bx-chevron-down fs-pro-chevron'></i></div>
                                 <div class="hs-field__value">
                                     <span class="hs-rooms-text fs-pro-pax-line">@{{ travellersTextCompact }}</span>
@@ -527,29 +527,24 @@
 
                     <div class="fs-pro-airline-pref">
                         <div class="fs-pro-airline-pref__label">
-                            <i class='bx bx-slider-alt'></i>
-                            <span>Airline preference</span>
+                            <span>Airline<br>Preference</span>
                         </div>
                         <div class="fs-pro-airline-pref__toggles">
-                            <button type="button" class="fs-air-chip" :class="{ 'is-active': airlineAll }"
+                            <button type="button" class="fs-air-chip fs-air-chip--all"
+                                :class="{ 'is-active': airlineAll }"
                                 @click.prevent="airlineAll = !airlineAll">
-                                <span class="fs-air-chip__indicator"></span>
-                                All airlines
+                                <span>All Airlines</span>
+                                <i class='bx bx-x fs-air-chip__close' v-if="airlineAll" aria-hidden="true"></i>
                             </button>
                             <button type="button" class="fs-air-chip" :class="{ 'is-active': airlineLowCost }"
                                 @click.prevent="airlineLowCost = !airlineLowCost">
                                 <span class="fs-air-chip__indicator"></span>
-                                Low cost (LCC)
+                                Low Cost Airlines
                             </button>
                             <button type="button" class="fs-air-chip" :class="{ 'is-active': airlineGds }"
                                 @click.prevent="airlineGds = !airlineGds">
                                 <span class="fs-air-chip__indicator"></span>
-                                GDS published
-                            </button>
-                            <button type="button" class="fs-air-chip" :class="{ 'is-active': airlineNdc }"
-                                @click.prevent="airlineNdc = !airlineNdc">
-                                <span class="fs-air-chip__indicator"></span>
-                                NDC content
+                                GDS Airlines
                             </button>
                         </div>
                     </div>
@@ -581,8 +576,7 @@
                                 Searching…
                             </template>
                             <template v-else>
-                                <span>Search flights</span>
-                                <i class='bx bx-right-arrow-alt fs-pro-search-btn__arrow'></i>
+                                <span>Search Flights</span>
                             </template>
                         </button>
                     </div>
@@ -610,31 +604,27 @@
                 </div>
                 <div class="fs-pro-tile-grid">
                     <a href="#" class="fs-pro-tile fs-pro-tile--offline" @click.prevent>
-                        <span class="fs-pro-tile__icon"><i class='bx bx-envelope'></i></span>
+                        <span class="fs-pro-tile__icon"><i class='bx bx-file'></i></span>
                         <span class="fs-pro-tile__meta">
-                            <span class="fs-pro-tile__title">Offline request</span>
-                            <span class="fs-pro-tile__hint">Email the desk</span>
+                            <span class="fs-pro-tile__title">Offline Request</span>
                         </span>
                     </a>
                     <a href="#" class="fs-pro-tile fs-pro-tile--import" @click.prevent>
                         <span class="fs-pro-tile__icon"><i class='bx bx-import'></i></span>
                         <span class="fs-pro-tile__meta">
                             <span class="fs-pro-tile__title">Import PNR</span>
-                            <span class="fs-pro-tile__hint">From GDS</span>
                         </span>
                     </a>
                     <a href="#" class="fs-pro-tile fs-pro-tile--hold" @click.prevent>
-                        <span class="fs-pro-tile__icon"><i class='bx bx-stopwatch'></i></span>
+                        <span class="fs-pro-tile__icon"><i class='bx bx-time-five'></i></span>
                         <span class="fs-pro-tile__meta">
-                            <span class="fs-pro-tile__title">Hold itineraries</span>
-                            <span class="fs-pro-tile__hint">Manage holds</span>
+                            <span class="fs-pro-tile__title">Hold Itineraries</span>
                         </span>
                     </a>
                     <a href="#" class="fs-pro-tile fs-pro-tile--calendar" @click.prevent>
-                        <span class="fs-pro-tile__icon"><i class='bx bx-calendar'></i></span>
+                        <span class="fs-pro-tile__icon"><i class='bx bx-calendar-event'></i></span>
                         <span class="fs-pro-tile__meta">
-                            <span class="fs-pro-tile__title">Travel calendar</span>
-                            <span class="fs-pro-tile__hint">Lowest fare view</span>
+                            <span class="fs-pro-tile__title">Travel Calendar</span>
                         </span>
                     </a>
                 </div>
@@ -642,62 +632,37 @@
 
             <div class="fs-pro-aside-card fs-pro-recent-panel">
                 <div class="fs-pro-aside-card__head">
-                    <span class="fs-pro-aside-card__label">Recent searches</span>
-                    <a href="#" class="fs-pro-aside-card__action" @click.prevent>Clear</a>
+                    <span class="fs-pro-aside-card__label">Recent Searches</span>
                 </div>
                 <a href="#" class="fs-pro-recent-row" @click.prevent>
-                    <div class="fs-pro-recent-row__route">
-                        <span class="fs-pro-recent-row__city">DXB</span>
-                        <i class='bx bx-right-arrow-alt fs-pro-recent-row__arrow'></i>
-                        <span class="fs-pro-recent-row__city">KHI</span>
-                    </div>
-                    <div class="fs-pro-recent-row__meta">
-                        <span class="fs-pro-recent-row__dates">01 Jun – 10 Jun '26</span>
-                        <span class="fs-pro-recent-row__pax">1 ADT · Y</span>
-                    </div>
-                </a>
-                <a href="#" class="fs-pro-recent-row" @click.prevent>
-                    <div class="fs-pro-recent-row__route">
-                        <span class="fs-pro-recent-row__city">DXB</span>
-                        <i class='bx bx-right-arrow-alt fs-pro-recent-row__arrow'></i>
-                        <span class="fs-pro-recent-row__city">COK</span>
-                    </div>
-                    <div class="fs-pro-recent-row__meta">
-                        <span class="fs-pro-recent-row__dates">13 May – 14 May '26</span>
-                        <span class="fs-pro-recent-row__pax">2 ADT · Y</span>
-                    </div>
+                    <span class="fs-pro-recent-row__route">
+                        <span class="fs-pro-recent-row__city">Dubai</span>
+                        <i class='bx bxs-plane fs-pro-recent-row__arrow'></i>
+                        <span class="fs-pro-recent-row__city">Karachi</span>
+                    </span>
+                    <span class="fs-pro-recent-row__meta">
+                        <span class="fs-pro-recent-row__dates">01 Jun 26 | 10 Jun 26</span>
+                    </span>
                 </a>
             </div>
 
             <div class="fs-pro-aside-card fs-pro-aside-card--quick">
                 <nav class="fs-pro-util-links" aria-label="Quick links">
                     <a href="#" class="fs-util-link" @click.prevent>
-                        <span class="fs-util-dot fs-util-dot--amber"><i class='bx bx-bell'></i></span>
-                        <span class="fs-util-link__text">
-                            <span>Notice board</span>
-                            <em>3 new</em>
-                        </span>
+                        <span class="fs-util-dot fs-util-dot--amber"><i class='bx bxs-bell'></i></span>
+                        <span class="fs-util-link__text"><span>Notice Board</span></span>
                     </a>
                     <a href="#" class="fs-util-link" @click.prevent>
-                        <span class="fs-util-dot fs-util-dot--emerald"><i class='bx bx-wallet'></i></span>
-                        <span class="fs-util-link__text">
-                            <span>Recharge wallet</span>
-                            <em>USD 12,480</em>
-                        </span>
+                        <span class="fs-util-dot fs-util-dot--emerald"><i class='bx bx-wallet-alt'></i></span>
+                        <span class="fs-util-link__text"><span>Recharge</span></span>
                     </a>
                     <a href="#" class="fs-util-link" @click.prevent>
-                        <span class="fs-util-dot fs-util-dot--rose"><i class='bx bx-book-open'></i></span>
-                        <span class="fs-util-link__text">
-                            <span>How to use portal</span>
-                            <em>Quick guide</em>
-                        </span>
+                        <span class="fs-util-dot fs-util-dot--rose"><i class='bx bxs-bell-ring'></i></span>
+                        <span class="fs-util-link__text"><span>How to use<br>portal</span></span>
                     </a>
                     <a href="#" class="fs-util-link" @click.prevent>
                         <span class="fs-util-dot fs-util-dot--sky"><i class='bx bx-news'></i></span>
-                        <span class="fs-util-link__text">
-                            <span>Newsletter</span>
-                            <em>May 2026</em>
-                        </span>
+                        <span class="fs-util-link__text"><span>News letter</span></span>
                     </a>
                 </nav>
             </div>
@@ -706,25 +671,23 @@
         <div class="fs-pro-promos">
             <a href="#" class="fs-promo fs-promo--gold" @click.prevent>
                 <div class="fs-promo__body">
-                    <span class="fs-promo__kicker">Exclusive</span>
-                    <span class="fs-promo__title">Premium hotel bookings</span>
-                    <span class="fs-promo__cta">Open catalogue <i class='bx bx-right-arrow-alt'></i></span>
+                    <span class="fs-promo__kicker">Exclusive Deal</span>
+                    <span class="fs-promo__title">Hotel Bookings</span>
                 </div>
-                <i class='bx bx-buildings fs-promo__art'></i>
+                <i class='bx bxs-buildings fs-promo__art'></i>
             </a>
             <a href="#" class="fs-promo fs-promo--ocean" @click.prevent>
                 <div class="fs-promo__body">
-                    <span class="fs-promo__kicker">New route</span>
-                    <span class="fs-promo__title">Al Maktoum &mdash; Saudi Arabia</span>
-                    <span class="fs-promo__cta">View schedule <i class='bx bx-right-arrow-alt'></i></span>
+                    <span class="fs-promo__kicker">Fly from Dubai, Effortlessly</span>
+                    <span class="fs-promo__title">Al Maktoum to<br>Saudi Arabia</span>
+                    <span class="fs-promo__cta">Operates 4 days a week from DWC to RUH</span>
                 </div>
-                <i class='bx bx-trip fs-promo__art'></i>
+                <i class='bx bxs-plane-alt fs-promo__art'></i>
             </a>
             <a href="#" class="fs-promo fs-promo--night" @click.prevent>
                 <div class="fs-promo__body">
-                    <span class="fs-promo__kicker">NDC fares</span>
-                    <span class="fs-promo__title">Available exclusively online</span>
-                    <span class="fs-promo__cta">Learn more <i class='bx bx-right-arrow-alt'></i></span>
+                    <span class="fs-promo__title">NDC FARES</span>
+                    <span class="fs-promo__cta">Now Available Exclusively on Online</span>
                 </div>
                 <i class='bx bxs-plane-alt fs-promo__art'></i>
             </a>
@@ -733,35 +696,46 @@
 </div>
 @push('css')
     <style>
-        /* ===== Enterprise theme tokens ===== */
+        /* ===== Theme tokens (vivid B2B palette) ===== */
         .fs-pro-enterprise {
-            --fs-navy: #0c1844;
-            --fs-navy-2: #18255a;
-            --fs-navy-3: #1f306f;
-            --fs-ink: #0f172a;
+            --fs-brand: #cd1b4f;
+            --fs-brand-2: #b41642;
+            --fs-ink: #15233f;
             --fs-ink-2: #1f2937;
             --fs-slate: #475569;
             --fs-slate-2: #64748b;
             --fs-muted: #94a3b8;
-            --fs-line: #e2e8f0;
+            --fs-line: #e5e9f1;
             --fs-line-soft: #eef2f7;
             --fs-surface: #ffffff;
             --fs-surface-2: #f7f9fc;
             --fs-canvas: #f1f4f9;
-            --fs-gold: #c19d56;
-            --fs-gold-2: #a98239;
+            --fs-lime: #a7c834;
+            --fs-lime-2: #8fb02a;
+            --fs-lime-soft: #d8eab0;
+            --fs-green: #58b35a;
+            --fs-green-soft: #e3f5e3;
             --fs-emerald: #047857;
             --fs-emerald-soft: #ecfdf5;
-            --fs-amber: #b45309;
-            --fs-amber-soft: #fffbeb;
-            --fs-blue: #1d4ed8;
-            --fs-blue-soft: #eff6ff;
-            --fs-rose: #be123c;
-            --fs-rose-soft: #fff1f2;
+            --fs-amber: #d97706;
+            --fs-amber-soft: #fff8e8;
+            --fs-blue: #2563eb;
+            --fs-blue-soft: #e8f1ff;
+            --fs-sky: #38bdf8;
+            --fs-sky-soft: #e0f3ff;
+            --fs-mint: #7ed8c6;
+            --fs-mint-soft: #ddf6ef;
+            --fs-pink: #ec4899;
+            --fs-pink-soft: #fde7f3;
+            --fs-rose: #f43f5e;
+            --fs-rose-soft: #ffe4e6;
+            --fs-violet: #8b5cf6;
+            --fs-violet-soft: #ede7fe;
+            --fs-lavender: #eef0ff;
+            --fs-lavender-2: #e0e4ff;
             --fs-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
             --fs-shadow-md: 0 6px 18px rgba(15, 23, 42, 0.06);
-            --fs-shadow-lg: 0 24px 60px -28px rgba(15, 23, 42, 0.32);
-            --fs-ring: 0 0 0 3px rgba(193, 157, 86, 0.18);
+            --fs-shadow-lg: 0 18px 38px -22px rgba(15, 23, 42, 0.28);
 
             font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
                 Helvetica, Arial, sans-serif;
@@ -798,138 +772,89 @@
         /* ===== Primary card ===== */
         .fs-pro-card {
             position: relative;
-            border-radius: 18px;
+            border-radius: 16px;
             border: 1px solid var(--fs-line);
-            background: linear-gradient(180deg, #ffffff 0%, #fcfcfd 100%);
-            box-shadow: var(--fs-shadow-lg);
-            padding: 1.5rem 1.65rem 1.5rem;
-            overflow: hidden;
-        }
-
-        .fs-pro-card::before {
-            content: "";
-            position: absolute;
-            inset: 0 0 auto 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--fs-navy) 0%, var(--fs-navy-3) 55%, var(--fs-gold) 100%);
-            opacity: 0.92;
+            background: #ffffff;
+            box-shadow: var(--fs-shadow-md);
+            padding: 1.35rem 1.5rem;
+            overflow: visible;
         }
 
         .fs-pro-card__head {
             display: flex;
             flex-wrap: wrap;
-            align-items: flex-end;
+            align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            margin-bottom: 1.35rem;
-            padding-bottom: 1.05rem;
-            border-bottom: 1px dashed var(--fs-line);
+            margin-bottom: 0.85rem;
         }
 
         .fs-pro-eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.42rem;
-            font-size: 0.66rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
-            color: var(--fs-slate);
-            margin-bottom: 0.55rem;
-        }
-
-        .fs-pro-eyebrow__dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 999px;
-            background: #10b981;
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
-            animation: fs-pro-pulse 2.4s ease-in-out infinite;
-        }
-
-        @keyframes fs-pro-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.32); }
-            50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-        }
-
-        .fs-pro-eyebrow__label {
-            color: var(--fs-emerald);
-        }
-
-        .fs-pro-eyebrow__sep {
-            color: var(--fs-muted);
-        }
-
-        .fs-pro-eyebrow__meta {
-            color: var(--fs-slate);
-            font-feature-settings: "tnum" 1, "lnum" 1;
+            display: none;
         }
 
         .fs-pro-card__title {
             margin: 0;
-            font-size: 1.7rem;
+            font-size: 1.62rem;
             line-height: 1.15;
-            font-weight: 700;
+            font-weight: 600;
             color: var(--fs-ink);
-            letter-spacing: -0.025em;
+            letter-spacing: -0.015em;
         }
 
         .fs-pro-card__subtitle {
-            margin: 0.4rem 0 0;
-            font-size: 0.86rem;
-            font-weight: 500;
-            color: var(--fs-slate-2);
-            letter-spacing: 0;
-            line-height: 1.5;
+            display: none;
         }
 
         .fs-pro-specials {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: 1.1rem;
         }
 
         .fs-pro-special-chip {
+            position: relative;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.4rem 0.7rem 0.4rem 0.5rem;
-            border-radius: 10px;
-            border: 1px solid var(--fs-line);
-            background: var(--fs-surface);
+            gap: 0.45rem;
+            padding: 0;
+            border-radius: 0;
+            border: none;
+            background: transparent;
             font-weight: 600;
-            font-size: 0.74rem;
-            color: var(--fs-ink-2);
+            font-size: 0.92rem;
+            color: var(--fs-brand);
             text-decoration: none;
             cursor: pointer;
-            transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
-            box-shadow: var(--fs-shadow-sm);
+            transition: opacity 0.15s ease;
+            box-shadow: none;
         }
 
         .fs-pro-special-chip:hover {
-            border-color: var(--fs-navy-3);
-            box-shadow: var(--fs-shadow-md);
-            transform: translateY(-1px);
+            opacity: 0.85;
         }
 
         .fs-pro-special-chip__icon {
-            width: 26px;
-            height: 26px;
-            border-radius: 7px;
+            width: 32px;
+            height: 22px;
+            border-radius: 0;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.95rem;
+            font-size: 1.15rem;
             flex-shrink: 0;
+            background: none !important;
         }
 
         .fs-pro-special-chip__icon--a2a {
-            background: linear-gradient(140deg, #fee2e2 0%, #fecaca 100%);
-            color: #b91c1c;
+            color: var(--fs-brand);
         }
 
         .fs-pro-special-chip__icon--akbar {
-            background: linear-gradient(140deg, #dbeafe 0%, #bfdbfe 100%);
+            color: var(--fs-blue);
+        }
+
+        .fs-pro-special-chip:has(.fs-pro-special-chip__icon--akbar) {
             color: var(--fs-blue);
         }
 
@@ -938,20 +863,23 @@
         }
 
         .fs-pro-badge-new {
-            font-size: 0.6rem;
+            position: absolute;
+            top: -10px;
+            right: -8px;
+            font-size: 0.58rem;
             font-weight: 700;
-            padding: 0.13rem 0.4rem;
+            padding: 0.1rem 0.42rem;
             border-radius: 999px;
             background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
             color: #fff;
-            line-height: 1.2;
+            line-height: 1.3;
             letter-spacing: 0.04em;
-            box-shadow: 0 1px 3px rgba(220, 38, 38, 0.35);
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
         }
 
         .fs-pro-badge-new--blue {
-            background: linear-gradient(180deg, #2563eb 0%, var(--fs-blue) 100%);
-            box-shadow: 0 1px 3px rgba(29, 78, 216, 0.35);
+            background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
         }
 
         .fs-pro-enterprise .mono {
@@ -970,105 +898,69 @@
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.05rem;
+            gap: 0.85rem;
+            margin-bottom: 0.9rem;
         }
 
         .fs-pro-trip-types {
             margin-bottom: 0 !important;
-            gap: 0 !important;
-            background: var(--fs-canvas);
-            padding: 4px;
-            border-radius: 11px;
-            border: 1px solid var(--fs-line);
+            gap: 0.32rem !important;
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
+            border: none;
         }
 
         .fs-pro-meta-row {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
+            display: none;
         }
 
-        .fs-pro-meta-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.4rem 0.62rem;
-            font-size: 0.74rem;
-            font-weight: 600;
-            color: var(--fs-ink-2);
-            background: var(--fs-surface);
-            border: 1px solid var(--fs-line);
-            border-radius: 9px;
-            cursor: pointer;
-        }
-
-        .fs-pro-meta-chip i {
-            color: var(--fs-slate);
-        }
-
-        .fs-pro-meta-chip__chevron {
-            font-size: 0.85rem;
-            opacity: 0.55;
-        }
-
-        .fs-pro-meta-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.32rem;
-            padding: 0.4rem 0.5rem;
-            font-size: 0.74rem;
-            font-weight: 600;
-            color: var(--fs-slate);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: color 0.15s ease, background 0.15s ease;
-        }
-
-        .fs-pro-meta-link:hover {
-            color: var(--fs-navy-3);
-            background: var(--fs-canvas);
-        }
-
-        .fs-pro-meta-link i {
-            font-size: 1rem;
-        }
-
-        /* ===== Route ===== */
+        /* ===== Route + dates one-row layout ===== */
         .fs-pro-route-sheet {
             display: flex;
-            flex-direction: column;
-            gap: 0.85rem;
-            margin-bottom: 1.05rem;
+            flex-wrap: wrap;
+            gap: 0.7rem;
+            margin-bottom: 0.85rem;
+            align-items: stretch;
         }
 
         .fs-pro-route-pair {
             position: relative;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 0;
+            display: flex;
+            flex: 1 1 280px;
+            min-width: 0;
+            gap: 0.7rem;
             align-items: stretch;
-            border-radius: 14px;
-            background: var(--fs-surface);
-            border: 1px solid var(--fs-line);
-            box-shadow: var(--fs-shadow-sm);
-            overflow: visible;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .fs-pro-route-pair:hover {
-            border-color: #c8d1e0;
-            box-shadow: var(--fs-shadow-md);
+        .fs-pro-date-pair {
+            display: flex;
+            flex: 1 1 280px;
+            min-width: 0;
+            gap: 0.7rem;
+            align-items: stretch;
+        }
+
+        .fs-pro-route-pair > .fs-pro-route-field {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .fs-pro-date-pair > .fs-pro-date-cell {
+            flex: 1 1 0;
+            min-width: 0;
         }
 
         @media (max-width: 640px) {
-            .fs-pro-route-pair {
-                grid-template-columns: 1fr;
+            .fs-pro-route-pair,
+            .fs-pro-date-pair {
+                flex-direction: column;
+                flex-basis: 100%;
             }
 
             .fs-pro-swap-wrap {
                 left: 50% !important;
-                top: 100% !important;
+                top: 50% !important;
                 transform: translate(-50%, -50%) rotate(90deg) !important;
             }
         }
@@ -1079,82 +971,74 @@
             min-width: 0;
         }
 
-        .fs-pro-route-field--from {
-            border-right: 1px solid var(--fs-line);
-        }
-
         .fs-pro-route-field__shell {
-            background: transparent;
-            border: none;
-            transition: background-color 0.18s ease;
-            min-height: 92px;
+            background: var(--fs-surface-2);
+            border: 1px solid var(--fs-line);
+            border-radius: 10px;
+            transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+            min-height: 88px;
             display: flex;
             align-items: stretch;
         }
 
         .fs-pro-route-field__shell:hover {
-            background: var(--fs-surface-2);
-        }
-
-        .fs-pro-route-field--from .fs-pro-route-field__shell {
-            border-radius: 14px 0 0 14px;
-        }
-
-        .fs-pro-route-field--to .fs-pro-route-field__shell {
-            border-radius: 0 14px 14px 0;
+            border-color: #c8d1e0;
+            background: #fff;
+            box-shadow: var(--fs-shadow-sm);
         }
 
         .fs-pro-route-field .hs-field__inner {
             cursor: pointer;
-            padding: 0.85rem 1rem !important;
+            padding: 0.7rem 0.95rem !important;
             width: 100%;
         }
 
         .fs-pro-route-field__label {
-            font-weight: 700;
-            font-size: 0.66rem !important;
-            letter-spacing: 0.16em !important;
+            font-weight: 500;
+            font-size: 0.72rem !important;
+            letter-spacing: 0 !important;
             text-transform: uppercase;
-            color: var(--fs-muted) !important;
+            color: #94a3b8 !important;
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
         }
 
         .fs-pro-route-chosen {
-            margin-top: 0.32rem;
+            margin-top: 0.15rem;
         }
 
         .fs-pro-route-chosen__city {
             display: block;
-            font-size: 1.32rem !important;
+            font-size: 1.7rem !important;
             font-weight: 700 !important;
-            color: var(--fs-ink);
-            letter-spacing: -0.025em;
-            line-height: 1.15;
+            color: #111827;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
         }
 
         .fs-pro-route-chosen__airport {
-            margin-top: 0.2rem;
+            margin-top: 0.18rem;
             font-size: 0.78rem;
-            font-weight: 500;
-            color: var(--fs-slate-2);
-            line-height: 1.4;
+            font-weight: 400;
+            color: #6b7280;
+            line-height: 1.35;
             display: flex;
-            align-items: center;
+            align-items: baseline;
             gap: 0.32rem;
             flex-wrap: wrap;
         }
 
         .fs-pro-route-chosen__airport .mono {
-            color: var(--fs-navy-3);
-            font-weight: 700;
-            font-size: 0.72rem;
-            background: var(--fs-canvas);
-            padding: 0.12rem 0.42rem;
-            border-radius: 5px;
-            border: 1px solid var(--fs-line);
-            letter-spacing: 0.02em;
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.76rem;
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
+            border: none;
+            letter-spacing: 0;
+            font-family: inherit;
         }
 
         .fs-pro-route-input {
@@ -1164,114 +1048,87 @@
         }
 
         .fs-pro-route-inline-icon {
-            opacity: 0.3;
-            font-size: 1.2rem;
-            color: var(--fs-navy-3);
+            display: none;
         }
 
+        /* Swap button — sits between FROM and TO */
         .fs-pro-swap-wrap {
             position: absolute;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
             z-index: 4;
+            pointer-events: none;
         }
 
         .fs-pro-swap-btn {
-            width: 42px;
-            height: 42px;
+            pointer-events: auto;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            border: 1px solid var(--fs-line);
-            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-            color: var(--fs-navy);
+            border: none;
+            background: #fff;
+            color: var(--fs-lime-2);
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1), 0 1px 0 #fff inset;
-            font-size: 1.25rem;
-            transition: transform 0.25s cubic-bezier(.2, .8, .2, 1), box-shadow 0.2s ease, color 0.18s ease;
+            box-shadow: 0 0 0 6px #fff, 0 4px 10px rgba(15, 23, 42, 0.12);
+            font-size: 1.1rem;
+            transition: transform 0.25s cubic-bezier(.2, .8, .2, 1), color 0.18s ease;
         }
 
         .fs-pro-swap-btn:hover {
-            color: var(--fs-gold-2);
+            color: #54700d;
             transform: rotate(180deg);
-            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14), 0 1px 0 #fff inset, var(--fs-ring);
         }
 
         .fs-pro-swap-btn:active {
-            transform: rotate(180deg) scale(0.96);
+            transform: rotate(180deg) scale(0.94);
         }
 
-        /* ===== Dates ===== */
-        .fs-pro-date-pair {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0;
-            background: var(--fs-surface);
-            border: 1px solid var(--fs-line);
-            border-radius: 14px;
-            box-shadow: var(--fs-shadow-sm);
-            overflow: visible;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .fs-pro-date-pair:hover {
-            border-color: #c8d1e0;
-            box-shadow: var(--fs-shadow-md);
-        }
-
+        /* ===== Dates (match route field tile) ===== */
         .fs-pro-date-cell {
             position: relative;
             min-width: 0;
         }
 
-        .fs-pro-date-cell + .fs-pro-date-cell {
-            border-left: 1px solid var(--fs-line);
-        }
-
         .fs-pro-date-cell .hs-field__inner {
             position: relative;
-            border-radius: 0;
-            border: none !important;
-            background: transparent;
+            border-radius: 10px;
+            border: 1px solid var(--fs-line);
+            background: var(--fs-surface-2);
             cursor: pointer;
-            min-height: 92px;
-            padding: 0.85rem 1rem !important;
-            transition: background 0.18s ease;
-        }
-
-        .fs-pro-date-cell:first-child .hs-field__inner {
-            border-radius: 14px 0 0 14px;
-        }
-
-        .fs-pro-date-cell:last-child .hs-field__inner {
-            border-radius: 0 14px 14px 0;
+            min-height: 88px;
+            padding: 0.7rem 0.95rem !important;
+            transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
         }
 
         .fs-pro-date-cell:hover .hs-field__inner {
-            background: var(--fs-surface-2);
+            background: #fff;
+            border-color: #c8d1e0;
+            box-shadow: var(--fs-shadow-sm);
         }
 
         .fs-pro-date-label {
             display: inline-flex !important;
             align-items: center !important;
-            gap: 0.35rem;
-            font-weight: 700 !important;
-            font-size: 0.66rem !important;
-            letter-spacing: 0.16em !important;
+            gap: 0.32rem;
+            font-weight: 500 !important;
+            font-size: 0.72rem !important;
+            letter-spacing: 0 !important;
             text-transform: uppercase;
-            color: var(--fs-muted) !important;
+            color: #94a3b8 !important;
         }
 
         .fs-pro-date-label i {
-            font-size: 0.9rem;
-            color: var(--fs-slate);
+            font-size: 0.85rem;
+            color: var(--fs-slate-2);
         }
 
         .fs-pro-date-chevron {
             font-size: 10px !important;
-            opacity: 0.45;
+            opacity: 0.55;
             margin-left: 0 !important;
             margin-top: 0 !important;
         }
@@ -1279,54 +1136,49 @@
         .fs-pro-enterprise .hs-date-display {
             display: flex;
             align-items: baseline;
-            gap: 0.55rem;
-            margin-top: 0.3rem;
+            gap: 0.45rem;
+            margin-top: 0.18rem;
         }
 
         .fs-pro-enterprise .hs-date-display__day {
             font-variant-numeric: tabular-nums;
-            font-size: 2rem !important;
+            font-size: 1.7rem !important;
             font-weight: 700 !important;
-            color: var(--fs-ink) !important;
+            color: #111827 !important;
             line-height: 1 !important;
-            letter-spacing: -0.04em !important;
+            letter-spacing: -0.02em !important;
         }
 
         .fs-pro-enterprise .hs-date-display__meta {
             display: flex;
             flex-direction: column;
             gap: 1px;
-            padding-bottom: 0.05rem;
+            padding-bottom: 0.1rem;
         }
 
         .fs-pro-enterprise .hs-date-display__month {
-            font-size: 0.84rem !important;
-            font-weight: 700 !important;
-            color: var(--fs-ink-2) !important;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+            font-size: 0.86rem !important;
+            font-weight: 600 !important;
+            color: #374151 !important;
+            text-transform: none;
+            letter-spacing: 0;
             line-height: 1.1;
         }
 
         .fs-pro-enterprise .hs-date-display__weekday {
-            font-size: 0.72rem !important;
-            font-weight: 500 !important;
-            color: var(--fs-slate-2) !important;
+            font-size: 0.74rem !important;
+            font-weight: 400 !important;
+            color: #6b7280 !important;
             line-height: 1.2;
         }
 
         .fs-pro-return-inner {
-            padding-right: 2.2rem !important;
+            padding-right: 2rem !important;
         }
 
         .fs-pro-return-cell--soft .hs-field__inner {
-            background: repeating-linear-gradient(
-                135deg,
-                #fafbfc 0,
-                #fafbfc 6px,
-                #f5f7fa 6px,
-                #f5f7fa 12px
-            );
+            background: #f8fafc;
+            opacity: 0.85;
         }
 
         .fs-pro-return-cell--soft .hs-date-display__day,
@@ -1336,44 +1188,48 @@
 
         .fs-pro-return-clear {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 26px;
-            height: 26px;
+            top: 8px;
+            right: 8px;
+            width: 22px;
+            height: 22px;
             padding: 0;
-            border: 1px solid var(--fs-line);
+            border: none;
             border-radius: 50%;
-            background: #fff;
-            color: var(--fs-slate-2);
+            background: #e5e7eb;
+            color: #6b7280;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 2;
-            box-shadow: var(--fs-shadow-sm);
-            transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+            font-size: 0.9rem;
+            transition: color 0.15s ease, background 0.15s ease;
         }
 
         .fs-pro-return-clear:hover {
-            color: var(--fs-rose);
-            border-color: var(--fs-rose);
+            color: #fff;
+            background: #6b7280;
         }
 
         /* ===== Footer (pax / cabin / airlines / submit) ===== */
         .fs-pro-footer {
             display: flex;
             flex-direction: column;
-            gap: 1.1rem;
-            margin-top: 1.15rem;
-            padding-top: 1.15rem;
-            border-top: 1px solid var(--fs-line);
+            gap: 0.7rem;
+            margin-top: 0.85rem;
+            padding-top: 0;
+            border-top: none;
         }
 
         .fs-pro-pax-cabin-row {
             display: grid;
-            grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1fr);
-            gap: 0.65rem;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+            gap: 0;
             align-items: stretch;
+            background: var(--fs-surface-2);
+            border: 1px solid var(--fs-line);
+            border-radius: 10px;
+            overflow: hidden;
         }
 
         @media (max-width: 720px) {
@@ -1382,175 +1238,184 @@
             }
         }
 
-        .fs-pro-travellers {
+        .fs-pro-travellers,
+        .fs-pro-select-group {
             min-width: 0;
+            padding: 0.6rem 0.95rem;
+            position: relative;
+            border-right: 1px solid var(--fs-line);
+        }
+
+        .fs-pro-pax-cabin-row > :last-child {
+            border-right: none;
+        }
+
+        @media (max-width: 720px) {
+            .fs-pro-travellers,
+            .fs-pro-select-group {
+                border-right: none;
+                border-bottom: 1px solid var(--fs-line);
+            }
         }
 
         .fs-pro-travellers__inner.hs-field__inner {
             cursor: pointer;
-            border-radius: 11px !important;
-            border: 1px solid var(--fs-line) !important;
-            background: #fff !important;
-            padding: 0.55rem 0.85rem !important;
-            min-height: 56px;
-            box-shadow: var(--fs-shadow-sm);
-            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+            border-radius: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            padding: 0 !important;
+            min-height: auto;
+            box-shadow: none;
         }
 
         .fs-pro-travellers__inner.hs-field__inner:hover {
-            border-color: #c8d1e0 !important;
-            box-shadow: var(--fs-shadow-md);
+            background: transparent !important;
+            box-shadow: none;
         }
 
         .fs-pro-label {
-            font-weight: 700 !important;
-            letter-spacing: 0.14em !important;
-            font-size: 0.62rem !important;
-            text-transform: uppercase;
+            font-weight: 400 !important;
+            letter-spacing: 0 !important;
+            font-size: 0.78rem !important;
+            text-transform: none;
             display: inline-flex !important;
             align-items: center !important;
             gap: 0.3rem;
-            color: var(--fs-muted) !important;
+            color: #6b7280 !important;
         }
 
         .fs-pro-chevron {
             font-size: 11px !important;
-            opacity: 0.45;
+            opacity: 0.55;
             margin-left: 0 !important;
+            color: #6b7280;
         }
 
         .fs-pro-pax-line {
-            font-size: 0.95rem !important;
-            font-weight: 600 !important;
-            color: var(--fs-ink) !important;
-            margin-top: 0.2rem;
+            font-size: 0.98rem !important;
+            font-weight: 700 !important;
+            color: #111827 !important;
+            margin-top: 0.12rem;
             display: block;
         }
 
         .fs-pro-select-group {
             display: flex;
             flex-direction: column;
-            min-width: 0;
         }
 
         .fs-pro-select-group__label {
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            font-size: 0.62rem;
-            text-transform: uppercase;
-            color: var(--fs-muted);
-            margin-bottom: 0.32rem;
-            padding: 0 0.2rem;
+            font-weight: 400;
+            letter-spacing: 0;
+            font-size: 0.78rem;
+            text-transform: none;
+            color: #6b7280;
+            margin-bottom: 0;
+            padding: 0;
         }
 
         .fs-pro-select-wrap {
             position: relative;
-            border-radius: 11px;
-            border: 1px solid var(--fs-line);
-            background: #fff;
+            border-radius: 0;
+            border: none;
+            background: transparent;
             overflow: visible;
             display: flex;
             align-items: center;
-            min-height: 56px;
-            box-shadow: var(--fs-shadow-sm);
-            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+            min-height: 0;
+            box-shadow: none;
+            transition: none;
+            margin-top: 0.12rem;
         }
 
         .fs-pro-select-wrap:hover,
         .fs-pro-select-wrap:focus-within {
-            border-color: #c8d1e0;
-            box-shadow: var(--fs-shadow-md);
+            border: none;
+            box-shadow: none;
         }
 
         .fs-pro-select-wrap__icon {
-            position: absolute;
-            left: 14px;
-            font-size: 1.15rem;
-            color: var(--fs-navy-3);
-            opacity: 0.5;
-            pointer-events: none;
+            display: none;
         }
 
         .fs-pro-select-el {
             appearance: none;
             width: 100%;
-            padding: 0.65rem 2.2rem 0.65rem 2.75rem !important;
+            padding: 0 1.4rem 0 0 !important;
             border: none;
             margin: 0;
             cursor: pointer;
             font-family: inherit;
-            font-size: 0.95rem;
-            font-weight: 600 !important;
-            color: var(--fs-ink);
+            font-size: 0.98rem;
+            font-weight: 700 !important;
+            color: #111827;
             outline: none;
             background: transparent;
         }
 
         .fs-pro-select-el-chevron {
             position: absolute;
-            right: 14px;
-            font-size: 1rem;
-            color: var(--fs-muted);
+            right: 0;
+            font-size: 0.95rem;
+            color: #6b7280;
             pointer-events: none;
         }
 
-        /* Airline preference */
+        /* Airline preference — lavender strip */
         .fs-pro-airline-pref {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.85rem;
             flex-wrap: wrap;
-            padding: 0.85rem 0.95rem;
-            background: linear-gradient(180deg, #fafbfc 0%, #f6f8fb 100%);
-            border: 1px solid var(--fs-line);
-            border-radius: 12px;
+            padding: 0.7rem 0.95rem;
+            background: linear-gradient(90deg, var(--fs-lavender) 0%, var(--fs-lavender-2) 100%);
+            border: 1px solid #d4d9ff;
+            border-radius: 10px;
         }
 
         .fs-pro-airline-pref__label {
             display: inline-flex;
             align-items: center;
-            gap: 0.42rem;
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: var(--fs-slate);
-            padding-right: 0.85rem;
-            border-right: 1px dashed var(--fs-line);
+            gap: 0.4rem;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            text-transform: none;
+            color: #5b5fa9;
+            padding-right: 0;
+            border-right: none;
         }
 
         .fs-pro-airline-pref__label i {
-            color: var(--fs-navy-3);
-            font-size: 1rem;
+            display: none;
         }
 
         .fs-pro-airline-pref__toggles {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.42rem;
+            gap: 0.4rem;
             flex: 1;
         }
 
         .fs-air-chip {
-            border: 1px solid var(--fs-line);
-            background: #fff;
-            color: var(--fs-slate);
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.6);
+            color: #475569;
             font-family: inherit;
-            font-size: 0.78rem;
-            font-weight: 600 !important;
-            padding: 0.42rem 0.85rem !important;
-            border-radius: 8px !important;
+            font-size: 0.8rem;
+            font-weight: 500 !important;
+            padding: 0.35rem 0.78rem !important;
+            border-radius: 999px !important;
             display: inline-flex;
             align-items: center;
-            gap: 0.45rem;
+            gap: 0.4rem;
             cursor: pointer;
             transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-            box-shadow: var(--fs-shadow-sm);
         }
 
         .fs-air-chip__indicator {
-            width: 12px;
-            height: 12px;
+            width: 13px;
+            height: 13px;
             border-radius: 4px;
             border: 1.5px solid #cbd5e1;
             background: #fff;
@@ -1560,20 +1425,20 @@
         }
 
         .fs-air-chip:hover {
-            border-color: var(--fs-navy-3);
-            color: var(--fs-navy);
+            background: rgba(255, 255, 255, 0.85);
+            color: #1f2937;
         }
 
         .fs-air-chip.is-active {
-            border-color: var(--fs-navy-3);
-            background: linear-gradient(180deg, #f2f6ff 0%, #e9efff 100%);
-            color: var(--fs-navy);
-            box-shadow: inset 0 0 0 1px rgba(31, 48, 111, 0.08), var(--fs-shadow-sm);
+            border-color: rgba(143, 176, 42, 0.45);
+            background: #fff;
+            color: #2c5f1f;
+            box-shadow: var(--fs-shadow-sm);
         }
 
         .fs-air-chip.is-active .fs-air-chip__indicator {
-            border-color: var(--fs-navy-3);
-            background: var(--fs-navy-3);
+            border-color: var(--fs-lime-2);
+            background: var(--fs-lime);
         }
 
         .fs-air-chip.is-active .fs-air-chip__indicator::after {
@@ -1588,157 +1453,148 @@
             transform: rotate(45deg);
         }
 
+        /* "All Airlines" pill — distinct closable chip (reference) */
+        .fs-air-chip--all {
+            border: 1px solid #c6cbe6;
+            background: #f5f6ff;
+            color: #4b5283;
+            padding-right: 0.32rem !important;
+        }
+
+        .fs-air-chip--all.is-active {
+            border-color: #c6cbe6;
+            background: #f5f6ff;
+            color: #4b5283;
+            box-shadow: none;
+        }
+
+        .fs-air-chip__close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6b7280;
+            color: #fff;
+            font-size: 0.85rem;
+        }
+
         /* Actions footer */
         .fs-pro-actions-footer {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-end;
             gap: 1rem;
+            padding-top: 0.3rem;
         }
 
         .fs-pro-actions-footer .fs-search-filters {
             margin-bottom: 0 !important;
-            gap: 0.42rem !important;
+            gap: 1rem !important;
+            margin-right: auto;
         }
 
         .fs-pro-search-btn {
-            border-radius: 11px !important;
-            padding: 0.85rem 1.45rem !important;
+            border-radius: 10px !important;
+            padding: 0.78rem 1.65rem !important;
             border: none;
             cursor: pointer;
             font-family: inherit;
-            font-size: 0.92rem !important;
+            font-size: 0.95rem !important;
             font-weight: 700 !important;
-            letter-spacing: -0.005em !important;
+            letter-spacing: 0 !important;
             display: inline-flex;
             align-items: center;
-            gap: 0.55rem;
+            gap: 0.5rem;
             color: #fff !important;
-            background: linear-gradient(180deg, var(--fs-navy-2) 0%, var(--fs-navy) 100%) !important;
+            background: linear-gradient(180deg, #b9d342 0%, var(--fs-lime) 55%, var(--fs-lime-2) 100%) !important;
             box-shadow:
-                0 12px 28px -8px rgba(12, 24, 68, 0.45),
-                inset 0 1px 0 rgba(255, 255, 255, 0.12),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.18) !important;
+                0 6px 18px rgba(143, 176, 42, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
             transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
             position: relative;
-            overflow: hidden;
-        }
-
-        .fs-pro-search-btn::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent 0%, rgba(193, 157, 86, 0.25) 100%);
-            opacity: 0;
-            transition: opacity 0.2s ease;
         }
 
         .fs-pro-search-btn:hover:not(:disabled) {
             transform: translateY(-1px);
             box-shadow:
-                0 16px 32px -10px rgba(12, 24, 68, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.18),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
-        }
-
-        .fs-pro-search-btn:hover:not(:disabled)::before {
-            opacity: 1;
+                0 10px 24px rgba(143, 176, 42, 0.42),
+                inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
         }
 
         .fs-pro-search-btn:disabled {
-            opacity: 0.45;
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
-            background: linear-gradient(180deg, #6b7691 0%, #545d75 100%) !important;
             box-shadow: var(--fs-shadow-sm) !important;
         }
 
         .fs-pro-search-btn__arrow {
-            font-size: 1.2rem;
-            transition: transform 0.18s ease;
-            position: relative;
-            z-index: 1;
+            display: none;
         }
 
-        .fs-pro-search-btn:hover:not(:disabled) .fs-pro-search-btn__arrow {
-            transform: translateX(2px);
-        }
-
-        /* Trust strip */
+        /* Trust strip — hidden in vivid reference layout */
         .fs-pro-trust-strip {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem 1.2rem;
-            padding-top: 0.6rem;
-            border-top: 1px dashed var(--fs-line);
-        }
-
-        .fs-pro-trust-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.72rem;
-            font-weight: 500;
-            color: var(--fs-slate-2);
-        }
-
-        .fs-pro-trust-item i {
-            color: var(--fs-emerald);
-            font-size: 1rem;
+            display: none;
         }
 
         /* ===== Aside ===== */
         .fs-pro-aside {
             display: flex;
             flex-direction: column;
-            gap: 0.85rem;
+            gap: 0.9rem;
         }
 
         .fs-pro-aside-card {
-            background: #fff;
-            border: 1px solid var(--fs-line);
-            border-radius: 14px;
-            padding: 0.95rem 0.95rem 1rem;
-            box-shadow: var(--fs-shadow-sm);
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
         }
 
         .fs-pro-aside-card__head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 0.65rem;
+            margin-bottom: 0.55rem;
         }
 
         .fs-pro-aside-card__label {
-            font-size: 0.65rem;
-            font-weight: 700;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--fs-muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+            color: #1f2937;
         }
 
         .fs-pro-aside-card__action {
-            font-size: 0.7rem;
-            font-weight: 600;
+            font-size: 0.72rem;
+            font-weight: 500;
             color: var(--fs-slate-2);
             text-decoration: none;
-            transition: color 0.15s ease;
         }
 
         .fs-pro-aside-card__action:hover {
-            color: var(--fs-navy-3);
+            color: var(--fs-brand);
+        }
+
+        /* First card is the action tiles — hide the "Workspace" header */
+        .fs-pro-aside > .fs-pro-aside-card:first-child .fs-pro-aside-card__head {
+            display: none;
         }
 
         .fs-pro-tile-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.55rem;
+            gap: 0.65rem;
         }
 
         .fs-pro-tile {
-            border-radius: 11px;
-            padding: 0.75rem 0.7rem !important;
+            border-radius: 14px;
+            padding: 0.85rem 0.85rem 0.9rem !important;
             text-decoration: none !important;
             display: flex;
             flex-direction: column;
@@ -1747,211 +1603,240 @@
             color: var(--fs-ink) !important;
             line-height: 1.25;
             cursor: pointer;
-            border: 1px solid var(--fs-line);
-            background: var(--fs-surface-2);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             position: relative;
-            transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+            min-height: 102px;
+            transition: transform 0.16s ease, box-shadow 0.16s ease;
         }
 
         .fs-pro-tile:hover {
-            transform: translateY(-1px);
-            border-color: var(--fs-navy-3);
-            background: #fff;
+            transform: translateY(-2px);
             box-shadow: var(--fs-shadow-md);
         }
 
         .fs-pro-tile__icon {
             align-self: flex-start;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            border-radius: 9px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.05rem !important;
-            background: #fff;
-            border: 1px solid var(--fs-line);
+            font-size: 1.35rem !important;
+            background: rgba(255, 255, 255, 0.55);
+            border: none;
         }
 
         .fs-pro-tile__meta {
             display: flex;
             flex-direction: column;
-            gap: 0.15rem;
+            gap: 0.1rem;
         }
 
         .fs-pro-tile__title {
-            font-size: 0.78rem;
+            font-size: 0.72rem;
             font-weight: 700;
-            color: var(--fs-ink);
-            letter-spacing: -0.005em;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
 
         .fs-pro-tile__hint {
-            font-size: 0.66rem;
-            font-weight: 500;
-            color: var(--fs-slate-2);
-            letter-spacing: 0;
+            display: none;
         }
 
-        .fs-pro-tile--offline .fs-pro-tile__icon { color: var(--fs-amber); background: var(--fs-amber-soft); border-color: rgba(180, 83, 9, 0.18); }
-        .fs-pro-tile--import .fs-pro-tile__icon { color: var(--fs-blue); background: var(--fs-blue-soft); border-color: rgba(29, 78, 216, 0.18); }
-        .fs-pro-tile--hold .fs-pro-tile__icon { color: var(--fs-emerald); background: var(--fs-emerald-soft); border-color: rgba(4, 120, 87, 0.18); }
-        .fs-pro-tile--calendar .fs-pro-tile__icon { color: var(--fs-rose); background: var(--fs-rose-soft); border-color: rgba(190, 18, 60, 0.18); }
+        /* Tile color variants — soft pastel cards (reference) */
+        .fs-pro-tile--offline {
+            background: linear-gradient(160deg, #fff7d6 0%, #fff1b5 100%);
+            color: #7a5a0c !important;
+        }
+        .fs-pro-tile--offline .fs-pro-tile__icon {
+            background: rgba(255, 255, 255, 0.65);
+            color: #b06f0d;
+        }
 
-        /* Recent panel rows */
+        .fs-pro-tile--import {
+            background: linear-gradient(160deg, #ffe3d3 0%, #ffd4be 100%);
+            color: #8c3e16 !important;
+        }
+        .fs-pro-tile--import .fs-pro-tile__icon {
+            background: rgba(255, 255, 255, 0.65);
+            color: #c2410c;
+        }
+
+        .fs-pro-tile--hold {
+            background: linear-gradient(160deg, #d6f5ec 0%, #c2eee0 100%);
+            color: #0f5a4d !important;
+        }
+        .fs-pro-tile--hold .fs-pro-tile__icon {
+            background: rgba(255, 255, 255, 0.65);
+            color: #047857;
+        }
+
+        .fs-pro-tile--calendar {
+            background: linear-gradient(160deg, #fde6f3 0%, #f8d2e7 100%);
+            color: #832661 !important;
+        }
+        .fs-pro-tile--calendar .fs-pro-tile__icon {
+            background: rgba(255, 255, 255, 0.65);
+            color: #be185d;
+        }
+
+        /* Recent panel — single pill row */
+        .fs-pro-recent-panel .fs-pro-aside-card__head {
+            margin-bottom: 0.45rem;
+        }
+
         .fs-pro-recent-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.6rem 0.5rem;
-            border-radius: 8px;
+            gap: 0.6rem;
+            padding: 0.55rem 0.9rem;
+            border-radius: 999px;
             text-decoration: none !important;
             color: var(--fs-ink);
-            transition: background 0.15s ease;
+            background: #fff;
+            border: 1px solid var(--fs-line);
+            box-shadow: var(--fs-shadow-sm);
             cursor: pointer;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            margin-bottom: 0.45rem;
         }
 
-        .fs-pro-recent-row + .fs-pro-recent-row {
-            border-top: 1px dashed var(--fs-line);
+        .fs-pro-recent-row:last-child {
+            margin-bottom: 0;
         }
 
         .fs-pro-recent-row:hover {
-            background: var(--fs-canvas);
+            border-color: #c8d1e0;
+            box-shadow: var(--fs-shadow-md);
         }
 
         .fs-pro-recent-row__route {
             display: inline-flex;
             align-items: center;
-            gap: 0.32rem;
-            font-weight: 700;
-            font-size: 0.84rem;
-            letter-spacing: 0.02em;
+            gap: 0.42rem;
+            font-weight: 500;
+            font-size: 0.86rem;
             color: var(--fs-ink);
-            font-variant-numeric: tabular-nums;
         }
 
         .fs-pro-recent-row__city {
-            background: var(--fs-canvas);
-            border: 1px solid var(--fs-line);
-            padding: 0.08rem 0.4rem;
-            border-radius: 5px;
-            font-size: 0.74rem;
-            font-weight: 700;
-            color: var(--fs-navy-3);
+            font-size: 0.86rem;
+            font-weight: 500;
+            color: var(--fs-ink);
+            background: transparent;
+            border: none;
+            padding: 0;
         }
 
         .fs-pro-recent-row__arrow {
-            color: var(--fs-muted);
-            font-size: 1rem;
+            font-size: 0.95rem;
+            color: var(--fs-lime-2);
+            transform: translateY(0);
         }
 
         .fs-pro-recent-row__meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.05rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-left: auto;
             font-feature-settings: "tnum" 1, "lnum" 1;
         }
 
         .fs-pro-recent-row__dates {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--fs-slate);
+            font-size: 0.74rem;
+            font-weight: 400;
+            color: var(--fs-slate-2);
+            white-space: nowrap;
         }
 
         .fs-pro-recent-row__pax {
-            font-size: 0.66rem;
-            font-weight: 600;
-            color: var(--fs-muted);
-            letter-spacing: 0.04em;
+            display: none;
         }
 
-        /* Quick utility links */
+        /* Quick utility links — 2-column colorful dots */
         .fs-pro-aside-card--quick {
-            padding: 0.55rem 0.6rem;
+            padding: 0;
+        }
+
+        .fs-pro-aside-card--quick .fs-pro-aside-card__head {
+            display: none;
         }
 
         .fs-pro-util-links {
-            display: flex;
-            flex-direction: column;
-            gap: 0 !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.65rem 0.6rem !important;
         }
 
         .fs-util-link {
-            display: flex !important;
+            display: inline-flex !important;
             align-items: center !important;
-            gap: 0.62rem !important;
-            padding: 0.6rem 0.5rem !important;
-            border-radius: 9px !important;
+            gap: 0.55rem !important;
+            padding: 0.3rem 0.2rem !important;
+            border-radius: 8px !important;
             margin: 0 !important;
             cursor: pointer;
-            line-height: 1.25 !important;
-            color: var(--fs-ink);
-            font-size: 0.82rem !important;
-            font-weight: 600 !important;
+            line-height: 1.2 !important;
+            color: #1f2937;
+            font-size: 0.78rem !important;
+            font-weight: 500 !important;
             text-decoration: none !important;
-            transition: background 0.14s ease;
+            transition: color 0.14s ease;
             border: 0;
             background: transparent;
         }
 
         .fs-util-link + .fs-util-link {
-            border-top: 1px dashed var(--fs-line);
+            border-top: none;
         }
 
         .fs-util-link:hover {
-            background: var(--fs-canvas);
+            color: var(--fs-brand);
         }
 
         .fs-util-link__text {
-            display: flex;
+            display: inline-flex;
             flex-direction: column;
-            gap: 0.05rem;
-            flex: 1;
+            line-height: 1.15;
         }
 
         .fs-util-link__text em {
-            font-style: normal;
-            font-size: 0.68rem;
-            font-weight: 500;
-            color: var(--fs-slate-2);
+            display: none;
         }
 
         .fs-util-dot {
-            width: 30px !important;
-            height: 30px !important;
+            width: 36px !important;
+            height: 36px !important;
             flex-shrink: 0;
-            border-radius: 8px !important;
+            border-radius: 50% !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
-            font-size: 1rem !important;
-            border: 1px solid transparent;
+            font-size: 1.1rem !important;
+            border: none;
+            color: #fff !important;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
         }
 
         .fs-util-dot--amber {
-            background: var(--fs-amber-soft);
-            color: var(--fs-amber);
-            border-color: rgba(180, 83, 9, 0.18);
+            background: #fbbf24;
+            color: #78350f !important;
         }
 
         .fs-util-dot--emerald {
-            background: var(--fs-emerald-soft);
-            color: var(--fs-emerald);
-            border-color: rgba(4, 120, 87, 0.18);
+            background: #6ee7b7;
+            color: #064e3b !important;
         }
 
         .fs-util-dot--rose {
-            background: var(--fs-rose-soft);
-            color: var(--fs-rose);
-            border-color: rgba(190, 18, 60, 0.18);
+            background: #fda4af;
+            color: #881337 !important;
         }
 
         .fs-util-dot--sky {
-            background: var(--fs-blue-soft);
-            color: var(--fs-blue);
-            border-color: rgba(29, 78, 216, 0.18);
+            background: #7dd3fc;
+            color: #075985 !important;
         }
 
         /* ===== Promotions strip ===== */
@@ -2042,115 +1927,161 @@
         }
 
         .fs-promo--gold {
-            background: linear-gradient(135deg, #1f1a12 0%, #2a2317 55%, #3a2f1b 100%);
-            color: #f4d8a3;
-            border-color: rgba(193, 157, 86, 0.35);
+            background: linear-gradient(135deg, #f59e0b 0%, #ea7c0c 50%, #c2410c 100%);
+            color: #fff7ed;
+            border-color: rgba(234, 124, 12, 0.5);
         }
 
         .fs-promo--gold .fs-promo__kicker {
-            color: var(--fs-gold);
+            color: #fde6a3;
+            font-style: italic;
+            text-transform: none;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0;
+        }
+
+        .fs-promo--gold .fs-promo__title {
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-size: 0.95rem;
         }
 
         .fs-promo--gold .fs-promo__art {
-            color: var(--fs-gold);
+            color: rgba(255, 255, 255, 0.65);
         }
 
         .fs-promo--ocean {
-            background: linear-gradient(135deg, #0c1844 0%, #15246a 60%, #1d2f86 100%);
-            color: #dbe4ff;
-            border-color: rgba(29, 78, 216, 0.45);
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 60%, #4f46e5 100%);
+            color: #f5f3ff;
+            border-color: rgba(139, 92, 246, 0.45);
         }
 
         .fs-promo--ocean .fs-promo__kicker {
-            color: #93c5fd;
+            color: #ddd6fe;
+        }
+
+        .fs-promo--ocean .fs-promo__title {
+            font-size: 0.95rem;
         }
 
         .fs-promo--ocean .fs-promo__art {
-            color: #60a5fa;
+            color: rgba(255, 255, 255, 0.6);
         }
 
         .fs-promo--night {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
-            border-color: rgba(148, 163, 184, 0.22);
+            background: linear-gradient(135deg, #0e2247 0%, #142e63 60%, #1e3a8a 100%);
+            color: #e0f2fe;
+            border-color: rgba(30, 58, 138, 0.5);
         }
 
         .fs-promo--night .fs-promo__kicker {
-            color: var(--fs-gold);
+            display: none;
+        }
+
+        .fs-promo--night .fs-promo__title {
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .fs-promo--night .fs-promo__cta {
+            color: #bae6fd;
         }
 
         .fs-promo--night .fs-promo__art {
-            color: #94a3b8;
+            color: rgba(255, 255, 255, 0.18);
+            font-size: 5rem;
         }
 
-        /* ===== Trip type segmented control ===== */
+        /* ===== Trip type pills (reference style) ===== */
         .fs-pro-enterprise .fs-trip-types {
             display: inline-flex;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
         }
 
         .fs-pro-enterprise .fs-trip-types__item {
             border: none;
             background: transparent;
-            color: var(--fs-slate);
-            border-radius: 8px;
-            padding: 0.5rem 0.95rem;
+            color: #6b7280;
+            border-radius: 999px;
+            padding: 0.4rem 0.85rem 0.4rem 0.55rem;
             font-family: inherit;
             font-size: 0.82rem;
-            font-weight: 600;
+            font-weight: 500;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.4rem;
             min-width: 0;
             cursor: pointer;
-            transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+            transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
             position: relative;
             letter-spacing: -0.005em;
         }
 
+        .fs-pro-enterprise .fs-trip-types__item::before {
+            content: "";
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1.5px solid #cbd5e1;
+            flex-shrink: 0;
+            transition: inherit;
+        }
+
+        .fs-pro-enterprise .fs-trip-types__item .fs-trip-types__icon {
+            display: none;
+        }
+
         .fs-pro-enterprise .fs-trip-types__item:hover {
-            color: var(--fs-navy);
-            background: rgba(15, 23, 42, 0.035);
-            box-shadow: none;
+            color: #374151;
+            background: #f3f4f6;
+        }
+
+        .fs-pro-enterprise .fs-trip-types__item:hover::before {
+            border-color: #94a3b8;
         }
 
         .fs-pro-enterprise .fs-trip-types__item.active {
-            color: var(--fs-navy);
-            background: #fff;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(15, 23, 42, 0.04) inset;
+            color: #2c5f1f;
+            background: var(--fs-lime-soft);
+            box-shadow: inset 0 0 0 1px rgba(143, 176, 42, 0.32);
+        }
+
+        .fs-pro-enterprise .fs-trip-types__item.active::before {
+            background: var(--fs-green);
+            border-color: var(--fs-green);
+            position: relative;
         }
 
         .fs-pro-enterprise .fs-trip-types__item.active::after {
-            content: "";
+            content: "\2713";
             position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: -1px;
-            width: 18px;
-            height: 2px;
-            background: var(--fs-gold);
-            border-radius: 999px;
-        }
-
-        .fs-trip-types__icon {
-            font-size: 0.95rem;
-            opacity: 0.7;
-        }
-
-        .fs-pro-enterprise .fs-trip-types__item.active .fs-trip-types__icon {
-            opacity: 1;
-            color: var(--fs-gold-2);
+            left: 0.55rem;
+            top: 50%;
+            width: 14px;
+            height: 14px;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
         }
 
         /* Legacy dot (no longer used but kept hidden if rendered) */
         .fs-trip-types__dot { display: none; }
 
-        /* ===== Quick filter chips (Direct / Nearby / Student) ===== */
+        /* ===== Quick filter chips (Direct / Nearby / Student) — checkbox style ===== */
         .fs-search-filters {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.42rem;
+            gap: 1rem;
             margin-bottom: 0 !important;
         }
 
@@ -2158,18 +2089,18 @@
             position: relative;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            min-height: 38px;
-            padding: 0.45rem 0.85rem;
-            border: 1px solid var(--fs-line);
-            border-radius: 9px;
-            background: #fff;
-            color: var(--fs-slate);
-            font-size: 0.78rem;
-            font-weight: 600;
+            gap: 0.42rem;
+            min-height: auto;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            color: #374151;
+            font-size: 0.86rem;
+            font-weight: 500;
             cursor: pointer;
-            box-shadow: var(--fs-shadow-sm);
-            transition: border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+            box-shadow: none;
+            transition: color 0.15s ease;
         }
 
         .fs-pro-enterprise .fs-filter-chip input {
@@ -2179,23 +2110,22 @@
         }
 
         .fs-pro-enterprise .fs-filter-chip:hover {
-            border-color: var(--fs-navy-3);
-            color: var(--fs-navy);
-            box-shadow: var(--fs-shadow-md);
+            color: var(--fs-ink);
+            background: transparent;
+            box-shadow: none;
         }
 
         .fs-pro-enterprise .fs-filter-chip.active {
-            border-color: var(--fs-navy-3);
-            background: linear-gradient(180deg, #f2f6ff 0%, #e9efff 100%);
-            color: var(--fs-navy);
-            box-shadow: inset 0 0 0 1px rgba(31, 48, 111, 0.08);
+            color: var(--fs-ink);
+            background: transparent;
+            box-shadow: none;
         }
 
         .fs-pro-enterprise .fs-filter-chip__box {
-            width: 14px;
-            height: 14px;
+            width: 15px;
+            height: 15px;
             border: 1.5px solid #cbd5e1;
-            border-radius: 4px;
+            border-radius: 3px;
             background: #fff;
             position: relative;
             flex-shrink: 0;
@@ -2203,9 +2133,9 @@
         }
 
         .fs-pro-enterprise .fs-filter-chip.active .fs-filter-chip__box {
-            border-color: var(--fs-navy-3);
-            background: var(--fs-navy-3);
-            box-shadow: 0 0 0 3px rgba(31, 48, 111, 0.12);
+            border-color: var(--fs-lime-2);
+            background: var(--fs-lime);
+            box-shadow: none;
         }
 
         .fs-pro-enterprise .fs-filter-chip.active .fs-filter-chip__box::after {
@@ -2213,8 +2143,8 @@
             position: absolute;
             left: 3px;
             top: 0px;
-            width: 3px;
-            height: 7px;
+            width: 4px;
+            height: 8px;
             border: solid #fff;
             border-width: 0 2px 2px 0;
             transform: rotate(45deg);
