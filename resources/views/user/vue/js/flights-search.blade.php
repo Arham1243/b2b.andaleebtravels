@@ -90,6 +90,32 @@
                 toggle: toggleTravellers
             } = useDropdown();
 
+            const cabinOptions = ['Economy', 'Premium Economy', 'Business', 'First'];
+
+            const {
+                open: onwardCabinOpen,
+                wrapper: onwardCabinRef,
+                toggle: toggleOnwardCabin,
+                close: closeOnwardCabin
+            } = useDropdown();
+
+            const {
+                open: returnCabinOpen,
+                wrapper: returnCabinRef,
+                toggle: toggleReturnCabin,
+                close: closeReturnCabin
+            } = useDropdown();
+
+            const pickOnwardCabin = (value) => {
+                onwardCabin.value = value;
+                closeOnwardCabin();
+            };
+
+            const pickReturnCabin = (value) => {
+                returnCabin.value = value;
+                closeReturnCabin();
+            };
+
             const createEmptySegment = () => ({
                 key: ++multiCitySegmentKey,
                 fromInput: '',
@@ -667,6 +693,15 @@
                 travellersOpen,
                 travellersRef,
                 toggleTravellers,
+                onwardCabinOpen,
+                onwardCabinRef,
+                toggleOnwardCabin,
+                pickOnwardCabin,
+                returnCabinOpen,
+                returnCabinRef,
+                toggleReturnCabin,
+                pickReturnCabin,
+                cabinOptions,
                 adults,
                 children,
                 infants,
@@ -738,6 +773,36 @@
                 }
             }
             returnPicker.minDate = moment().startOf('day');
+        }
+
+        /** When return calendar opens, anchor the visible month to departure (not “today”). */
+        function alignFlightReturnPickerViewMonth() {
+            const $departureInput = $("#flight-departure-input");
+            const $returnInput = $("#flight-return-input");
+            const picker = $returnInput.data('daterangepicker');
+            if (!picker) return;
+
+            syncFlightReturnPickerMinDate();
+            const minM = moment.isMoment(picker.minDate)
+                ? picker.minDate.clone()
+                : moment().startOf('day');
+
+            const fmt = 'MMM D, YYYY';
+            const retVal = ($returnInput.val() || '').trim();
+            let anchor = null;
+
+            if (retVal) {
+                const parsedRet = moment(retVal, fmt, true);
+                if (parsedRet.isValid() && parsedRet.isSameOrAfter(minM, 'day')) {
+                    anchor = parsedRet.clone();
+                }
+            }
+
+            if (!anchor) {
+                anchor = minM.clone();
+            }
+
+            picker.setStartDate(anchor);
         }
 
         function initFlightSingleDatePicker(wrapperId, inputId, displayPrefix) {
@@ -930,6 +995,18 @@
                 }
             })();
 
+            syncFlightReturnPickerMinDate();
+            (function primeEmptyReturnPickerView() {
+                const rp = $returnInput.data('daterangepicker');
+                if (rp && !($returnInput.val() || '').trim()) {
+                    rp.setStartDate(rp.minDate.clone());
+                }
+            })();
+
+            $returnInput.on('show.daterangepicker', function() {
+                alignFlightReturnPickerViewMonth();
+            });
+
             $departureInput.on("apply.daterangepicker", function(ev, picker) {
                 const departureDate = picker.startDate;
                 const returnPicker = $returnInput.data('daterangepicker');
@@ -937,13 +1014,30 @@
                 if (returnPicker) {
                     returnPicker.minDate = departureDate.clone().add(1, 'day');
                     if ($returnInput.val()) {
-                        const currentReturn = moment($returnInput.val(), "MMM D, YYYY");
-                        if (currentReturn.isSameOrBefore(departureDate)) {
+                        const currentReturn = moment($returnInput.val(), "MMM D, YYYY", true);
+                        if (!currentReturn.isValid()) {
                             $returnInput.val('');
                             clearFlightDateDisplay('flight-return');
                             if (window.__flightsSearchVue) {
                                 window.__flightsSearchVue.returnDate = '';
                             }
+                        } else if (currentReturn.isSameOrBefore(departureDate, 'day')) {
+                            $returnInput.val('');
+                            clearFlightDateDisplay('flight-return');
+                            if (window.__flightsSearchVue) {
+                                window.__flightsSearchVue.returnDate = '';
+                            }
+                        }
+                    }
+                    /* Keep calendar centred on departure month next time return opens */
+                    if (!($returnInput.val() || '').trim()) {
+                        returnPicker.setStartDate(returnPicker.minDate.clone());
+                    } else {
+                        const cur = moment($returnInput.val(), "MMM D, YYYY", true);
+                        if (cur.isValid() && cur.isSameOrAfter(returnPicker.minDate, 'day')) {
+                            returnPicker.setStartDate(cur);
+                        } else {
+                            returnPicker.setStartDate(returnPicker.minDate.clone());
                         }
                     }
                 }

@@ -496,33 +496,34 @@
                             </div>
                         </div>
 
-                        <label class="fs-pro-select-group">
+                        <div class="fs-pro-select-group fs-pro-select-group--cabin" ref="onwardCabinRef">
                             <span class="fs-pro-select-group__label">Onward Cabin Class</span>
-                            <div class="fs-pro-select-wrap">
-                                <i class='bx bx-chair fs-pro-select-wrap__icon'></i>
-                                <select v-model="onwardCabin" class="fs-pro-select-el">
-                                    <option value="Economy">Economy</option>
-                                    <option value="Premium Economy">Premium Economy</option>
-                                    <option value="Business">Business</option>
-                                    <option value="First">First</option>
-                                </select>
-                                <i class='bx bx-chevron-down fs-pro-select-el-chevron'></i>
+                            <button type="button" class="fs-pro-cabin-trigger" @click.stop="toggleOnwardCabin">
+                                <span class="fs-pro-cabin-trigger__text">@{{ onwardCabin }}</span>
+                                <i class='bx bx-chevron-down fs-pro-cabin-trigger__chev'></i>
+                            </button>
+                            <div class="fs-pro-cabin-dropdown" :class="{ 'is-open': onwardCabinOpen }">
+                                <button type="button" class="fs-pro-cabin-option"
+                                    :class="{ 'is-active': opt === onwardCabin }"
+                                    v-for="opt in cabinOptions" :key="'onward-' + opt"
+                                    @click.stop="pickOnwardCabin(opt)">@{{ opt }}</button>
                             </div>
-                        </label>
+                        </div>
 
-                        <label class="fs-pro-select-group" v-show="tripType === 'round_trip'">
+                        <div class="fs-pro-select-group fs-pro-select-group--cabin" ref="returnCabinRef"
+                            v-show="tripType === 'round_trip'">
                             <span class="fs-pro-select-group__label">Return Cabin Class</span>
-                            <div class="fs-pro-select-wrap">
-                                <i class='bx bx-chair fs-pro-select-wrap__icon'></i>
-                                <select v-model="returnCabin" class="fs-pro-select-el">
-                                    <option value="Economy">Economy</option>
-                                    <option value="Premium Economy">Premium Economy</option>
-                                    <option value="Business">Business</option>
-                                    <option value="First">First</option>
-                                </select>
-                                <i class='bx bx-chevron-down fs-pro-select-el-chevron'></i>
+                            <button type="button" class="fs-pro-cabin-trigger" @click.stop="toggleReturnCabin">
+                                <span class="fs-pro-cabin-trigger__text">@{{ returnCabin }}</span>
+                                <i class='bx bx-chevron-down fs-pro-cabin-trigger__chev'></i>
+                            </button>
+                            <div class="fs-pro-cabin-dropdown" :class="{ 'is-open': returnCabinOpen }">
+                                <button type="button" class="fs-pro-cabin-option"
+                                    :class="{ 'is-active': opt === returnCabin }"
+                                    v-for="opt in cabinOptions" :key="'ret-' + opt"
+                                    @click.stop="pickReturnCabin(opt)">@{{ opt }}</button>
                             </div>
-                        </label>
+                        </div>
                     </div>
 
                     <div class="fs-pro-airline-pref">
@@ -1219,6 +1220,7 @@
             margin-top: 0.85rem;
             padding-top: 0;
             border-top: none;
+            overflow: visible;
         }
 
         .fs-pro-pax-cabin-row {
@@ -1229,7 +1231,9 @@
             background: var(--fs-surface-2);
             border: 1px solid var(--fs-line);
             border-radius: 10px;
-            overflow: hidden;
+            overflow: visible;
+            position: relative;
+            isolation: isolate;
         }
 
         @media (max-width: 720px) {
@@ -1244,6 +1248,16 @@
             padding: 0.6rem 0.95rem;
             position: relative;
             border-right: 1px solid var(--fs-line);
+            z-index: 1;
+        }
+
+        /* Ensure passenger & cabin overlays stack above neighbouring cells */
+        .fs-pro-enterprise .fs-pro-travellers:has(.options-dropdown-wrapper.open) {
+            z-index: 50;
+        }
+
+        .fs-pro-select-group.fs-pro-select-group--cabin:has(.fs-pro-cabin-dropdown.is-open) {
+            z-index: 50;
         }
 
         .fs-pro-pax-cabin-row > :last-child {
@@ -1361,6 +1375,105 @@
             pointer-events: none;
         }
 
+        /* Cabin class — custom menu (replacing native <select>) */
+        .fs-pro-select-group.fs-pro-select-group--cabin {
+            position: relative;
+        }
+
+        .fs-pro-cabin-trigger {
+            position: relative;
+            width: 100%;
+            margin-top: 0.12rem;
+            padding: 0.15rem 1.55rem 0.15rem 0;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.35rem;
+            font-family: inherit;
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #111827;
+            text-align: left;
+        }
+
+        .fs-pro-cabin-trigger__chev {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.95rem;
+            color: #6b7280;
+            pointer-events: none;
+        }
+
+        .fs-pro-cabin-trigger:focus-visible {
+            outline: 2px solid var(--fs-lime);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        .fs-pro-cabin-dropdown {
+            position: absolute;
+            left: -0.4rem;
+            right: -0.4rem;
+            top: calc(100% + 6px);
+            background: #fff;
+            border: 1px solid var(--fs-line);
+            border-radius: 10px;
+            box-shadow:
+                0 4px 6px rgba(15, 23, 42, 0.04),
+                0 14px 32px rgba(15, 23, 42, 0.1);
+            padding: 0.35rem 0;
+            z-index: 55;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-4px);
+            transition:
+                opacity 0.18s ease,
+                transform 0.18s ease,
+                visibility 0.18s;
+        }
+
+        .fs-pro-cabin-dropdown.is-open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .fs-pro-cabin-option {
+            width: 100%;
+            padding: 0.55rem 0.95rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            font-size: 0.87rem;
+            font-weight: 600;
+            color: #374151;
+            transition: background 0.12s ease, color 0.12s ease;
+        }
+
+        .fs-pro-cabin-option:hover {
+            background: var(--fs-surface-2);
+            color: #111827;
+        }
+
+        .fs-pro-cabin-option.is-active {
+            background: rgba(167, 200, 52, 0.18);
+            color: #334155;
+            font-weight: 700;
+        }
+
+        .fs-pro-enterprise .options-dropdown-wrapper--pax.open {
+            z-index: 55 !important;
+        }
+
         /* Airline preference — lavender strip */
         .fs-pro-airline-pref {
             display: flex;
@@ -1444,13 +1557,15 @@
         .fs-air-chip.is-active .fs-air-chip__indicator::after {
             content: "";
             position: absolute;
-            left: 3px;
-            top: 0px;
+            left: 50%;
+            top: 50%;
             width: 3px;
-            height: 7px;
+            height: 6px;
+            margin-top: -0.6px;
             border: solid #fff;
             border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
+            box-sizing: border-box;
+            transform: translate(-52%, -55%) rotate(45deg);
         }
 
         /* "All Airlines" pill — distinct closable chip (reference) */
@@ -1863,13 +1978,24 @@
             box-shadow: var(--fs-shadow-md);
             border: 1px solid var(--fs-line);
             overflow: hidden;
-            transition: transform 0.18s ease, box-shadow 0.18s ease;
             isolation: isolate;
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease,
+                background-color 0.2s ease,
+                background-image 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease;
         }
 
+        /* Plain white hover (typography adjusts for contrast) */
         .fs-promo:hover {
             transform: translateY(-2px);
             box-shadow: var(--fs-shadow-lg);
+            background-image: none !important;
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #1e293b !important;
         }
 
         .fs-promo__body {
@@ -1885,6 +2011,7 @@
             text-transform: uppercase;
             letter-spacing: 0.18em;
             opacity: 0.78;
+            transition: color 0.2s ease, opacity 0.2s ease;
         }
 
         .fs-promo__title {
@@ -1893,6 +2020,7 @@
             font-weight: 700;
             letter-spacing: -0.015em;
             line-height: 1.25;
+            transition: color 0.2s ease;
         }
 
         .fs-promo__cta {
@@ -1905,6 +2033,7 @@
             opacity: 0.88;
             letter-spacing: 0;
             text-transform: none;
+            transition: color 0.2s ease, opacity 0.2s ease;
         }
 
         .fs-promo__cta i {
@@ -1924,6 +2053,56 @@
             bottom: -0.6rem;
             transform: rotate(-12deg);
             z-index: 0;
+            transition:
+                color 0.2s ease,
+                opacity 0.2s ease;
+        }
+
+        /* Hover typography per variant — matches “white card” readability */
+        .fs-promo--gold:hover .fs-promo__kicker {
+            color: #c2410c !important;
+            opacity: 1;
+        }
+
+        .fs-promo--gold:hover .fs-promo__title {
+            color: #1e3a8a !important;
+        }
+
+        .fs-promo--gold:hover .fs-promo__art {
+            color: #f59e0b !important;
+            opacity: 0.12;
+        }
+
+        .fs-promo--ocean:hover .fs-promo__kicker {
+            color: #6d28d9 !important;
+            opacity: 1;
+            letter-spacing: 0.12em;
+        }
+
+        .fs-promo--ocean:hover .fs-promo__title,
+        .fs-promo--ocean:hover .fs-promo__cta {
+            color: #1e3a8a !important;
+            opacity: 1;
+        }
+
+        .fs-promo--ocean:hover .fs-promo__art {
+            color: #7c3aed !important;
+            opacity: 0.1;
+        }
+
+        .fs-promo--night:hover .fs-promo__title {
+            color: #0f172a !important;
+            font-weight: 800;
+        }
+
+        .fs-promo--night:hover .fs-promo__cta {
+            color: #475569 !important;
+            opacity: 1;
+        }
+
+        .fs-promo--night:hover .fs-promo__art {
+            color: #1e40af !important;
+            opacity: 0.1;
         }
 
         .fs-promo--gold {
@@ -2141,13 +2320,15 @@
         .fs-pro-enterprise .fs-filter-chip.active .fs-filter-chip__box::after {
             content: "";
             position: absolute;
-            left: 3px;
-            top: 0px;
-            width: 4px;
-            height: 8px;
+            left: 50%;
+            top: 50%;
+            width: 3px;
+            height: 7px;
+            margin-top: -0.75px;
             border: solid #fff;
             border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
+            box-sizing: border-box;
+            transform: translate(-52%, -55%) rotate(45deg);
         }
 
         .hs-field--disabled {
