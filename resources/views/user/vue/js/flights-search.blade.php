@@ -881,9 +881,10 @@
 
         /**
          * Unified date-range picker for Depart + Return.
-         * - round_trip: range mode (2 months side-by-side, pick start + end in one popup)
-         * - one_way:    single-date mode (1 month)
-         * Clicking either cell opens the same picker. Re-called on every trip-type change.
+         * Always shows 2-month range calendar.
+         * - Selecting only a start date  → fills Depart, keeps one_way
+         * - Selecting start + end dates  → fills Depart + Return, auto-switches to round_trip
+         * Clicking either cell (Depart or Return) opens the same picker.
          */
         function initFlightDateRangePicker() {
             const vue     = window.__flightsSearchVue;
@@ -894,8 +895,7 @@
 
             if (!$depBox.length || !$depIn.length) return;
 
-            const fmt     = 'MMM D, YYYY';
-            const isRound = vue?.tripType === 'round_trip';
+            const fmt = 'MMM D, YYYY';
 
             // Tear down previous instance and delegated click handlers
             if ($depIn.data('daterangepicker')) {
@@ -910,7 +910,7 @@
             const retM   = retVal ? moment(retVal, fmt, true) : null;
 
             const opts = {
-                autoApply:        !isRound,
+                autoApply:        true,
                 showDropdowns:    true,
                 minDate:          moment().startOf('day'),
                 autoUpdateInput:  false,
@@ -918,48 +918,49 @@
                 opens:            'center',
                 drops:            'down',
                 linkedCalendars:  false,
-                singleDatePicker: !isRound,
+                singleDatePicker: false,   // always range (2-month view)
                 locale:           { format: fmt }
             };
 
             if (depM?.isValid()) opts.startDate = depM.clone();
-            if (isRound && retM?.isValid()) opts.endDate = retM.clone();
+            if (retM?.isValid())  opts.endDate   = retM.clone();
 
             $depIn.daterangepicker(opts);
 
             $depIn.on('apply.daterangepicker', function (ev, picker) {
-                const dep = picker.startDate;
+                const dep      = picker.startDate;
+                const ret      = picker.endDate;
+                const hasRange = ret.isValid() && !ret.isSame(dep, 'day');
+
+                // Always fill departure
                 $depIn.val(dep.format(fmt));
                 updateFlightDateDisplay('flight-departure', dep);
                 if (vue) vue.departureDate = dep.format(fmt);
 
-                if (!picker.singleDatePicker) {
-                    const ret = picker.endDate;
+                if (hasRange) {
+                    // Fill return + auto-switch to round_trip
                     $retIn.val(ret.format(fmt));
                     updateFlightDateDisplay('flight-return', ret);
                     if (vue) vue.returnDate = ret.format(fmt);
+                    if (vue && vue.tripType !== 'round_trip' && typeof vue.setTripType === 'function') {
+                        vue.setTripType('round_trip');
+                    }
+                } else {
+                    // Single date selected — clear return, keep current trip type
+                    $retIn.val('');
+                    clearFlightDateDisplay('flight-return');
+                    if (vue) vue.returnDate = '';
                 }
             });
 
-            // Depart cell click -> open the picker
+            // Both cells open the same picker
             $depBox.on('click.drp', function (e) {
                 if (!$(e.target).is($depIn)) {
                     $depIn.data('daterangepicker')?.show();
                 }
             });
 
-            // Return cell click: switch to round_trip (reinits picker in range mode), then open
             $retBox.on('click.drp', function () {
-                if (vue?.tripType !== 'round_trip') {
-                    if (vue && typeof vue.setTripType === 'function') {
-                        vue.setTripType('round_trip');
-                        // setTripType -> nextTick -> initFlightDateRangePicker(); auto-open after re-init
-                        setTimeout(() => {
-                            $depIn.data('daterangepicker')?.show();
-                        }, 80);
-                    }
-                    return;
-                }
                 $depIn.data('daterangepicker')?.show();
             });
         }
