@@ -667,11 +667,18 @@ class FlightService
         }
 
         $bearerToken = $this->getSabreToken();
-        $session = $this->createSoapSession($bearerToken);
+
+        try {
+            $session = $this->createSoapSession($bearerToken);
+        } catch (\Throwable $e) {
+            // The session creator already logs the full SOAP fault; bubble its message up.
+            throw new \Exception('Unable to establish Sabre session: ' . $e->getMessage());
+        }
+
         $binaryToken = $session['token'] ?? null;
 
         if (!$binaryToken) {
-            throw new \Exception('Unable to establish Sabre session.');
+            throw new \Exception('Unable to establish Sabre session: empty token returned.');
         }
 
         $reservation = $this->getReservation($binaryToken, $locator, $bearerToken);
@@ -1199,16 +1206,32 @@ XML;
             ->withBody($xml, 'text/xml')
             ->post('https://sws-crt.cert.sabre.com');
 
+        $body = $response->body();
+
         if (!$response->successful()) {
-            throw new \Exception('Sabre session create failed: ' . $response->body());
+            Log::error('Sabre SessionCreate HTTP failure', [
+                'status' => $response->status(),
+                'body'   => mb_substr($body, 0, 4000),
+            ]);
+            throw new \Exception('Sabre session create failed: ' . $body);
         }
 
-        $token = $this->extractBinarySecurityToken($response->body());
+        $token = $this->extractBinarySecurityToken($body);
+
+        if (!$token) {
+            // 200 OK but no token — usually a SOAP Fault (bad credentials / PCC / IP not whitelisted)
+            $fault = $this->extractSoapFault($body);
+            Log::error('Sabre SessionCreate returned no token', [
+                'fault' => $fault,
+                'body'  => mb_substr($body, 0, 4000),
+            ]);
+            throw new \Exception('Sabre session create failed: ' . ($fault ?: 'no BinarySecurityToken in response'));
+        }
 
         return [
-            'success' => (bool) $token,
-            'token' => $token,
-            'response' => $response->body(),
+            'success'  => true,
+            'token'    => $token,
+            'response' => $body,
         ];
     }
 
@@ -1457,21 +1480,45 @@ XML;
 
     private function extractBinarySecurityToken(string $xml): ?string
     {
+        // Regex first — works regardless of namespace prefixes (soap-env / soapenv / S:)
+        // or wsse URI variants. Matches: <prefix:BinarySecurityToken ...>VALUE</prefix:BinarySecurityToken>
+        if (preg_match('/<[^>:]*:?BinarySecurityToken[^>]*>([^<]+)<\/[^>:]*:?BinarySecurityToken>/i', $xml, $m)) {
+            $token = trim($m[1]);
+            if ($token !== '') {
+                return $token;
+            }
+        }
+
+        // SimpleXML fallback (handles edge cases where token has CDATA / entities)
         try {
-            $xmlObject = simplexml_load_string($xml);
+            $xmlObject = @simplexml_load_string($xml);
             if (!$xmlObject) {
                 return null;
             }
 
             $namespaces = $xmlObject->getNamespaces(true);
-            $security = $xmlObject->children($namespaces['soap-env'] ?? 'http://schemas.xmlsoap.org/soap/envelope/')
-                ->Header
-                ->children($namespaces['wsse'] ?? 'http://schemas.xmlsoap.org/ws/2002/12/secext');
+            $soapNs = $namespaces['soap-env'] ?? $namespaces['soapenv'] ?? $namespaces['S'] ?? 'http://schemas.xmlsoap.org/soap/envelope/';
+            $wsseNs = $namespaces['wsse']    ?? 'http://schemas.xmlsoap.org/ws/2002/12/secext';
 
-            $token = (string) ($security->BinarySecurityToken ?? '');
+            $security = $xmlObject->children($soapNs)->Header->children($wsseNs);
+            $token    = (string) ($security->BinarySecurityToken ?? '');
             return $token !== '' ? $token : null;
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    private function extractSoapFault(string $xml): ?string
+    {
+        if (preg_match('/<[^>]*faultstring[^>]*>([^<]+)<\/[^>]*faultstring>/i', $xml, $m)) {
+            return trim($m[1]);
+        }
+        if (preg_match('/<[^>]*ErrorMessage[^>]*>([^<]+)<\/[^>]*ErrorMessage>/i', $xml, $m)) {
+            return trim($m[1]);
+        }
+        if (preg_match('/<[^>]*Message[^>]*>([^<]+)<\/[^>]*Message>/i', $xml, $m)) {
+            return trim($m[1]);
+        }
+        return null;
     }
 }
