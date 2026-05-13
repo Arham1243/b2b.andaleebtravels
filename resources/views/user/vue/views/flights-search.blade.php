@@ -1549,30 +1549,37 @@
             padding: 0 !important;
             overflow: hidden !important;
         }
-        /* Suppress the default caret arrows (::before / ::after on the picker) */
-        .flight-search-redesign .daterangepicker::before,
-        .flight-search-redesign .daterangepicker::after {
+        /* Suppress the default caret arrows */
+        .flight-search-redesign .daterangepicker::before {
             display: none !important;
         }
 
-        /* ── Two calendar panels side by side ── */
+        /* ── Two calendar panels side by side ──
+           Use inline-block + white-space:nowrap so both panels stay on one line
+           regardless of how narrow the absolute-positioned parent container is. */
+        .flight-search-redesign .daterangepicker {
+            white-space: nowrap !important;
+        }
         .flight-search-redesign .daterangepicker .drp-calendar {
-            float: left !important;
+            display: inline-block !important;
+            vertical-align: top !important;
+            float: none !important;
             clear: none !important;
-            display: block !important;
-            /* Let panels shrink-wrap to cell content — no forced min/max width */
             width: auto !important;
             min-width: 0 !important;
             max-width: none !important;
+            white-space: normal !important;
             /* style.css removes all padding — restore it */
             padding: 14px 12px 10px !important;
         }
         .flight-search-redesign .daterangepicker .drp-calendar.left {
             border-right: 1px solid #edf0f7 !important;
         }
-        /* Clearfix */
+        /* Buttons row spans full width below both panels */
         .flight-search-redesign .daterangepicker .drp-buttons {
+            display: block !important;
             clear: both !important;
+            white-space: normal !important;
             border-top: 1px solid #edf0f7 !important;
             padding: 10px 16px !important;
             background: #f9fafc !important;
