@@ -525,13 +525,6 @@ class FlightService
 
             $payload = $this->buildPnrPayload($booking, $searchResponse, $itineraryRaw);
 
-            // Log JSON string  -  logging nested arrays can be truncated with "Over 9 levels deep"
-            // placeholders in some handlers, which is misleading.
-            Log::debug('Sabre PNR payload', [
-                'booking_id'   => $booking->id,
-                'payload_json' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            ]);
-
             $response = Http::withToken($token)
                 ->withHeaders(['Accept' => 'application/json'])
                 ->post('https://api.cert.platform.sabre.com/v2.5.0/passenger/records?mode=create', $payload);
@@ -555,6 +548,13 @@ class FlightService
                 $booking->update([
                     'sabre_record_locator' => $locator,
                     'booking_status' => 'confirmed',
+                ]);
+            } else {
+                // PNR creation returned a response but no locator — log payload for debugging.
+                Log::error('Hold PNR creation failed', [
+                    'booking_id'   => $booking->id,
+                    'payload_json' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                    'result'       => ['success' => false, 'data' => $responseData, 'locator' => null],
                 ]);
             }
 
@@ -825,16 +825,16 @@ class FlightService
                         'FlightSegment' => $segments,
                     ],
                 ],
-                // Sabre JSON schema requires AirPrice to be an array of price requests.
+                // Sabre JSON schema requires AirPrice to be an array.
+                // OptionalQualifiers.PricingQualifiers.PassengerType pushes the path
+                // to 9+ levels when combined with the AirBook response nesting, causing
+                // Sabre's internal "Over 9 levels deep, aborting normalization" error for
+                // multi-pax bookings. Retain:true without OptionalQualifiers is sufficient
+                // – Sabre derives passenger types from the PersonName entries above.
                 'AirPrice' => [
                     [
                         'PriceRequestInformation' => [
-                            'Retain'             => true,
-                            'OptionalQualifiers' => [
-                                'PricingQualifiers' => [
-                                    'PassengerType' => $passengerTypes,
-                                ],
-                            ],
+                            'Retain' => true,
                         ],
                     ],
                 ],
@@ -1196,7 +1196,8 @@ XML;
         }
 
         $response = Http::withHeaders($headers)
-            ->post('https://sws-crt.cert.sabre.com', $xml);
+            ->withBody($xml, 'text/xml')
+            ->post('https://sws-crt.cert.sabre.com');
 
         if (!$response->successful()) {
             throw new \Exception('Sabre session create failed: ' . $response->body());
@@ -1257,7 +1258,8 @@ XML;
         }
 
         $response = Http::withHeaders($headers)
-            ->post('https://webservices.cert.platform.sabre.com', $xml);
+            ->withBody($xml, 'text/xml')
+            ->post('https://webservices.cert.platform.sabre.com');
 
         if (!$response->successful()) {
             return [
@@ -1320,7 +1322,8 @@ XML;
         }
 
         $response = Http::withHeaders($headers)
-            ->post('https://sws-crt.cert.sabre.com', $xml);
+            ->withBody($xml, 'text/xml')
+            ->post('https://sws-crt.cert.sabre.com');
 
         if (!$response->successful()) {
             return [
@@ -1377,7 +1380,8 @@ XML;
         }
 
         $response = Http::withHeaders($headers)
-            ->post('https://sws-crt.cert.sabre.com', $xml);
+            ->withBody($xml, 'text/xml')
+            ->post('https://sws-crt.cert.sabre.com');
 
         if (!$response->successful()) {
             return [
@@ -1435,7 +1439,8 @@ XML;
         }
 
         $response = Http::withHeaders($headers)
-            ->post('https://sws-crt.cert.sabre.com', $xml);
+            ->withBody($xml, 'text/xml')
+            ->post('https://sws-crt.cert.sabre.com');
 
         if (!$response->successful()) {
             return [

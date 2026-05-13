@@ -43,7 +43,7 @@ class BookingController extends Controller
             });
         }
 
-        $flightBookings = $query->paginate(15)->withQueryString();
+        $flightBookings = $query->paginate(10)->withQueryString();
         $counts         = $this->bookingCounts();
 
         return view('user.bookings.flights', compact('flightBookings', 'counts', 'status', 'search'));
@@ -79,7 +79,7 @@ class BookingController extends Controller
             });
         }
 
-        $hotelBookings = $query->paginate(15)->withQueryString();
+        $hotelBookings = $query->paginate(10)->withQueryString();
         $counts        = $this->bookingCounts();
 
         return view('user.bookings.hotels', compact('hotelBookings', 'counts', 'status', 'search'));
