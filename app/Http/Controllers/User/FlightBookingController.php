@@ -309,11 +309,15 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Please search for flights again.');
         }
 
-        $savedPassengers = Auth::user()
-            ->savedPassengers()
-            ->orderBy('first_name')
-            ->get()
-            ->toArray();
+        try {
+            $savedPassengers = Auth::user()
+                ->savedPassengers()
+                ->orderBy('first_name')
+                ->get()
+                ->toArray();
+        } catch (\Throwable $e) {
+            $savedPassengers = [];
+        }
 
         return view('user.flights.hold', [
             'itineraryId'     => $itinerary,
@@ -356,23 +360,27 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Flight selection expired. Please search again.');
         }
 
-        // Save any passenger profiles requested
-        foreach ($validated['passengers'] as $pax) {
-            if (!empty($pax['save_profile'])) {
-                Auth::user()->savedPassengers()->updateOrCreate(
-                    [
-                        'passport_no' => $pax['passport_no'] ?? null,
-                        'first_name'  => $pax['first_name'],
-                        'last_name'   => $pax['last_name'],
-                    ],
-                    [
-                        'title'        => $pax['title'],
-                        'dob'          => $pax['dob'] ?? null,
-                        'nationality'  => $pax['nationality'] ?? null,
-                        'passport_exp' => $pax['passport_exp'] ?? null,
-                    ]
-                );
+        // Save any passenger profiles requested (silently skip if table not yet migrated)
+        try {
+            foreach ($validated['passengers'] as $pax) {
+                if (!empty($pax['save_profile'])) {
+                    Auth::user()->savedPassengers()->updateOrCreate(
+                        [
+                            'passport_no' => $pax['passport_no'] ?? null,
+                            'first_name'  => $pax['first_name'],
+                            'last_name'   => $pax['last_name'],
+                        ],
+                        [
+                            'title'        => $pax['title'],
+                            'dob'          => $pax['dob'] ?? null,
+                            'nationality'  => $pax['nationality'] ?? null,
+                            'passport_exp' => $pax['passport_exp'] ?? null,
+                        ]
+                    );
+                }
             }
+        } catch (\Throwable $e) {
+            Log::warning('Could not save passenger profile: ' . $e->getMessage());
         }
 
         $totalAmount  = (float) ($itineraryData['totalPrice'] ?? 0);
@@ -404,9 +412,14 @@ class FlightBookingController extends Controller
 
         if (!($pnrResult['success'] ?? false)) {
             $booking->update(['booking_status' => 'failed']);
+            Log::error('Hold PNR creation failed', [
+                'booking_id' => $booking->id,
+                'result'     => $pnrResult,
+            ]);
+            $errMsg = $pnrResult['error'] ?? $pnrResult['message'] ?? 'Unable to create hold booking. Please try again.';
             return redirect()
                 ->route('user.flights.hold', ['itinerary' => $itineraryId] + request()->query())
-                ->with('notify_error', $pnrResult['error'] ?? 'Unable to create hold booking. Please try again.');
+                ->with('notify_error', $errMsg);
         }
 
         $booking->update(['booking_status' => 'hold']);

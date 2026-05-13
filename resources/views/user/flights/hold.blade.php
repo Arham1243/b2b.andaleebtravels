@@ -13,7 +13,7 @@
         $paxCount = max(1, $adults + $children + $infants);
 
         function hd_fmt(?int $mins): string {
-            if (!$mins || $mins < 1) return '—';
+            if (!$mins || $mins < 1) return ' - ';
             $h = intdiv($mins, 60); $r = $mins % 60;
             if ($h && !$r) return "{$h}h";
             if (!$h) return "{$r}m";
@@ -120,7 +120,7 @@
 
                                             {{-- departure --}}
                                             <div class="hp-leg__pt">
-                                                <div class="hp-leg__time">{{ $s0['departure_clock'] ?? '—' }}</div>
+                                                <div class="hp-leg__time">{{ $s0['departure_clock'] ?? ' - ' }}</div>
                                                 <div class="hp-leg__dt">{{ $s0['departure_weekday'] ?? '' }}, {{ $s0['departure_label'] ?? '' }}</div>
                                                 <div class="hp-leg__city">
                                                     {{ $s0['from'] ?? '' }}@if(!empty($s0['departure_terminal'])), T{{ $s0['departure_terminal'] }}@endif
@@ -132,11 +132,10 @@
                                                 <div class="hp-leg__bridge-dur">{{ $dur }}</div>
                                                 <div class="hp-leg__bridge-track">
                                                     <span class="hp-leg__bridge-dot"></span>
-                                                    <span class="hp-leg__bridge-line">
-                                                        @foreach($midApts as $ma)
-                                                            <span class="hp-leg__bridge-via">{{ $ma }}</span>
-                                                        @endforeach
-                                                    </span>
+                                                    @foreach($midApts as $ma)
+                                                        <span class="hp-leg__bridge-via">{{ $ma }}</span>
+                                                    @endforeach
+                                                    <span class="hp-leg__bridge-line"></span>
                                                     <span class="hp-leg__bridge-dot"></span>
                                                 </div>
                                                 @if($stops === 0)
@@ -151,7 +150,7 @@
                                             {{-- arrival --}}
                                             <div class="hp-leg__pt hp-leg__pt--arr">
                                                 <div class="hp-leg__time">
-                                                    {{ $sLast['arrival_clock'] ?? '—' }}
+                                                    {{ $sLast['arrival_clock'] ?? ' - ' }}
                                                     @if($nextDay)<span class="hp-nextday">+1</span>@endif
                                                 </div>
                                                 <div class="hp-leg__dt">{{ $sLast['arrival_weekday'] ?? '' }}, {{ $sLast['arrival_label'] ?? '' }}</div>
@@ -188,7 +187,7 @@
                                     <div class="hp-saved-row">
                                         <label class="hp-label" for="saved-{{ $pIndex }}">Load from saved passengers</label>
                                         <select class="hp-select hp-saved-pick" id="saved-{{ $pIndex }}" data-pax-idx="{{ $pIndex }}">
-                                            <option value="">— Select saved passenger —</option>
+                                            <option value=""> -  Select saved passenger  - </option>
                                             @foreach($savedPassengers as $sp)
                                                 <option value="{{ json_encode($sp) }}">
                                                     {{ $sp['title'] }} {{ $sp['first_name'] }} {{ $sp['last_name'] }}
@@ -358,7 +357,7 @@
                     </div>{{-- /.col-lg-8 --}}
 
                     {{-- ===================================================
-                         RIGHT  col-4 — sticky fare summary
+                         RIGHT  col-4  -  sticky fare summary
                          =================================================== --}}
                     <div class="col-lg-4">
                         <div class="hp-summary" id="hp-summary-sticky">
@@ -413,7 +412,12 @@
                                 <div class="hp-summary__meta-row">
                                     <i class="bx bx-user"></i>
                                     <span>
-                                        {{ $adults }}A@if($children > 0), {{ $children }}C@endif@if($infants > 0), {{ $infants }}I@endif
+                                        @php
+                                            $paxStr = $adults . ' Adult' . ($adults > 1 ? 's' : '');
+                                            if ($children > 0) $paxStr .= ', ' . $children . ' Child' . ($children > 1 ? 'ren' : '');
+                                            if ($infants > 0)  $paxStr .= ', ' . $infants . ' Infant' . ($infants > 1 ? 's' : '');
+                                        @endphp
+                                        {{ $paxStr }}
                                     </span>
                                 </div>
                                 <div class="hp-summary__meta-row">
@@ -423,7 +427,10 @@
                                 @if(!empty($searchParams['departure_date']))
                                     <div class="hp-summary__meta-row">
                                         <i class="bx bxs-calendar"></i>
-                                        <span>{{ $searchParams['departure_date'] }}@if(!empty($searchParams['return_date'])) — {{ $searchParams['return_date'] }}@endif</span>
+                                        <span>
+                                            {{ $searchParams['departure_date'] }}
+                                            @if(!empty($searchParams['return_date'])) — {{ $searchParams['return_date'] }} @endif
+                                        </span>
                                     </div>
                                 @endif
                             </div>
@@ -447,7 +454,7 @@
                                     <p><i class="bx bx-error-circle"></i> Hold is valid for <strong>~1 hour</strong>. Exact limit confirmed after PNR creation.</p>
                                     <p><i class="bx bx-chevron-right"></i> All fares &amp; seats subject to availability at time of booking.</p>
                                     <p><i class="bx bx-chevron-right"></i> No tickets issued until you confirm ticketing.</p>
-                                    <p><i class="bx bx-user-check"></i> <strong>Verify passenger names carefully — name changes not permitted once issued.</strong></p>
+                                    <p><i class="bx bx-user-check"></i> <strong>Verify passenger names carefully  -  name changes not permitted once issued.</strong></p>
                                 </div>
                             </div>
 
@@ -614,40 +621,32 @@
     padding: .03rem .28rem; border-radius: 4px; font-family: var(--sans);
 }
 
-/* bridge (center column) */
+/* bridge (center column)  -  mirrors listing page rc__bridge */
 .hp-leg__bridge {
-    display: flex; flex-direction: column; align-items: center; gap: .18rem;
+    display: flex; flex-direction: column; align-items: center; gap: .22rem;
     min-width: 120px;
 }
 .hp-leg__bridge-dur {
-    font-family: var(--mono); font-size: .72rem; font-weight: 700; color: var(--c-slate);
+    font-size: .7rem; font-weight: 600; color: var(--c-slate); font-family: var(--mono);
 }
 .hp-leg__bridge-track {
-    position: relative; width: 100%;
-    display: flex; align-items: center;
-    gap: 0;
+    width: 100%; display: flex; align-items: center; gap: .2rem;
 }
 .hp-leg__bridge-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--c-brand); flex-shrink: 0; z-index: 1;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--c-brand); flex-shrink: 0;
 }
 .hp-leg__bridge-line {
-    flex: 1; height: 2px;
-    background: linear-gradient(90deg, var(--c-brand) 0%, var(--c-line) 100%);
-    position: relative;
-    display: flex; align-items: center; justify-content: center;
+    flex: 1; height: 1px; background: var(--c-muted); opacity: .35;
 }
 .hp-leg__bridge-via {
-    position: absolute;
     font-family: var(--mono); font-size: .58rem; font-weight: 700;
-    color: var(--c-white); background: var(--c-slate);
-    padding: .1rem .35rem; border-radius: 20px;
-    white-space: nowrap;
-    box-shadow: 0 1px 4px rgba(26,37,64,.15);
+    color: #fff; background: var(--c-amber);
+    padding: .08rem .32rem; border-radius: 4px; flex-shrink: 0;
 }
 .hp-leg__bridge-stop {
-    font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-    padding: .1rem .48rem; border-radius: 20px;
+    font-size: .63rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; padding: .1rem .42rem; border-radius: 4px;
 }
 .hp-leg__bridge-stop--ok  { background: var(--c-green-soft); color: var(--c-green); }
 .hp-leg__bridge-stop--via { background: var(--c-amber-soft); color: var(--c-amber); }
