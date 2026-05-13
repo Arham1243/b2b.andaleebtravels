@@ -14,20 +14,7 @@
         /** @var array<int,array<string,mixed>> $results */
         $results = $results ?? [];
 
-        /** @var array{min:float,max:float} $priceRange */
-        $priceRange = $priceRange ?? ['min' => 0.0, 'max' => 1.0];
-
-        /** @var array<string,mixed> $filterCatalog */
-        $filterCatalog = $filterCatalog ?? [
-            'airlines' => [],
-            'dep_out' => [],
-            'dep_ret' => [],
-            'conn_out' => [],
-            'conn_ret' => [],
-        ];
-
         $itineraryCount = $itineraryCount ?? count($results);
-        $messages = $messages ?? [];
 
         $currencyCode = strtoupper((string) ($results[0]['currency'] ?? 'BDT'));
 
@@ -135,34 +122,7 @@
 
         <div class="container fl-shell">
 
-            {{-- ============================================================
-                 ALERT MESSAGES
-                 ============================================================ --}}
-            @if (!empty($messages))
-                <div class="fl-alerts">
-                    @foreach ($messages as $msg)
-                        @php $sev = strtoupper(trim((string) ($msg['severity'] ?? ''))); @endphp
-                        <div
-                            class="fl-alert {{ $sev === 'ERROR' ? 'fl-alert--err' : 'fl-alert--info' }}">
-                            <i class="bx {{ $sev === 'ERROR' ? 'bx-error-circle' : 'bx-info-circle' }}"></i>
-                            <span>{{ $msg['text'] ?? '' }}</span>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
-
             @if (($itineraryCount ?? 0) > 0)
-
-                {{-- ============================================================
-                     ADVISORY NOTE
-                     ============================================================ --}}
-                <div class="fl-notice">
-                    <span class="fl-notice__icon"><i class="bx bxs-megaphone"></i></span>
-                    <p>
-                        <strong>Note:</strong> Creating multiple bookings for the same passenger
-                        on the same airline may result in ADM. The penalty will be debited to the agent.
-                    </p>
-                </div>
 
                 {{-- ============================================================
                      RESULTS TOP-BAR: COUNT + SORT
@@ -170,15 +130,8 @@
                 <div class="fl-toolbar">
                     <div class="fl-toolbar__left">
                         <span class="fl-toolbar__count">
-                            <span class="fl-toolbar__count-num"
-                                id="fl-visible">{{ $itineraryCount }}</span>
-                            <span>of</span>
                             <strong>{{ $itineraryCount }}</strong>
-                            <span>fares</span>
-                        </span>
-                        <span class="fl-toolbar__live">
-                            <span class="fl-toolbar__dot"></span>
-                            Live Sabre inventory
+                            <span>fares found</span>
                         </span>
                     </div>
 
@@ -206,333 +159,7 @@
                     </div>
                 </div>
 
-                {{-- ============================================================
-                     GRID: SIDEBAR + RESULTS
-                     ============================================================ --}}
-                <div class="fl-grid">
-
-                    {{-- ───────────── SIDEBAR ───────────── --}}
-                    <aside class="fl-side" id="fl-side">
-                        <div class="fl-side__inner">
-
-                            <header class="fl-side__head">
-                                <div>
-                                    <span class="fl-side__eyebrow">
-                                        <span class="fl-side__eyebrow-dot"></span> Refine
-                                    </span>
-                                    <h3 class="fl-side__title">Filter Your Search</h3>
-                                </div>
-                                <button type="button" class="fl-side__reset" id="fl-reset"
-                                    title="Reset all filters">
-                                    <i class="bx bx-revision"></i> Reset
-                                </button>
-                            </header>
-
-                            @if ($isRoundTrip)
-                                <div class="fl-side__tabs" role="tablist">
-                                    <button type="button" class="fl-side__tab is-active"
-                                        data-fl-leg="out">
-                                        <i class="bx bxs-plane-take-off"></i> Onward
-                                    </button>
-                                    <button type="button" class="fl-side__tab" data-fl-leg="ret">
-                                        <i class="bx bxs-plane-land"></i> Return
-                                    </button>
-                                </div>
-                            @endif
-
-                            {{-- Stops --}}
-                            <section class="fl-fset" data-fl-fset>
-                                <h4 class="fl-fset__title">
-                                    <span><i class="bx bx-shuffle"></i> Stops</span>
-                                    <i class="bx bx-chevron-down fl-fset__caret"></i>
-                                </h4>
-                                <div class="fl-fset__body">
-                                    <div class="fl-stops" data-fl-leg-panel="out">
-                                        @foreach ([0 => 'Non-stop', 1 => '1 stop', 2 => '2+'] as $tier => $lbl)
-                                            <label class="fl-chip-pick">
-                                                <input type="checkbox" class="fl-filter"
-                                                    data-fl-axis="stops-o" value="{{ $tier }}" checked>
-                                                <span>{{ $lbl }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                    @if ($isRoundTrip)
-                                        <div class="fl-stops fl-only-ret"
-                                            data-fl-leg-panel="ret">
-                                            @foreach ([0 => 'Non-stop', 1 => '1 stop', 2 => '2+'] as $tier => $lbl)
-                                                <label class="fl-chip-pick">
-                                                    <input type="checkbox" class="fl-filter"
-                                                        data-fl-axis="stops-r" value="{{ $tier }}" checked>
-                                                    <span>{{ $lbl }}</span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                            </section>
-
-                            {{-- Departure times --}}
-                            <section class="fl-fset" data-fl-fset>
-                                <h4 class="fl-fset__title">
-                                    <span><i class="bx bxs-sun"></i> Departure Times</span>
-                                    <i class="bx bx-chevron-down fl-fset__caret"></i>
-                                </h4>
-                                <div class="fl-fset__body">
-                                    <div class="fl-tgrid" data-fl-leg-panel="out">
-                                        @foreach (
-                                            [
-                                                1 => ['Morning', '05–12', 'bxs-sun'],
-                                                2 => ['Afternoon', '12–18', 'bxs-cloud-light-rain'],
-                                                3 => ['Evening', '18–24', 'bxs-cloud'],
-                                                4 => ['Night', '24–05', 'bxs-moon'],
-                                            ]
-                                            as $b => $info
-                                        )
-                                            <label class="fl-tchip">
-                                                <input type="checkbox" class="fl-filter"
-                                                    data-fl-axis="dep-o" data-fl-bucket="{{ $b }}"
-                                                    value="{{ $b }}" checked>
-                                                <span class="fl-tchip__inner">
-                                                    <i class="bx {{ $info[2] }}"></i>
-                                                    <strong>{{ $info[0] }}</strong>
-                                                    <small>{{ $info[1] }}</small>
-                                                </span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                    @if ($isRoundTrip)
-                                        <div class="fl-tgrid fl-only-ret"
-                                            data-fl-leg-panel="ret">
-                                            @foreach (
-                                                [
-                                                    1 => ['Morning', '05–12', 'bxs-sun'],
-                                                    2 => ['Afternoon', '12–18', 'bxs-cloud-light-rain'],
-                                                    3 => ['Evening', '18–24', 'bxs-cloud'],
-                                                    4 => ['Night', '24–05', 'bxs-moon'],
-                                                ]
-                                                as $b => $info
-                                            )
-                                                <label class="fl-tchip">
-                                                    <input type="checkbox" class="fl-filter"
-                                                        data-fl-axis="dep-r" data-fl-bucket="{{ $b }}"
-                                                        value="{{ $b }}" checked>
-                                                    <span class="fl-tchip__inner">
-                                                        <i class="bx {{ $info[2] }}"></i>
-                                                        <strong>{{ $info[0] }}</strong>
-                                                        <small>{{ $info[1] }}</small>
-                                                    </span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                            </section>
-
-                            {{-- Arrival times --}}
-                            <section class="fl-fset" data-fl-fset>
-                                <h4 class="fl-fset__title">
-                                    <span><i class="bx bxs-plane-land"></i> Arrival Times</span>
-                                    <i class="bx bx-chevron-down fl-fset__caret"></i>
-                                </h4>
-                                <div class="fl-fset__body">
-                                    <div class="fl-tgrid" data-fl-leg-panel="out">
-                                        @foreach (
-                                            [
-                                                1 => ['Morning', '05–12', 'bxs-sun'],
-                                                2 => ['Afternoon', '12–18', 'bxs-cloud-light-rain'],
-                                                3 => ['Evening', '18–24', 'bxs-cloud'],
-                                                4 => ['Night', '24–05', 'bxs-moon'],
-                                            ]
-                                            as $b => $info
-                                        )
-                                            <label class="fl-tchip">
-                                                <input type="checkbox" class="fl-filter"
-                                                    data-fl-axis="arr-o" data-fl-bucket="{{ $b }}"
-                                                    value="{{ $b }}" checked>
-                                                <span class="fl-tchip__inner">
-                                                    <i class="bx {{ $info[2] }}"></i>
-                                                    <strong>{{ $info[0] }}</strong>
-                                                    <small>{{ $info[1] }}</small>
-                                                </span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                    @if ($isRoundTrip)
-                                        <div class="fl-tgrid fl-only-ret"
-                                            data-fl-leg-panel="ret">
-                                            @foreach (
-                                                [
-                                                    1 => ['Morning', '05–12', 'bxs-sun'],
-                                                    2 => ['Afternoon', '12–18', 'bxs-cloud-light-rain'],
-                                                    3 => ['Evening', '18–24', 'bxs-cloud'],
-                                                    4 => ['Night', '24–05', 'bxs-moon'],
-                                                ]
-                                                as $b => $info
-                                            )
-                                                <label class="fl-tchip">
-                                                    <input type="checkbox" class="fl-filter"
-                                                        data-fl-axis="arr-r" data-fl-bucket="{{ $b }}"
-                                                        value="{{ $b }}" checked>
-                                                    <span class="fl-tchip__inner">
-                                                        <i class="bx {{ $info[2] }}"></i>
-                                                        <strong>{{ $info[0] }}</strong>
-                                                        <small>{{ $info[1] }}</small>
-                                                    </span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                            </section>
-
-                            {{-- Price --}}
-                            <section class="fl-fset" data-fl-fset>
-                                <h4 class="fl-fset__title">
-                                    <span><i class="bx bxs-purchase-tag"></i> Price Range</span>
-                                    <i class="bx bx-chevron-down fl-fset__caret"></i>
-                                </h4>
-                                <div class="fl-fset__body">
-                                    @php
-                                        $pmin = (float) $priceRange['min'];
-                                        $pmax = max((float) $priceRange['max'], $pmin + 1);
-                                    @endphp
-                                    <input type="range" id="fl-price" class="fl-range"
-                                        min="{{ floor($pmin) }}" max="{{ ceil($pmax) }}"
-                                        value="{{ ceil($pmax) }}" step="1">
-                                    <div class="fl-range__labels">
-                                        <span class="fl-range__min">{{ $currencyCode }}
-                                            {{ number_format($pmin, 0) }}</span>
-                                        <span class="fl-range__cap">
-                                            <span class="fl-range__cap-cur">{{ $currencyCode }}</span>
-                                            <span id="fl-price-label">{{ number_format($pmax, 0) }}</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </section>
-
-                            {{-- Airlines --}}
-                            @if (!empty($filterCatalog['airlines']))
-                                <section class="fl-fset" data-fl-fset>
-                                    <h4 class="fl-fset__title">
-                                        <span><i class="bx bxs-plane"></i> Airlines</span>
-                                        <i class="bx bx-chevron-down fl-fset__caret"></i>
-                                    </h4>
-                                    <div class="fl-fset__body">
-                                        <div class="fl-scroll">
-                                            @foreach ($filterCatalog['airlines'] as $al)
-                                                <label class="fl-check fl-check--al">
-                                                    <input type="checkbox" class="fl-filter"
-                                                        data-fl-axis="airline"
-                                                        value="{{ $al['code'] ?? '' }}" checked>
-                                                    <img class="fl-check__logo"
-                                                        src="{{ fl_carrier_logo($al['code'] ?? '') }}"
-                                                        loading="lazy" alt="" onerror="this.style.visibility='hidden'">
-                                                    <span class="fl-check__label">
-                                                        <span>{{ strtoupper((string) ($al['code'] ?? '')) }}</span>
-                                                    </span>
-                                                    <span class="fl-check__count">{{ $al['count'] ?? 0 }}</span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </section>
-                            @endif
-
-                            {{-- Departure airports --}}
-                            @if (!empty($filterCatalog['dep_out']) || (!empty($filterCatalog['dep_ret']) && $isRoundTrip))
-                                <section class="fl-fset" data-fl-fset>
-                                    <h4 class="fl-fset__title">
-                                        <span><i class="bx bx-buildings"></i> Departure Airports</span>
-                                        <i class="bx bx-chevron-down fl-fset__caret"></i>
-                                    </h4>
-                                    <div class="fl-fset__body">
-                                        <div class="fl-scroll" data-fl-leg-panel="out">
-                                            @foreach ($filterCatalog['dep_out'] ?? [] as $apt)
-                                                <label class="fl-check">
-                                                    <input type="checkbox" class="fl-filter"
-                                                        data-fl-axis="depa-o" value="{{ $apt }}" checked>
-                                                    <span class="fl-check__label"><strong>{{ $apt }}</strong></span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                        @if ($isRoundTrip)
-                                            <div class="fl-scroll fl-only-ret"
-                                                data-fl-leg-panel="ret">
-                                                @foreach ($filterCatalog['dep_ret'] ?? [] as $apt)
-                                                    <label class="fl-check">
-                                                        <input type="checkbox" class="fl-filter"
-                                                            data-fl-axis="depa-r" value="{{ $apt }}" checked>
-                                                        <span class="fl-check__label"><strong>{{ $apt }}</strong></span>
-                                                    </label>
-                                                @endforeach
-                                            </div>
-                                        @endif
-                                    </div>
-                                </section>
-                            @endif
-
-                            {{-- Connecting airports --}}
-                            @if (!empty($filterCatalog['conn_out']) || (!empty($filterCatalog['conn_ret']) && $isRoundTrip))
-                                <section class="fl-fset" data-fl-fset>
-                                    <h4 class="fl-fset__title">
-                                        <span><i class="bx bx-transfer"></i> Connecting Airports</span>
-                                        <i class="bx bx-chevron-down fl-fset__caret"></i>
-                                    </h4>
-                                    <div class="fl-fset__body">
-                                        <div class="fl-scroll" data-fl-leg-panel="out">
-                                            @foreach ($filterCatalog['conn_out'] ?? [] as $cx)
-                                                <label class="fl-check">
-                                                    <input type="checkbox" class="fl-filter"
-                                                        data-fl-axis="conn-o" value="{{ $cx }}" checked>
-                                                    <span class="fl-check__label"><strong>{{ $cx }}</strong></span>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                        @if ($isRoundTrip)
-                                            <div class="fl-scroll fl-only-ret"
-                                                data-fl-leg-panel="ret">
-                                                @foreach ($filterCatalog['conn_ret'] ?? [] as $cx)
-                                                    <label class="fl-check">
-                                                        <input type="checkbox" class="fl-filter"
-                                                            data-fl-axis="conn-r" value="{{ $cx }}"
-                                                            checked>
-                                                        <span class="fl-check__label"><strong>{{ $cx }}</strong></span>
-                                                    </label>
-                                                @endforeach
-                                            </div>
-                                        @endif
-                                    </div>
-                                </section>
-                            @endif
-
-                            {{-- Fare type --}}
-                            <section class="fl-fset" data-fl-fset>
-                                <h4 class="fl-fset__title">
-                                    <span><i class="bx bxs-offer"></i> Fare Type</span>
-                                    <i class="bx bx-chevron-down fl-fset__caret"></i>
-                                </h4>
-                                <div class="fl-fset__body">
-                                    <label class="fl-check">
-                                        <input type="checkbox" class="fl-filter" data-fl-axis="fare"
-                                            value="ndc" checked>
-                                        <span class="fl-check__label">NDC</span>
-                                    </label>
-                                    <label class="fl-check">
-                                        <input type="checkbox" class="fl-filter" data-fl-axis="fare"
-                                            value="published" checked>
-                                        <span class="fl-check__label">Published / ATPCO</span>
-                                    </label>
-                                    <label class="fl-check">
-                                        <input type="checkbox" class="fl-filter" data-fl-axis="fare"
-                                            value="other" checked>
-                                        <span class="fl-check__label">Other</span>
-                                    </label>
-                                </div>
-                            </section>
-                        </div>
-                    </aside>
-
-                    {{-- ───────────── RESULTS LIST ───────────── --}}
+                <div class="fl-list-wrap">
                     <main class="fl-list" id="fl-list">
                         @foreach ($results as $result)
                             @php
@@ -911,16 +538,6 @@
 
                             </article>
                         @endforeach
-
-                        <div class="fl-empty fl-empty--filtered" id="fl-empty-filtered" hidden>
-                            <div class="fl-empty__icon"><i class="bx bx-filter-alt"></i></div>
-                            <h3 class="fl-empty__title">No fares match these filters</h3>
-                            <p class="fl-empty__copy">Try relaxing one of the filters on the left, or hit
-                                <strong>Reset</strong> to see all itineraries again.</p>
-                            <button type="button" class="fl-btn fl-btn--primary" id="fl-empty-reset">
-                                <i class="bx bx-revision"></i> Reset filters
-                            </button>
-                        </div>
                     </main>
                 </div>
             @elseif ($hasSearch && empty($results ?? []))
@@ -1025,85 +642,6 @@
         }
 
         /* ============================================================
-           ALERTS
-           ============================================================ */
-        .fl-alerts {
-            display: flex;
-            flex-direction: column;
-            gap: .55rem;
-            margin-bottom: 1rem;
-        }
-
-        .fl-alert {
-            display: flex;
-            gap: .55rem;
-            align-items: flex-start;
-            padding: .7rem .9rem;
-            border-radius: 12px;
-            font-size: .85rem;
-            font-weight: 600;
-            border: 1px solid transparent;
-        }
-
-        .fl-alert i {
-            font-size: 1.15rem;
-            margin-top: .05rem;
-        }
-
-        .fl-alert--err {
-            background: var(--fl-rose-soft);
-            border-color: rgba(190, 18, 60, .25);
-            color: var(--fl-rose);
-        }
-
-        .fl-alert--info {
-            background: var(--fl-sky-soft);
-            border-color: rgba(2, 132, 199, .25);
-            color: var(--fl-sky);
-        }
-
-        /* ============================================================
-           NOTICE
-           ============================================================ */
-        .fl-notice {
-            display: flex;
-            gap: .85rem;
-            align-items: flex-start;
-            padding: .7rem .95rem;
-            background: var(--fl-surface);
-            border: 1px solid var(--fl-line);
-            border-left: 4px solid var(--fl-amber);
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            box-shadow: var(--fl-shadow-sm);
-        }
-
-        .fl-notice p {
-            margin: 0;
-            font-size: .82rem;
-            color: var(--fl-slate);
-            line-height: 1.5;
-        }
-
-        .fl-notice strong {
-            color: var(--fl-ink);
-            font-weight: 700;
-        }
-
-        .fl-notice__icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--fl-amber-soft);
-            color: var(--fl-amber);
-            font-size: 1.1rem;
-            flex-shrink: 0;
-        }
-
-        /* ============================================================
            TOOLBAR (count + sort)
            ============================================================ */
         .fl-toolbar {
@@ -1130,51 +668,12 @@
             gap: .25rem;
         }
 
-        .fl-toolbar__count strong,
-        .fl-toolbar__count-num {
+        .fl-toolbar__count strong {
             font-family: var(--fl-mono);
-            color: var(--fl-ink);
-            font-weight: 800;
-            font-size: 1rem;
-        }
-
-        .fl-toolbar__count-num {
             color: var(--fl-brand);
-        }
-
-        .fl-toolbar__live {
-            display: inline-flex;
-            align-items: center;
-            gap: .35rem;
-            background: var(--fl-emerald-soft);
-            color: var(--fl-emerald);
-            padding: .15rem .55rem;
-            border-radius: 999px;
-            font-size: .7rem;
-            font-weight: 700;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-        }
-
-        .fl-toolbar__dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--fl-emerald);
-            box-shadow: 0 0 0 3px rgba(4, 120, 87, .22);
-            animation: fl-pulse 1.8s ease-out infinite;
-        }
-
-        @keyframes fl-pulse {
-
-            0%,
-            100% {
-                box-shadow: 0 0 0 3px rgba(4, 120, 87, .22);
-            }
-
-            50% {
-                box-shadow: 0 0 0 6px rgba(4, 120, 87, 0);
-            }
+            font-weight: 800;
+            font-size: 1.06rem;
+            margin-right: .35rem;
         }
 
         .fl-toolbar__right {
@@ -1246,413 +745,10 @@
         }
 
         /* ============================================================
-           GRID
+           LIST WRAP — full-width results only
            ============================================================ */
-        .fl-grid {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 1.25rem;
-            align-items: flex-start;
-        }
-
-        /* ============================================================
-           SIDEBAR
-           ============================================================ */
-        .fl-side {
+        .fl-list-wrap {
             min-width: 0;
-        }
-
-        .fl-side__inner {
-            position: sticky;
-            top: 1rem;
-            background: var(--fl-surface);
-            border: 1px solid var(--fl-line);
-            border-radius: 18px;
-            padding: 1.05rem 1rem 1.2rem;
-            box-shadow: var(--fl-shadow-md);
-        }
-
-        .fl-side__head {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: .75rem;
-            padding-bottom: .85rem;
-            margin-bottom: .6rem;
-            border-bottom: 1px solid var(--fl-line-soft);
-        }
-
-        .fl-side__eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: .35rem;
-            font-size: .62rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .14em;
-            color: var(--fl-brand);
-            background: var(--fl-brand-soft);
-            padding: .15rem .5rem;
-            border-radius: 999px;
-            margin-bottom: .35rem;
-        }
-
-        .fl-side__eyebrow-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--fl-brand);
-        }
-
-        .fl-side__title {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 800;
-            color: var(--fl-ink);
-            letter-spacing: -.01em;
-        }
-
-        .fl-side__reset {
-            display: inline-flex;
-            align-items: center;
-            gap: .25rem;
-            background: var(--fl-surface-2);
-            border: 1px solid var(--fl-line);
-            color: var(--fl-slate);
-            padding: .4rem .65rem;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: .72rem;
-            cursor: pointer;
-            transition: background-color .15s ease, color .15s ease, border-color .15s ease;
-        }
-
-        .fl-side__reset:hover {
-            background: var(--fl-brand);
-            color: #fff;
-            border-color: var(--fl-brand);
-        }
-
-        .fl-side__reset i {
-            font-size: .9rem;
-        }
-
-        .fl-side__tabs {
-            display: flex;
-            gap: .25rem;
-            background: var(--fl-surface-2);
-            border: 1px solid var(--fl-line);
-            border-radius: 999px;
-            padding: .2rem;
-            margin: .55rem 0 .25rem;
-        }
-
-        .fl-side__tab {
-            flex: 1;
-            background: transparent;
-            border: none;
-            padding: .4rem .55rem;
-            border-radius: 999px;
-            font-size: .76rem;
-            font-weight: 700;
-            color: var(--fl-slate);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: .3rem;
-            cursor: pointer;
-            transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
-        }
-
-        .fl-side__tab i {
-            font-size: .95rem;
-        }
-
-        .fl-side__tab.is-active {
-            background: var(--fl-surface);
-            color: var(--fl-brand);
-            box-shadow: var(--fl-shadow-sm);
-        }
-
-        /* Leg-panel visibility driven by [data-fl-active="out|ret"] on #fl-side */
-        .fl-side .fl-only-ret,
-        .fl-side [data-fl-leg-panel="ret"] {
-            display: none;
-        }
-
-        .fl-side[data-fl-active="ret"] .fl-only-ret,
-        .fl-side[data-fl-active="ret"] [data-fl-leg-panel="ret"] {
-            display: revert;
-        }
-
-        .fl-side[data-fl-active="ret"] [data-fl-leg-panel="out"] {
-            display: none;
-        }
-
-        /* filter set */
-        .fl-fset {
-            border-top: 1px solid var(--fl-line-soft);
-            padding: .85rem 0 .55rem;
-        }
-
-        .fl-fset:first-of-type {
-            border-top: none;
-            padding-top: .7rem;
-        }
-
-        .fl-fset__title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            margin: 0;
-            padding: 0;
-            font-size: .72rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .12em;
-            color: var(--fl-ink);
-            user-select: none;
-        }
-
-        .fl-fset__title span {
-            display: inline-flex;
-            align-items: center;
-            gap: .4rem;
-        }
-
-        .fl-fset__title i {
-            font-size: 1rem;
-            color: var(--fl-brand);
-        }
-
-        .fl-fset__caret {
-            color: var(--fl-muted);
-            transition: transform .2s ease;
-        }
-
-        .fl-fset.is-collapsed .fl-fset__caret {
-            transform: rotate(-90deg);
-        }
-
-        .fl-fset__body {
-            margin-top: .6rem;
-        }
-
-        .fl-fset.is-collapsed .fl-fset__body {
-            display: none;
-        }
-
-        /* stops chips */
-        .fl-stops {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: .4rem;
-        }
-
-        .fl-chip-pick {
-            position: relative;
-            cursor: pointer;
-        }
-
-        .fl-chip-pick input {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .fl-chip-pick span {
-            display: block;
-            text-align: center;
-            padding: .4rem .25rem;
-            font-size: .75rem;
-            font-weight: 700;
-            color: var(--fl-slate);
-            border-radius: 10px;
-            background: var(--fl-surface-2);
-            border: 1px solid var(--fl-line);
-            transition: background-color .15s ease, color .15s ease, border-color .15s ease;
-        }
-
-        .fl-chip-pick input:checked+span {
-            background: var(--fl-brand-soft);
-            color: var(--fl-brand);
-            border-color: rgba(205, 27, 79, .4);
-        }
-
-        /* time chips */
-        .fl-tgrid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: .4rem;
-        }
-
-        .fl-tchip {
-            position: relative;
-            cursor: pointer;
-        }
-
-        .fl-tchip input {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .fl-tchip__inner {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: .15rem;
-            padding: .5rem .25rem;
-            border-radius: 12px;
-            background: var(--fl-surface-2);
-            border: 1px solid var(--fl-line);
-            color: var(--fl-slate);
-            transition: background-color .15s ease, color .15s ease, border-color .15s ease;
-        }
-
-        .fl-tchip__inner i {
-            font-size: 1.05rem;
-            color: var(--fl-slate-2);
-        }
-
-        .fl-tchip__inner strong {
-            font-size: .78rem;
-            font-weight: 800;
-            color: var(--fl-ink);
-        }
-
-        .fl-tchip__inner small {
-            font-family: var(--fl-mono);
-            font-size: .65rem;
-            color: var(--fl-muted);
-            letter-spacing: .04em;
-        }
-
-        .fl-tchip input:checked+.fl-tchip__inner {
-            background: var(--fl-brand-soft);
-            color: var(--fl-brand);
-            border-color: rgba(205, 27, 79, .4);
-        }
-
-        .fl-tchip input:checked+.fl-tchip__inner i,
-        .fl-tchip input:checked+.fl-tchip__inner strong,
-        .fl-tchip input:checked+.fl-tchip__inner small {
-            color: var(--fl-brand);
-        }
-
-        /* check rows */
-        .fl-check {
-            display: flex;
-            gap: .55rem;
-            align-items: center;
-            padding: .35rem .15rem;
-            font-size: .82rem;
-            color: var(--fl-ink-2);
-            cursor: pointer;
-            border-radius: 8px;
-            transition: background-color .15s ease;
-        }
-
-        .fl-check:hover {
-            background: var(--fl-surface-2);
-        }
-
-        .fl-check input {
-            width: 16px;
-            height: 16px;
-            accent-color: var(--fl-brand);
-            cursor: pointer;
-        }
-
-        .fl-check__label {
-            flex: 1;
-            min-width: 0;
-            display: inline-flex;
-            align-items: center;
-            gap: .35rem;
-        }
-
-        .fl-check__label strong {
-            font-weight: 700;
-            color: var(--fl-ink);
-        }
-
-        .fl-check--al .fl-check__logo {
-            width: 22px;
-            height: 22px;
-            object-fit: contain;
-            background: #fff;
-            border: 1px solid var(--fl-line);
-            padding: 1px;
-            border-radius: 6px;
-        }
-
-        .fl-check__count {
-            font-family: var(--fl-mono);
-            font-size: .7rem;
-            font-weight: 700;
-            color: var(--fl-slate-2);
-            background: var(--fl-surface-2);
-            border: 1px solid var(--fl-line);
-            border-radius: 999px;
-            padding: .1rem .45rem;
-            min-width: 28px;
-            text-align: center;
-        }
-
-        .fl-scroll {
-            max-height: 200px;
-            overflow: auto;
-            padding-right: .25rem;
-            display: flex;
-            flex-direction: column;
-            gap: .15rem;
-        }
-
-        .fl-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .fl-scroll::-webkit-scrollbar-thumb {
-            background: var(--fl-line);
-            border-radius: 999px;
-        }
-
-        /* price range */
-        .fl-range {
-            width: 100%;
-            accent-color: var(--fl-brand);
-        }
-
-        .fl-range__labels {
-            display: flex;
-            justify-content: space-between;
-            margin-top: .45rem;
-            align-items: center;
-            font-size: .75rem;
-            color: var(--fl-slate);
-        }
-
-        .fl-range__min {
-            font-family: var(--fl-mono);
-            color: var(--fl-muted);
-        }
-
-        .fl-range__cap {
-            background: var(--fl-brand-soft);
-            color: var(--fl-brand);
-            font-family: var(--fl-mono);
-            padding: .2rem .55rem;
-            border-radius: 999px;
-            font-weight: 800;
-            font-size: .8rem;
-            display: inline-flex;
-            gap: .25rem;
-        }
-
-        .fl-range__cap-cur {
-            opacity: .7;
         }
 
         /* ============================================================
@@ -1680,11 +776,6 @@
             transform: translateY(-1px);
         }
 
-        .fl-card.fl-hide {
-            display: none !important;
-        }
-
-        .fl-card__head {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -2517,11 +1608,6 @@
             box-shadow: var(--fl-shadow-md);
         }
 
-        .fl-empty--filtered {
-            margin: 0;
-            box-shadow: var(--fl-shadow-sm);
-        }
-
         .fl-empty__icon {
             width: 72px;
             height: 72px;
@@ -2599,14 +1685,6 @@
         }
 
         @media (max-width: 991px) {
-            .fl-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .fl-side__inner {
-                position: static;
-            }
-
             .fl-leg__row {
                 grid-template-columns: 1fr;
                 gap: .5rem;
@@ -2688,48 +1766,9 @@
 
 @push('js')
     <script>
-        window.FL_CFG = @json([
-            'trip' => $tripType,
-            'priceMax' => (float) $priceRange['max'],
-        ]);
-
         (function () {
             const list = document.getElementById('fl-list');
             if (!list) return;
-
-            const side = document.getElementById('fl-side');
-            const cfg = window.FL_CFG || {};
-            const trip = cfg.trip || 'one_way';
-            const PRICE_MAX = Number(cfg.priceMax ?? 999999);
-
-            const AXIS_TO_META = {
-                'stops-o': 'st_o',
-                'stops-r': 'st_r',
-                'dep-o': 'dba_o',
-                'dep-r': 'dba_r',
-                'arr-o': 'aba_o',
-                'arr-r': 'aba_r',
-                'airline': 'al',
-                'depa-o': 'dep_o',
-                'depa-r': 'dep_r',
-                'conn-o': 'conn_o',
-                'conn-r': 'conn_r',
-                'fare': 'fare',
-            };
-
-            const ALL_AXIS_FOR_TRIP = (() => {
-                const out = [
-                    'stops-o', 'dep-o', 'arr-o', 'airline', 'depa-o', 'conn-o', 'fare'
-                ];
-
-                if (trip === 'round_trip') {
-                    out.push('stops-r', 'dep-r', 'arr-r', 'depa-r', 'conn-r');
-                }
-
-                return out;
-            })();
-
-            const cards = () => [...list.querySelectorAll('.fl-card')];
 
             function parseMeta(card) {
                 try {
@@ -2739,101 +1778,14 @@
                 }
             }
 
-            /* ====================== TAB SWITCHING ====================== */
-            const tabBtns = [...document.querySelectorAll('.fl-side__tab[data-fl-leg]')];
-
-            function setLegTab(which) {
-                tabBtns.forEach(b => b.classList.toggle('is-active', b.dataset.flLeg === which));
-                if (side) side.setAttribute('data-fl-active', which);
-            }
-
-            tabBtns.forEach(b => b.addEventListener('click', () => setLegTab(b.dataset.flLeg)));
-
-            if (trip === 'round_trip') {
-                setLegTab('out');
-            }
-
-            /* ====================== FILTER STATE ====================== */
-            const priceEl = document.getElementById('fl-price');
-            const priceLabel = document.getElementById('fl-price-label');
-
-            function getInputsForAxis(axis) {
-                return [...side.querySelectorAll(`.fl-filter[data-fl-axis="${axis}"]`)];
-            }
-
-            function getChosen(axis) {
-                return getInputsForAxis(axis)
-                    .filter(i => i.checked)
-                    .map(i => String(i.dataset.flBucket !== undefined ? i.dataset.flBucket : i.value));
-            }
-
-            function metaArr(meta, key) {
-                const v = meta[key];
-
-                if (Array.isArray(v)) return v.map(String);
-
-                if (v === null || v === undefined) return null;
-
-                return [String(v)];
-            }
-
-            function matches(meta) {
-                /* Price cap */
-                if (priceEl) {
-                    const cap = Number(priceEl.value || PRICE_MAX);
-
-                    if (Number(meta.price || 0) > cap + 0.01) return false;
-                }
-
-                /* Each axis */
-                for (const axis of ALL_AXIS_FOR_TRIP) {
-                    const inputs = getInputsForAxis(axis);
-
-                    if (!inputs.length) continue;
-
-                    const chosen = getChosen(axis);
-
-                    if (!chosen.length) return false;
-
-                    const metaKey = AXIS_TO_META[axis];
-
-                    if (!metaKey) continue;
-
-                    const cardVals = metaArr(meta, metaKey);
-
-                    if (cardVals === null) continue;
-
-                    /* Stops: scalar value, must be in chosen */
-                    if (axis === 'stops-o' || axis === 'stops-r') {
-                        if (!cardVals.length) continue;
-                        if (!chosen.includes(cardVals[0])) return false;
-                        continue;
-                    }
-
-                    /* Connections: all card mids must be allowed */
-                    if (axis === 'conn-o' || axis === 'conn-r') {
-                        if (!cardVals.length) continue;
-                        if (!cardVals.every(v => chosen.includes(v))) return false;
-                        continue;
-                    }
-
-                    /* Default: any match */
-                    if (!cardVals.length) continue;
-                    if (!cardVals.some(v => chosen.includes(v))) return false;
-                }
-
-                return true;
-            }
-
-            /* ====================== SORT ====================== */
             let currentSort = 'price-asc';
 
             function sortCards() {
                 const items = [...list.querySelectorAll('.fl-card')];
 
                 items.sort((a, b) => {
-                    const ma = parseMeta(a),
-                        mb = parseMeta(b);
+                    const ma = parseMeta(a);
+                    const mb = parseMeta(b);
 
                     switch (currentSort) {
                         case 'price-desc':
@@ -2841,11 +1793,11 @@
                         case 'duration-o-asc':
                             return (Number(ma.dur_o) || 9e9) - (Number(mb.dur_o) || 9e9);
                         case 'departure-o':
-                            return String(ma.first_dep_iso || '').localeCompare(String(mb
-                                .first_dep_iso || ''));
+                            return String(ma.first_dep_iso || '').localeCompare(
+                                String(mb.first_dep_iso || ''));
                         case 'airline':
-                            return String((ma.al || [])[0] || '').localeCompare(String((mb.al ||
-                                [])[0] || ''));
+                            return String((ma.al || [])[0] || '').localeCompare(
+                                String((mb.al || [])[0] || ''));
                         case 'best-value': {
                             const va = (Number(ma.price) || 9e9) / Math.max(1, Number(ma.dur_o) || 1);
                             const vb = (Number(mb.price) || 9e9) / Math.max(1, Number(mb.dur_o) || 1);
@@ -2875,71 +1827,16 @@
                             btn.classList.remove('is-desc');
                         }
                         btn.dataset.flSort = target;
-                    } else {
-                        if (canCycle) btn.classList.remove('is-desc');
+                    } else if (canCycle) {
+                        btn.classList.remove('is-desc');
                     }
 
                     sortBtns.forEach(b => b.classList.toggle('is-active', b === btn));
                     currentSort = target;
-                    applyFilters();
+                    sortCards();
                 });
             });
 
-            /* ====================== APPLY ====================== */
-            const visibleCounter = document.getElementById('fl-visible');
-            const emptyFiltered = document.getElementById('fl-empty-filtered');
-
-            function applyFilters() {
-                let visible = 0;
-
-                cards().forEach(card => {
-                    const ok = matches(parseMeta(card));
-                    card.classList.toggle('fl-hide', !ok);
-                    if (ok) visible++;
-                });
-
-                if (visibleCounter) visibleCounter.textContent = String(visible);
-
-                if (emptyFiltered) {
-                    emptyFiltered.hidden = visible !== 0 || cards().length === 0;
-                }
-
-                sortCards();
-            }
-
-            side?.addEventListener('change', applyFilters);
-
-            priceEl?.addEventListener('input', () => {
-                if (priceLabel) priceLabel.textContent = priceEl.value;
-                applyFilters();
-            });
-
-            /* ====================== RESET ====================== */
-            function doReset() {
-                side?.querySelectorAll('.fl-filter').forEach(i => {
-                    i.checked = true;
-                });
-
-                if (priceEl) {
-                    priceEl.value = String(priceEl.max);
-                    if (priceLabel) priceLabel.textContent = priceEl.value;
-                }
-
-                applyFilters();
-            }
-
-            document.getElementById('fl-reset')?.addEventListener('click', doReset);
-            document.getElementById('fl-empty-reset')?.addEventListener('click', doReset);
-
-            /* ====================== ACCORDION COLLAPSE ====================== */
-            document.querySelectorAll('[data-fl-fset] .fl-fset__title').forEach(title => {
-                title.addEventListener('click', () => {
-                    const fset = title.closest('[data-fl-fset]');
-                    if (fset) fset.classList.toggle('is-collapsed');
-                });
-            });
-
-            /* ====================== EXPAND DETAILS ====================== */
             document.querySelectorAll('[data-fl-expand]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const leg = btn.closest('.fl-leg');
@@ -2956,8 +1853,7 @@
                 });
             });
 
-            /* Initial */
-            applyFilters();
+            sortCards();
         })();
     </script>
 @endpush
