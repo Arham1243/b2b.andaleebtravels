@@ -479,7 +479,8 @@
             };
 
             const clearQuickReturn = () => {
-                clearReturnDate();
+                // Clearing return → revert to one_way (setTripType calls clearReturnDate internally)
+                setTripType('one_way');
             };
 
             const seedMultiCityFromSingle = () => {
@@ -946,10 +947,13 @@
                         vue.setTripType('round_trip');
                     }
                 } else {
-                    // Single date selected — clear return, keep current trip type
+                    // Single date selected — clear return + revert to one_way
                     $retIn.val('');
                     clearFlightDateDisplay('flight-return');
                     if (vue) vue.returnDate = '';
+                    if (vue && vue.tripType !== 'one_way' && typeof vue.setTripType === 'function') {
+                        vue.setTripType('one_way');
+                    }
                 }
             });
 

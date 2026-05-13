@@ -1543,9 +1543,9 @@
             border-radius: 16px !important;
             box-shadow: 0 20px 60px rgba(15,23,42,.18) !important;
             font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
-            /* style.css sets width:auto; reinforce + force wide enough for 2 panels */
+            /* Let width be driven by the two self-sizing panels */
             width: auto !important;
-            min-width: 680px !important;
+            min-width: 0 !important;
             padding: 0 !important;
             overflow: hidden !important;
         }
@@ -1560,8 +1560,10 @@
             float: left !important;
             clear: none !important;
             display: block !important;
-            min-width: 320px !important;
-            max-width: 340px !important;
+            /* Let panels shrink-wrap to cell content — no forced min/max width */
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: none !important;
             /* style.css removes all padding — restore it */
             padding: 14px 12px 10px !important;
         }
