@@ -1575,15 +1575,9 @@
         .flight-search-redesign .daterangepicker .drp-calendar.left {
             border-right: 1px solid #edf0f7 !important;
         }
-        /* Buttons row spans full width below both panels */
+        /* Hide footer buttons — autoApply handles selection immediately */
         .flight-search-redesign .daterangepicker .drp-buttons {
-            display: block !important;
-            clear: both !important;
-            white-space: normal !important;
-            border-top: 1px solid #edf0f7 !important;
-            padding: 10px 16px !important;
-            background: #f9fafc !important;
-            border-radius: 0 0 16px 16px !important;
+            display: none !important;
         }
 
         /* ── Cell sizing — override style.css 44px ── */
