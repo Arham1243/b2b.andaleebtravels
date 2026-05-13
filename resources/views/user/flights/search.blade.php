@@ -738,8 +738,8 @@
     --c-blue-soft:   #eff6ff;
     --c-violet:      #7c3aed;
     --c-violet-soft: #ede9fe;
-    --c-shadow:      0 2px 8px rgba(26,37,64,.07);
-    --c-shadow-hov:  0 6px 22px rgba(26,37,64,.12);
+    --c-shadow:      none;
+    --c-shadow-hov:  none;
     --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
     --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     font-family: var(--sans);
@@ -753,8 +753,8 @@
 /* =========================================================
    SEARCH WRAP
    ========================================================= */
-.rp-swrap { background: #fff; border-bottom: 1px solid var(--c-line); }
-.rp-shell { padding-top: 1.1rem; }
+.rp-swrap { background: #fff; }
+.rp-shell { padding-top: 2rem; }
 
 /* =========================================================
    TOOLBAR
@@ -766,11 +766,9 @@
     justify-content: space-between;
     gap: .65rem 1rem;
     margin-bottom: .85rem;
-    padding: .55rem .75rem;
-    background: var(--c-white);
-    border: 1px solid var(--c-line);
-    border-radius: 12px;
-    box-shadow: var(--c-shadow);
+    padding: .45rem 0;
+    background: transparent;
+    border: none;
 }
 .rp-bar__count { font-size: .82rem; color: var(--c-slate); }
 .rp-bar__count strong { color: var(--c-ink); font-weight: 700; }
@@ -801,11 +799,10 @@
     background: var(--c-white);
     border: 1px solid var(--c-line);
     border-radius: 14px;
-    box-shadow: var(--c-shadow);
     overflow: hidden;
-    transition: box-shadow .15s, border-color .15s;
+    transition: border-color .15s;
 }
-.rc:hover { border-color: rgba(205,27,79,.25); box-shadow: var(--c-shadow-hov); }
+.rc:hover { border-color: rgba(205,27,79,.3); }
 
 /* leg row */
 .rc__leg {
@@ -1226,7 +1223,6 @@
     background: var(--c-white);
     border: 1px solid var(--c-line);
     border-radius: 14px;
-    box-shadow: var(--c-shadow);
     overflow: hidden;
     position: sticky;
     top: 1rem;
@@ -1509,7 +1505,6 @@
     background: var(--c-white);
     border: 1px solid var(--c-line);
     border-radius: 12px;
-    box-shadow: var(--c-shadow);
     overflow: hidden;
 }
 
