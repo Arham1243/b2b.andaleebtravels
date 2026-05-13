@@ -197,18 +197,6 @@ class FlightBookingController extends Controller
             return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
         }
 
-        if ($this->flightSkipPaymentGatewayForTesting()) {
-            $booking->update([
-                'payment_method' => 'test_skip',
-            ]);
-            Log::warning('Flight checkout: payment gateway skipped (services.flight.skip_payment_for_testing)', [
-                'booking_id' => $booking->id,
-                'booking_number' => $booking->booking_number,
-            ]);
-
-            return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
-        }
-
         try {
             $redirectUrl = $flightService->getRedirectUrl($booking, $validated['payment_method']);
             return redirect($redirectUrl);
@@ -256,8 +244,6 @@ class FlightBookingController extends Controller
                     }
 
                     $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
-                } elseif ($booking->payment_method === 'test_skip' && $this->flightSkipPaymentGatewayForTesting()) {
-                    $verificationResult = ['success' => true, 'data' => ['method' => 'test_skip', 'note' => 'skip_payment_for_testing']];
                 } elseif ($booking->payment_method === 'payby') {
                     $verificationResult = $flightService->verifyPayByPayment($booking);
                 } elseif ($booking->payment_method === 'tabby') {
@@ -579,15 +565,6 @@ class FlightBookingController extends Controller
             return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
         }
 
-        if ($this->flightSkipPaymentGatewayForTesting()) {
-            $booking->update(['payment_method' => 'test_skip']);
-            Log::warning('Hold confirm: payment gateway skipped (services.flight.skip_payment_for_testing)', [
-                'booking_id' => $booking->id,
-            ]);
-
-            return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
-        }
-
         // External gateway
         $method = $validated['payment_method'] ?? null;
         if (!$method) {
@@ -644,19 +621,25 @@ class FlightBookingController extends Controller
         $leadEmail = (string) data_get($booking->passengers_data, 'lead.email', '');
         $adminEmail = (string) Config::where('config_key', 'ADMIN_NOTIFICATION_EMAIL')->value('config_value');
 
-        $data = fn (string $intro) => [
-            'booking' => $booking,
-            'intro' => $intro,
-            'leadEmail' => $leadEmail,
-        ];
+        $detailUrl = route('user.bookings.flights.detail', $booking->id);
+
+        $dataFor = function (string $intro, bool $forAdmin) use ($booking, $leadEmail, $detailUrl) {
+            return [
+                'booking' => $booking,
+                'intro' => $intro,
+                'leadEmail' => $leadEmail,
+                'detailUrl' => $detailUrl,
+                'forAdmin' => $forAdmin,
+            ];
+        };
 
         try {
             if ($leadEmail !== '' && filter_var($leadEmail, FILTER_VALIDATE_EMAIL)) {
                 Mail::send(
                     'emails.flight-booking-confirmed',
-                    $data('Your flight booking is confirmed. Details below.'),
+                    $dataFor('Your flight is confirmed and your ticket has been issued. Your reservation summary is below.', false),
                     function ($message) use ($leadEmail, $booking) {
-                        $message->to($leadEmail)->subject('Booking confirmed — ' . $booking->booking_number);
+                        $message->to($leadEmail)->subject('Flight confirmed — ' . $booking->booking_number);
                     }
                 );
             }
@@ -664,9 +647,9 @@ class FlightBookingController extends Controller
             if ($adminEmail !== '' && filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
                 Mail::send(
                     'emails.flight-booking-confirmed',
-                    $data('A flight booking was confirmed (B2B).'),
+                    $dataFor('A B2B flight booking was confirmed and ticketed. Summary for your records.', true),
                     function ($message) use ($adminEmail, $booking) {
-                        $message->to($adminEmail)->subject('[Booking] Flight confirmed ' . $booking->booking_number);
+                        $message->to($adminEmail)->subject('[B2B] Flight ticketed — ' . $booking->booking_number);
                     }
                 );
             }
@@ -678,15 +661,6 @@ class FlightBookingController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
-    }
-
-    /**
-     * When true in config (and not production), skip external payment redirect for Sabre testing.
-     */
-    protected function flightSkipPaymentGatewayForTesting(): bool
-    {
-        return (bool) config('services.flight.skip_payment_for_testing', false)
-            && ! app()->environment('production');
     }
 
     protected function getSourceMarketFromIP(): string
