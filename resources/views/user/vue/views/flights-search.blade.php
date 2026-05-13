@@ -701,7 +701,7 @@
             --fs-surface: #ffffff;
             --fs-surface-2: #f7f9fc;
             --fs-canvas: #f1f4f9;
-            /* Primary UI accent — pink SA / brand (maps former “lime” tokens for less churn) */
+            /* Primary UI accent  -  pink SA / brand (maps former “lime” tokens for less churn) */
             --fs-lime: #ee5b8f;
             --fs-lime-2: #cd1b4f;
             --fs-lime-soft: #fce7ef;
@@ -1021,7 +1021,7 @@
             width: 100%;
         }
 
-        /* Swap sits at route-pair center; halo + diameter intrude ~22px each side — keep text clear */
+        /* Swap sits at route-pair center; halo + diameter intrude ~22px each side  -  keep text clear */
         .fs-pro-route-field.fs-pro-route-field--from .hs-field__inner {
             padding-right: calc(0.95rem + 22px) !important;
         }
@@ -1088,7 +1088,7 @@
             display: none;
         }
 
-        /* Swap button — sits between FROM and TO */
+        /* Swap button  -  sits between FROM and TO */
         .fs-pro-swap-wrap {
             position: absolute;
             left: 50%;
@@ -1271,7 +1271,7 @@
             position: relative;
         }
 
-        /* Lift entire row above airline bar + filter row when a menu is open (no isolation: isolate — that trapped z-index). */
+        /* Lift entire row above airline bar + filter row when a menu is open (no isolation: isolate  -  that trapped z-index). */
         .fs-pro-pax-cabin-row:has(.options-dropdown-wrapper.open),
         .fs-pro-pax-cabin-row:has(.fs-pro-cabin-dropdown.is-open) {
             z-index: 500;
@@ -1301,7 +1301,7 @@
             z-index: 600;
         }
 
-        /* Sibling sections after the cabin row paint later in DOM — pin them behind open overlays */
+        /* Sibling sections after the cabin row paint later in DOM  -  pin them behind open overlays */
         .fs-pro-airline-pref,
         .fs-pro-actions-footer,
         .fs-pro-trust-strip {
@@ -1424,7 +1424,7 @@
             pointer-events: none;
         }
 
-        /* Cabin class — custom menu (replacing native <select>) */
+        /* Cabin class  -  custom menu (replacing native <select>) */
         .fs-pro-select-group.fs-pro-select-group--cabin {
             position: relative;
         }
@@ -1523,7 +1523,7 @@
             z-index: 6000 !important;
         }
 
-        /* date / airport overlays inside the redesigned card — stay above promo strip siblings */
+        /* date / airport overlays inside the redesigned card  -  stay above promo strip siblings */
         .fs-pro-enterprise .options-dropdown-wrapper--from.open {
             z-index: 5500 !important;
         }
@@ -1533,7 +1533,7 @@
             z-index: 5600 !important;
         }
 
-        /* Airline preference — lavender strip */
+        /* Airline preference  -  lavender strip */
         .fs-pro-airline-pref {
             display: flex;
             align-items: center;
@@ -1627,7 +1627,7 @@
             transform: translate(-52%, -55%) rotate(45deg);
         }
 
-        /* "All Airlines" pill — distinct closable chip (reference) */
+        /* "All Airlines" pill  -  distinct closable chip (reference) */
         .fs-air-chip--all {
             border: 1px solid #c6cbe6;
             background: #f5f6ff;
@@ -1714,7 +1714,7 @@
             display: none;
         }
 
-        /* Trust strip — hidden in vivid reference layout */
+        /* Trust strip  -  hidden in vivid reference layout */
         .fs-pro-trust-strip {
             display: none;
         }
@@ -1760,7 +1760,7 @@
             color: var(--fs-brand);
         }
 
-        /* First card is the action tiles — hide the "Workspace" header */
+        /* First card is the action tiles  -  hide the "Workspace" header */
         .fs-pro-aside > .fs-pro-aside-card:first-child .fs-pro-aside-card__head {
             display: none;
         }
@@ -1823,7 +1823,7 @@
             display: none;
         }
 
-        /* Tile color variants — soft pastel cards (reference) */
+        /* Tile color variants  -  soft pastel cards (reference) */
         .fs-pro-tile--offline {
             background: linear-gradient(160deg, #fff7d6 0%, #fff1b5 100%);
             color: #7a5a0c !important;
@@ -1860,7 +1860,7 @@
             color: #be185d;
         }
 
-        /* Recent panel — single pill row */
+        /* Recent panel  -  single pill row */
         .fs-pro-recent-panel .fs-pro-aside-card__head {
             margin-bottom: 0.45rem;
         }
@@ -2165,7 +2165,7 @@
         /* Legacy dot (no longer used but kept hidden if rendered) */
         .fs-trip-types__dot { display: none; }
 
-        /* ===== Quick filter chips (Direct / Nearby / Student) — checkbox style ===== */
+        /* ===== Quick filter chips (Direct / Nearby / Student)  -  checkbox style ===== */
         .fs-search-filters {
             display: flex;
             flex-wrap: wrap;
@@ -2445,7 +2445,7 @@
             background: var(--fs-canvas);
         }
 
-        /* Date picker selected day — match SA pink (library default is blue) */
+        /* Date picker selected day  -  match SA pink (library default is blue) */
         .flight-search-redesign .daterangepicker td.active,
         .flight-search-redesign .daterangepicker td.active:hover {
             background-color: var(--fs-brand) !important;
@@ -2459,7 +2459,7 @@
 
         /*
          * Results listing (/flights/search): compact reference-style toolbar
-         * — one slim bar (trip / pax / cabins / airlines · route / dates · filters / search).
+         *  -  one slim bar (trip / pax / cabins / airlines · route / dates · filters / search).
          */
         .fs-mount--flight-listing .fs-pro-layout {
             grid-template-columns: minmax(0, 1fr);
@@ -2571,7 +2571,7 @@
             padding-block: 0.12rem;
         }
 
-        /* Listing toolbar row only — flex-grow breaks multi-city footer (lavender bar blows up vertically) */
+        /* Listing toolbar row only  -  flex-grow breaks multi-city footer (lavender bar blows up vertically) */
         .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) .fs-pro-airline-pref {
             flex-wrap: wrap;
             align-items: center;
@@ -2815,7 +2815,7 @@
             gap: 0.5rem !important;
         }
 
-        /* Multicity breakpoints: stacked grid already in base — keep readable on listing */
+        /* Multicity breakpoints: stacked grid already in base  -  keep readable on listing */
         @media (max-width: 991px) {
             .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__grid {
                 grid-template-columns: 1fr !important;

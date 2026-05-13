@@ -131,7 +131,7 @@ class WalletRechargeController extends Controller
                     ->with('notify_success', 'Wallet recharged successfully with ' . number_format($recharge->amount, 2) . ' AED');
             }
 
-            // Verification failed — create DB record as failed
+            // Verification failed  -  create DB record as failed
             B2bWalletRecharge::create([
                 'b2b_vendor_id' => Auth::id(),
                 'transaction_number' => $transactionNumber,

@@ -33703,7 +33703,7 @@
                             },
                             emDash: {
                                 from: /(^| )(---)( )$/,
-                                to: [null, "—", null],
+                                to: [null, " - ", null],
                             },
                             quotesPrimary: {
                                 from: nk('"'),

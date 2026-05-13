@@ -11,7 +11,7 @@
 
         function fl_format_hm(?int $mins): string
         {
-            if ($mins === null || $mins < 1) return '—';
+            if ($mins === null || $mins < 1) return ' - ';
             $h = intdiv((int) $mins, 60);
             $r = (int) $mins % 60;
             if ($h > 0 && $r === 0) return "{$h}h";
@@ -120,8 +120,8 @@
                                 $f2  = $sg2[0] ?? [];
                                 $l2  = !empty($sg2) ? $sg2[array_key_last($sg2)] : [];
                                 $legRoutes[] = [
-                                    'from' => $f2['from'] ?? '—',
-                                    'to'   => $l2['to']   ?? '—',
+                                    'from' => $f2['from'] ?? ' - ',
+                                    'to'   => $l2['to']   ?? ' - ',
                                     'label'=> $li2 === 0 ? 'Outbound' : 'Return',
                                     'icon' => $li2 === 0 ? 'bxs-plane-take-off' : 'bxs-plane-land',
                                 ];
@@ -174,7 +174,7 @@
                                     {{-- departure --}}
                                     <div class="rc__point">
                                         <div class="rc__time">
-                                            {{ $s0['departure_clock'] ?? '—' }}
+                                            {{ $s0['departure_clock'] ?? ' - ' }}
                                             @if ($isRedEye)<i class="bx bxs-moon rc__moon"></i>@endif
                                         </div>
                                         <div class="rc__dt">{{ $s0['departure_weekday']??'' }}, {{ $s0['departure_label']??'' }}</div>
@@ -202,7 +202,7 @@
                                     {{-- arrival --}}
                                     <div class="rc__point rc__point--arr">
                                         <div class="rc__time">
-                                            {{ $sLast['arrival_clock'] ?? '—' }}
+                                            {{ $sLast['arrival_clock'] ?? ' - ' }}
                                             @if($nextDay)<span class="rc__nextday">Next Day</span>@endif
                                         </div>
                                         <div class="rc__dt">{{ $sLast['arrival_weekday']??'' }}, {{ $sLast['arrival_label']??'' }}</div>
@@ -356,7 +356,7 @@
 
                                                     <div class="fd-seg__route">
                                                         <div class="fd-seg__pt">
-                                                            <strong class="fd-seg__time">{{ $sx['departure_clock']??'—' }}</strong>
+                                                            <strong class="fd-seg__time">{{ $sx['departure_clock']??' - ' }}</strong>
                                                             <span class="fd-seg__code">{{ $sx['from']??'' }}</span>
                                                             <span class="fd-seg__city">
                                                                 @if(!empty($sx['departure_city'])){{ $sx['departure_city'] }}@endif
@@ -381,7 +381,7 @@
                                                         </div>
 
                                                         <div class="fd-seg__pt fd-seg__pt--arr">
-                                                            <strong class="fd-seg__time">{{ $sx['arrival_clock']??'—' }}</strong>
+                                                            <strong class="fd-seg__time">{{ $sx['arrival_clock']??' - ' }}</strong>
                                                             <span class="fd-seg__code">{{ $sx['to']??'' }}</span>
                                                             <span class="fd-seg__city">
                                                                 @if(!empty($sx['arrival_city'])){{ $sx['arrival_city'] }}@endif
@@ -409,7 +409,7 @@
                                                 <i class="bx bx-shopping-bag fd-bag__icon"></i>
                                                 <div>
                                                     <div class="fd-bag__label">Cabin / Hand Baggage</div>
-                                                    <div class="fd-bag__val">1 piece — as per airline policy</div>
+                                                    <div class="fd-bag__val">1 piece  -  as per airline policy</div>
                                                 </div>
                                             </div>
                                             <div class="fd-bag__row">
@@ -593,7 +593,7 @@
     border-bottom: 1px solid var(--c-line);
 }
 .rc__leg--ret { background: var(--c-white); }
-/* last leg has no bottom border — the details-center row provides the separator */
+/* last leg has no bottom border  -  the details-center row provides the separator */
 .rc__leg { border-bottom: 1px solid var(--c-line); }
 
 /* airline */
@@ -721,7 +721,7 @@
 }
 .rc__price-cur { font-size: .72rem; color: var(--c-slate); font-weight: 600; }
 
-/* dirham symbol — UAE custom font */
+/* dirham symbol  -  UAE custom font */
 .dirham {
     font-family: "UAEDirham", "Segoe UI", sans-serif;
     font-size: .8em;

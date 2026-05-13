@@ -624,7 +624,7 @@ class FlightController extends Controller
                 'arrival_terminal' => $schedule['arrival']['terminal'] ?? null,
                 'carrier' => $marketing,
                 'carrier_display' => trim($marketing . ('' !== $mktFlight ? ' ' . $mktFlight : '')),
-                'carrier_name' => trim($marketing . ('' !== $mktFlight ? ' — ' . $mktFlight : '')),
+                'carrier_name' => trim($marketing . ('' !== $mktFlight ? '  -  ' . $mktFlight : '')),
                 'flight_number' => $schedule['carrier']['marketingFlightNumber'] ?? '',
                 'flight_label' => trim($marketing . ('' !== $mktFlight ? ' ' . $mktFlight : '')),
                 'operating_carrier' => $schedule['carrier']['operating'] ?? '',

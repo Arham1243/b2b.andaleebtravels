@@ -162,9 +162,9 @@
             };
 
             const buildRecentEntry = (queryString) => {
-                let fromCity = '—';
-                let toCity = '—';
-                let dateLine = '—';
+                let fromCity = ' - ';
+                let toCity = ' - ';
+                let dateLine = ' - ';
 
                 if (tripType.value === 'multi_city') {
                     const segs = multiCitySegments.value;
@@ -175,7 +175,7 @@
                     const parts = segs
                         .map((s) => (s.departureDate ? formatIsoDateForDisplay(s.departureDate) : ''))
                         .filter(Boolean);
-                    dateLine = parts.length ? parts.join(' · ') : '—';
+                    dateLine = parts.length ? parts.join(' · ') : ' - ';
                 } else {
                     fromCity = selectedFrom.value?.city || selectedFrom.value?.code || fromCity;
                     toCity = selectedTo.value?.city || selectedTo.value?.code || toCity;
@@ -184,7 +184,7 @@
                     if (dep && ret) {
                         dateLine = `${dep} | ${ret}`;
                     } else {
-                        dateLine = dep || ret || '—';
+                        dateLine = dep || ret || ' - ';
                     }
                 }
 
@@ -253,7 +253,7 @@
             const segmentDateParts = (value) => {
                 if (!value) {
                     return {
-                        day: '—',
+                        day: ' - ',
                         month: '\u00a0',
                         weekday: '\u00a0'
                     };
@@ -262,7 +262,7 @@
                 const parsed = new Date(`${value}T00:00:00`);
                 if (Number.isNaN(parsed.getTime())) {
                     return {
-                        day: '—',
+                        day: ' - ',
                         month: '\u00a0',
                         weekday: '\u00a0'
                     };

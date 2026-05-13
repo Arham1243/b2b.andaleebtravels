@@ -302,7 +302,7 @@
                                                     <i class='bx bx-refresh'></i> Pay Again
                                                 </a>
                                             @else
-                                                <span class="text-muted">—</span>
+                                                <span class="text-muted"> - </span>
                                             @endif
                                         </td>
                                     </tr>

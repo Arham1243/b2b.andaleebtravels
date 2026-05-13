@@ -1152,7 +1152,7 @@ class HotelController extends Controller
                 }
             }
 
-            // Store wallet intent on booking (do NOT deduct yet — only on verified success)
+            // Store wallet intent on booking (do NOT deduct yet  -  only on verified success)
             $useWallet = !empty($validated['use_wallet']);
             $walletDeduction = 0;
 
@@ -1228,7 +1228,7 @@ class HotelController extends Controller
 
             // Verify payment based on payment method
             if ($booking->payment_method === 'wallet' && $booking->wallet_amount >= $booking->total_amount) {
-                // Full wallet payment — verify balance is still sufficient
+                // Full wallet payment  -  verify balance is still sufficient
                 $vendor = $booking->vendor;
                 if ((float) $vendor->main_balance < (float) $booking->wallet_amount) {
                     $booking->update([
@@ -1264,7 +1264,7 @@ class HotelController extends Controller
                     ->with('notify_error', 'Payment verification failed. Please contact support.');
             }
 
-            // Payment verified — now deduct wallet if used
+            // Payment verified  -  now deduct wallet if used
             if ($booking->wallet_amount > 0) {
                 B2bWalletLedger::recordDebit(
                     $booking->b2b_vendor_id,
