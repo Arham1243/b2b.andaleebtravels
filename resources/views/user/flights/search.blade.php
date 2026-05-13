@@ -218,6 +218,15 @@
                                 </div>
                             @endforeach
 
+                            {{-- ── centered flight-details link ── --}}
+                            <div class="rc__details-center">
+                                <button type="button" class="rc__details-link" data-fd-open="fd-{{ $lid }}">
+                                    <i class="bx bx-info-circle"></i>
+                                    Flight Details
+                                    <i class="bx bx-chevron-down"></i>
+                                </button>
+                            </div>
+
                             {{-- ── fare row ── --}}
                             <div class="rc__fare">
                                 <div class="rc__fare-left">
@@ -238,12 +247,6 @@
                                     @if(!is_null($seatMin))
                                         <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $seatMin }} seats</span>
                                     @endif
-
-                                    <button type="button" class="rc__details-btn" data-fd-open="fd-{{ $lid }}">
-                                        <i class="bx bx-info-circle"></i>
-                                        Flight Details
-                                        <i class="bx bx-chevron-down"></i>
-                                    </button>
                                 </div>
 
                                 <div class="rc__fare-right">
@@ -251,7 +254,7 @@
                                         <div class="rc__price-label">NET FARE</div>
                                         <div class="rc__price-amount">
                                             @if($cardCur === 'AED')
-                                                <span class="dirham">د.إ</span>
+                                                <span class="dirham">AED</span>
                                             @else
                                                 <span class="rc__price-cur">{{ $cardCur }}</span>
                                             @endif
@@ -278,9 +281,9 @@
                                 <div class="fd-head">
                                     <div class="fd-head__title">
                                         <i class="bx bxs-plane"></i>
-                                        {{ $legRoutes[0]['from'] }}
-                                        @if(count($legRoutes) > 1) ⇄ {{ $legRoutes[count($legRoutes)-1]['to'] }}
-                                        @else → {{ $legRoutes[0]['to'] }}
+                                        {{ $legRoutes[0]['from'] }} → {{ $legRoutes[0]['to'] }}
+                                        @if(count($legRoutes) > 1)
+                                            ⇄ {{ $legRoutes[1]['from'] }} → {{ $legRoutes[1]['to'] }}
                                         @endif
                                         <span class="fd-head__sub">· Flight Details</span>
                                     </div>
@@ -443,7 +446,7 @@
                                         <span class="fd-foot__label">Total</span>
                                         <span class="fd-foot__amount">
                                             @if($cardCur === 'AED')
-                                                <span class="dirham">د.إ</span>
+                                                <span class="dirham">AED</span>
                                             @else
                                                 {{ $cardCur }}
                                             @endif
@@ -587,8 +590,9 @@
     padding: .9rem 1.1rem;
     border-bottom: 1px solid var(--c-line);
 }
-.rc__leg--ret { background: #fafbff; }
-.rc__leg:last-of-type { border-bottom: none; }
+.rc__leg--ret { background: var(--c-white); }
+/* last leg has no bottom border — the details-center row provides the separator */
+.rc__leg { border-bottom: 1px solid var(--c-line); }
 
 /* airline */
 .rc__airline { display: flex; gap: .7rem; align-items: center; min-width: 0; }
@@ -679,14 +683,29 @@
 .rc__ftag i { font-size: .8rem; }
 .rc__ftag--seat { background: var(--c-amber-soft); color: var(--c-amber); }
 
-/* flight details popup trigger */
-.rc__details-btn {
-    border: 1px solid var(--c-brand); background: transparent;
-    color: var(--c-brand); font: inherit; font-size: .73rem; font-weight: 700;
-    cursor: pointer; display: inline-flex; align-items: center; gap: .2rem;
-    padding: .22rem .55rem; border-radius: 5px; transition: background .12s, color .12s;
+/* flight details centered link */
+.rc__details-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: .35rem 0;
+    border-top: 1px solid var(--c-line);
+    border-bottom: 1px solid var(--c-line);
+    background: #fff;
 }
-.rc__details-btn:hover { background: var(--c-brand); color: #fff; }
+.rc__details-link {
+    border: none; background: transparent; font: inherit;
+    font-size: .76rem; font-weight: 600; color: var(--c-brand);
+    cursor: pointer; display: inline-flex; align-items: center; gap: .28rem;
+    padding: .15rem .4rem;
+    text-decoration: underline; text-underline-offset: 2px;
+    text-decoration-color: transparent;
+    transition: text-decoration-color .14s, opacity .14s;
+}
+.rc__details-link:hover {
+    text-decoration-color: var(--c-brand);
+    opacity: .85;
+}
 
 /* price */
 .rc__price-label {
@@ -700,14 +719,13 @@
 }
 .rc__price-cur { font-size: .72rem; color: var(--c-slate); font-weight: 600; }
 
-/* dirham symbol */
+/* dirham symbol — UAE custom font */
 .dirham {
-    font-family: "Segoe UI", "Arial Unicode MS", Arial, sans-serif;
-    font-size: .78em;
-    font-weight: 700;
+    font-family: "UAEDirham", "Segoe UI", sans-serif;
+    font-size: .8em;
+    font-weight: 400;
     color: var(--c-slate);
-    letter-spacing: .02em;
-    margin-right: .08rem;
+    margin-right: .06rem;
     vertical-align: baseline;
 }
 
@@ -762,7 +780,7 @@
 .fd-box {
     position: relative; z-index: 1;
     width: 100%; max-width: 760px;
-    max-height: 90vh;
+    max-height: 88vh;
     background: #fff;
     border-radius: 18px;
     box-shadow: 0 28px 60px rgba(15,22,48,.22);
@@ -770,6 +788,8 @@
     overflow: hidden;
     animation: fd-in .22s ease;
 }
+/* only the body panel scrolls */
+.fd-head, .fd-tabs, .fd-foot { flex-shrink: 0; overflow: hidden; }
 @keyframes fd-in {
     from { opacity: 0; transform: translateY(18px) scale(.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -799,27 +819,39 @@
 
 /* tabs */
 .fd-tabs {
-    display: flex; gap: 0;
-    border-bottom: 2px solid var(--c-line);
-    padding: 0 1rem;
-    background: var(--c-bg);
-    overflow-x: auto;
+    display: flex; gap: .45rem;
+    border-bottom: 1px solid var(--c-line);
+    padding: .6rem .9rem .55rem;
+    background: #f9fafb;
+    overflow: hidden;
+    flex-wrap: wrap;
 }
 .fd-tab {
-    border: none; background: transparent; font: inherit;
-    font-size: .8rem; font-weight: 600; color: var(--c-muted);
-    padding: .65rem .85rem;
-    display: inline-flex; align-items: center; gap: .3rem;
+    border: 1.5px solid var(--c-line);
+    background: #fff;
+    font: inherit;
+    font-size: .78rem; font-weight: 600; color: var(--c-slate);
+    padding: .38rem .85rem;
+    border-radius: 8px;
+    display: inline-flex; align-items: center; gap: .32rem;
     cursor: pointer; white-space: nowrap;
-    border-bottom: 2.5px solid transparent;
-    margin-bottom: -2px;
-    transition: color .12s, border-color .12s;
+    transition: background .13s, color .13s, border-color .13s, box-shadow .13s;
+    box-shadow: 0 1px 3px rgba(26,37,64,.06);
 }
-.fd-tab:hover { color: var(--c-ink); }
-.fd-tab--active { color: var(--c-brand); border-bottom-color: var(--c-brand); }
+.fd-tab:hover {
+    background: var(--c-brand-soft);
+    border-color: var(--c-brand);
+    color: var(--c-brand);
+}
+.fd-tab--active {
+    background: var(--c-brand);
+    border-color: var(--c-brand);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(205,27,79,.22);
+}
 .fd-tab__route {
-    font-family: var(--mono); font-size: .65rem; font-weight: 500;
-    color: inherit; opacity: .75;
+    font-family: var(--mono); font-size: .63rem; font-weight: 500;
+    color: inherit; opacity: .8;
 }
 
 /* body / panels */
