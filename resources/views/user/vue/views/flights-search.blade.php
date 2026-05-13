@@ -711,11 +711,13 @@
             --fs-surface: #ffffff;
             --fs-surface-2: #f7f9fc;
             --fs-canvas: #f1f4f9;
-            --fs-lime: #a7c834;
-            --fs-lime-2: #8fb02a;
-            --fs-lime-soft: #d8eab0;
-            --fs-green: #58b35a;
-            --fs-green-soft: #e3f5e3;
+            /* Primary UI accent — pink SA / brand (maps former “lime” tokens for less churn) */
+            --fs-lime: #ee5b8f;
+            --fs-lime-2: #cd1b4f;
+            --fs-lime-soft: #fce7ef;
+            --fs-green: #cd1b4f;
+            --fs-green-soft: #fdf2f7;
+            --fs-accent-dark: #861043;
             --fs-emerald: #047857;
             --fs-emerald-soft: #ecfdf5;
             --fs-amber: #d97706;
@@ -1097,7 +1099,7 @@
         }
 
         .fs-pro-swap-btn:hover {
-            color: #54700d;
+            color: var(--fs-accent-dark);
             transform: rotate(180deg);
         }
 
@@ -1440,7 +1442,7 @@
         }
 
         .fs-pro-cabin-trigger:focus-visible {
-            outline: 2px solid var(--fs-lime);
+            outline: 2px solid var(--fs-brand);
             outline-offset: 2px;
             border-radius: 4px;
         }
@@ -1495,8 +1497,8 @@
         }
 
         .fs-pro-cabin-option.is-active {
-            background: rgba(167, 200, 52, 0.18);
-            color: #334155;
+            background: rgba(205, 27, 79, 0.12);
+            color: var(--fs-brand-2);
             font-weight: 700;
         }
 
@@ -1583,15 +1585,15 @@
         }
 
         .fs-air-chip.is-active {
-            border-color: rgba(143, 176, 42, 0.45);
+            border-color: rgba(205, 27, 79, 0.42);
             background: #fff;
-            color: #2c5f1f;
+            color: var(--fs-accent-dark);
             box-shadow: var(--fs-shadow-sm);
         }
 
         .fs-air-chip.is-active .fs-air-chip__indicator {
-            border-color: var(--fs-lime-2);
-            background: var(--fs-lime);
+            border-color: var(--fs-brand-2);
+            background: var(--fs-brand);
         }
 
         .fs-air-chip.is-active .fs-air-chip__indicator::after {
@@ -1664,9 +1666,14 @@
             align-items: center;
             gap: 0.5rem;
             color: #fff !important;
-            background: linear-gradient(180deg, #b9d342 0%, var(--fs-lime) 55%, var(--fs-lime-2) 100%) !important;
+            background: linear-gradient(
+                180deg,
+                #f472a6 0%,
+                var(--fs-brand) 48%,
+                var(--fs-brand-2) 100%
+            ) !important;
             box-shadow:
-                0 6px 18px rgba(143, 176, 42, 0.35),
+                0 6px 18px rgba(205, 27, 79, 0.38),
                 inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
             transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
             position: relative;
@@ -1675,7 +1682,7 @@
         .fs-pro-search-btn:hover:not(:disabled) {
             transform: translateY(-1px);
             box-shadow:
-                0 10px 24px rgba(143, 176, 42, 0.42),
+                0 10px 24px rgba(180, 22, 66, 0.45),
                 inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
         }
 
@@ -1819,12 +1826,12 @@
         }
 
         .fs-pro-tile--hold {
-            background: linear-gradient(160deg, #d6f5ec 0%, #c2eee0 100%);
-            color: #0f5a4d !important;
+            background: linear-gradient(160deg, #fce7ef 0%, #fad4e5 100%);
+            color: #831843 !important;
         }
         .fs-pro-tile--hold .fs-pro-tile__icon {
             background: rgba(255, 255, 255, 0.65);
-            color: #047857;
+            color: var(--fs-brand);
         }
 
         .fs-pro-tile--calendar {
@@ -1980,8 +1987,8 @@
         }
 
         .fs-util-dot--emerald {
-            background: #6ee7b7;
-            color: #064e3b !important;
+            background: #fbcfe8;
+            color: #861043 !important;
         }
 
         .fs-util-dot--rose {
@@ -2265,9 +2272,9 @@
         }
 
         .fs-pro-enterprise .fs-trip-types__item.active {
-            color: #2c5f1f;
+            color: var(--fs-accent-dark);
             background: var(--fs-lime-soft);
-            box-shadow: inset 0 0 0 1px rgba(143, 176, 42, 0.32);
+            box-shadow: inset 0 0 0 1px rgba(205, 27, 79, 0.28);
         }
 
         .fs-pro-enterprise .fs-trip-types__item.active::before {
@@ -2477,7 +2484,7 @@
         .fs-add-city-btn {
             border: 1px dashed var(--fs-line);
             background: #fff;
-            color: var(--fs-navy);
+            color: var(--fs-brand-2);
             border-radius: 10px;
             padding: 0.55rem 0.95rem;
             font-family: inherit;
@@ -2491,8 +2498,9 @@
         }
 
         .fs-add-city-btn:hover:not(:disabled) {
-            border-color: var(--fs-navy-3);
-            background: var(--fs-canvas);
+            border-color: rgba(205, 27, 79, 0.45);
+            background: var(--fs-lime-soft);
+            color: var(--fs-brand);
         }
 
         .fs-add-city-btn:disabled {
@@ -2565,14 +2573,26 @@
         }
 
         .fs-pro-enterprise .quantity-counter__btn:hover {
-            border-color: var(--fs-navy-3);
-            color: var(--fs-navy);
+            border-color: rgba(205, 27, 79, 0.45);
+            color: var(--fs-brand);
         }
 
         .fs-pro-enterprise .quantity-counter__btn--quantity {
             color: var(--fs-ink);
             font-weight: 700;
             background: var(--fs-canvas);
+        }
+
+        /* Date picker selected day — match SA pink (library default is blue) */
+        .flight-search-redesign .daterangepicker td.active,
+        .flight-search-redesign .daterangepicker td.active:hover {
+            background-color: var(--fs-brand) !important;
+            border-color: transparent !important;
+            color: #fff !important;
+        }
+
+        .flight-search-redesign .daterangepicker td.in-range:not(.active) {
+            background-color: rgba(205, 27, 79, 0.12) !important;
         }
     </style>
 @endpush
