@@ -71,7 +71,7 @@
             @if ($itineraryCount > 0)
 
                 @php
-                    /* Build unique airline map sorted by min price */
+                    /* ── Airline map ── */
                     $airlineMap = [];
                     foreach ($results as $_r) {
                         $_seg  = $_r['legs'][0]['segments'][0] ?? [];
@@ -88,7 +88,149 @@
                         }
                     }
                     uasort($airlineMap, fn($a,$b) => $a['min_price'] <=> $b['min_price']);
+
+                    /* ── Filter meta ── */
+                    $_prices  = array_map(fn($r) => (float)($r['totalPrice'] ?? 0), $results);
+                    $sfPrMin  = !empty($_prices) ? (int)floor(min($_prices)) : 0;
+                    $sfPrMax  = !empty($_prices) ? (int)ceil(max($_prices))  : 9999;
+
+                    $_durs    = array_map(fn($r) => (int)($r['legs'][0]['elapsedTime'] ?? 0), $results);
+                    $sfDurMax = !empty($_durs) ? max($_durs) : 1440;
+                    $sfDurMin = !empty($_durs) ? min($_durs) : 0;
+
+                    $sfStopsAvail = [];
+                    foreach ($results as $_r) {
+                        $_ls = $_r['legs'][0]['segments'] ?? [];
+                        $_st = max(0, count($_ls) - 1) + (int)array_sum(array_column($_ls, 'stop_count'));
+                        $sfStopsAvail[$_st] = true;
+                    }
+                    ksort($sfStopsAvail);
+                    $sfStopsAvail = array_keys($sfStopsAvail);
                 @endphp
+
+                {{-- ══ TWO-COLUMN LAYOUT ══ --}}
+                <div class="rp-layout">
+
+                {{-- ── LEFT: Filter Sidebar ── --}}
+                <aside class="sf" id="sf-sidebar">
+
+                    <div class="sf__head">
+                        <span class="sf__title"><i class="bx bx-slider-alt"></i> Filters</span>
+                        <button class="sf__reset" id="sf-reset" title="Reset all filters">
+                            <i class="bx bx-refresh"></i> Reset
+                        </button>
+                    </div>
+
+                    {{-- Price Range --}}
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-wallet-alt"></i> Price Range</div>
+                        <div class="sf__price-labels">
+                            <span id="sf-plo-lbl">{{ $currencyCode }} {{ number_format($sfPrMin, 0) }}</span>
+                            <span id="sf-phi-lbl">{{ $currencyCode }} {{ number_format($sfPrMax, 0) }}</span>
+                        </div>
+                        <div class="sf__dual-wrap">
+                            <div class="sf__dual-track">
+                                <div class="sf__dual-fill" id="sf-price-fill"></div>
+                            </div>
+                            <input type="range" class="sf__dual-input sf__dual-input--lo" id="sf-plo"
+                                   min="{{ $sfPrMin }}" max="{{ $sfPrMax }}" value="{{ $sfPrMin }}" step="1">
+                            <input type="range" class="sf__dual-input sf__dual-input--hi" id="sf-phi"
+                                   min="{{ $sfPrMin }}" max="{{ $sfPrMax }}" value="{{ $sfPrMax }}" step="1">
+                        </div>
+                    </div>
+
+                    {{-- Stops --}}
+                    @if(!empty($sfStopsAvail))
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-map-pin"></i> Stops</div>
+                        <div class="sf__stop-row">
+                            @foreach($sfStopsAvail as $_s)
+                            <label class="sf__stoplbl">
+                                <input type="checkbox" class="sf__stopchk" value="{{ $_s }}" data-sf="stops">
+                                <span class="sf__stoppill">
+                                    @if($_s === 0)<i class="bx bxs-plane"></i> Direct
+                                    @elseif($_s === 1)1 Stop
+                                    @else{{ $_s }}+ Stops@endif
+                                </span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Departure Time --}}
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-time-five"></i> Departure Time</div>
+                        <div class="sf__time-grid">
+                            <button class="sf__timebtn" data-sf-dep="night">
+                                <i class="bx bxs-moon"></i><span>Night</span><small>00–06</small>
+                            </button>
+                            <button class="sf__timebtn" data-sf-dep="morning">
+                                <i class="bx bx-sun"></i><span>Morning</span><small>06–12</small>
+                            </button>
+                            <button class="sf__timebtn" data-sf-dep="afternoon">
+                                <i class="bx bxs-sun"></i><span>Afternoon</span><small>12–18</small>
+                            </button>
+                            <button class="sf__timebtn" data-sf-dep="evening">
+                                <i class="bx bx-moon"></i><span>Evening</span><small>18–24</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Arrival Time --}}
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-landing"></i> Arrival Time</div>
+                        <div class="sf__time-grid">
+                            <button class="sf__timebtn" data-sf-arr="night">
+                                <i class="bx bxs-moon"></i><span>Night</span><small>00–06</small>
+                            </button>
+                            <button class="sf__timebtn" data-sf-arr="morning">
+                                <i class="bx bx-sun"></i><span>Morning</span><small>06–12</small>
+                            </button>
+                            <button class="sf__timebtn" data-sf-arr="afternoon">
+                                <i class="bx bxs-sun"></i><span>Afternoon</span><small>12–18</small>
+                            </button>
+                            <button class="sf__timebtn" data-sf-arr="evening">
+                                <i class="bx bx-moon"></i><span>Evening</span><small>18–24</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Fare Type --}}
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-receipt"></i> Fare Type</div>
+                        <label class="sf__chklbl">
+                            <input type="checkbox" data-sf="refund" value="1">
+                            <span class="sf__chkmark"></span>
+                            <span class="sf__chktxt sf__chktxt--ref"><i class="bx bx-check-circle"></i> Refundable</span>
+                        </label>
+                        <label class="sf__chklbl">
+                            <input type="checkbox" data-sf="refund" value="0">
+                            <span class="sf__chkmark"></span>
+                            <span class="sf__chktxt sf__chktxt--nr"><i class="bx bx-x-circle"></i> Non-Refundable</span>
+                        </label>
+                    </div>
+
+                    {{-- Max Duration --}}
+                    @if($sfDurMax > 120)
+                    <div class="sf__section">
+                        <div class="sf__sechead">
+                            <i class="bx bx-stopwatch"></i> Max Duration
+                            <span class="sf__dur-val" id="sf-dur-lbl">
+                                {{ intdiv($sfDurMax, 60) }}h {{ $sfDurMax % 60 }}m
+                            </span>
+                        </div>
+                        <input type="range" class="sf__single-range" id="sf-dur"
+                               min="{{ $sfDurMin > 0 ? $sfDurMin : 30 }}"
+                               max="{{ $sfDurMax }}"
+                               value="{{ $sfDurMax }}" step="15">
+                    </div>
+                    @endif
+
+                </aside>{{-- /.sf --}}
+
+                {{-- ── RIGHT: Main results column ── --}}
+                <div class="rp-main">
 
                 {{-- ── Airline filter slider ── --}}
                 <div class="as-wrap" id="as-wrap">
@@ -188,9 +330,23 @@
                                     'icon' => $li2 === 0 ? 'bxs-plane-take-off' : 'bxs-plane-land',
                                 ];
                             }
+                        @php
+                            $_fls    = $legs[0]['segments'] ?? [];
+                            $_flLast = !empty($_fls) ? $_fls[array_key_last($_fls)] : [];
+                            $rpStops = max(0, count($_fls) - 1) + (int)array_sum(array_column($_fls, 'stop_count'));
+                            $rpDepH  = isset($firstSeg['departure_clock']) ? (int)explode(':', $firstSeg['departure_clock'])[0] : -1;
+                            $rpArrH  = isset($_flLast['arrival_clock'])    ? (int)explode(':', $_flLast['arrival_clock'])[0]    : -1;
+                            $rpDur   = (int)($legs[0]['elapsedTime'] ?? 0);
                         @endphp
 
-                        <div class="rc" data-rp-meta='@json($meta)'>
+                        <div class="rc"
+                             data-rp-meta='@json($meta)'
+                             data-rp-stops="{{ $rpStops }}"
+                             data-rp-refund="{{ $nonRefund ? '0' : '1' }}"
+                             data-rp-price="{{ $totalPrice }}"
+                             data-rp-dep-h="{{ $rpDepH }}"
+                             data-rp-arr-h="{{ $rpArrH }}"
+                             data-rp-dur="{{ $rpDur }}">
 
                             {{-- ── per-leg rows ── --}}
                             @foreach ($legs as $li => $leg)
@@ -532,7 +688,8 @@
                         </div>{{-- /.fd-modal --}}
 
                     @endforeach
-                </div>
+                </div>{{-- /.rp-main --}}
+                </div>{{-- /.rp-layout --}}
 
             @elseif($hasSearch && empty($results))
                 <div class="rp-empty">
@@ -1047,6 +1204,297 @@
 }
 
 /* =========================================================
+   TWO-COLUMN LAYOUT
+   ========================================================= */
+.rp-layout {
+    display: grid;
+    grid-template-columns: 270px 1fr;
+    gap: 1.1rem;
+    align-items: start;
+}
+.rp-main { min-width: 0; }
+
+/* =========================================================
+   FILTER SIDEBAR
+   ========================================================= */
+.sf {
+    background: var(--c-white);
+    border: 1px solid var(--c-line);
+    border-radius: 14px;
+    box-shadow: var(--c-shadow);
+    overflow: hidden;
+    position: sticky;
+    top: 1rem;
+}
+
+/* sidebar header */
+.sf__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .8rem 1rem;
+    border-bottom: 1px solid var(--c-line);
+    background: linear-gradient(135deg, var(--c-brand) 0%, var(--c-brand2) 100%);
+}
+.sf__title {
+    font-size: .85rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.sf__title i { font-size: 1rem; }
+.sf__reset {
+    border: 1.5px solid rgba(255,255,255,.5);
+    background: transparent;
+    color: rgba(255,255,255,.9);
+    font: inherit;
+    font-size: .7rem;
+    font-weight: 600;
+    padding: .2rem .55rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: .22rem;
+    transition: background .13s;
+}
+.sf__reset:hover { background: rgba(255,255,255,.15); }
+
+/* section */
+.sf__section {
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--c-line);
+}
+.sf__section:last-child { border-bottom: none; }
+
+.sf__sechead {
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--c-ink);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: .65rem;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+.sf__sechead i { font-size: .9rem; color: var(--c-brand); }
+
+/* ── Price dual range ── */
+.sf__price-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: .75rem;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--c-brand);
+    margin-bottom: .55rem;
+}
+.sf__dual-wrap {
+    position: relative;
+    height: 18px;
+    margin: .4rem .3rem;
+}
+.sf__dual-track {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    left: 0; right: 0;
+    height: 4px;
+    background: var(--c-line);
+    border-radius: 2px;
+    pointer-events: none;
+}
+.sf__dual-fill {
+    position: absolute;
+    top: 0; height: 100%;
+    background: var(--c-brand);
+    border-radius: 2px;
+}
+.sf__dual-input {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 4px;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: none;
+    outline: none;
+    margin: 0;
+}
+.sf__dual-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--c-brand);
+    border: 2.5px solid #fff;
+    box-shadow: 0 1px 5px rgba(205,27,79,.4);
+    cursor: pointer;
+    pointer-events: all;
+    transition: transform .12s;
+}
+.sf__dual-input::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.sf__dual-input::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--c-brand);
+    border: 2.5px solid #fff;
+    box-shadow: 0 1px 5px rgba(205,27,79,.4);
+    cursor: pointer;
+    pointer-events: all;
+}
+
+/* ── Single range (duration) ── */
+.sf__single-range {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--c-brand);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    margin-top: .4rem;
+    /* filled left side will be set via inline style / JS */
+}
+.sf__single-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--c-brand);
+    border: 2.5px solid #fff;
+    box-shadow: 0 1px 5px rgba(205,27,79,.35);
+    cursor: pointer;
+    transition: transform .12s;
+}
+.sf__single-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.sf__dur-val {
+    font-family: var(--mono);
+    font-size: .68rem;
+    font-weight: 700;
+    color: var(--c-brand);
+    margin-left: auto;
+    letter-spacing: 0;
+}
+
+/* ── Stops ── */
+.sf__stop-row { display: flex; gap: .4rem; flex-wrap: wrap; }
+.sf__stoplbl { cursor: pointer; }
+.sf__stoplbl input { display: none; }
+.sf__stoppill {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    font-size: .72rem;
+    font-weight: 600;
+    padding: .28rem .7rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--c-line);
+    background: #fff;
+    color: var(--c-slate);
+    cursor: pointer;
+    transition: border-color .12s, background .12s, color .12s;
+    white-space: nowrap;
+}
+.sf__stoppill i { font-size: .85rem; }
+.sf__stoplbl input:checked + .sf__stoppill {
+    border-color: var(--c-brand);
+    background: var(--c-brand-soft);
+    color: var(--c-brand);
+}
+.sf__stoppill:hover { border-color: rgba(205,27,79,.3); background: var(--c-brand-soft); }
+
+/* ── Time slot grid ── */
+.sf__time-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .35rem;
+}
+.sf__timebtn {
+    border: 1.5px solid var(--c-line);
+    background: #fff;
+    border-radius: 8px;
+    padding: .4rem .3rem;
+    cursor: pointer;
+    font: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .1rem;
+    transition: border-color .12s, background .12s, color .12s;
+}
+.sf__timebtn i { font-size: 1.05rem; color: var(--c-muted); transition: color .12s; }
+.sf__timebtn span { font-size: .68rem; font-weight: 700; color: var(--c-ink); }
+.sf__timebtn small { font-size: .58rem; color: var(--c-muted); font-family: var(--mono); }
+.sf__timebtn:hover,
+.sf__timebtn.sf-active {
+    border-color: var(--c-brand);
+    background: var(--c-brand-soft);
+}
+.sf__timebtn.sf-active i,
+.sf__timebtn.sf-active span { color: var(--c-brand); }
+.sf__timebtn:hover i { color: var(--c-brand); }
+
+/* ── Checkboxes (fare type) ── */
+.sf__chklbl {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .32rem 0;
+    cursor: pointer;
+}
+.sf__chklbl input[type="checkbox"] { display: none; }
+.sf__chkmark {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid var(--c-line);
+    background: #fff;
+    flex-shrink: 0;
+    position: relative;
+    transition: border-color .12s, background .12s;
+}
+.sf__chklbl input:checked ~ .sf__chkmark {
+    background: var(--c-brand);
+    border-color: var(--c-brand);
+}
+.sf__chklbl input:checked ~ .sf__chkmark::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 1px;
+    width: 5px; height: 9px;
+    border: 2px solid #fff;
+    border-top: none; border-left: none;
+    transform: rotate(40deg);
+}
+.sf__chktxt {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--c-slate);
+    display: flex;
+    align-items: center;
+    gap: .28rem;
+}
+.sf__chktxt i { font-size: .9rem; }
+.sf__chktxt--ref i { color: var(--c-green); }
+.sf__chktxt--nr  i { color: #c0143c; }
+
+/* active filter count badge */
+.sf__head-badge {
+    background: rgba(255,255,255,.25);
+    color: #fff;
+    font-size: .62rem;
+    font-weight: 700;
+    padding: .05rem .38rem;
+    border-radius: 10px;
+    margin-left: .25rem;
+    display: none;
+}
+.sf__head-badge.visible { display: inline-block; }
+
+/* =========================================================
    AIRLINE FILTER SLIDER
    ========================================================= */
 .as-wrap {
@@ -1192,15 +1640,24 @@
 .as-pill:not(.as-pill--active) .as-pill__price { color: var(--c-slate); font-weight: 600; }
 
 /* filtered-out cards */
-.rc.as-hidden { display: none; }
+.rc.as-hidden  { display: none; }
+.rc.sf-hidden  { display: none; }
 
 /* =========================================================
    RESPONSIVE
    ========================================================= */
+@media (max-width: 1100px) {
+    .rp-layout { grid-template-columns: 230px 1fr; }
+}
 @media (max-width: 991px) {
     .rc__leg { grid-template-columns: 155px 1fr 145px 1fr 24px; gap: .4rem .65rem; }
+    .rp-layout { grid-template-columns: 210px 1fr; gap: .75rem; }
+    .sf__time-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 767px) {
+    .rp-layout { grid-template-columns: 1fr; }
+    .sf { position: static; }
+    .sf__section { padding: .7rem .9rem; }
     .rc__leg {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto auto auto;
@@ -1231,11 +1688,116 @@
     const list = document.getElementById('rp-list');
     if (!list) return;
 
-    /* ── sort ── */
+    /* ─────────────────────────────────────────────────────
+       SHARED HELPERS
+    ───────────────────────────────────────────────────── */
     function parseMeta(card){
         try { return JSON.parse(card.dataset.rpMeta||'{}'); } catch(e){ return {}; }
     }
+    function cd(card, key){ return card.dataset[key] ?? ''; }
+    function hourSlot(h){
+        h = parseInt(h, 10);
+        if (isNaN(h) || h < 0) return null;
+        if (h <  6) return 'night';
+        if (h < 12) return 'morning';
+        if (h < 18) return 'afternoon';
+        return 'evening';
+    }
 
+    /* ─────────────────────────────────────────────────────
+       FILTER STATE
+    ───────────────────────────────────────────────────── */
+    const allCards = [...list.querySelectorAll('.rc')];
+    const allPrices = allCards.map(c => parseFloat(cd(c,'rpPrice'))||0);
+    const globalMin = Math.min(...allPrices);
+    const globalMax = Math.max(...allPrices);
+
+    const state = {
+        sliderAirline : 'all',
+        priceMin      : globalMin,
+        priceMax      : globalMax,
+        stops         : new Set(),    // empty = all
+        depSlots      : new Set(),    // empty = all
+        arrSlots      : new Set(),    // empty = all
+        refund        : new Set(),    // empty = all; values: '0', '1'
+        maxDur        : Infinity,
+    };
+
+    /* ─────────────────────────────────────────────────────
+       APPLY FILTERS — single source of truth
+    ───────────────────────────────────────────────────── */
+    function applyFilters(){
+        let visible = 0;
+        allCards.forEach(card=>{
+            const price  = parseFloat(cd(card,'rpPrice'))  || 0;
+            const stops  = parseInt(cd(card,'rpStops'),10);
+            const refund = cd(card,'rpRefund');
+            const depH   = cd(card,'rpDepH');
+            const arrH   = cd(card,'rpArrH');
+            const dur    = parseInt(cd(card,'rpDur'),10)   || 0;
+            const meta   = parseMeta(card);
+            const als    = Array.isArray(meta.al) ? meta.al.map(c=>String(c).toUpperCase()) : [];
+
+            let ok = true;
+
+            // airline slider
+            if (state.sliderAirline !== 'all' && !als.includes(state.sliderAirline)) ok = false;
+            // price
+            if (ok && (price < state.priceMin || price > state.priceMax)) ok = false;
+            // stops
+            if (ok && state.stops.size > 0){
+                const st = stops >= 2 ? 2 : stops;
+                if (!state.stops.has(String(st))) ok = false;
+            }
+            // departure slot
+            if (ok && state.depSlots.size > 0){
+                const slot = hourSlot(depH);
+                if (!slot || !state.depSlots.has(slot)) ok = false;
+            }
+            // arrival slot
+            if (ok && state.arrSlots.size > 0){
+                const slot = hourSlot(arrH);
+                if (!slot || !state.arrSlots.has(slot)) ok = false;
+            }
+            // fare type
+            if (ok && state.refund.size > 0 && !state.refund.has(refund)) ok = false;
+            // duration
+            if (ok && dur > 0 && state.maxDur !== Infinity && dur > state.maxDur) ok = false;
+
+            card.classList.toggle('sf-hidden', !ok);
+            if (ok) visible++;
+        });
+
+        // update count badge
+        const badge = document.querySelector('.rp-bar__count strong:first-child');
+        if (badge) badge.textContent = visible;
+
+        // update active filter count on sidebar header
+        updateBadge();
+    }
+
+    function countActiveFilters(){
+        let n = 0;
+        if (state.sliderAirline !== 'all') n++;
+        if (state.priceMin > globalMin || state.priceMax < globalMax) n++;
+        if (state.stops.size)    n++;
+        if (state.depSlots.size) n++;
+        if (state.arrSlots.size) n++;
+        if (state.refund.size)   n++;
+        if (state.maxDur !== Infinity) n++;
+        return n;
+    }
+    function updateBadge(){
+        const b = document.getElementById('sf-active-badge');
+        if (!b) return;
+        const n = countActiveFilters();
+        b.textContent = n;
+        b.classList.toggle('visible', n > 0);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SORT
+    ───────────────────────────────────────────────────── */
     let currentSort = 'price-asc';
 
     function sortCards(){
@@ -1277,49 +1839,38 @@
         });
     });
 
-    /* ── modal ── */
+    /* ─────────────────────────────────────────────────────
+       MODAL
+    ───────────────────────────────────────────────────── */
     function openModal(id){
         const m = document.getElementById(id);
         if(!m) return;
         m.hidden = false;
         document.body.style.overflow = 'hidden';
     }
-
     function closeModal(id){
         const m = document.getElementById(id);
         if(!m) return;
         m.hidden = true;
         document.body.style.overflow = '';
     }
-
-    // Open triggers
     document.querySelectorAll('[data-fd-open]').forEach(btn=>{
         btn.addEventListener('click', ()=> openModal(btn.dataset.fdOpen));
     });
-
-    // Close triggers (backdrop + × button)
     document.querySelectorAll('[data-fd-close]').forEach(el=>{
         el.addEventListener('click', ()=> closeModal(el.dataset.fdClose));
     });
-
-    // Escape key
     document.addEventListener('keydown', e=>{
         if(e.key === 'Escape'){
             document.querySelectorAll('.fd-modal:not([hidden])').forEach(m=> closeModal(m.id));
         }
     });
-
-    // Tab switching inside any modal
     document.querySelectorAll('.fd-modal').forEach(modal=>{
         modal.querySelectorAll('.fd-tab').forEach(tab=>{
             tab.addEventListener('click', ()=>{
                 const panelKey = tab.dataset.fdTab;
-
-                // activate tab
                 modal.querySelectorAll('.fd-tab').forEach(t=>t.classList.remove('fd-tab--active'));
                 tab.classList.add('fd-tab--active');
-
-                // show panel
                 modal.querySelectorAll('.fd-panel').forEach(p=>{
                     p.classList.toggle('fd-panel--hidden', p.dataset.fdPanel !== panelKey);
                 });
@@ -1327,70 +1878,200 @@
         });
     });
 
-    sortCards();
-
-    /* ── Airline slider filter ── */
+    /* ─────────────────────────────────────────────────────
+       AIRLINE SLIDER
+    ───────────────────────────────────────────────────── */
     (function(){
-        const track    = document.getElementById('as-track');
-        const viewport = document.getElementById('as-viewport');
-        const btnPrev  = document.getElementById('as-prev');
-        const btnNext  = document.getElementById('as-next');
-        const countEl  = document.querySelector('.rp-bar__count strong:first-child');
+        const track   = document.getElementById('as-track');
+        const btnPrev = document.getElementById('as-prev');
+        const btnNext = document.getElementById('as-next');
         if (!track) return;
-
-        const SCROLL_STEP = 260;
-
+        const STEP = 260;
         function updateArrows(){
             const sv = track.scrollLeft;
-            const maxScroll = track.scrollWidth - track.clientWidth;
+            const mx = track.scrollWidth - track.clientWidth;
             if (btnPrev) btnPrev.disabled = sv <= 2;
-            if (btnNext) btnNext.disabled = sv >= maxScroll - 2;
+            if (btnNext) btnNext.disabled = sv >= mx - 2;
         }
         track.addEventListener('scroll', updateArrows, {passive:true});
         updateArrows();
-
-        if (btnPrev) btnPrev.addEventListener('click', ()=>{
-            track.scrollBy({left: -SCROLL_STEP, behavior:'smooth'});
-        });
-        if (btnNext) btnNext.addEventListener('click', ()=>{
-            track.scrollBy({left:  SCROLL_STEP, behavior:'smooth'});
-        });
-
-        /* filter cards */
-        let activeCode = 'all';
+        if (btnPrev) btnPrev.addEventListener('click', ()=> track.scrollBy({left:-STEP,behavior:'smooth'}));
+        if (btnNext) btnNext.addEventListener('click', ()=> track.scrollBy({left: STEP,behavior:'smooth'}));
 
         document.querySelectorAll('.as-pill[data-as-code]').forEach(pill=>{
             pill.addEventListener('click', ()=>{
                 const code = pill.dataset.asCode;
-                if (code === activeCode) return;
-                activeCode = code;
-
-                /* update active pill */
                 document.querySelectorAll('.as-pill').forEach(p=>p.classList.remove('as-pill--active'));
                 pill.classList.add('as-pill--active');
-
-                /* filter cards */
-                let visible = 0;
-                document.querySelectorAll('#rp-list .rc').forEach(card=>{
-                    if (code === 'all'){
-                        card.classList.remove('as-hidden');
-                        visible++;
-                    } else {
-                        const meta = parseMeta(card);
-                        const airlines = Array.isArray(meta.al) ? meta.al.map(c=>String(c).toUpperCase()) : [];
-                        const match = airlines.includes(code);
-                        card.classList.toggle('as-hidden', !match);
-                        if (match) visible++;
-                    }
-                });
-
-                /* update showing count */
-                const allCount = document.querySelectorAll('#rp-list .rc').length;
-                const first = document.querySelector('.rp-bar__count strong:first-child');
-                if (first) first.textContent = visible;
+                state.sliderAirline = code;
+                applyFilters();
             });
         });
     })();
+
+    /* ─────────────────────────────────────────────────────
+       SIDEBAR FILTERS
+    ───────────────────────────────────────────────────── */
+
+    /* Price dual range */
+    const pLo = document.getElementById('sf-plo');
+    const pHi = document.getElementById('sf-phi');
+    const pLoLbl = document.getElementById('sf-plo-lbl');
+    const pHiLbl = document.getElementById('sf-phi-lbl');
+    const pFill  = document.getElementById('sf-price-fill');
+    const cur    = (pLo?.dataset.cur) || '';
+
+    function fmtPrice(v){ return parseFloat(v).toLocaleString(undefined,{maximumFractionDigits:0}); }
+    function updatePriceFill(){
+        if (!pLo || !pHi || !pFill) return;
+        const mn = parseFloat(pLo.min), mx = parseFloat(pLo.max);
+        const lo = parseFloat(pLo.value), hi = parseFloat(pHi.value);
+        const pct = v => ((v - mn)/(mx - mn)) * 100;
+        pFill.style.left  = pct(lo) + '%';
+        pFill.style.width = (pct(hi) - pct(lo)) + '%';
+        // update labels (currency prefix is in the static label text, keep it)
+        const prefix = pLoLbl?.textContent.match(/^[A-Z]+\s?/)?.[0] || '';
+        if (pLoLbl) pLoLbl.textContent = prefix + fmtPrice(lo);
+        if (pHiLbl) pHiLbl.textContent = prefix + fmtPrice(hi);
+    }
+    if (pLo && pHi){
+        pLo.addEventListener('input', ()=>{
+            if (parseFloat(pLo.value) > parseFloat(pHi.value) - 1) pLo.value = parseFloat(pHi.value) - 1;
+            state.priceMin = parseFloat(pLo.value);
+            updatePriceFill();
+            applyFilters();
+        });
+        pHi.addEventListener('input', ()=>{
+            if (parseFloat(pHi.value) < parseFloat(pLo.value) + 1) pHi.value = parseFloat(pLo.value) + 1;
+            state.priceMax = parseFloat(pHi.value);
+            updatePriceFill();
+            applyFilters();
+        });
+        updatePriceFill();
+    }
+
+    /* Stops checkboxes */
+    document.querySelectorAll('[data-sf="stops"]').forEach(chk=>{
+        chk.addEventListener('change', ()=>{
+            const v = String(chk.value);
+            chk.checked ? state.stops.add(v) : state.stops.delete(v);
+            applyFilters();
+        });
+    });
+
+    /* Time slot buttons — departure */
+    document.querySelectorAll('[data-sf-dep]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            const slot = btn.dataset.sfDep;
+            btn.classList.toggle('sf-active');
+            btn.classList.contains('sf-active') ? state.depSlots.add(slot) : state.depSlots.delete(slot);
+            applyFilters();
+        });
+    });
+
+    /* Time slot buttons — arrival */
+    document.querySelectorAll('[data-sf-arr]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            const slot = btn.dataset.sfArr;
+            btn.classList.toggle('sf-active');
+            btn.classList.contains('sf-active') ? state.arrSlots.add(slot) : state.arrSlots.delete(slot);
+            applyFilters();
+        });
+    });
+
+    /* Fare type checkboxes */
+    document.querySelectorAll('[data-sf="refund"]').forEach(chk=>{
+        chk.addEventListener('change', ()=>{
+            const v = chk.value;
+            chk.checked ? state.refund.add(v) : state.refund.delete(v);
+            applyFilters();
+        });
+    });
+
+    /* Duration slider */
+    const durSlider = document.getElementById('sf-dur');
+    const durLbl    = document.getElementById('sf-dur-lbl');
+    if (durSlider){
+        function fmtDur(m){
+            m = parseInt(m,10);
+            return Math.floor(m/60)+'h '+(m%60)+'m';
+        }
+        durSlider.addEventListener('input', ()=>{
+            state.maxDur = parseInt(durSlider.value, 10);
+            if (durLbl) durLbl.textContent = fmtDur(durSlider.value);
+            // update range track fill color
+            const pct = ((durSlider.value - durSlider.min)/(durSlider.max - durSlider.min))*100;
+            durSlider.style.background = `linear-gradient(to right, var(--c-brand) ${pct}%, var(--c-line) ${pct}%)`;
+            applyFilters();
+        });
+        // init fill
+        const pct0 = 100;
+        durSlider.style.background = `linear-gradient(to right, var(--c-brand) ${pct0}%, var(--c-line) ${pct0}%)`;
+    }
+
+    /* Reset button */
+    const resetBtn = document.getElementById('sf-reset');
+    if (resetBtn){
+        resetBtn.addEventListener('click', ()=>{
+            // reset state
+            state.sliderAirline = 'all';
+            state.priceMin      = globalMin;
+            state.priceMax      = globalMax;
+            state.stops.clear();
+            state.depSlots.clear();
+            state.arrSlots.clear();
+            state.refund.clear();
+            state.maxDur        = Infinity;
+
+            // reset airline slider
+            document.querySelectorAll('.as-pill').forEach(p=>p.classList.remove('as-pill--active'));
+            const allPill = document.querySelector('.as-pill[data-as-code="all"]');
+            if (allPill) allPill.classList.add('as-pill--active');
+
+            // reset price sliders
+            if (pLo) { pLo.value = pLo.min; }
+            if (pHi) { pHi.value = pHi.max; }
+            updatePriceFill();
+
+            // reset stop checkboxes
+            document.querySelectorAll('[data-sf="stops"]').forEach(c=>{ c.checked = false; });
+
+            // reset time buttons
+            document.querySelectorAll('[data-sf-dep],[data-sf-arr]').forEach(b=> b.classList.remove('sf-active'));
+
+            // reset fare checkboxes
+            document.querySelectorAll('[data-sf="refund"]').forEach(c=>{ c.checked = false; });
+
+            // reset duration
+            if (durSlider){
+                durSlider.value = durSlider.max;
+                if (durLbl) durLbl.textContent = fmtDur ? fmtDur(durSlider.max) : '';
+                durSlider.style.background = `linear-gradient(to right, var(--c-brand) 100%, var(--c-line) 100%)`;
+            }
+
+            applyFilters();
+        });
+    }
+
+    /* ─────────────────────────────────────────────────────
+       INIT
+    ───────────────────────────────────────────────────── */
+    // Add hidden CSS rule (use sf-hidden class instead of as-hidden)
+    const style = document.createElement('style');
+    style.textContent = '.rc.sf-hidden { display: none; }';
+    document.head.appendChild(style);
+
+    // Add badge span to sidebar header
+    const sfTitle = document.querySelector('.sf__title');
+    if (sfTitle){
+        const badge = document.createElement('span');
+        badge.className = 'sf__head-badge';
+        badge.id = 'sf-active-badge';
+        sfTitle.appendChild(badge);
+    }
+
+    sortCards();
+    applyFilters();
 
 })();
 </script>
