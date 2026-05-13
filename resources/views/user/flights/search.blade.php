@@ -70,6 +70,79 @@
 
             @if ($itineraryCount > 0)
 
+                @php
+                    /* Build unique airline map sorted by min price */
+                    $airlineMap = [];
+                    foreach ($results as $_r) {
+                        $_seg  = $_r['legs'][0]['segments'][0] ?? [];
+                        $_code = strtoupper(trim((string)($_seg['carrier'] ?? '')));
+                        $_name = $_seg['carrier_display'] ?? $_code;
+                        $_price= (float)($_r['totalPrice'] ?? 0);
+                        if ($_code === '') continue;
+                        if (!isset($airlineMap[$_code])) {
+                            $airlineMap[$_code] = ['code' => $_code, 'name' => $_name, 'min_price' => $_price, 'count' => 0];
+                        }
+                        $airlineMap[$_code]['count']++;
+                        if ($_price < $airlineMap[$_code]['min_price']) {
+                            $airlineMap[$_code]['min_price'] = $_price;
+                        }
+                    }
+                    uasort($airlineMap, fn($a,$b) => $a['min_price'] <=> $b['min_price']);
+                @endphp
+
+                {{-- ── Airline filter slider ── --}}
+                <div class="as-wrap" id="as-wrap">
+                    <button class="as-arrow as-arrow--prev" id="as-prev" aria-label="Scroll left" disabled>
+                        <i class="bx bx-chevron-left"></i>
+                    </button>
+
+                    <div class="as-viewport" id="as-viewport">
+                        <div class="as-track" id="as-track">
+
+                            {{-- All pill --}}
+                            <button class="as-pill as-pill--all as-pill--active" data-as-code="all">
+                                <div class="as-pill__logo-wrap as-pill__logo-wrap--all">
+                                    <i class="bx bxs-plane"></i>
+                                </div>
+                                <div class="as-pill__body">
+                                    <span class="as-pill__name">All Airlines</span>
+                                    <span class="as-pill__meta">
+                                        <span class="as-pill__count">{{ $itineraryCount }} flights</span>
+                                    </span>
+                                </div>
+                            </button>
+
+                            @foreach($airlineMap as $_al)
+                            <button class="as-pill" data-as-code="{{ $_al['code'] }}">
+                                <div class="as-pill__logo-wrap">
+                                    <img class="as-pill__logo"
+                                        src="{{ fl_carrier_logo($_al['code']) }}"
+                                        loading="lazy"
+                                        alt="{{ $_al['name'] }}"
+                                        onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($_al['code']) }}&background=cd1b4f&color=fff&size=80'">
+                                </div>
+                                <div class="as-pill__body">
+                                    <span class="as-pill__name">{{ $_al['name'] }}</span>
+                                    <span class="as-pill__meta">
+                                        <span class="as-pill__count">{{ $_al['count'] }}</span>
+                                        <span class="as-pill__sep">·</span>
+                                        <span class="as-pill__price">
+                                            {{ $currencyCode === 'AED' ? 'AED' : $currencyCode }}
+                                            {{ number_format($_al['min_price'], 0) }}
+                                        </span>
+                                    </span>
+                                </div>
+                            </button>
+                            @endforeach
+
+                        </div>
+                    </div>
+
+                    <button class="as-arrow as-arrow--next" id="as-next" aria-label="Scroll right">
+                        <i class="bx bx-chevron-right"></i>
+                    </button>
+                </div>
+
                 {{-- toolbar --}}
                 <div class="rp-bar">
                     <span class="rp-bar__count">
@@ -985,6 +1058,188 @@
 }
 
 /* =========================================================
+   AIRLINE FILTER SLIDER
+   ========================================================= */
+.as-wrap {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: .85rem;
+    background: var(--c-white);
+    border: 1px solid var(--c-line);
+    border-radius: 14px;
+    box-shadow: var(--c-shadow);
+    overflow: hidden;
+    position: relative;
+}
+
+/* scroll arrows */
+.as-arrow {
+    flex-shrink: 0;
+    width: 36px;
+    border: none;
+    background: transparent;
+    color: var(--c-slate);
+    cursor: pointer;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .13s, color .13s;
+    z-index: 2;
+}
+.as-arrow:hover:not(:disabled) { background: var(--c-brand-soft); color: var(--c-brand); }
+.as-arrow:disabled { opacity: .3; cursor: default; }
+.as-arrow--prev { border-right: 1px solid var(--c-line); }
+.as-arrow--next { border-left:  1px solid var(--c-line); }
+
+/* viewport + track */
+.as-viewport {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+/* fade edges */
+.as-viewport::before,
+.as-viewport::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 28px;
+    pointer-events: none;
+    z-index: 1;
+}
+.as-viewport::before { left: 0;  background: linear-gradient(to right,  #fff 0%, transparent 100%); }
+.as-viewport::after  { right: 0; background: linear-gradient(to left,   #fff 0%, transparent 100%); }
+
+.as-track {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: .55rem .5rem;
+    gap: .4rem;
+}
+.as-track::-webkit-scrollbar { display: none; }
+
+/* pill card */
+.as-pill {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .48rem .75rem .48rem .52rem;
+    border: 1.5px solid var(--c-line);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .13s, background .13s, box-shadow .13s, color .13s;
+    white-space: nowrap;
+    min-width: 0;
+    text-align: left;
+    box-shadow: 0 1px 3px rgba(26,37,64,.05);
+    font: inherit;
+}
+.as-pill:hover {
+    border-color: rgba(205,27,79,.35);
+    background: var(--c-brand-soft);
+    box-shadow: 0 3px 10px rgba(205,27,79,.1);
+}
+.as-pill--active {
+    border-color: var(--c-brand);
+    background: linear-gradient(135deg, var(--c-brand) 0%, var(--c-brand2) 100%);
+    box-shadow: 0 4px 14px rgba(205,27,79,.28);
+    color: #fff;
+}
+.as-pill--active:hover {
+    background: linear-gradient(135deg, #d91d56 0%, #b01844 100%);
+    border-color: var(--c-brand2);
+}
+
+/* logo box */
+.as-pill__logo-wrap {
+    width: 40px; height: 40px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    border: 1.5px solid var(--c-line);
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    padding: 3px;
+    box-shadow: 0 1px 4px rgba(26,37,64,.08);
+    transition: border-color .13s;
+}
+.as-pill__logo-wrap--all {
+    background: var(--c-brand-soft);
+    border-color: rgba(205,27,79,.2);
+    font-size: 1.2rem;
+    color: var(--c-brand);
+}
+.as-pill--active .as-pill__logo-wrap {
+    border-color: rgba(255,255,255,.35);
+    background: rgba(255,255,255,.18);
+}
+.as-pill--active .as-pill__logo-wrap--all {
+    background: rgba(255,255,255,.2);
+    color: #fff;
+}
+.as-pill__logo {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
+}
+
+/* text body */
+.as-pill__body {
+    display: flex;
+    flex-direction: column;
+    gap: .08rem;
+    min-width: 0;
+}
+.as-pill__name {
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--c-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 110px;
+    line-height: 1.2;
+}
+.as-pill--active .as-pill__name { color: #fff; }
+
+.as-pill__meta {
+    display: flex;
+    align-items: center;
+    gap: .2rem;
+    font-size: .66rem;
+    line-height: 1;
+}
+.as-pill__count {
+    font-weight: 700;
+    color: var(--c-brand);
+    font-family: var(--mono);
+}
+.as-pill--active .as-pill__count { color: rgba(255,255,255,.85); }
+
+.as-pill__sep { color: var(--c-muted); opacity: .5; }
+.as-pill--active .as-pill__sep { color: rgba(255,255,255,.5); }
+
+.as-pill__price {
+    color: var(--c-slate);
+    font-weight: 600;
+    font-family: var(--mono);
+    font-size: .66rem;
+}
+.as-pill--active .as-pill__price { color: rgba(255,255,255,.9); }
+
+/* filtered-out cards */
+.rc.as-hidden {
+    display: none;
+}
+
+/* =========================================================
    RESPONSIVE
    ========================================================= */
 @media (max-width: 991px) {
@@ -1005,6 +1260,11 @@
     .fd-seg__route { grid-template-columns: 1fr; }
     .fd-seg__pt--arr { align-items: flex-start; text-align: left; }
     .fd-box { max-height: 95vh; border-radius: 12px; }
+    /* airline slider on mobile */
+    .as-arrow { width: 28px; font-size: 1.1rem; }
+    .as-pill__name { max-width: 80px; }
+    .as-pill { padding: .4rem .55rem .4rem .45rem; gap: .4rem; }
+    .as-pill__logo-wrap { width: 34px; height: 34px; }
 }
 </style>
 @endpush
@@ -1112,6 +1372,70 @@
     });
 
     sortCards();
+
+    /* ── Airline slider filter ── */
+    (function(){
+        const track    = document.getElementById('as-track');
+        const viewport = document.getElementById('as-viewport');
+        const btnPrev  = document.getElementById('as-prev');
+        const btnNext  = document.getElementById('as-next');
+        const countEl  = document.querySelector('.rp-bar__count strong:first-child');
+        if (!track) return;
+
+        const SCROLL_STEP = 260;
+
+        function updateArrows(){
+            const sv = track.scrollLeft;
+            const maxScroll = track.scrollWidth - track.clientWidth;
+            if (btnPrev) btnPrev.disabled = sv <= 2;
+            if (btnNext) btnNext.disabled = sv >= maxScroll - 2;
+        }
+        track.addEventListener('scroll', updateArrows, {passive:true});
+        updateArrows();
+
+        if (btnPrev) btnPrev.addEventListener('click', ()=>{
+            track.scrollBy({left: -SCROLL_STEP, behavior:'smooth'});
+        });
+        if (btnNext) btnNext.addEventListener('click', ()=>{
+            track.scrollBy({left:  SCROLL_STEP, behavior:'smooth'});
+        });
+
+        /* filter cards */
+        let activeCode = 'all';
+
+        document.querySelectorAll('.as-pill[data-as-code]').forEach(pill=>{
+            pill.addEventListener('click', ()=>{
+                const code = pill.dataset.asCode;
+                if (code === activeCode) return;
+                activeCode = code;
+
+                /* update active pill */
+                document.querySelectorAll('.as-pill').forEach(p=>p.classList.remove('as-pill--active'));
+                pill.classList.add('as-pill--active');
+
+                /* filter cards */
+                let visible = 0;
+                document.querySelectorAll('#rp-list .rc').forEach(card=>{
+                    if (code === 'all'){
+                        card.classList.remove('as-hidden');
+                        visible++;
+                    } else {
+                        const meta = parseMeta(card);
+                        const airlines = Array.isArray(meta.al) ? meta.al.map(c=>String(c).toUpperCase()) : [];
+                        const match = airlines.includes(code);
+                        card.classList.toggle('as-hidden', !match);
+                        if (match) visible++;
+                    }
+                });
+
+                /* update showing count */
+                const allCount = document.querySelectorAll('#rp-list .rc').length;
+                const first = document.querySelector('.rp-bar__count strong:first-child');
+                if (first) first.textContent = visible;
+            });
+        });
+    })();
+
 })();
 </script>
 @endpush
