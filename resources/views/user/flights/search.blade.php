@@ -1,4 +1,4 @@
-@extends('user.layouts.main')
+﻿@extends('user.layouts.main')
 @section('content')
     @php
         $query = request()->query();
@@ -43,6 +43,46 @@
 
             return "{$h}h {$r}m";
         }
+
+        function bff_segment_minutes(array $seg): ?int {
+            $dep = $seg['departure_datetime'] ?? null;
+            $arr = $seg['arrival_datetime'] ?? null;
+            if (!$dep || !$arr) {
+                return null;
+            }
+
+            try {
+                $d = \Carbon\Carbon::parse($dep);
+                $a = \Carbon\Carbon::parse($arr);
+
+                return max(0, (int) $d->diffInMinutes($a, false));
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        function bff_layover_minutes(array $prev, array $next): ?int {
+            $arr = $prev['arrival_datetime'] ?? null;
+            $dep = $next['departure_datetime'] ?? null;
+            if (!$arr || !$dep) {
+                return null;
+            }
+
+            try {
+                $a = \Carbon\Carbon::parse($arr);
+                $d = \Carbon\Carbon::parse($dep);
+
+                return max(0, (int) $a->diffInMinutes($d, false));
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        function bff_carrier_logo(?string $code): string {
+            $c = strtoupper(trim((string) ($code ?: 'XX')));
+
+            return "https://pics.avs.io/112/112/{$c}.png";
+        }
     @endphp
 
     <div class="bff-page hl-page">
@@ -67,25 +107,48 @@
             @endif
 
             @if (($itineraryCount ?? 0) > 0)
-                <div class="bff-toolbar mb-4">
-                    <div class="bff-toolbar__stats">
-                        <span class="bff-count"><strong>{{ $itineraryCount }}</strong> fares found</span>
-                        <span class="bff-showing" id="bff-showing-meta">Filtering results…</span>
+                <div class="fl-note mb-3">
+                    <span class="fl-note__icon"><i class='bx bxs-megaphone'></i></span>
+                    <span><strong>Note:</strong> Creating multiple bookings for the same passenger on the
+                        same airline may result in ADM and the same will be debited to the agent.</span>
+                </div>
+
+                <div class="fl-toolbar mb-4">
+                    <div class="fl-toolbar__left">
+                        <span class="fl-toolbar__count">
+                            Showing <strong id="bff-showing-meta">{{ $itineraryCount }}</strong>
+                            of <strong>{{ $itineraryCount }}</strong> fares
+                        </span>
                     </div>
-                    <div class="bff-toolbar__sort">
-                        <label class="bff-sort-label" for="bff-sort">Sort by</label>
-                        <select class="bff-select" id="bff-sort">
+
+                    <div class="fl-toolbar__sort">
+                        <span class="fl-toolbar__sort-label">Sort By:</span>
+                        <div class="fl-sort-pills" role="tablist" aria-label="Sort flights">
+                            <button type="button" class="fl-sort-pill" data-bff-sort="airline">Airline</button>
+                            <button type="button" class="fl-sort-pill" data-bff-sort="departure-o">Departure</button>
+                            <button type="button" class="fl-sort-pill" data-bff-sort="duration-o-asc">Duration</button>
+                            <button type="button" class="fl-sort-pill" data-bff-sort="best-value">Best Value</button>
+                            <button type="button" class="fl-sort-pill" data-bff-sort="arrival-o">Arrival</button>
+                            <button type="button" class="fl-sort-pill is-active" data-bff-sort="price-asc"
+                                data-bff-cycle="price-asc,price-desc">
+                                Price <i class='bx bx-down-arrow-alt fl-sort-pill__dir'></i>
+                            </button>
+                        </div>
+                        <select class="fl-sort-select-fallback" id="bff-sort" aria-hidden="true" tabindex="-1">
                             <option value="price-asc" selected>Price — low to high</option>
                             <option value="price-desc">Price — high to low</option>
                             <option value="duration-o-asc">Outward duration</option>
                             <option value="departure-o">Outward departure</option>
+                            <option value="arrival-o">Outward arrival</option>
+                            <option value="airline">Airline</option>
+                            <option value="best-value">Best value</option>
                         </select>
                     </div>
                 </div>
             @else
-                <div class="bff-toolbar mb-4">
-                    <div class="bff-toolbar__stats">
-                        <span class="bff-count"><strong>{{ $itineraryCount ?? 0 }}</strong> fares found</span>
+                <div class="fl-toolbar mb-4">
+                    <div class="fl-toolbar__left">
+                        <span class="fl-toolbar__count"><strong>{{ $itineraryCount ?? 0 }}</strong> fares found</span>
                     </div>
                 </div>
             @endif
@@ -94,13 +157,23 @@
                 <div class="bff-layout row g-4">
                     <aside class="bff-sidebar col-xl-3 col-lg-4 col-md-12" id="bff-filters-sidebar">
                         <div class="bff-sidebar__inner">
-                            <div class="bff-sidebar-title">Filter your search</div>
+                            <div class="bff-sidebar-header">
+                                <span class="fl-eyebrow">
+                                    <span class="fl-eyebrow__dot"></span>
+                                    <span>Refine</span>
+                                </span>
+                                <h3 class="bff-sidebar-title">Filter Your Search</h3>
+                            </div>
 
                             @if ($roundTripTabs)
                                 <div class="bff-leg-tabs">
                                     <button type="button" class="bff-tab is-active"
-                                        data-bff-tab-target="leg-out">Outbound</button>
-                                    <button type="button" class="bff-tab" data-bff-tab-target="leg-ret">Return</button>
+                                        data-bff-tab-target="leg-out">
+                                        <i class='bx bxs-plane-take-off'></i> Onward
+                                    </button>
+                                    <button type="button" class="bff-tab" data-bff-tab-target="leg-ret">
+                                        <i class='bx bxs-plane-land'></i> Return
+                                    </button>
                                 </div>
                             @endif
 
@@ -305,234 +378,401 @@
                                     $seatsListed = [];
 
                                     foreach ($result['legs'] ?? [] as $lg) {
-                                        foreach (($lg['segments'] ?? []) as $seg) {
+                                        foreach ($lg['segments'] ?? [] as $seg) {
                                             if (isset($seg['seats_available'])) {
                                                 $seatsListed[] = (int) $seg['seats_available'];
                                             }
                                         }
                                     }
-                                    $seatMin = !empty($seatsListed)
-                                        ? min($seatsListed)
-                                        : null;
+                                    $seatMin = !empty($seatsListed) ? min($seatsListed) : null;
+
+                                    $firstSeg = (($result['legs'][0]['segments'][0]) ?? []);
+                                    $headlineCarrierCode = $firstSeg['carrier'] ?? '';
                                 @endphp
-                                <article class="bff-card" id="bff-card-{{ $lid }}"
+                                <article class="bff-card flcard" id="bff-card-{{ $lid }}"
                                     data-bff-meta='@json($meta)' data-bff-id="{{ $lid }}">
-                                    <div class="bff-card__ribbon">
-                                        <div class="bff-card__ribbon-left">
-                                            @if ($result['validating_carrier'])
-                                                <span class="bff-pill bff-pill--vc">
-                                                    VC {{ $result['validating_carrier'] }}</span>
-                                            @endif
+                                    <header class="flcard__head">
+                                        <div class="flcard__head-left">
+                                            <span class="fl-eyebrow">
+                                                <span class="fl-eyebrow__dot"></span>
+                                                <span>Itinerary #{{ $loop->iteration }}</span>
+                                            </span>
+                                            <div class="flcard__head-pills">
+                                                @if (!empty($result['validating_carrier']))
+                                                    <span class="flpill flpill--vc">
+                                                        <i class='bx bxs-shield-x'></i>
+                                                        VC · {{ strtoupper($result['validating_carrier']) }}
+                                                    </span>
+                                                @endif
 
-                                            @if (!empty($result['pricing_subsource']))
-                                                <span class="bff-pill">{{ $result['pricing_subsource'] }}</span>
-                                            @endif
+                                                @if (!empty($result['pricing_subsource']))
+                                                    <span class="flpill flpill--src">
+                                                        {{ strtoupper((string) $result['pricing_subsource']) }}
+                                                    </span>
+                                                @endif
 
-                                            @if (($result['non_refundable'] ?? false))
-                                                <span class="bff-pill bff-pill--warn">Non‑refundable</span>
+                                                @if ($result['non_refundable'] ?? false)
+                                                    <span class="flpill flpill--warn">
+                                                        <i class='bx bx-x-circle'></i> Non-Refundable
+                                                    </span>
+                                                @else
+                                                    <span class="flpill flpill--ok">
+                                                        <i class='bx bx-check-circle'></i> Refundable
+                                                    </span>
+                                                @endif
+
+                                                @if (!empty($result['supplier']))
+                                                    <span class="flpill flpill--desk">
+                                                        Desk · {{ strtoupper((string) $result['supplier']) }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <div class="flcard__head-right">
+                                            @if (!empty($result['baggage_notes']))
+                                                <span class="flchip flchip--bag">
+                                                    <i class='bx bx-briefcase-alt-2'></i>
+                                                    {{ $result['baggage_notes'] }}
+                                                </span>
+                                            @endif
+                                            @if ($seatMin !== null)
+                                                <span class="flchip flchip--seats">
+                                                    <i class='bx bx-group'></i>
+                                                    {{ $seatMin }} seats
+                                                </span>
                                             @endif
                                         </div>
-                                        @if (($result['baggage_notes'] ?? null))
-                                            <span class="bff-bag">{{ $result['baggage_notes'] }}</span>
-                                        @endif
-                                    </div>
+                                    </header>
 
-                                    @foreach (($result['legs'] ?? []) as $legIndex => $leg)
-                                        @php
-                                            $segments = isset($leg['segments']) && is_array($leg['segments'])
-                                                ? $leg['segments']
-                                                : [];
-                                            $seg0 = $segments[0] ?? [];
-                                            $lastSeg = [];
-                                            if ($segments !== []) {
-                                                $lk = array_key_last($segments);
-                                                $lastSeg =
-                                                    isset($segments[$lk]) && is_array($segments[$lk])
-                                                        ? $segments[$lk]
-                                                        : [];
-                                            }
-                                            $tierConn = max(0, count($segments) - 1);
-                                            $tierStop = collect($segments)->sum(
-                                                fn ($s) => (int) ($s['stop_count'] ?? 0),
-                                            );
+                                    <div class="flcard__body">
+                                        @foreach ($result['legs'] ?? [] as $legIndex => $leg)
+                                            @php
+                                                $segments = isset($leg['segments']) && is_array($leg['segments'])
+                                                    ? $leg['segments']
+                                                    : [];
+                                                $seg0 = $segments[0] ?? [];
+                                                $lastSeg = [];
+                                                if ($segments !== []) {
+                                                    $lk = array_key_last($segments);
+                                                    $lastSeg =
+                                                        isset($segments[$lk]) && is_array($segments[$lk])
+                                                            ? $segments[$lk]
+                                                            : [];
+                                                }
+                                                $tierConn = max(0, count($segments) - 1);
+                                                $tierStop = collect($segments)->sum(
+                                                    fn ($s) => (int) ($s['stop_count'] ?? 0),
+                                                );
+                                                $stopsTotal = $tierConn + $tierStop;
+                                                $stopsPhrase =
+                                                    $stopsTotal === 0
+                                                        ? 'Non-stop'
+                                                        : ($stopsTotal === 1
+                                                            ? '1 stop'
+                                                            : $stopsTotal . ' stops');
 
-                                            $stopsPhrase =
-                                                $tierConn + $tierStop === 0
-                                                ? 'Non‑stop'
-                                                : ($tierConn + $tierStop === 1
-                                                    ? '1 stop'
-                                                    : $tierConn + $tierStop . ' stops');
+                                                $legBadge =
+                                                    $legIndex === 0
+                                                        ? ($roundTripTabs ? 'Onward' : 'Flight')
+                                                        : 'Return';
 
-                                            $legBadge =
-                                                $legIndex === 0
-                                                ? ($roundTripTabs
-                                                    ? 'Outbound'
-                                                    : 'Flight')
-                                                : 'Return';
+                                                $legBadgeMod = $legIndex === 0 ? 'fl-leg-tag--out' : 'fl-leg-tag--ret';
+                                            @endphp
 
-                                        @endphp
+                                            <section class="flleg {{ $legBadgeMod }}"
+                                                data-leg-index="{{ $legIndex }}">
+                                                <aside class="flleg__rail">
+                                                    <span class="flleg__rail-num">{{ $legIndex + 1 }}</span>
+                                                    <span class="flleg__rail-line"></span>
+                                                </aside>
 
-                                        @if (!$loop->first)
-                                            <div class="bff-leg-divider"></div>
-                                        @endif
-
-                                        <div class="bff-leg-grid">
-                                            <div class="bff-airline-zone">
-                                                <img class="bff-logo"
-                                                    src="https://pics.avs.io/112/112/{{ strtoupper(trim((string) ($seg0['carrier'] ?? 'XX'))) }}.png"
-                                                    loading="lazy" alt=""
-                                                    onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode(trim((string) ($seg0['carrier'] ?? 'FL'))) }}&background=cd1b4f&color=fff'" />
-                                                <div>
-                                                    <div class="bff-airline">{{ $seg0['carrier_display'] ?? ($seg0['carrier'] ?? '') }}
-                                                    </div>
-                                                    @if (($seg0['operating_carrier'] ?? '') &&
-                                                            ($seg0['operating_carrier'] ?? '') !== ($seg0['carrier'] ?? ''))
-                                                        <div class="bff-op-note">
-                                                            Op {{ $seg0['operating_carrier'] }}
-                                                            @if (!empty($seg0['operating_flight_number']))
-                                                                {{ $seg0['operating_flight_number'] }}
-                                                            @endif
+                                                <div class="flleg__main">
+                                                    <header class="flleg__head">
+                                                        <div class="flleg__airline">
+                                                            <img class="flleg__logo"
+                                                                src="{{ bff_carrier_logo($seg0['carrier'] ?? '') }}"
+                                                                loading="lazy" alt=""
+                                                                onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode(trim((string) ($seg0['carrier'] ?? 'FL'))) }}&background=cd1b4f&color=fff'" />
+                                                            <div>
+                                                                <div class="flleg__airline-name">
+                                                                    {{ $seg0['carrier_display'] ?? ($seg0['carrier'] ?? '') }}
+                                                                </div>
+                                                                <div class="flleg__airline-meta">
+                                                                    {{ $seg0['carrier'] ?? '' }}{{ $seg0['flight_number'] ?? '' }}
+                                                                    @if (($seg0['operating_carrier'] ?? '') &&
+                                                                            ($seg0['operating_carrier'] ?? '') !== ($seg0['carrier'] ?? ''))
+                                                                        <span class="flleg__op">· Op
+                                                                            {{ $seg0['operating_carrier'] }}@if (!empty($seg0['operating_flight_number']))
+                                                                                {{ $seg0['operating_flight_number'] }}
+                                                                            @endif
+                                                                        </span>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    @endif
 
-                                                    @if (!empty($result['supplier']))
-                                                        <span class="bff-supplier">Desk:
-                                                            {{ strtoupper((string) $result['supplier']) }}</span>
-                                                    @endif
-                                                </div>
-                                            </div>
+                                                        <span class="fl-leg-tag {{ $legBadgeMod }}">
+                                                            @if ($legIndex === 0)
+                                                                <i class='bx bxs-plane-take-off'></i>
+                                                            @else
+                                                                <i class='bx bxs-plane-land'></i>
+                                                            @endif
+                                                            {{ $legBadge }}
+                                                        </span>
+                                                    </header>
 
-                                            <div class="bff-points">
-                                                <div class="bff-point">
-                                                    @if (($seg0['is_red_eye_segment'] ?? false))
-                                                        <i class='bx bxs-moon bff-night' title="Night departure"></i>
-                                                    @endif
-                                                    <strong>{{ $seg0['departure_clock'] ?? '-' }}</strong>
-                                                    <span class="dff-date">{{ $seg0['departure_weekday'] ?? '' }}, {{ $seg0['departure_label'] ?? '' }}</span>
-                                                    <span class="bff-city">{{ bff_city_line($seg0, $seg0['from'] ?? '') }}</span>
-                                                    <small class="bff-iata">{{ $seg0['from'] ?? '' }}@if (!empty($seg0['departure_terminal']))
-                                                            · {{ $seg0['departure_terminal'] }}
-                                                        @endif</small>
-                                                </div>
+                                                    <div class="flleg__timeline">
+                                                        <div class="flleg__point flleg__point--dep">
+                                                            <strong class="flleg__time">
+                                                                {{ $seg0['departure_clock'] ?? '-' }}
+                                                                @if ($seg0['is_red_eye_segment'] ?? false)
+                                                                    <i class='bx bxs-moon flleg__redeye'
+                                                                        title="Red-eye"></i>
+                                                                @endif
+                                                            </strong>
+                                                            <span class="flleg__date">
+                                                                {{ $seg0['departure_weekday'] ?? '' }},
+                                                                {{ $seg0['departure_label'] ?? '' }}
+                                                            </span>
+                                                            <span class="flleg__city">
+                                                                {{ bff_city_line($seg0, $seg0['from'] ?? '') }}
+                                                            </span>
+                                                            <span class="flleg__airport">
+                                                                {{ $seg0['from'] ?? '' }}@if (!empty($seg0['departure_terminal']))
+                                                                    · T{{ $seg0['departure_terminal'] }}
+                                                                @endif
+                                                            </span>
+                                                        </div>
 
-                                                <div class="bff-journey-bridge">
-                                                    <span class="bff-trip-time">{{ bff_format_hm(isset($leg['elapsedTime'])
-                                                        ? (int) $leg['elapsedTime']
-                                                        : null) }}</span>
+                                                        <div class="flleg__bridge">
+                                                            <span class="flleg__bridge-time">
+                                                                {{ bff_format_hm(isset($leg['elapsedTime']) ? (int) $leg['elapsedTime'] : null) }}
+                                                            </span>
+                                                            <div class="flleg__bridge-line">
+                                                                <span class="flleg__bridge-plane"><i
+                                                                        class='bx bxs-plane'></i></span>
+                                                            </div>
+                                                            <span class="flleg__bridge-stops">
+                                                                @if ($stopsTotal === 0)
+                                                                    <span class="fl-stop fl-stop--direct">Non-stop</span>
+                                                                @else
+                                                                    <span class="fl-stop fl-stop--via">{{ $stopsPhrase }}</span>
+                                                                @endif
+                                                            </span>
+                                                        </div>
 
-                                                    <div class="bff-line"></div>
+                                                        <div class="flleg__point flleg__point--arr">
+                                                            <strong class="flleg__time">
+                                                                {{ $lastSeg['arrival_clock'] ?? '-' }}
+                                                                @if ($lastSeg['next_day_hint'] ?? false)
+                                                                    <span class="flleg__nextday"
+                                                                        title="Arrives next day">+1</span>
+                                                                @endif
+                                                            </strong>
+                                                            <span class="flleg__date">
+                                                                {{ $lastSeg['arrival_weekday'] ?? '' }},
+                                                                {{ $lastSeg['arrival_label'] ?? '' }}
+                                                            </span>
+                                                            <span class="flleg__city">
+                                                                {{ bff_city_line($lastSeg, $lastSeg['to'] ?? '') }}
+                                                            </span>
+                                                            <span class="flleg__airport">
+                                                                {{ $lastSeg['to'] ?? '' }}@if (!empty($lastSeg['arrival_terminal']))
+                                                                    · T{{ $lastSeg['arrival_terminal'] }}
+                                                                @endif
+                                                            </span>
+                                                        </div>
+                                                    </div>
 
-                                                    <span class="bff-st-chip">{{ $stopsPhrase }}</span>
-                                                </div>
+                                                    <div class="flleg__foot">
+                                                        @if (count($segments) > 1)
+                                                            <div class="flleg__chain">
+                                                                @foreach ($segments as $sx)
+                                                                    <span class="flleg__chip">{{ $sx['from'] ?? '' }}
+                                                                        →
+                                                                        {{ $sx['to'] ?? '' }}</span>
+                                                                    @if (!$loop->last)
+                                                                        <i class='bx bx-chevron-right flleg__chain-sep'></i>
+                                                                    @endif
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
 
-                                                <div class="bff-point text-end align-items-end">
-                                                    <strong>{{ $lastSeg['arrival_clock'] ?? '-' }}</strong>
-                                                    <span class="dff-date">{{ $lastSeg['arrival_weekday'] ?? '' }}, {{ $lastSeg['arrival_label'] ?? '' }}</span>
-                                                    <span class="bff-city">{{ bff_city_line($lastSeg, $lastSeg['to'] ?? '') }}</span>
+                                                        <button type="button" class="flleg__toggle"
+                                                            data-fl-toggle>
+                                                            <i class='bx bx-list-ul'></i>
+                                                            <span class="flleg__toggle-label">Flight Details</span>
+                                                            <i class='bx bx-chevron-down flleg__toggle-arrow'></i>
+                                                        </button>
+                                                    </div>
 
-                                                    @if (($lastSeg['next_day_hint'] ?? false))
-                                                        <span class="bff-next-day">Next day</span>
-                                                    @endif
+                                                    <div class="flleg__details" data-fl-details hidden>
+                                                        @foreach ($segments as $segIdx => $sx)
+                                                            @php
+                                                                $sxMins = bff_segment_minutes($sx);
+                                                                $sxLayover =
+                                                                    $segIdx > 0
+                                                                        ? bff_layover_minutes($segments[$segIdx - 1], $sx)
+                                                                        : null;
+                                                            @endphp
 
-                                                    <small class="bff-iata">{{ $lastSeg['to'] ?? '' }}@if (!empty($lastSeg['arrival_terminal']))
-                                                            · {{ $lastSeg['arrival_terminal'] }}
-                                                        @endif</small>
-                                                </div>
-                                            </div>
+                                                            @if ($sxLayover !== null)
+                                                                <div class="flseg-layover">
+                                                                    <i class='bx bx-time-five'></i>
+                                                                    <strong>{{ bff_format_hm($sxLayover) }}</strong>
+                                                                    layover at
+                                                                    <strong>{{ $sx['from'] ?? '' }}</strong>
+                                                                    @if (!empty($sx['departure_city']))
+                                                                        · {{ $sx['departure_city'] }}
+                                                                    @endif
+                                                                </div>
+                                                            @endif
 
-                                            @if (($leg['segments'] ?? []) &&
-                                                    count(($leg['segments'] ?? []) ) > 1)
-                                                <div class="bff-conn-pane">
-                                                    <div class="bff-leg-badge">{{ $legBadge }}</div>
-                                                    <div class="bff-segments">
-                                                        @foreach ($leg['segments'] as $sx)
-                                                            <span class="bff-segment-chip">{{ $sx['from'] ?? '' }}
-                                                                → {{ $sx['to'] ?? '' }}
-                                                                {{ $sx['carrier'] ?? '' }}{{ $sx['flight_number'] ?? '' }}</span>
+                                                            <div class="flseg">
+                                                                <div class="flseg__air">
+                                                                    <img class="flseg__logo"
+                                                                        src="{{ bff_carrier_logo($sx['carrier'] ?? '') }}"
+                                                                        loading="lazy" alt=""
+                                                                        onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode(trim((string) ($sx['carrier'] ?? 'FL'))) }}&background=cd1b4f&color=fff'" />
+                                                                    <div>
+                                                                        <div class="flseg__air-name">
+                                                                            {{ $sx['carrier_display'] ?? ($sx['carrier'] ?? '') }}
+                                                                        </div>
+                                                                        <div class="flseg__air-meta">
+                                                                            {{ $sx['carrier'] ?? '' }}{{ $sx['flight_number'] ?? '' }}
+                                                                            @if (($sx['operating_carrier'] ?? '') &&
+                                                                                    ($sx['operating_carrier'] ?? '') !== ($sx['carrier'] ?? ''))
+                                                                                · Op
+                                                                                {{ $sx['operating_carrier'] }}{{ $sx['operating_flight_number'] ?? '' }}
+                                                                            @endif
+                                                                            @if (!empty($sx['equipment']))
+                                                                                · {{ $sx['equipment'] }}
+                                                                            @endif
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="flseg__route">
+                                                                    <div class="flseg__pt">
+                                                                        <strong>{{ $sx['departure_clock'] ?? '-' }}</strong>
+                                                                        <span>{{ $sx['from'] ?? '' }}
+                                                                            @if (!empty($sx['departure_city']))
+                                                                                · {{ $sx['departure_city'] }}
+                                                                            @endif
+                                                                        </span>
+                                                                        <small>{{ $sx['departure_label'] ?? '' }}@if (!empty($sx['departure_terminal']))
+                                                                                · T{{ $sx['departure_terminal'] }}
+                                                                            @endif
+                                                                        </small>
+                                                                    </div>
+                                                                    <div class="flseg__dur">
+                                                                        <span>{{ bff_format_hm($sxMins) }}</span>
+                                                                        <div class="flseg__dur-line"></div>
+                                                                        @if ((int) ($sx['stop_count'] ?? 0) > 0)
+                                                                            <small>{{ (int) $sx['stop_count'] }}
+                                                                                tech stop</small>
+                                                                        @endif
+                                                                    </div>
+                                                                    <div class="flseg__pt flseg__pt--arr">
+                                                                        <strong>{{ $sx['arrival_clock'] ?? '-' }}</strong>
+                                                                        <span>{{ $sx['to'] ?? '' }}
+                                                                            @if (!empty($sx['arrival_city']))
+                                                                                · {{ $sx['arrival_city'] }}
+                                                                            @endif
+                                                                        </span>
+                                                                        <small>{{ $sx['arrival_label'] ?? '' }}@if (!empty($sx['arrival_terminal']))
+                                                                                · T{{ $sx['arrival_terminal'] }}
+                                                                            @endif
+                                                                        </small>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="flseg__meta">
+                                                                    @if (!empty($sx['cabin_code']))
+                                                                        <span class="flseg__tag flseg__tag--cab">
+                                                                            {{ $sx['cabin_code'] }}
+                                                                        </span>
+                                                                    @endif
+                                                                    @if (!empty($sx['booking_code']))
+                                                                        <span class="flseg__tag">
+                                                                            Class {{ $sx['booking_code'] }}
+                                                                        </span>
+                                                                    @endif
+                                                                    @if (isset($sx['seats_available']))
+                                                                        <span class="flseg__tag flseg__tag--seat">
+                                                                            <i class='bx bx-group'></i>
+                                                                            {{ (int) $sx['seats_available'] }}
+                                                                        </span>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
                                                         @endforeach
                                                     </div>
                                                 </div>
-                                            @else
-                                                <div class="bff-leg-mini">
-                                                    <div class="bff-leg-badge">{{ $legBadge }}</div>
-                                                    <span>{{ $seg0['flight_label'] ?? '' }}</span>
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endforeach
-
-                                    <!-- Fare footprint -->
-                                    <div class="bff-fare-pane">
-                                        <div class="bff-fare-lines">
-                                            <div class="bff-fare-line">
-                                                @php $segA = (($result['legs'][0]['segments'][0]) ?? []); @endphp
-                                                @if ($segA)
-                                                    <span class="bff-fw">Outbound</span>
-                                                    <span class="bff-cabin-chip">{{ $segA['cabin_code'] ?? 'Y' }}</span>
-                                                    @if (($segA['booking_code'] ?? null))
-                                                        <span class="bff-rbd">Class {{ $segA['booking_code'] }}</span>
-                                                    @endif
-                                                @else
-                                                    <span>Fare footprint</span>
-                                                @endif
-                                            </div>
-
-                                            @if (
-                                                (($result['fare_tags'] ?? []) &&
-                                                    count($result['fare_tags'])) )
-                                                <div class="bff-tags">
-                                                    @foreach (($result['fare_tags'] ?? []) as $ft)
-                                                        <span>{{ strtoupper((string) $ft) }}</span>
-                                                    @endforeach
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        <div class="bff-action-col">
-                                            <div class="bff-price-band">
-                                                <span class="bff-net">NET</span>
-                                                <strong class="bff-price-num">
-                                                    <span class="dirham"></span>{{ number_format($result['totalPrice'] ?? 0, 2) }}
-                                                </strong>
-                                                <span class="bff-curr">{{ strtoupper(($result['currency'] ?? '')) }}</span>
-
-                                                @if ($seatMin !== null)
-                                                    <div class="bff-seat-mini"><i class='bx bx-user'></i>{{ $seatMin }} seats
-                                                    </div>
-                                                @endif
-                                            </div>
-
-                                            <a href="{{ route('user.flights.checkout', ['itinerary' => $lid] + $query) }}"
-                                                class="bff-book">Continue</a>
-                                        </div>
+                                            </section>
+                                        @endforeach
                                     </div>
+
+                                    <footer class="flcard__foot">
+                                        <div class="flcard__fare">
+                                            @if ($firstSeg)
+                                                <span class="flcard__fare-cabin">
+                                                    {{ $firstSeg['cabin_code'] ?? 'Y' }}
+                                                </span>
+                                                @if (!empty($firstSeg['booking_code']))
+                                                    <span class="flcard__fare-rbd">Class
+                                                        {{ $firstSeg['booking_code'] }}</span>
+                                                @endif
+                                            @endif
+
+                                            @foreach ($result['fare_tags'] ?? [] as $ft)
+                                                <span class="flcard__fare-tag">{{ strtoupper((string) $ft) }}</span>
+                                            @endforeach
+                                        </div>
+
+                                        <div class="flcard__price">
+                                            <span class="flcard__price-label">Net Fare</span>
+                                            <span class="flcard__price-amount">
+                                                <span class="flcard__price-currency">{{ strtoupper(($result['currency'] ?? 'AED')) }}</span>
+                                                {{ number_format($result['totalPrice'] ?? 0, 2) }}
+                                            </span>
+                                            @if ($seatMin !== null)
+                                                <span class="flcard__price-seats">
+                                                    <i class='bx bx-user'></i> {{ $seatMin }} seats
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <a href="{{ route('user.flights.checkout', ['itinerary' => $lid] + $query) }}"
+                                            class="flcard__cta">
+                                            Continue
+                                            <i class='bx bx-right-arrow-alt'></i>
+                                        </a>
+                                    </footer>
                                 </article>
                             @endforeach
                         </div>
                     </div>
                 </div>
-            @elseif (!empty(request()->except(['page'])) && empty(($results ?? [])))
-                <!-- Empty State -->
-                <div class="fc-empty-state mt-5">
-                    <div class="fc-empty-icon"><i class='bx bx-search-alt'></i></div>
-                    <h3>No flights found</h3>
-                    <p>We couldn't find itineraries for this search matrix. Relax filters once results load, or widen
-                        dates/airports.</p>
-                    <div class="fc-empty-actions">
-                        <a href="{{ route('user.flights.index') }}" class="fc-btn-outline">Modify Search</a>
+            @elseif (!empty(request()->except(['page'])) && empty($results ?? []))
+                <div class="fl-empty">
+                    <div class="fl-empty__icon"><i class='bx bx-search-alt-2'></i></div>
+                    <h3 class="fl-empty__title">No flights match this search</h3>
+                    <p class="fl-empty__copy">We couldn't find itineraries for the current route, dates and
+                        passengers. Widen the dates or try nearby airports, then run the search again.</p>
+                    <div class="fl-empty__actions">
+                        <a href="{{ route('user.flights.index') }}" class="fl-btn fl-btn--primary">
+                            <i class='bx bx-edit'></i> Modify Search
+                        </a>
                     </div>
                 </div>
             @else
-                <div class="fc-empty-state mt-5">
-                    <div class="fc-empty-icon"><i class='bx bx-search-alt'></i></div>
-
-                    <h3>Ready when you are</h3>
-
-                    <p>Select cities and dates above, then we will query Sabre Bargain Finder for live availability.</p>
-                    <div class="fc-empty-actions">
-
-                        <a href="{{ route('user.flights.index') }}" class="fc-btn-outline">Open search</a>
-                    </div>
+                <div class="fl-empty">
+                    <div class="fl-empty__icon fl-empty__icon--idle"><i class='bx bxs-plane-take-off'></i></div>
+                    <h3 class="fl-empty__title">Ready when you are</h3>
+                    <p class="fl-empty__copy">Choose your trip type, cities and dates above. We'll query live
+                        Sabre inventory and surface consolidator-grade pricing.</p>
                 </div>
             @endif
         </div>
@@ -541,209 +781,333 @@
 
 @push('css')
     <style>
-        :root {
-            --bff-ink: #0f2744;
-            --bff-muted: #5c6f85;
-            --bff-line: #e4e9f5;
-            --bff-navy: #10345f;
-            --bff-lav: #eef1ff;
-            --bff-accent: #cd1b4f;
-            --bff-accent-soft: rgba(205, 27, 79, .14);
-            --bff-lime-note: #0f9d74;
-            --bff-surface: #f6f8fd;
-            --bff-shadow: 0 16px 40px rgba(17, 40, 80, .08)
-        }
-
         .bff-page {
+            --fl-brand: #cd1b4f;
+            --fl-brand-2: #b41642;
+            --fl-brand-soft: #fce7ef;
+            --fl-brand-tint: rgba(205, 27, 79, .08);
+            --fl-ink: #15233f;
+            --fl-ink-2: #1f2937;
+            --fl-slate: #475569;
+            --fl-slate-2: #64748b;
+            --fl-muted: #94a3b8;
+            --fl-line: #e5e9f1;
+            --fl-line-soft: #eef2f7;
+            --fl-surface: #ffffff;
+            --fl-surface-2: #f7f9fc;
+            --fl-canvas: #f1f4f9;
+            --fl-emerald: #047857;
+            --fl-emerald-soft: #ecfdf5;
+            --fl-amber: #d97706;
+            --fl-amber-soft: #fff8e8;
+            --fl-blue: #2563eb;
+            --fl-blue-soft: #e8f1ff;
+            --fl-violet: #8b5cf6;
+            --fl-violet-soft: #ede7fe;
+            --fl-lavender: #eef0ff;
+            --fl-shadow-sm: 0 1px 2px rgba(15, 23, 42, .05);
+            --fl-shadow-md: 0 6px 18px rgba(15, 23, 42, .06);
+            --fl-shadow-lg: 0 18px 38px -22px rgba(15, 23, 42, .28);
+            --fl-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+            font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+                "Helvetica Neue", Arial, sans-serif;
+            color: var(--fl-ink);
             padding-bottom: 3rem;
         }
 
-        .bff-toolbar {
+        .bff-page * {
+            box-sizing: border-box;
+        }
+
+        /* ============================================================
+           NOTE BANNER + TOOLBAR
+           ============================================================ */
+        .fl-note {
             display: flex;
             gap: .75rem;
+            align-items: center;
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            border-left: 4px solid var(--fl-amber);
+            border-radius: 14px;
+            padding: .65rem .9rem;
+            font-size: .78rem;
+            color: var(--fl-slate);
+            box-shadow: var(--fl-shadow-sm);
+        }
+
+        .fl-note strong {
+            color: var(--fl-ink);
+            font-weight: 700;
+        }
+
+        .fl-note__icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--fl-amber-soft);
+            color: var(--fl-amber);
+            font-size: 1.05rem;
+            flex-shrink: 0;
+        }
+
+        .fl-toolbar {
+            display: flex;
             flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
-            background: linear-gradient(120deg, #fff, #f9fbff 45%, #f3f7ff);
-            border: 1px solid var(--bff-line);
-            border-radius: 18px;
-
-            padding: .65rem .95rem .65rem 1rem;
-            box-shadow: var(--bff-shadow)
+            gap: .75rem 1rem;
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            border-radius: 16px;
+            padding: .65rem .95rem;
+            box-shadow: var(--fl-shadow-md);
         }
 
-        .bff-toolbar__stats {
+        .fl-toolbar__left {
             display: flex;
-
             gap: .75rem;
             align-items: baseline;
-            flex-wrap: wrap
         }
 
-        .bff-count strong {
-            color: var(--bff-navy);
+        .fl-toolbar__count {
+            font-size: .82rem;
+            color: var(--fl-slate-2);
+            font-weight: 600;
+        }
+
+        .fl-toolbar__count strong {
+            color: var(--fl-ink);
+            font-variant-numeric: tabular-nums;
             font-weight: 800;
-            letter-spacing: -.015em;
-
-            font-variant-numeric: tabular-nums
         }
 
-        .bff-sort-label {
+        .fl-toolbar__sort {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            flex-wrap: wrap;
+        }
 
-            margin-right: .45rem;
-
-            font-size: .73rem;
-
-            font-weight: 700;
-
-            color: var(--bff-muted);
-
+        .fl-toolbar__sort-label {
+            font-size: .68rem;
+            font-weight: 800;
+            letter-spacing: .14em;
             text-transform: uppercase;
-
-            letter-spacing: .06em
+            color: var(--fl-brand);
         }
 
-        .bff-select {
-            border: 1px solid var(--bff-line);
-
-            border-radius: 12px;
-
-            padding: .4rem .6rem;
-
-            font-size: .85rem;
-
-            background: #fff;
-
-            color: var(--bff-navy)
-
+        .fl-sort-pills {
+            display: flex;
+            gap: .25rem;
+            flex-wrap: wrap;
+            background: var(--fl-surface-2);
+            border: 1px solid var(--fl-line);
+            border-radius: 999px;
+            padding: .2rem;
         }
 
+        .fl-sort-pill {
+            border: none;
+            background: transparent;
+            font: inherit;
+            cursor: pointer;
+            padding: .35rem .75rem;
+            border-radius: 999px;
+            font-size: .78rem;
+            font-weight: 700;
+            color: var(--fl-slate);
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            transition: color .15s ease, background-color .15s ease, box-shadow .15s ease;
+        }
+
+        .fl-sort-pill:hover {
+            color: var(--fl-ink);
+        }
+
+        .fl-sort-pill.is-active {
+            background: var(--fl-surface);
+            color: var(--fl-brand);
+            box-shadow: var(--fl-shadow-sm);
+        }
+
+        .fl-sort-pill__dir {
+            font-size: 1rem;
+            transition: transform .2s ease;
+        }
+
+        .fl-sort-pill.is-desc .fl-sort-pill__dir {
+            transform: rotate(180deg);
+        }
+
+        .fl-sort-select-fallback {
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            pointer-events: none;
+        }
+
+        /* ============================================================
+           EYEBROW (re-used for sidebar header and card eyebrow)
+           ============================================================ */
+        .fl-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .12rem .55rem;
+            border-radius: 999px;
+            background: var(--fl-brand-soft);
+            color: var(--fl-brand);
+            font-size: .58rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .14em;
+        }
+
+        .fl-eyebrow__dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--fl-brand);
+            box-shadow: 0 0 0 3px rgba(205, 27, 79, .18);
+        }
+
+        /* ============================================================
+           SIDEBAR
+           ============================================================ */
         .bff-sidebar__inner {
-
-            border-radius: 18px;
-
-            border: 1px solid var(--bff-line);
-
-            background: repeating-linear-gradient(135deg,
-
-                    #fdfefe 0 12px,
-
-                    #f8faff 12px 24px);
-
-            box-shadow: var(--bff-shadow);
-
-            padding: 1rem .95rem;
-
             position: sticky;
+            top: 1rem;
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            border-radius: 18px;
+            padding: 1.1rem 1rem;
+            box-shadow: var(--fl-shadow-md);
+        }
 
-            top: 1rem
+        .bff-sidebar-header {
+            display: flex;
+            flex-direction: column;
+            gap: .35rem;
+            margin-bottom: .9rem;
+            padding-bottom: .75rem;
+            border-bottom: 1px solid var(--fl-line-soft);
         }
 
         .bff-sidebar-title {
-
-            font-size: .95rem;
-
+            font-size: 1.02rem;
             font-weight: 800;
-
-            color: var(--bff-navy);
-
-            margin-bottom: .75rem
+            color: var(--fl-ink);
+            margin: 0;
+            letter-spacing: -.01em;
         }
 
         .bff-leg-tabs {
-
             display: flex;
-
-            gap: .35rem;
-
-            margin-bottom: .85rem;
-
-            flex-wrap: wrap;
-
+            gap: .3rem;
+            background: var(--fl-surface-2);
+            border: 1px solid var(--fl-line);
+            border-radius: 999px;
+            padding: .2rem;
+            margin-bottom: 1rem;
         }
 
         .bff-tab {
             flex: 1;
-            padding: .45rem .55rem;
-
-            border-radius: 999px;
-
             border: none;
-
-            background: rgba(255, 255, 255, .9);
-
-            color: var(--bff-muted);
-
+            background: transparent;
+            padding: .4rem .55rem;
+            border-radius: 999px;
+            font-size: .76rem;
             font-weight: 700;
-
-            font-size: .74rem;
-
+            color: var(--fl-slate);
             cursor: pointer;
-            box-shadow: inset 0 0 0 1px rgba(16, 52, 95, .12)
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .3rem;
+            transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+        }
 
+        .bff-tab i {
+            font-size: .95rem;
         }
 
         .bff-tab.is-active {
-            background: var(--bff-navy);
-            color: #fff;
-
-            box-shadow: 0 6px 16px rgba(16, 52, 95, .25)
-
+            background: var(--fl-surface);
+            color: var(--fl-brand);
+            box-shadow: var(--fl-shadow-sm);
         }
 
         details.bff-acc {
-            margin: .5rem 0;
-            padding: .5rem .25rem .75rem;
-
-            border-top: 1px solid rgba(16, 52, 95, .08)
-
+            border: none;
+            border-top: 1px solid var(--fl-line-soft);
+            margin: 0;
+            padding: .65rem 0;
         }
 
-        summary {
-            cursor: pointer;
+        details.bff-acc:first-of-type {
+            border-top: none;
+            padding-top: .25rem;
+        }
+
+        .bff-acc summary {
             list-style: none;
-            font-size: .7rem;
-
-            letter-spacing: .16em;
-
+            cursor: pointer;
+            font-size: .68rem;
             font-weight: 800;
-
+            letter-spacing: .14em;
             text-transform: uppercase;
-
             display: flex;
             justify-content: space-between;
-
             align-items: center;
-
-            color: var(--bff-muted)
+            color: var(--fl-ink);
+            padding: .15rem 0;
         }
 
-        summary::-webkit-details-marker {
-            display: none
+        .bff-acc summary i {
+            color: var(--fl-muted);
+            transition: transform .2s ease;
+            font-size: 1rem;
+        }
+
+        .bff-acc[open] summary i {
+            transform: rotate(180deg);
+            color: var(--fl-brand);
+        }
+
+        .bff-acc summary::-webkit-details-marker {
+            display: none;
         }
 
         .bff-acc-body {
             margin-top: .55rem;
             display: flex;
             flex-direction: column;
-            gap: .35rem
+            gap: .35rem;
         }
 
         .bff-chip-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: .35rem
+            gap: .4rem;
         }
 
         .bff-chip-option {
-
-            position: relative
-
+            position: relative;
         }
 
         .bff-chip-option input {
             position: absolute;
-            opacity: 0
+            opacity: 0;
+            pointer-events: none;
         }
 
         .bff-chip-option span {
@@ -751,82 +1115,94 @@
             text-align: center;
             padding: .45rem .25rem;
             border-radius: 12px;
-            background: #fff;
-            font-size: .72rem;
+            background: var(--fl-surface-2);
+            font-size: .75rem;
             font-weight: 700;
-            color: var(--bff-navy);
-            box-shadow: inset 0 0 0 1px var(--bff-line)
+            color: var(--fl-slate);
+            border: 1px solid var(--fl-line);
+            cursor: pointer;
+            transition: background-color .15s ease, color .15s ease, border-color .15s ease;
         }
 
         .bff-chip-option input:checked+span {
-            background: var(--bff-accent-soft);
-            color: var(--bff-accent);
-            box-shadow: inset 0 0 0 1px rgba(205, 27, 79, .45)
+            background: var(--fl-brand-soft);
+            color: var(--fl-brand);
+            border-color: rgba(205, 27, 79, .35);
         }
 
         .bff-check {
             display: flex;
-            gap: .45rem;
+            gap: .55rem;
             align-items: center;
-            font-size: .8rem;
-            color: var(--bff-ink)
+            font-size: .82rem;
+            color: var(--fl-ink-2);
+            cursor: pointer;
+            padding: .15rem 0;
         }
 
         .bff-check input {
             width: 16px;
             height: 16px;
-            accent-color: var(--bff-accent)
+            accent-color: var(--fl-brand);
+            cursor: pointer;
         }
 
         .bff-scroll {
-            max-height: 160px;
+            max-height: 180px;
             overflow: auto;
-            padding-right: .25rem
+            padding-right: .25rem;
+        }
+
+        .bff-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .bff-scroll::-webkit-scrollbar-thumb {
+            background: var(--fl-line);
+            border-radius: 999px;
         }
 
         .bff-range {
             width: 100%;
-            accent-color: var(--bff-navy)
+            accent-color: var(--fl-brand);
         }
 
         .bff-range-labels {
             display: flex;
-
             justify-content: space-between;
             margin-top: .35rem;
-
-            font-size: .73rem;
-
-            color: var(--bff-muted)
-
+            font-size: .75rem;
+            color: var(--fl-slate);
+            font-family: var(--fl-mono);
+            font-weight: 700;
         }
 
         .bff-reset-btn {
-
             width: 100%;
-            border-radius: 12px;
-
-            border: dashed 1px rgba(205, 27, 79, .4);
-
+            border-radius: 999px;
+            border: 1px solid rgba(205, 27, 79, .35);
             background: transparent;
-            padding: .5rem .75rem;
-            margin-top: .85rem;
-
+            padding: .55rem .85rem;
+            margin-top: .95rem;
             font-weight: 700;
+            color: var(--fl-brand);
+            font-size: .82rem;
+            cursor: pointer;
+            transition: background-color .15s ease, color .15s ease;
+        }
 
-            color: var(--bff-accent)
-
+        .bff-reset-btn:hover {
+            background: var(--fl-brand);
+            color: #fff;
         }
 
         .bff-micro-label {
-
-            font-size: .72rem;
-
-            font-weight: 700;
-
-            color: var(--bff-accent);
-
-            margin: .55rem 0 .25rem
+            font-size: .65rem;
+            font-weight: 800;
+            color: var(--fl-brand);
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin: .55rem 0 .25rem;
         }
 
         .bff-leg-panel--hidden[data-bff-leg="ret"]:not(.is-visible-panel),
@@ -835,601 +1211,971 @@
         }
 
         .bff-muted {
-            color: var(--bff-muted)
-
-        }
-
-        .bff-alert {
-            padding: .55rem .75rem;
-            border-radius: 14px;
-
-            font-size: .82rem;
-
-            font-weight: 600;
-
-            border: 1px solid transparent;
-            margin-bottom: .45rem;
-
-        }
-
-        .bff-alert--err {
-            border-color: #fecaca;
-            background: #fff1f2;
-            color: #9f1239
-        }
-
-        .bff-alert--info {
-            border-color: rgba(103, 160, 255, .55);
-            background: #eaf2ff;
-            color: #1f3ea3
+            color: var(--fl-muted);
         }
 
         .bff-hint {
-
-            font-size: .71rem;
-
-            color: var(--bff-muted)
-
+            font-size: .73rem;
+            color: var(--fl-muted);
+            margin: .35rem 0 0;
         }
 
-        .bff-card {
-            margin-bottom: 1.05rem;
-
-            border-radius: 22px;
-
-            border: 1px solid rgba(16, 52, 95, .08);
-
-            background: radial-gradient(circle at 20% -10%, rgba(205, 27, 79, .14), transparent 52%), #ffffff;
-
-            box-shadow: var(--bff-shadow)
-
+        .bff-hint code {
+            font-family: var(--fl-mono);
+            background: var(--fl-canvas);
+            color: var(--fl-slate);
+            padding: .05rem .3rem;
+            border-radius: 6px;
+            font-size: .68rem;
         }
 
-        .bff-card__ribbon {
+        /* ============================================================
+           ALERTS
+           ============================================================ */
+        .bff-alert {
+            padding: .65rem .85rem;
+            border-radius: 12px;
+            font-size: .85rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            margin-bottom: .5rem;
+        }
+
+        .bff-alert--err {
+            border-color: rgba(244, 63, 94, .35);
+            background: #fff1f2;
+            color: #9f1239;
+        }
+
+        .bff-alert--info {
+            border-color: rgba(37, 99, 235, .25);
+            background: var(--fl-blue-soft);
+            color: #1d4ed8;
+        }
+
+        /* ============================================================
+           CARD
+           ============================================================ */
+        .flcard {
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            border-radius: 18px;
+            box-shadow: var(--fl-shadow-md);
+            margin-bottom: 1.1rem;
+            overflow: hidden;
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        .flcard:hover {
+            border-color: rgba(205, 27, 79, .35);
+            box-shadow: var(--fl-shadow-lg);
+            transform: translateY(-1px);
+        }
+
+        .flcard.bff-hide {
+            display: none !important;
+        }
+
+        .flcard__head {
             display: flex;
-            gap: .5rem;
-
-            align-items: center;
+            gap: .75rem;
+            align-items: flex-start;
             justify-content: space-between;
             flex-wrap: wrap;
-            padding: .55rem 1rem 0;
-
+            padding: .85rem 1rem;
+            background: linear-gradient(180deg, var(--fl-surface-2), var(--fl-surface));
+            border-bottom: 1px solid var(--fl-line-soft);
         }
 
-        .bff-card__ribbon-left {
-            display: flex;
-
-            gap: .35rem;
-
-            flex-wrap: wrap;
-
-            align-items: center;
-
-        }
-
-        .bff-pill {
-            padding: .15rem .55rem;
-            border-radius: 999px;
-            font-size: .62rem;
-
-            font-weight: 800;
-
-            letter-spacing: .05em;
-
-            text-transform: uppercase;
-
-            background: var(--bff-lav);
-            color: var(--bff-navy)
-        }
-
-        .bff-pill--vc {
-
-            background: rgba(16, 52, 95, .12);
-
-            color: var(--bff-navy)
-        }
-
-        .bff-pill--warn {
-
-            background: rgba(245, 158, 11, .15);
-
-            color: #a16207
-        }
-
-        .bff-bag {
-            font-size: .73rem;
-
-            font-weight: 700;
-
-            color: var(--bff-lime-note)
-        }
-
-        .bff-leg-divider {
-
-            height: 1px;
-
-            background: linear-gradient(90deg, transparent 0%, var(--bff-line), transparent);
-
-            margin: .45rem .6rem .15rem;
-
-        }
-
-        .bff-leg-grid {
-            padding: .75rem .95rem 1rem;
-
-            display: grid;
-            grid-template-columns: minmax(0, .85fr) minmax(0, 2fr) minmax(0, .65fr);
-
-            gap: .75rem;
-            align-items: start;
-
-        }
-
-        .bff-logo {
-            width: 44px;
-
-            height: 44px;
-
-            border-radius: 12px;
-            padding: .25rem;
-
-            background: white;
-
-            object-fit: contain;
-
-            box-shadow: 0 10px 20px rgba(15, 39, 68, .08)
-
-        }
-
-        .bff-airline-zone {
-            display: flex;
-
-            gap: .6rem;
-
-            align-items: center;
-
-            min-height: 100%
-
-        }
-
-        .bff-airline {
-            font-weight: 900;
-
-            color: var(--bff-navy)
-        }
-
-        .bff-points {
-            display: grid;
-
-            grid-template-columns: minmax(0, 1fr) minmax(0, .82fr) minmax(0, 1fr);
-            gap: .45rem;
-
-            align-items: center;
-
-        }
-
-        .bff-point {
+        .flcard__head-left {
             display: flex;
             flex-direction: column;
-
-            gap: .1rem;
-
+            gap: .45rem;
+            min-width: 0;
         }
 
-        .bff-point strong {
-
-            font-size: 1.08rem;
-
-            font-weight: 900;
-
-            color: var(--bff-navy);
-
-            letter-spacing: -.02em
+        .flcard__head-pills {
+            display: flex;
+            gap: .3rem;
+            flex-wrap: wrap;
         }
 
-        .dff-date {
-            font-size: .73rem;
-
-            font-weight: 600;
-
-            color: var(--bff-muted)
-
+        .flcard__head-right {
+            display: flex;
+            gap: .4rem;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
-        .bff-city {
-            font-size: .9rem;
-
-            font-weight: 700;
-
-            color: #10223c
-        }
-
-        .bff-iata {
-            font-size: .71rem;
-
-            color: var(--bff-muted)
-
-        }
-
-        .bff-journey-bridge {
-            padding: .15rem .2rem;
-
-            text-align: center;
-
-            position: relative
-        }
-
-        .bff-trip-time {
-            font-size: .73rem;
-
-            font-weight: 800;
-
-            color: var(--bff-muted);
-
-            letter-spacing: .02em;
-
-            display: block;
-
-            margin-bottom: .18rem;
-
-        }
-
-        .bff-line {
-            border-top: 2px dashed rgba(16, 52, 95, .18);
-
-            position: relative
-        }
-
-        .bff-line::before,
-        .bff-line::after {
-            content: '';
-            width: 7px;
-
-            height: 7px;
-
-            background: rgba(205, 27, 79, .6);
-
-            border-radius: 50%;
-
-            position: absolute;
-
-            top: -4px;
-
-        }
-
-        .bff-line::before {
-            left: 0;
-
-        }
-
-        .bff-line::after {
-            right: 0
-        }
-
-        .bff-st-chip {
-            margin-top: .42rem;
-
-            display: inline-block;
-
-            padding: .12rem .38rem;
-
-            border-radius: 999px;
-
-            font-size: .63rem;
-
-            font-weight: 800;
-
-            letter-spacing: .08em;
-
-            text-transform: uppercase;
-
-            background: var(--bff-accent-soft);
-            color: var(--bff-accent)
-
-        }
-
-        .bff-next-day {
-
-            font-size: .68rem;
-
-            font-weight: 800;
-
-            color: #c2410c;
-
-            letter-spacing: .02em;
-
-            text-transform: uppercase
-
-        }
-
-        .bff-op-note {
-            font-size: .71rem;
-
-            color: var(--bff-muted)
-
-        }
-
-        .bff-supplier {
-            margin-top: .15rem;
-
-            display: inline-block;
-
-            padding: .12rem .4rem;
-
-            border-radius: 999px;
-
-            font-size: .58rem;
-
-            font-weight: 800;
-
-            letter-spacing: .08em;
-
-            text-transform: uppercase;
-
-            background: rgba(205, 27, 79, .1);
-
-            color: var(--bff-accent)
-
-        }
-
-        .bff-night {
-            margin-right: .15rem;
-
-            color: var(--bff-navy)
-        }
-
-        .bff-conn-pane {
-            grid-column: 1 / -1;
-
-            padding: .5rem .6rem .15rem .6rem;
-
-        }
-
-        .bff-leg-mini {
-            grid-column: 3 / span 1;
-
-            font-size: .78rem;
-
-            font-weight: 700;
-
-            color: var(--bff-muted)
-
-        }
-
-        .bff-leg-badge {
+        .flpill {
             display: inline-flex;
-
-            margin-bottom: .25rem;
-
-            padding: .1rem .4rem;
-
-            border-radius: 8px;
-
-            font-size: .58rem;
-
-            font-weight: 900;
-
-            letter-spacing: .1em;
-
+            align-items: center;
+            gap: .25rem;
+            padding: .18rem .55rem;
+            border-radius: 999px;
+            font-size: .62rem;
+            font-weight: 800;
+            letter-spacing: .08em;
             text-transform: uppercase;
-
-            background: rgba(205, 27, 79, .09);
-
-            color: var(--bff-accent)
-
+            background: var(--fl-lavender);
+            color: var(--fl-ink);
+            border: 1px solid transparent;
         }
 
-        .bff-segments {
-            display: flex;
-
-            flex-wrap: wrap;
-
-            gap: .35rem;
-
+        .flpill i {
+            font-size: .8rem;
         }
 
-        .bff-segment-chip {
-            background: rgba(16, 52, 95, .05);
+        .flpill--vc {
+            background: var(--fl-blue-soft);
+            color: var(--fl-blue);
+        }
 
-            color: var(--bff-navy);
-            padding: .25rem .45rem;
+        .flpill--src {
+            background: var(--fl-violet-soft);
+            color: var(--fl-violet);
+        }
 
-            border-radius: 10px;
+        .flpill--warn {
+            background: #fff1f2;
+            color: #be123c;
+        }
 
-            font-size: .68rem;
+        .flpill--ok {
+            background: var(--fl-emerald-soft);
+            color: var(--fl-emerald);
+        }
 
+        .flpill--desk {
+            background: var(--fl-brand-soft);
+            color: var(--fl-brand);
+        }
+
+        .flchip {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            padding: .25rem .55rem;
+            border-radius: 999px;
+            font-size: .72rem;
             font-weight: 700;
-
+            background: var(--fl-surface-2);
+            color: var(--fl-slate);
+            border: 1px solid var(--fl-line);
         }
 
-        .bff-fare-pane {
+        .flchip i {
+            font-size: .9rem;
+            color: var(--fl-brand);
+        }
+
+        .flchip--bag i {
+            color: var(--fl-emerald);
+        }
+
+        .flchip--seats i {
+            color: var(--fl-amber);
+        }
+
+        /* ============================================================
+           CARD BODY: LEG
+           ============================================================ */
+        .flcard__body {
+            padding: .25rem 0;
+        }
+
+        .flleg {
+            display: grid;
+            grid-template-columns: 36px 1fr;
+            gap: 0;
+            padding: 1rem 1rem 0;
+        }
+
+        .flleg+.flleg {
+            padding-top: 0;
+        }
+
+        .flleg__rail {
             display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .35rem;
+        }
 
-            flex-wrap: wrap;
+        .flleg__rail-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--fl-brand);
+            color: #fff;
+            font-size: .68rem;
+            font-weight: 900;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(205, 27, 79, .35);
+        }
 
+        .flleg--fl-leg-tag--ret .flleg__rail-num,
+        .flleg.fl-leg-tag--ret .flleg__rail-num {
+            background: var(--fl-blue);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, .35);
+        }
+
+        .flleg__rail-line {
+            flex: 1;
+            width: 2px;
+            background: linear-gradient(180deg, var(--fl-line), transparent);
+            min-height: 40px;
+        }
+
+        .flleg__main {
+            padding-bottom: 1rem;
+            border-bottom: 1px dashed var(--fl-line);
+        }
+
+        .flcard__body .flleg:last-child .flleg__main {
+            border-bottom: none;
+            padding-bottom: .5rem;
+        }
+
+        .flleg__head {
+            display: flex;
+            justify-content: space-between;
             gap: .75rem;
+            align-items: center;
+            margin-bottom: .65rem;
+            flex-wrap: wrap;
+        }
+
+        .flleg__airline {
+            display: flex;
+            gap: .65rem;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .flleg__logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            padding: 3px;
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .flleg__airline-name {
+            font-size: .92rem;
+            font-weight: 800;
+            color: var(--fl-ink);
+            line-height: 1.2;
+        }
+
+        .flleg__airline-meta {
+            font-size: .73rem;
+            color: var(--fl-slate-2);
+            font-weight: 600;
+            font-family: var(--fl-mono);
+        }
+
+        .flleg__op {
+            color: var(--fl-muted);
+            font-family: inherit;
+            margin-left: .15rem;
+        }
+
+        .fl-leg-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            padding: .25rem .65rem;
+            border-radius: 999px;
+            font-size: .65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+        }
+
+        .fl-leg-tag--out {
+            background: var(--fl-brand-soft);
+            color: var(--fl-brand);
+        }
+
+        .fl-leg-tag--ret {
+            background: var(--fl-blue-soft);
+            color: var(--fl-blue);
+        }
+
+        .fl-leg-tag i {
+            font-size: .9rem;
+        }
+
+        /* timeline */
+        .flleg__timeline {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(110px, 1.1fr) minmax(0, 1fr);
+            gap: .85rem;
+            align-items: center;
+            padding: .35rem 0;
+        }
+
+        .flleg__point {
+            display: flex;
+            flex-direction: column;
+            gap: .12rem;
+            min-width: 0;
+        }
+
+        .flleg__point--arr {
+            text-align: right;
+            align-items: flex-end;
+        }
+
+        .flleg__time {
+            font-family: var(--fl-mono);
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--fl-ink);
+            letter-spacing: -.02em;
+            line-height: 1;
+            display: inline-flex;
+            align-items: baseline;
+            gap: .4rem;
+        }
+
+        .flleg__date {
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--fl-slate);
+        }
+
+        .flleg__city {
+            font-size: .92rem;
+            font-weight: 700;
+            color: var(--fl-ink-2);
+        }
+
+        .flleg__airport {
+            font-size: .72rem;
+            color: var(--fl-muted);
+            font-family: var(--fl-mono);
+            letter-spacing: .04em;
+        }
+
+        .flleg__redeye {
+            font-size: .9rem;
+            color: var(--fl-violet);
+        }
+
+        .flleg__nextday {
+            font-family: var(--fl-mono);
+            font-size: .65rem;
+            font-weight: 800;
+            color: var(--fl-amber);
+            background: var(--fl-amber-soft);
+            padding: .05rem .35rem;
+            border-radius: 6px;
+            margin-left: .25rem;
+            letter-spacing: .04em;
+        }
+
+        .flleg__bridge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .35rem;
+            position: relative;
+        }
+
+        .flleg__bridge-time {
+            font-size: .73rem;
+            font-weight: 700;
+            color: var(--fl-slate);
+            font-family: var(--fl-mono);
+            letter-spacing: .04em;
+        }
+
+        .flleg__bridge-line {
+            position: relative;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--fl-line) 10%, var(--fl-line) 90%, transparent);
+        }
+
+        .flleg__bridge-line::before,
+        .flleg__bridge-line::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--fl-brand);
+        }
+
+        .flleg__bridge-line::before {
+            left: 4px;
+        }
+
+        .flleg__bridge-line::after {
+            right: 4px;
+        }
+
+        .flleg__bridge-plane {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            color: var(--fl-brand);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .8rem;
+        }
+
+        .flleg__bridge-stops {
+            display: inline-flex;
+        }
+
+        .fl-stop {
+            display: inline-flex;
+            padding: .18rem .6rem;
+            border-radius: 999px;
+            font-size: .62rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        .fl-stop--direct {
+            background: var(--fl-emerald-soft);
+            color: var(--fl-emerald);
+        }
+
+        .fl-stop--via {
+            background: var(--fl-amber-soft);
+            color: var(--fl-amber);
+        }
+
+        /* leg foot: connection chain + details toggle */
+        .flleg__foot {
+            margin-top: .65rem;
+            display: flex;
             justify-content: space-between;
             align-items: center;
-
-            padding: .75rem 1rem .95rem;
-
-            border-top: 1px dashed rgba(16, 52, 95, .12)
-
+            gap: .65rem;
+            flex-wrap: wrap;
+            padding-top: .55rem;
+            border-top: 1px dashed var(--fl-line-soft);
         }
 
-        .bff-fare-line {
-            display: flex;
-
-            gap: .4rem;
-
+        .flleg__chain {
+            display: inline-flex;
             align-items: center;
-
+            gap: .25rem;
             flex-wrap: wrap;
-
-            font-weight: 700;
-
-            color: var(--bff-muted);
-
-            font-size: .78rem
-
+            font-family: var(--fl-mono);
         }
 
-        .bff-fw {
-
-            letter-spacing: .04em;
-
-            text-transform: uppercase;
-
-            font-size: .72rem;
-
-        }
-
-        .bff-cabin-chip {
-            background: rgba(16, 52, 95, .1);
-
-            color: var(--bff-navy);
-            padding: .08rem .45rem;
-
+        .flleg__chip {
+            background: var(--fl-surface-2);
+            border: 1px solid var(--fl-line);
+            color: var(--fl-slate);
+            padding: .15rem .5rem;
             border-radius: 8px;
-
             font-size: .7rem;
-
+            font-weight: 700;
         }
 
-        .bff-rbd {
-
-            font-size: .7rem;
-
-            color: var(--bff-muted)
-
+        .flleg__chain-sep {
+            color: var(--fl-muted);
+            font-size: .95rem;
         }
 
-        .bff-tags {
-            display: flex;
-
+        .flleg__toggle {
+            border: none;
+            background: transparent;
+            color: var(--fl-brand);
+            font-weight: 700;
+            font-size: .78rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
             gap: .35rem;
-
-            flex-wrap: wrap;
-
-            margin-top: .35rem;
-
+            padding: .25rem .55rem;
+            border-radius: 8px;
+            transition: background-color .15s ease;
+            margin-left: auto;
         }
 
-        .bff-tags span {
-
-            font-size: .65rem;
-
-            font-weight: 800;
-
-            letter-spacing: .08em;
-
-            text-transform: uppercase;
-
-            padding: .12rem .4rem;
-
-            border-radius: 999px;
-
-            background: rgba(16, 52, 95, .08)
-
+        .flleg__toggle:hover {
+            background: var(--fl-brand-soft);
         }
 
-        .bff-price-band {
-            text-align: right;
-
-            min-width: 130px;
-
+        .flleg__toggle-arrow {
+            transition: transform .2s ease;
+            font-size: 1rem;
         }
 
-        .bff-price-num {
-
-            font-size: 1.52rem;
-
-            font-weight: 900;
-
-            color: var(--bff-accent)
-
+        .flleg__toggle.is-open .flleg__toggle-arrow {
+            transform: rotate(180deg);
         }
 
-        .bff-net {
-
-            letter-spacing: .18em;
-
-            font-size: .58rem;
-
-            font-weight: 800;
-
-            color: var(--bff-accent)
-
-        }
-
-        .bff-seat-mini {
-            margin-top: .15rem;
-
-            font-size: .72rem;
-
-            color: var(--bff-muted)
-
-        }
-
-        .bff-book {
-            align-self: center;
-
-            padding: .65rem 1.15rem;
-
+        /* details */
+        .flleg__details {
+            margin-top: .65rem;
+            background: var(--fl-surface-2);
+            border: 1px solid var(--fl-line);
             border-radius: 14px;
+            padding: .85rem;
+            display: flex;
+            flex-direction: column;
+            gap: .85rem;
+        }
 
-            background: linear-gradient(180deg,
-                    #fb7aa5 0%,
-                    var(--bff-accent));
+        .flleg__details[hidden] {
+            display: none;
+        }
 
+        .flseg {
+            display: grid;
+            grid-template-columns: minmax(150px, .9fr) minmax(0, 2fr) minmax(0, .8fr);
+            gap: .85rem;
+            align-items: center;
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            border-radius: 12px;
+            padding: .65rem .85rem;
+        }
+
+        .flseg__air {
+            display: flex;
+            gap: .5rem;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .flseg__logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            padding: 2px;
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            object-fit: contain;
+        }
+
+        .flseg__air-name {
+            font-size: .82rem;
+            font-weight: 800;
+            color: var(--fl-ink);
+            line-height: 1.2;
+        }
+
+        .flseg__air-meta {
+            font-size: .68rem;
+            color: var(--fl-slate-2);
+            font-family: var(--fl-mono);
+        }
+
+        .flseg__route {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(60px, .55fr) minmax(0, 1fr);
+            gap: .5rem;
+            align-items: center;
+        }
+
+        .flseg__pt {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .flseg__pt strong {
+            font-family: var(--fl-mono);
+            font-size: .98rem;
+            color: var(--fl-ink);
+            font-weight: 800;
+            letter-spacing: -.01em;
+        }
+
+        .flseg__pt span {
+            font-size: .76rem;
+            color: var(--fl-ink-2);
+            font-weight: 600;
+        }
+
+        .flseg__pt small {
+            font-size: .68rem;
+            color: var(--fl-muted);
+        }
+
+        .flseg__pt--arr {
+            text-align: right;
+            align-items: flex-end;
+        }
+
+        .flseg__dur {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .25rem;
+            font-family: var(--fl-mono);
+        }
+
+        .flseg__dur span {
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--fl-slate);
+        }
+
+        .flseg__dur small {
+            font-size: .62rem;
+            color: var(--fl-amber);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .flseg__dur-line {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--fl-brand) 0, var(--fl-brand) 50%, var(--fl-line) 50%, var(--fl-line));
+            position: relative;
+        }
+
+        .flseg__meta {
+            display: flex;
+            gap: .3rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .flseg__tag {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            background: var(--fl-canvas);
+            color: var(--fl-slate);
+            padding: .15rem .45rem;
+            border-radius: 6px;
+            font-size: .68rem;
+            font-weight: 700;
+        }
+
+        .flseg__tag--cab {
+            background: var(--fl-blue-soft);
+            color: var(--fl-blue);
+        }
+
+        .flseg__tag--seat {
+            background: var(--fl-amber-soft);
+            color: var(--fl-amber);
+        }
+
+        .flseg-layover {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            margin: 0 auto;
+            padding: .35rem .75rem;
+            border-radius: 999px;
+            background: var(--fl-violet-soft);
+            color: var(--fl-violet);
+            font-size: .75rem;
+            font-weight: 700;
+            align-self: center;
+        }
+
+        .flseg-layover i {
+            font-size: .9rem;
+        }
+
+        .flseg-layover strong {
+            font-family: var(--fl-mono);
+            font-weight: 800;
+        }
+
+        /* ============================================================
+           CARD FOOTER
+           ============================================================ */
+        .flcard__foot {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(160px, .9fr) minmax(0, auto);
+            gap: 1rem;
+            align-items: center;
+            padding: .85rem 1rem;
+            background: linear-gradient(180deg, var(--fl-surface) 30%, var(--fl-surface-2));
+            border-top: 1px solid var(--fl-line);
+        }
+
+        .flcard__fare {
+            display: flex;
+            gap: .35rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .flcard__fare-cabin {
+            font-family: var(--fl-mono);
+            font-weight: 800;
+            font-size: .7rem;
+            background: var(--fl-ink);
+            color: #fff;
+            padding: .2rem .5rem;
+            border-radius: 6px;
+            letter-spacing: .08em;
+        }
+
+        .flcard__fare-rbd {
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--fl-slate);
+            background: var(--fl-canvas);
+            padding: .18rem .55rem;
+            border-radius: 999px;
+        }
+
+        .flcard__fare-tag {
+            font-size: .6rem;
+            font-weight: 800;
+            color: var(--fl-violet);
+            background: var(--fl-violet-soft);
+            padding: .2rem .55rem;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+        }
+
+        .flcard__price {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: .1rem;
+            text-align: right;
+        }
+
+        .flcard__price-label {
+            font-size: .58rem;
+            font-weight: 800;
+            color: var(--fl-brand);
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
+
+        .flcard__price-amount {
+            font-family: var(--fl-mono);
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: var(--fl-brand);
+            line-height: 1.05;
+            letter-spacing: -.02em;
+        }
+
+        .flcard__price-currency {
+            font-size: .85rem;
+            color: var(--fl-slate-2);
+            font-weight: 700;
+            margin-right: .15rem;
+        }
+
+        .flcard__price-seats {
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--fl-slate);
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            margin-top: .1rem;
+        }
+
+        .flcard__price-seats i {
+            color: var(--fl-amber);
+        }
+
+        .flcard__cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+            padding: .8rem 1.5rem;
+            border-radius: 14px;
+            background: linear-gradient(180deg, var(--fl-brand) 0%, var(--fl-brand-2) 100%);
             color: #fff !important;
-            font-weight: 900;
-
+            font-weight: 800;
+            font-size: .92rem;
             text-decoration: none !important;
-
-            box-shadow:
-                0 12px 30px rgba(205, 27, 79, .32);
-
+            box-shadow: 0 12px 24px rgba(205, 27, 79, .28);
             white-space: nowrap;
-
+            transition: transform .15s ease, box-shadow .15s ease;
         }
 
-        .bff-card.bff-hide {
-            display: none !important;
-
+        .flcard__cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 30px rgba(205, 27, 79, .38);
         }
 
+        .flcard__cta i {
+            font-size: 1.1rem;
+        }
+
+        /* ============================================================
+           EMPTY STATE
+           ============================================================ */
+        .fl-empty {
+            margin: 3rem auto;
+            max-width: 520px;
+            text-align: center;
+            padding: 2.25rem 1.5rem;
+            background: var(--fl-surface);
+            border: 1px solid var(--fl-line);
+            border-radius: 22px;
+            box-shadow: var(--fl-shadow-md);
+        }
+
+        .fl-empty__icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            margin: 0 auto 1.1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.1rem;
+            color: var(--fl-brand);
+            background: var(--fl-brand-soft);
+        }
+
+        .fl-empty__icon--idle {
+            color: var(--fl-blue);
+            background: var(--fl-blue-soft);
+        }
+
+        .fl-empty__title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--fl-ink);
+            margin: 0 0 .55rem;
+        }
+
+        .fl-empty__copy {
+            color: var(--fl-slate);
+            font-size: .92rem;
+            margin: 0 0 1.2rem;
+            line-height: 1.55;
+        }
+
+        .fl-empty__actions {
+            display: flex;
+            gap: .65rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .fl-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .65rem 1.15rem;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: .86rem;
+            text-decoration: none !important;
+            border: 1px solid transparent;
+            transition: background-color .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
+        }
+
+        .fl-btn--primary {
+            background: linear-gradient(180deg, var(--fl-brand), var(--fl-brand-2));
+            color: #fff !important;
+            box-shadow: 0 10px 22px rgba(205, 27, 79, .28);
+        }
+
+        .fl-btn--primary:hover {
+            transform: translateY(-1px);
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
         @media (max-width: 991px) {
-            .bff-leg-grid {
-
-                grid-template-columns: minmax(0, 1fr);
-
-            }
-
-            .bff-points {
-
-                grid-template-columns: minmax(0, 1fr);
-
-            }
-
-            .bff-leg-mini {
-
-                grid-column: 1;
-
-            }
-
-            .bff-fare-pane {
-                align-items: flex-start;
-
-            }
-
             .bff-sidebar__inner {
                 position: static;
-
-                margin-bottom: 1rem
-
+                margin-bottom: 1rem;
             }
 
+            .flleg__timeline {
+                grid-template-columns: minmax(0, 1fr) minmax(80px, .9fr) minmax(0, 1fr);
+                gap: .55rem;
+            }
+
+            .flcard__foot {
+                grid-template-columns: minmax(0, 1fr);
+                gap: .65rem;
+            }
+
+            .flcard__price {
+                align-items: flex-start;
+                text-align: left;
+            }
+
+            .flcard__cta {
+                justify-self: stretch;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .flleg__head {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .flleg__timeline {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .flleg__bridge {
+                flex-direction: row;
+                justify-content: center;
+            }
+
+            .flleg__bridge-line {
+                flex: 1;
+                margin: 0 .5rem;
+            }
+
+            .flleg__point--arr {
+                text-align: left;
+                align-items: flex-start;
+            }
+
+            .flseg {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .flseg__meta {
+                justify-content: flex-start;
+            }
+
+            .flseg__route {
+                grid-template-columns: minmax(0, 1fr) minmax(50px, .5fr) minmax(0, 1fr);
+            }
+
+            .fl-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .fl-toolbar__sort {
+                justify-content: space-between;
+            }
         }
     </style>
 @endpush
@@ -1500,6 +2246,48 @@
             });
 
             document.getElementById('bff-sort')?.addEventListener('change', () => reorder());
+
+            /* Sort pills bound to the hidden <select id="bff-sort"> */
+            const sortPills = [...document.querySelectorAll('.fl-sort-pill[data-bff-sort]')];
+            const sortSelect = document.getElementById('bff-sort');
+
+            sortPills.forEach(pill => {
+                pill.addEventListener('click', () => {
+                    let target = pill.dataset.bffSort;
+
+                    /* Price pill toggles asc <-> desc on repeat click */
+                    if (pill.dataset.bffCycle && pill.classList.contains('is-active')) {
+                        const cycle = pill.dataset.bffCycle.split(',');
+                        const idx = cycle.indexOf(target);
+                        target = cycle[(idx + 1) % cycle.length];
+                        pill.dataset.bffSort = target;
+                        pill.classList.toggle('is-desc', target.endsWith('-desc'));
+                    } else {
+                        pill.classList.toggle('is-desc', target.endsWith('-desc'));
+                    }
+
+                    sortPills.forEach(p => p.classList.toggle('is-active', p === pill));
+
+                    if (sortSelect) {
+                        sortSelect.value = target;
+                        sortSelect.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+
+            /* "Flight Details" expandable per-leg panels */
+            document.querySelectorAll('[data-fl-toggle]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const main = btn.closest('.flleg__main');
+                    if (!main) return;
+                    const panel = main.querySelector('[data-fl-details]');
+                    if (!panel) return;
+                    const isOpen = btn.classList.toggle('is-open');
+                    panel.hidden = !isOpen;
+                    const label = btn.querySelector('.flleg__toggle-label');
+                    if (label) label.textContent = isOpen ? 'Hide Details' : 'Flight Details';
+                });
+            });
 
             function readCheckedValues(selector, attrVal = '') {
                 const out = [];
@@ -1711,7 +2499,7 @@
 
                 const tag = document.getElementById('bff-showing-meta');
 
-                if (tag) tag.textContent = `${visible} itinerary${visible === 1 ? '' : 'ies'} match filters`;
+                if (tag) tag.textContent = String(visible);
 
                 reorder();
 
