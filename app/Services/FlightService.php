@@ -803,10 +803,13 @@ class FlightService
                     ],
                     'CustomerInfo' => [
                         'ContactNumbers' => [
+                            // Sabre schema requires ContactNumber to be an array of contacts.
                             'ContactNumber' => [
-                                'NameNumber'    => '1.1',
-                                'Phone'         => $lead['phone'] ?? '',
-                                'PhoneUseType'  => 'H',
+                                [
+                                    'NameNumber'    => '1.1',
+                                    'Phone'         => $lead['phone'] ?? '',
+                                    'PhoneUseType'  => 'H',
+                                ],
                             ],
                         ],
                         'PersonName' => $personNames,
