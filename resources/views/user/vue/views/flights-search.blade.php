@@ -536,7 +536,7 @@
 
                     <div class="fs-pro-airline-pref">
                         <div class="fs-pro-airline-pref__label">
-                            <span>Airline<br>Preference</span>
+                            <span>Airline preference</span>
                         </div>
                         <div class="fs-pro-airline-pref__toggles">
                             <button type="button" class="fs-air-chip fs-air-chip--all"
@@ -2640,23 +2640,34 @@
             padding-block: 0.12rem;
         }
 
+        /* Airline bar: nowrap + flex-end squeezed the chips under the label */
         .fs-mount--flight-listing .fs-pro-airline-pref {
-            flex: 1 1 200px;
-            min-width: 0;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+            flex: 1 1 260px;
+            width: auto;
+            min-width: min(260px, 100%);
+            max-width: 100%;
             margin-left: auto;
-            justify-content: flex-end;
             padding: 0.42rem 0.55rem !important;
             border-radius: 8px !important;
-            gap: 0.4rem !important;
+            gap: 0.42rem 0.55rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-airline-pref__label {
+            flex: 0 0 auto;
+            flex-shrink: 0;
+            margin: 0;
+            max-width: 100%;
         }
 
         .fs-mount--flight-listing .fs-pro-airline-pref__toggles {
-            flex-wrap: nowrap;
-            justify-content: flex-end;
+            flex: 1 1 180px;
             min-width: 0;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            overflow-x: visible;
             gap: 0.35rem !important;
         }
 
@@ -2771,29 +2782,111 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.42) !important;
         }
 
-        /* Multi-city: keep predictable stacked layout */
+        /* Multi-city on listing: full-width stacked flow (compact toolbar rules off) */
         .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) {
             flex-direction: column;
             align-items: stretch;
+            gap: 0.5rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-controls-row {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity {
+            margin-bottom: 0 !important;
+            gap: 0.45rem;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__row {
+            border-radius: 10px;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__grid {
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.15fr) minmax(132px, 0.92fr) 44px;
+            align-items: stretch;
+            min-height: 0;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__field .hs-field__inner,
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__date .hs-field__inner {
+            padding: 0.52rem 0.72rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__actions {
+            justify-content: flex-end;
+            width: 100%;
         }
 
         .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-footer {
             display: flex !important;
             flex-direction: column;
-            gap: 0.55rem;
-            margin-top: 0.55rem !important;
-            padding-top: 0.55rem !important;
-            border-top: 1px solid var(--fs-line-soft);
+            gap: 0.5rem !important;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+            border-top: none !important;
             width: 100%;
+            flex: none;
+            min-height: 0;
         }
 
         .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) > * {
             order: unset !important;
+            max-width: 100%;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-pax-cabin-row {
+            flex: none !important;
+            max-width: none !important;
+            width: 100% !important;
         }
 
         .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-airline-pref {
             margin-left: 0 !important;
             justify-content: flex-start !important;
+            align-items: center !important;
+            width: 100% !important;
+            flex-wrap: wrap !important;
+            padding: 0.48rem 0.62rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-airline-pref__label {
+            padding-top: 0;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-airline-pref__toggles {
+            flex-wrap: wrap !important;
+            justify-content: flex-start !important;
+            overflow-x: visible !important;
+            flex: 1 1 220px;
+        }
+
+        .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-actions-footer {
+            width: 100% !important;
+            align-self: stretch !important;
+            flex-wrap: wrap !important;
+            justify-content: space-between !important;
+            gap: 0.5rem !important;
+        }
+
+        /* Multicity breakpoints: stacked grid already in base — keep readable on listing */
+        @media (max-width: 991px) {
+            .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__field {
+                border-right: none !important;
+                border-bottom: 1px solid var(--fs-line);
+            }
+
+            .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-multicity__date {
+                border-right: none !important;
+                border-bottom: 1px solid var(--fs-line);
+            }
         }
 
         /* Narrow / tablet: readable wrap */

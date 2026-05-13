@@ -3091,7 +3091,7 @@ ol.breadcrumb {
     justify-content: center;
     flex-wrap: wrap;
     width: 100%;
-    gap: 7px;
+    gap: 3rem;
     margin: 0;
     padding: 0.2rem 0 0;
     list-style: none;
