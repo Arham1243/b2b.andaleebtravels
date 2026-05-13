@@ -429,7 +429,7 @@
                                         <i class="bx bxs-calendar"></i>
                                         <span>
                                             {{ $searchParams['departure_date'] }}
-                                            @if(!empty($searchParams['return_date'])) — {{ $searchParams['return_date'] }} @endif
+                                            @if(!empty($searchParams['return_date']))  -  {{ $searchParams['return_date'] }} @endif
                                         </span>
                                     </div>
                                 @endif
@@ -447,7 +447,8 @@
                                     </div>
                                     <div class="hp-rules-box__row">
                                         <span>Ticketing Time Limit</span>
-                                        <strong class="hp-rules-box__ttl">{{ now()->addHour()->format('d/m/Y h:i A') }}</strong>
+                                        {{-- Not from Sabre on this screen; real TTL is set when the hold PNR is created --}}
+                                        <strong class="hp-rules-box__ttl">On your PNR</strong>
                                     </div>
                                 </div>
                                 <div class="hp-rules-box__alerts">

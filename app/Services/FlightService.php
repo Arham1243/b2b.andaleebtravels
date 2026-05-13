@@ -525,9 +525,11 @@ class FlightService
 
             $payload = $this->buildPnrPayload($booking, $searchResponse, $itineraryRaw);
 
+            // Log JSON string — logging nested arrays can be truncated with "Over 9 levels deep"
+            // placeholders in some handlers, which is misleading.
             Log::debug('Sabre PNR payload', [
-                'booking_id' => $booking->id,
-                'payload'    => $payload,
+                'booking_id'   => $booking->id,
+                'payload_json' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             ]);
 
             $response = Http::withToken($token)
@@ -787,8 +789,6 @@ class FlightService
             $index++;
         }
 
-        // Flatten passenger types for pricing – avoids deep array nesting that
-        // triggers Sabre's "Over 9 levels deep, aborting normalization" error.
         $passengerTypes = $this->buildPassengerTypes($booking);
 
         return [
@@ -797,7 +797,6 @@ class FlightService
                 'targetCity' => $this->sabrePcc,
                 'TravelItineraryAddInfo' => [
                     'AgencyInfo' => [
-                        // Address block omitted – unnecessary depth for PNR creation.
                         'Ticketing' => [
                             'TicketType' => '7TAW',
                         ],
@@ -818,13 +817,15 @@ class FlightService
                         'FlightSegment' => $segments,
                     ],
                 ],
-                // Single object (not array) keeps nesting ≤ 8 levels.
+                // Sabre JSON schema requires AirPrice to be an array of price requests.
                 'AirPrice' => [
-                    'PriceRequestInformation' => [
-                        'Retain'            => true,
-                        'OptionalQualifiers' => [
-                            'PricingQualifiers' => [
-                                'PassengerType' => $passengerTypes,
+                    [
+                        'PriceRequestInformation' => [
+                            'Retain'             => true,
+                            'OptionalQualifiers' => [
+                                'PricingQualifiers' => [
+                                    'PassengerType' => $passengerTypes,
+                                ],
                             ],
                         ],
                     ],
