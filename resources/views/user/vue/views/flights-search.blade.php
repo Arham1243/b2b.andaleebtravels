@@ -1966,23 +1966,6 @@
             border: 1px solid var(--fs-line);
             overflow: hidden;
             isolation: isolate;
-            transition:
-                transform 0.2s ease,
-                box-shadow 0.2s ease,
-                background-color 0.2s ease,
-                background-image 0.2s ease,
-                border-color 0.2s ease,
-                color 0.2s ease;
-        }
-
-        /* Plain white hover (typography adjusts for contrast) */
-        .fs-promo:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--fs-shadow-lg);
-            background-image: none !important;
-            background-color: #ffffff !important;
-            border-color: #e2e8f0 !important;
-            color: #1e293b !important;
         }
 
         .fs-promo__body {
@@ -1998,7 +1981,6 @@
             text-transform: uppercase;
             letter-spacing: 0.18em;
             opacity: 0.78;
-            transition: color 0.2s ease, opacity 0.2s ease;
         }
 
         .fs-promo__title {
@@ -2007,7 +1989,6 @@
             font-weight: 700;
             letter-spacing: -0.015em;
             line-height: 1.25;
-            transition: color 0.2s ease;
         }
 
         .fs-promo__cta {
@@ -2020,15 +2001,6 @@
             opacity: 0.88;
             letter-spacing: 0;
             text-transform: none;
-            transition: color 0.2s ease, opacity 0.2s ease;
-        }
-
-        .fs-promo__cta i {
-            transition: transform 0.18s ease;
-        }
-
-        .fs-promo:hover .fs-promo__cta i {
-            transform: translateX(3px);
         }
 
         .fs-promo__art {
@@ -2040,56 +2012,6 @@
             bottom: -0.6rem;
             transform: rotate(-12deg);
             z-index: 0;
-            transition:
-                color 0.2s ease,
-                opacity 0.2s ease;
-        }
-
-        /* Hover typography per variant — matches “white card” readability */
-        .fs-promo--gold:hover .fs-promo__kicker {
-            color: #c2410c !important;
-            opacity: 1;
-        }
-
-        .fs-promo--gold:hover .fs-promo__title {
-            color: #1e3a8a !important;
-        }
-
-        .fs-promo--gold:hover .fs-promo__art {
-            color: #f59e0b !important;
-            opacity: 0.12;
-        }
-
-        .fs-promo--ocean:hover .fs-promo__kicker {
-            color: #6d28d9 !important;
-            opacity: 1;
-            letter-spacing: 0.12em;
-        }
-
-        .fs-promo--ocean:hover .fs-promo__title,
-        .fs-promo--ocean:hover .fs-promo__cta {
-            color: #1e3a8a !important;
-            opacity: 1;
-        }
-
-        .fs-promo--ocean:hover .fs-promo__art {
-            color: #7c3aed !important;
-            opacity: 0.1;
-        }
-
-        .fs-promo--night:hover .fs-promo__title {
-            color: #0f172a !important;
-            font-weight: 800;
-        }
-
-        .fs-promo--night:hover .fs-promo__cta {
-            color: #475569 !important;
-            opacity: 1;
-        }
-
-        .fs-promo--night:hover .fs-promo__art {
-            color: #1e40af !important;
-            opacity: 0.1;
         }
 
         .fs-promo--gold {
@@ -2649,8 +2571,8 @@
             padding-block: 0.12rem;
         }
 
-        /* Airline bar: nowrap + flex-end squeezed the chips under the label */
-        .fs-mount--flight-listing .fs-pro-airline-pref {
+        /* Listing toolbar row only — flex-grow breaks multi-city footer (lavender bar blows up vertically) */
+        .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) .fs-pro-airline-pref {
             flex-wrap: wrap;
             align-items: center;
             justify-content: flex-start;
@@ -2664,20 +2586,20 @@
             gap: 0.42rem 0.55rem !important;
         }
 
-        .fs-mount--flight-listing .fs-pro-airline-pref__label {
-            flex: 0 0 auto;
-            flex-shrink: 0;
-            margin: 0;
-            max-width: 100%;
-        }
-
-        .fs-mount--flight-listing .fs-pro-airline-pref__toggles {
+        .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) .fs-pro-airline-pref__toggles {
             flex: 1 1 180px;
             min-width: 0;
             flex-wrap: wrap;
             justify-content: flex-start;
             overflow-x: visible;
             gap: 0.35rem !important;
+        }
+
+        .fs-mount--flight-listing .fs-pro-airline-pref__label {
+            flex: 0 0 auto;
+            flex-shrink: 0;
+            margin: 0;
+            max-width: 100%;
         }
 
         .fs-mount--flight-listing .fs-air-chip {
@@ -2866,8 +2788,11 @@
             justify-content: flex-start !important;
             align-items: center !important;
             width: 100% !important;
+            flex: none !important;
+            align-self: flex-start !important;
+            min-height: 0 !important;
             flex-wrap: wrap !important;
-            padding: 0.48rem 0.62rem !important;
+            padding: 0.4rem 0.55rem !important;
         }
 
         .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-airline-pref__label {
@@ -2878,7 +2803,8 @@
             flex-wrap: wrap !important;
             justify-content: flex-start !important;
             overflow-x: visible !important;
-            flex: 1 1 220px;
+            flex: 0 1 auto !important;
+            min-width: 0;
         }
 
         .fs-mount--flight-listing .fs-pro-card:has(.fs-multicity) .fs-pro-actions-footer {
