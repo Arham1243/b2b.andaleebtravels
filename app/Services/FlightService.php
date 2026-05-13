@@ -791,6 +791,11 @@ class FlightService
 
         $passengerTypes = $this->buildPassengerTypes($booking);
 
+        // Sabre rejects phone strings with spaces / parens / '+' – normalize to digits + dashes.
+        $rawPhone = (string) ($lead['phone'] ?? '');
+        $cleanPhone = preg_replace('/[^0-9\-]/', '', str_replace(['+', '(', ')', ' '], ['', '', '', '-'], $rawPhone));
+        $cleanPhone = trim((string) $cleanPhone, '-') ?: '0000000000';
+
         return [
             'CreatePassengerNameRecordRQ' => [
                 'version' => '2.5.0',
@@ -807,7 +812,7 @@ class FlightService
                             'ContactNumber' => [
                                 [
                                     'NameNumber'    => '1.1',
-                                    'Phone'         => $lead['phone'] ?? '',
+                                    'Phone'         => $cleanPhone,
                                     'PhoneUseType'  => 'H',
                                 ],
                             ],
@@ -1093,6 +1098,8 @@ class FlightService
 
                 $departureTime = $schedule['departure']['time'] ?? '00:00:00';
                 $departureDateTime = $legDate ? $legDate . 'T' . $departureTime : $departureTime;
+                // Sabre CreatePNR rejects timezone offsets here – must be local time, no TZ.
+                $departureDateTime = $this->normalizeSabreDateTime($departureDateTime);
 
                 $segments[] = [
                     'DepartureDateTime' => $departureDateTime,
