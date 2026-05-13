@@ -337,7 +337,7 @@
 
                             <p class="hp-contact-note">
                                 <i class="bx bx-info-circle"></i>
-                                These details will be shared with the airline for booking confirmation.
+                                These details will be passed to the Airline for booking.
                             </p>
 
                             <div class="row g-3 hp-pax-fields">
@@ -869,29 +869,124 @@
         if (el) el.addEventListener('change', syncLead);
     });
 
-    /* Saved passenger auto-fill */
-    document.querySelectorAll('.hp-saved-pick').forEach(function (sel) {
-        sel.addEventListener('change', function () {
-            const idx = this.dataset.paxIdx;
-            if (!this.value) return;
+    /* Saved passengers: load + exclude profile already chosen in another adult slot */
+    (function initHoldSavedPassengers() {
+        const savedList = @json($savedPassengers ?? []);
+        const selects = document.querySelectorAll('#holdForm .hp-saved-pick');
+        if (!selects.length || !savedList.length) {
+            return;
+        }
+
+        function labelOf(sp) {
+            return [sp.title, sp.first_name, sp.last_name].filter(Boolean).join(' ');
+        }
+
+        function selectedId(sel) {
+            if (!sel || !sel.value) {
+                return null;
+            }
+            try {
+                const p = JSON.parse(sel.value);
+                return p && p.id != null ? String(p.id) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function clearPaxFields(idx) {
+            ['title', 'first_name', 'last_name', 'dob', 'nationality', 'passport_no', 'passport_exp'].forEach(function (k) {
+                const el = document.querySelector('#holdForm [name="passengers[' + idx + '][' + k + ']"]');
+                if (el) {
+                    el.value = '';
+                }
+            });
+        }
+
+        function fillFromSaved(sel) {
+            const idx = sel.dataset.paxIdx;
+            if (!sel.value) {
+                return;
+            }
             let pax;
-            try { pax = JSON.parse(this.value); } catch (e) { return; }
+            try {
+                pax = JSON.parse(sel.value);
+            } catch (e) {
+                return;
+            }
 
             function fill(name, val) {
-                const el = document.querySelector('[name="passengers[' + idx + '][' + name + ']"]');
-                if (!el || val == null) return;
-                el.value = val;
+                const el = document.querySelector('#holdForm [name="passengers[' + idx + '][' + name + ']"]');
+                if (!el || val == null) {
+                    return;
+                }
+                if (name === 'dob' || name === 'passport_exp') {
+                    el.value = val ? String(val).substring(0, 10) : '';
+                } else {
+                    el.value = val;
+                }
                 el.dispatchEvent(new Event('change'));
             }
-            fill('title',        pax.title);
-            fill('first_name',   pax.first_name);
-            fill('last_name',    pax.last_name);
-            fill('dob',          pax.dob          ? String(pax.dob).substring(0, 10) : '');
-            fill('nationality',  pax.nationality);
-            fill('passport_no',  pax.passport_no);
-            fill('passport_exp', pax.passport_exp ? String(pax.passport_exp).substring(0, 10) : '');
+
+            fill('title', pax.title);
+            fill('first_name', pax.first_name);
+            fill('last_name', pax.last_name);
+            fill('dob', pax.dob);
+            fill('nationality', pax.nationality);
+            fill('passport_no', pax.passport_no);
+            fill('passport_exp', pax.passport_exp);
+        }
+
+        function rebuildAll() {
+            selects.forEach(function (sel) {
+                const idx = sel.dataset.paxIdx;
+                const prevVal = sel.value;
+
+                const othersTaken = new Set();
+                selects.forEach(function (other) {
+                    if (other === sel) {
+                        return;
+                    }
+                    const oid = selectedId(other);
+                    if (oid) {
+                        othersTaken.add(oid);
+                    }
+                });
+
+                sel.innerHTML = '<option value="">— Select saved passenger —</option>';
+                savedList.forEach(function (sp) {
+                    const sid = sp.id != null ? String(sp.id) : null;
+                    if (sid && othersTaken.has(sid)) {
+                        return;
+                    }
+
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify(sp);
+                    opt.textContent = labelOf(sp);
+                    sel.appendChild(opt);
+                });
+
+                const match =
+                    prevVal && Array.from(sel.options).some(function (o) {
+                        return o.value === prevVal;
+                    });
+                if (match) {
+                    sel.value = prevVal;
+                } else if (prevVal) {
+                    sel.selectedIndex = 0;
+                    clearPaxFields(idx);
+                }
+            });
+        }
+
+        selects.forEach(function (sel) {
+            sel.addEventListener('change', function () {
+                fillFromSaved(sel);
+                rebuildAll();
+            });
         });
-    });
+
+        rebuildAll();
+    })();
 
     /* Disable button on submit */
     document.getElementById('holdForm').addEventListener('submit', function () {

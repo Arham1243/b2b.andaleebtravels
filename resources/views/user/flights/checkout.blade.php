@@ -49,6 +49,8 @@
                 $retLabel = (string) $searchParams['return_date'];
             }
         }
+
+        $savedPassengers = $savedPassengers ?? [];
     @endphp
 
     <div class="hp">
@@ -103,49 +105,6 @@
                             </div>
                         </div>
 
-                        {{-- Lead passenger --}}
-                        <div class="hp-card mb-3">
-                            <div class="hp-card__head">
-                                <i class="bx bx-user hp-card__head-icon"></i>
-                                <div>
-                                    <div class="hp-card__eyebrow">Contact</div>
-                                    <div class="hp-card__title">Lead Passenger</div>
-                                </div>
-                            </div>
-                            <div class="hp-pax-fields">
-                                <div class="row g-2">
-                                    <div class="col-md-2">
-                                        <label class="hp-label">Title <span class="hp-req">*</span></label>
-                                        <select class="hp-select" name="lead[title]" required>
-                                            <option value="Mr">Mr.</option>
-                                            <option value="Mrs">Mrs.</option>
-                                            <option value="Ms">Ms.</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="hp-label">First Name <span class="hp-req">*</span></label>
-                                        <input type="text" class="hp-input" name="lead[first_name]" required autocomplete="given-name">
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="hp-label">Last Name <span class="hp-req">*</span></label>
-                                        <input type="text" class="hp-input" name="lead[last_name]" required autocomplete="family-name">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="hp-label">Email <span class="hp-req">*</span></label>
-                                        <input type="email" class="hp-input" name="lead[email]" required autocomplete="email">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="hp-label">Phone <span class="hp-req">*</span></label>
-                                        <input type="tel" class="hp-input" name="lead[phone]" required autocomplete="tel">
-                                    </div>
-                                    <div class="col-md-12">
-                                        <label class="hp-label">Address</label>
-                                        <input type="text" class="hp-input" name="lead[address]" autocomplete="street-address">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         @php $pIndex = 0; @endphp
 
                         @for ($i = 0; $i < $adults; $i++)
@@ -157,25 +116,71 @@
                                         <div class="hp-card__title">Adult {{ $i + 1 }} <span class="hp-card__age">12+ years</span></div>
                                     </div>
                                 </div>
-                                <div class="hp-pax-fields">
-                                    <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="ADT">
-                                    <div class="row g-2">
-                                        <div class="col-md-2">
-                                            <label class="hp-label">Title <span class="hp-req">*</span></label>
-                                            <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
-                                                <option value="Mr">Mr.</option>
-                                                <option value="Mrs">Mrs.</option>
-                                                <option value="Ms">Ms.</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="hp-label">First Name <span class="hp-req">*</span></label>
-                                            <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]" required>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="hp-label">Last Name <span class="hp-req">*</span></label>
-                                            <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" required>
-                                        </div>
+
+                                <div class="hp-pax-note">
+                                    <i class="bx bx-info-circle"></i>
+                                    Traveller's passport should be valid for at least 6 months from the date of travel.
+                                </div>
+
+                                @if (!empty($savedPassengers))
+                                    <div class="hp-saved-row">
+                                        <label class="hp-label" for="saved-{{ $pIndex }}">Load from saved passengers</label>
+                                        <select class="hp-select hp-saved-pick" id="saved-{{ $pIndex }}" data-pax-idx="{{ $pIndex }}">
+                                            <option value="">— Select saved passenger —</option>
+                                            @foreach ($savedPassengers as $sp)
+                                                <option value="{{ json_encode($sp) }}">
+                                                    {{ $sp['title'] }} {{ $sp['first_name'] }} {{ $sp['last_name'] }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endif
+
+                                <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="ADT">
+                                <div class="row g-3 hp-pax-fields">
+                                    <div class="col-md-2">
+                                        <label class="hp-label">Title <span class="hp-req">*</span></label>
+                                        <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
+                                            <option value="Mr">Mr.</option>
+                                            <option value="Mrs">Mrs.</option>
+                                            <option value="Ms">Ms.</option>
+                                            <option value="Dr">Dr.</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="hp-label">First Name <span class="hp-req">*</span></label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]"
+                                            placeholder="Enter first name" required autocomplete="given-name">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="hp-label">Last Name <span class="hp-req">*</span></label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]"
+                                            placeholder="Enter last name" required autocomplete="family-name">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Date of Birth</label>
+                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
+                                        <span class="hp-hint">Age calculated as per travel date</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Nationality</label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][nationality]"
+                                            placeholder="e.g. AE, PK, IN" maxlength="4" style="text-transform:uppercase;">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Passport Number</label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]"
+                                            placeholder="Passport number">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Passport Expiry</label>
+                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][passport_exp]">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="hp-save-check">
+                                            <input type="checkbox" name="passengers[{{ $pIndex }}][save_profile]" value="1">
+                                            <span>Save this passenger to my profile for future bookings</span>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -191,24 +196,34 @@
                                         <div class="hp-card__title">Child {{ $i + 1 }} <span class="hp-card__age">2–11 years</span></div>
                                     </div>
                                 </div>
-                                <div class="hp-pax-fields">
-                                    <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="C06">
-                                    <div class="row g-2">
-                                        <div class="col-md-2">
-                                            <label class="hp-label">Title <span class="hp-req">*</span></label>
-                                            <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
-                                                <option value="Mstr">Mstr.</option>
-                                                <option value="Miss">Miss</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="hp-label">First Name <span class="hp-req">*</span></label>
-                                            <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]" required>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="hp-label">Last Name <span class="hp-req">*</span></label>
-                                            <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" required>
-                                        </div>
+                                <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="C06">
+                                <div class="row g-3 hp-pax-fields">
+                                    <div class="col-md-2">
+                                        <label class="hp-label">Title <span class="hp-req">*</span></label>
+                                        <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
+                                            <option value="Mstr">Mstr.</option>
+                                            <option value="Miss">Miss</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="hp-label">First Name <span class="hp-req">*</span></label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]" placeholder="Enter first name" required>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="hp-label">Last Name <span class="hp-req">*</span></label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" placeholder="Enter last name" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Date of Birth</label>
+                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Passport Number</label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]" placeholder="Passport number">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Passport Expiry</label>
+                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][passport_exp]">
                                     </div>
                                 </div>
                             </div>
@@ -224,29 +239,59 @@
                                         <div class="hp-card__title">Infant {{ $i + 1 }} <span class="hp-card__age">Under 2 years</span></div>
                                     </div>
                                 </div>
-                                <div class="hp-pax-fields">
-                                    <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="INF">
-                                    <div class="row g-2">
-                                        <div class="col-md-2">
-                                            <label class="hp-label">Title <span class="hp-req">*</span></label>
-                                            <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
-                                                <option value="Mstr">Mstr.</option>
-                                                <option value="Miss">Miss</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="hp-label">First Name <span class="hp-req">*</span></label>
-                                            <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]" required>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="hp-label">Last Name <span class="hp-req">*</span></label>
-                                            <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" required>
-                                        </div>
+                                <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="INF">
+                                <div class="row g-3 hp-pax-fields">
+                                    <div class="col-md-2">
+                                        <label class="hp-label">Title <span class="hp-req">*</span></label>
+                                        <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
+                                            <option value="Mstr">Mstr.</option>
+                                            <option value="Miss">Miss</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="hp-label">First Name <span class="hp-req">*</span></label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]" placeholder="Enter first name" required>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="hp-label">Last Name <span class="hp-req">*</span></label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" placeholder="Enter last name" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Date of Birth</label>
+                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
                                     </div>
                                 </div>
                             </div>
                             @php $pIndex++; @endphp
                         @endfor
+
+                        {{-- Contact (airline + e-ticket) — names come from Adult 1 above --}}
+                        <div class="hp-card mb-3">
+                            <div class="hp-card__head">
+                                <i class="bx bx-phone hp-card__head-icon"></i>
+                                <div>
+                                    <div class="hp-card__title" style="margin-top:0;">Contact Details</div>
+                                </div>
+                            </div>
+
+                            <p class="hp-contact-note">
+                                <i class="bx bx-info-circle"></i>
+                                These details will be passed to the Airline for booking.
+                            </p>
+
+                            <div class="row g-3 hp-pax-fields">
+                                <div class="col-md-6">
+                                    <label class="hp-label">Phone <span class="hp-req">*</span></label>
+                                    <input type="tel" class="hp-input" name="lead[phone]"
+                                        placeholder="+971 50 000 0000" required autocomplete="tel">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="hp-label">Email <span class="hp-req">*</span></label>
+                                    <input type="email" class="hp-input" name="lead[email]"
+                                        placeholder="email@example.com" required autocomplete="email">
+                                </div>
+                            </div>
+                        </div>
 
                         {{-- Payment --}}
                         <div class="hp-card mb-3">
@@ -443,6 +488,32 @@
         .hcf-checkout-notice i { font-size:1.2rem; color:#2563eb; flex-shrink:0; }
 
         .hp-pax-fields { padding:.85rem 1.1rem 1rem; }
+        .hp-pax-note {
+            margin: 0; padding: .5rem 1.1rem;
+            font-size: .74rem; color: var(--c-amber);
+            background: var(--c-amber-soft);
+            border-bottom: 1px solid rgba(217,119,6,.15);
+            display: flex; align-items: center; gap: .35rem;
+        }
+        .hp-pax-note i { font-size: .88rem; flex-shrink: 0; }
+        .hp-saved-row { padding: .7rem 1.1rem .2rem; }
+        .hp-hint { font-size: .62rem; color: var(--c-muted); margin-top: .18rem; display: block; }
+        .hp-save-check {
+            display: flex; align-items: center; gap: .5rem;
+            font-size: .76rem; color: var(--c-slate); cursor: pointer;
+            padding: .45rem .7rem;
+            background: var(--c-bg); border: 1px dashed var(--c-line); border-radius: 8px;
+        }
+        .hp-save-check input[type=checkbox] {
+            accent-color: var(--c-brand); width: 15px; height: 15px; flex-shrink: 0;
+        }
+        .hp-contact-note {
+            margin: 0; padding: .45rem 1.1rem;
+            font-size: .73rem; color: var(--c-slate);
+            background: var(--c-bg); border-bottom: 1px solid var(--c-line);
+            display: flex; align-items: center; gap: .35rem;
+        }
+        .hp-contact-note i { color: var(--c-brand); }
         .hp-label {
             font-size:.68rem; font-weight:700; color:var(--c-slate);
             display:block; margin-bottom:.28rem;
@@ -548,6 +619,128 @@
             }
 
             recalc();
+
+            (function initCheckoutSavedPassengers() {
+                const savedList = @json($savedPassengers);
+                const selects = document.querySelectorAll('#flightCheckoutForm .hp-saved-pick');
+                if (!selects.length || !savedList.length) {
+                    return;
+                }
+
+                function labelOf(sp) {
+                    return [sp.title, sp.first_name, sp.last_name].filter(Boolean).join(' ');
+                }
+
+                function selectedId(sel) {
+                    if (!sel || !sel.value) {
+                        return null;
+                    }
+                    try {
+                        const p = JSON.parse(sel.value);
+                        return p && p.id != null ? String(p.id) : null;
+                    } catch (e) {
+                        return null;
+                    }
+                }
+
+                function clearPaxFields(idx) {
+                    ['title', 'first_name', 'last_name', 'dob', 'nationality', 'passport_no', 'passport_exp'].forEach(function (k) {
+                        const el = document.querySelector(
+                            '#flightCheckoutForm [name="passengers[' + idx + '][' + k + ']"]'
+                        );
+                        if (el) {
+                            el.value = '';
+                        }
+                    });
+                }
+
+                function fillFromSaved(sel) {
+                    const idx = sel.dataset.paxIdx;
+                    if (!sel.value) {
+                        return;
+                    }
+                    let pax;
+                    try {
+                        pax = JSON.parse(sel.value);
+                    } catch (e) {
+                        return;
+                    }
+
+                    function fill(name, val) {
+                        const el = document.querySelector(
+                            '#flightCheckoutForm [name="passengers[' + idx + '][' + name + ']"]'
+                        );
+                        if (!el || val == null || val === '') {
+                            return;
+                        }
+                        let v = val;
+                        if (el.type === 'date' && typeof v === 'string') {
+                            v = v.substring(0, 10);
+                        }
+                        el.value = v;
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+
+                    fill('title', pax.title);
+                    fill('first_name', pax.first_name);
+                    fill('last_name', pax.last_name);
+                    fill('dob', pax.dob);
+                    fill('nationality', pax.nationality);
+                    fill('passport_no', pax.passport_no);
+                    fill('passport_exp', pax.passport_exp);
+                }
+
+                function rebuildAll() {
+                    selects.forEach(function (sel) {
+                        const idx = sel.dataset.paxIdx;
+                        const prevVal = sel.value;
+
+                        const othersTaken = new Set();
+                        selects.forEach(function (other) {
+                            if (other === sel) {
+                                return;
+                            }
+                            const oid = selectedId(other);
+                            if (oid) {
+                                othersTaken.add(oid);
+                            }
+                        });
+
+                        sel.innerHTML = '<option value="">— Select saved passenger —</option>';
+                        savedList.forEach(function (sp) {
+                            const sid = sp.id != null ? String(sp.id) : null;
+                            if (sid && othersTaken.has(sid)) {
+                                return;
+                            }
+
+                            const opt = document.createElement('option');
+                            opt.value = JSON.stringify(sp);
+                            opt.textContent = labelOf(sp);
+                            sel.appendChild(opt);
+                        });
+
+                        const match =
+                            prevVal && Array.from(sel.options).some(function (o) {
+                                return o.value === prevVal;
+                            });
+                        if (match) {
+                            sel.value = prevVal;
+                        } else if (prevVal) {
+                            sel.selectedIndex = 0;
+                            clearPaxFields(idx);
+                        }
+                    });
+                }
+
+                selects.forEach(function (sel) {
+                    sel.addEventListener('change', function () {
+                        fillFromSaved(sel);
+                        rebuildAll();
+                    });
+                });
+
+                rebuildAll();
+            })();
 
             const form = document.getElementById('flightCheckoutForm');
             if (form) {

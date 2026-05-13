@@ -4,7 +4,6 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
-use App\Models\B2bSavedPassenger;
 use App\Models\B2bWalletLedger;
 use App\Models\Config;
 use App\Services\FlightService;
@@ -32,6 +31,16 @@ class FlightBookingController extends Controller
         $currency = $itineraryData['currency'] ?? 'AED';
         $walletBalance = (float) (Auth::user()->main_balance ?? 0);
 
+        try {
+            $savedPassengers = Auth::user()
+                ->savedPassengers()
+                ->orderBy('first_name')
+                ->get()
+                ->toArray();
+        } catch (\Throwable $e) {
+            $savedPassengers = [];
+        }
+
         return view('user.flights.checkout', [
             'itineraryId' => $itinerary,
             'itinerary' => $itineraryData,
@@ -39,6 +48,7 @@ class FlightBookingController extends Controller
             'totalAmount' => $totalAmount,
             'currency' => $currency,
             'walletBalance' => $walletBalance,
+            'savedPassengers' => $savedPassengers,
         ]);
     }
 
@@ -46,23 +56,41 @@ class FlightBookingController extends Controller
     {
         $validated = $request->validate([
             'itinerary_id' => 'required|integer',
-            'lead.title' => 'required|string',
-            'lead.first_name' => 'required|string',
-            'lead.last_name' => 'required|string',
             'lead.email' => 'required|email',
-            'lead.phone' => 'required|string',
-            'lead.address' => 'nullable|string',
+            'lead.phone' => 'required|string|max:25',
+            'lead.address' => 'nullable|string|max:500',
 
             'passengers' => 'required|array|min:1',
             'passengers.*.type' => 'required|in:ADT,C06,INF',
             'passengers.*.title' => 'required|string',
-            'passengers.*.first_name' => 'required|string',
-            'passengers.*.last_name' => 'required|string',
+            'passengers.*.first_name' => 'required|string|max:60',
+            'passengers.*.last_name' => 'required|string|max:60',
+            'passengers.*.dob' => 'nullable|date',
+            'passengers.*.nationality' => 'nullable|string|max:4',
+            'passengers.*.passport_no' => 'nullable|string|max:20',
+            'passengers.*.passport_exp' => 'nullable|date',
+            'passengers.*.save_profile' => 'nullable|in:1',
 
             'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
             'use_wallet' => 'nullable|in:1',
             'wallet_amount' => 'nullable|numeric|min:0',
         ]);
+
+        $p0 = $validated['passengers'][0] ?? null;
+        if (!$p0 || ($p0['type'] ?? '') !== 'ADT') {
+            return redirect()->back()
+                ->withInput()
+                ->with('notify_error', 'First passenger must be an adult.');
+        }
+
+        $lead = [
+            'title' => $p0['title'] ?? 'Mr',
+            'first_name' => $p0['first_name'] ?? '',
+            'last_name' => $p0['last_name'] ?? '',
+            'email' => $validated['lead']['email'],
+            'phone' => $validated['lead']['phone'],
+            'address' => $validated['lead']['address'] ?? null,
+        ];
 
         $results = session('flight_search_results', []);
         $params = session('flight_search_params', []);
@@ -88,6 +116,28 @@ class FlightBookingController extends Controller
                 ->with('notify_error', $revalidate['error'] ?? 'Unable to revalidate flight itinerary. Please search again.');
         }
 
+        try {
+            foreach ($validated['passengers'] as $pax) {
+                if (!empty($pax['save_profile'])) {
+                    Auth::user()->savedPassengers()->updateOrCreate(
+                        [
+                            'passport_no' => $pax['passport_no'] ?? null,
+                            'first_name' => $pax['first_name'],
+                            'last_name' => $pax['last_name'],
+                        ],
+                        [
+                            'title' => $pax['title'],
+                            'dob' => $pax['dob'] ?? null,
+                            'nationality' => $pax['nationality'] ?? null,
+                            'passport_exp' => $pax['passport_exp'] ?? null,
+                        ]
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Could not save passenger profile: ' . $e->getMessage());
+        }
+
         $totalAmount = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency = $itineraryData['currency'] ?? 'AED';
 
@@ -108,7 +158,7 @@ class FlightBookingController extends Controller
             'children' => (int) ($params['children'] ?? 0),
             'infants' => (int) ($params['infants'] ?? 0),
             'passengers_data' => [
-                'lead' => $validated['lead'],
+                'lead' => $lead,
                 'passengers' => $validated['passengers'],
             ],
             'itinerary_data' => $itineraryData,
