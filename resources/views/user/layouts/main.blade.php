@@ -52,7 +52,7 @@
                 $.toast({
                     heading: 'Success!',
                     position: 'bottom-right',
-                    text: '{{ session('notify_success') }}',
+                    text: @json(session('notify_success')),
                     loaderBg: '#ff6849',
                     icon: 'success',
                     hideAfter: 2000,
@@ -62,7 +62,7 @@
                 $.toast({
                     heading: 'Error!',
                     position: 'bottom-right',
-                    text: '{{ session('notify_error') }}',
+                    text: @json(session('notify_error')),
                     loaderBg: '#ff6849',
                     icon: 'error',
                     hideAfter: 5000,

@@ -7,7 +7,7 @@
 @section('content')
 @php
     $status     = $booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status;
-    $isHold     = $booking->payment_method === 'hold';
+    $isHold     = $booking->booking_status === 'hold';
     $isRound    = !empty($booking->return_date);
     $legs       = $booking->itinerary_data['legs'] ?? [];
     $passengers = $booking->passengers_data['passengers'] ?? [];
@@ -18,10 +18,35 @@
     if ($booking->children) $paxStr .= ', ' . $booking->children . ' Child' . ($booking->children > 1 ? 'ren' : '');
     if ($booking->infants)  $paxStr .= ', ' . $booking->infants . ' Infant' . ($booking->infants > 1 ? 's' : '');
 
-    $ttl = data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.ticketingDeadline') ?? null;
+    $ttlRaw = data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.ticketingDeadline') ?? null;
+    $ttl    = null;
+    $ttlFormatted  = null;
+    $ttlRemaining  = null;
+    $ttlExpired    = false;
+    $ttlUrgent     = false; // < 2 hours left
+
+    if ($ttlRaw) {
+        try {
+            $ttl = \Carbon\Carbon::parse($ttlRaw);
+            $ttlFormatted = $ttl->format('D, d M Y \a\t h:i A');   // e.g. "Wed, 13 May 2026 at 10:30 AM"
+            $now = now();
+            if ($ttl->isPast()) {
+                $ttlExpired   = true;
+                $ttlRemaining = 'Expired';
+            } else {
+                $diffMins = (int) $now->diffInMinutes($ttl);
+                $h = intdiv($diffMins, 60);
+                $m = $diffMins % 60;
+                $ttlRemaining = $h ? ($m ? "{$h}h {$m}m remaining" : "{$h}h remaining") : "{$m}m remaining";
+                $ttlUrgent = $diffMins < 120; // < 2 hours = urgent
+            }
+        } catch (\Throwable $e) {
+            $ttlFormatted = $ttlRaw; // show raw if parsing fails
+        }
+    }
 
     $fmtMins = function(?int $m): string {
-        if (!$m || $m < 1) return '—';
+        if (!$m || $m < 1) return ' - ';
         $h = intdiv($m, 60); $r = $m % 60;
         return $h ? ($r ? "{$h}h {$r}m" : "{$h}h") : "{$r}m";
     };
@@ -41,18 +66,50 @@
                     <span>{{ $booking->booking_number }}</span>
                 </nav>
 
-                {{-- Hold banner --}}
+                {{-- Hold expiry banner --}}
                 @if($isHold && $status !== 'cancelled')
-                <div class="bkp-hold-banner">
-                    <i class="bx bx-time-five"></i>
-                    <div>
-                        <div class="bkp-hold-banner__title">Booking On Hold  - no payment charged</div>
-                        <div class="bkp-hold-banner__text">
-                            PNR <strong>{{ $booking->sabre_record_locator ?? '—' }}</strong> created on Sabre.
-                            Held on <strong>{{ $booking->created_at->format('d M Y, h:i A') }}</strong>.
-                            @if($ttl) Ticketing deadline: <strong>{{ $ttl }}</strong>. @else Ticketing window is typically <strong>1–24 hours</strong>  - check with the airline. @endif
+                <div class="bkpd-hold-expiry {{ $ttlExpired ? 'bkpd-hold-expiry--expired' : ($ttlUrgent ? 'bkpd-hold-expiry--urgent' : '') }}">
+
+                    {{-- Left: icon + status --}}
+                    <div class="bkpd-hold-expiry__icon">
+                        <i class="bx {{ $ttlExpired ? 'bx-error-circle' : 'bx-time-five' }}"></i>
+                    </div>
+
+                    {{-- Centre: info --}}
+                    <div class="bkpd-hold-expiry__body">
+                        <div class="bkpd-hold-expiry__title">
+                            @if($ttlExpired)
+                                Hold Expired — ticketing window has passed
+                            @elseif($ttlFormatted)
+                                This hold expires on <strong>{{ $ttlFormatted }}</strong>
+                            @else
+                                Booking is on hold — ticketing window typically 1–24 hours
+                            @endif
+                        </div>
+                        <div class="bkpd-hold-expiry__meta">
+                            PNR: <strong>{{ $booking->sabre_record_locator ?? '—' }}</strong>
+                            &nbsp;·&nbsp; Held on {{ $booking->created_at->format('d M Y, h:i A') }}
+                            @if(!empty($ttlRemaining) && !$ttlExpired)
+                                &nbsp;·&nbsp; <span class="bkpd-hold-expiry__remaining {{ $ttlUrgent ? 'bkpd-hold-expiry__remaining--urgent' : '' }}">
+                                    <i class="bx bx-time"></i> {{ $ttlRemaining }}
+                                </span>
+                            @endif
                         </div>
                     </div>
+
+                    {{-- Right: countdown pill --}}
+                    @if($ttlFormatted && !$ttlExpired)
+                    <div class="bkpd-hold-expiry__pill {{ $ttlUrgent ? 'bkpd-hold-expiry__pill--urgent' : '' }}">
+                        <div class="bkpd-hold-expiry__pill-top">{{ $ttlRemaining }}</div>
+                        <div class="bkpd-hold-expiry__pill-bot">to ticket</div>
+                    </div>
+                    @elseif($ttlExpired)
+                    <div class="bkpd-hold-expiry__pill bkpd-hold-expiry__pill--expired">
+                        <div class="bkpd-hold-expiry__pill-top">Expired</div>
+                        <div class="bkpd-hold-expiry__pill-bot">PNR may be void</div>
+                    </div>
+                    @endif
+
                 </div>
                 @endif
 
@@ -141,7 +198,7 @@
                                     @endif
 
                                     <div class="bkpd-leg__dep">
-                                        <div class="bkpd-leg__clock">{{ $first['departure_clock'] ?? '—' }}</div>
+                                        <div class="bkpd-leg__clock">{{ $first['departure_clock'] ?? ' - ' }}</div>
                                         <div class="bkpd-leg__city">{{ strtoupper($first['from'] ?? '') }}</div>
                                         @if(!empty($first['departure_city']))
                                             <div class="bkpd-leg__city-name">{{ $first['departure_city'] }}</div>
@@ -166,7 +223,7 @@
 
                                     <div class="bkpd-leg__arr">
                                         <div class="bkpd-leg__clock">
-                                            {{ $last['arrival_clock'] ?? '—' }}
+                                            {{ $last['arrival_clock'] ?? ' - ' }}
                                             @if(!empty($last['next_day_hint'])) <sup style="color:#cd1b4f;font-size:.6rem;">+1</sup> @endif
                                         </div>
                                         <div class="bkpd-leg__city">{{ strtoupper($last['to'] ?? '') }}</div>
@@ -342,7 +399,7 @@
                                         </button>
                                     </form>
                                     <p style="font-size:.7rem;color:#8492a6;margin-top:6px;text-align:center;">
-                                        Releases the PNR at Sabre — no charges since no payment was made.
+                                        Releases the PNR at Sabre  -  no charges since no payment was made.
                                     </p>
                                 @elseif($status === 'confirmed' && $booking->payment_status === 'paid')
                                     <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}"

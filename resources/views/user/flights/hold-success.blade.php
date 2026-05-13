@@ -232,7 +232,7 @@
       {{-- Route --}}
       <div class="hs-route">
         <div style="text-align:center;">
-          <div class="hs-route__city">{{ strtoupper($booking->from_airport ?? '—') }}</div>
+          <div class="hs-route__city">{{ strtoupper($booking->from_airport ?? ' - ') }}</div>
           <div class="hs-route__date">{{ $booking->departure_date?->format('d M Y') ?? '' }}</div>
         </div>
         <div class="hs-route__mid">
@@ -240,7 +240,7 @@
           <span class="hs-route__type">{{ $isRound ? 'Round Trip' : 'One Way' }}</span>
         </div>
         <div style="text-align:center;">
-          <div class="hs-route__city">{{ strtoupper($booking->to_airport ?? '—') }}</div>
+          <div class="hs-route__city">{{ strtoupper($booking->to_airport ?? ' - ') }}</div>
           <div class="hs-route__date">{{ $isRound ? $booking->return_date->format('d M Y') : '' }}</div>
         </div>
       </div>

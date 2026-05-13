@@ -1,108 +1,333 @@
 @extends('user.layouts.main')
-@section('content')
-    <div class="hc-page">
-        <div class="container">
-            <nav class="hd-breadcrumb">
-                <a href="{{ route('user.flights.index') }}">Flights</a>
-                <i class="bx bx-chevron-right"></i>
-                <span>Booking Confirmed</span>
-            </nav>
 
-            <div class="row justify-content-center">
-                <div class="col-lg-7">
-                    <div class="hc-card text-center">
-                        <div class="hc-result-icon hc-result-icon--success">
-                            <i class="bx bx-check-circle"></i>
-                        </div>
+@section('css')
+<style>
+.hs-page {
+    min-height: calc(100vh - 120px);
+    background: #f0fdf4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+}
 
-                        <h2 class="hc-result-title">Booking Confirmed!</h2>
-                        <p class="hc-result-text">Thank you. Your flight reservation has been confirmed successfully.</p>
+.hs-card {
+    width: 100%;
+    max-width: 480px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(16,185,129,.12), 0 2px 12px rgba(0,0,0,.06);
+    overflow: hidden;
+}
 
-                        <div class="hc-result-details">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="hc-result-item">
-                                        <span class="hc-result-item__label">Booking Number</span>
-                                        <span class="hc-result-item__value">{{ $booking->booking_number }}</span>
-                                    </div>
-                                </div>
+/* ── Header ── */
+.hs-header {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-bottom: 1px solid #a7f3d0;
+    padding: 24px 24px 20px;
+    text-align: center;
+}
 
-                                @if($booking->sabre_record_locator)
-                                    <div class="col-md-6">
-                                        <div class="hc-result-item">
-                                            <span class="hc-result-item__label">Record Locator</span>
-                                            <span class="hc-result-item__value">{{ $booking->sabre_record_locator }}</span>
-                                        </div>
-                                    </div>
-                                @endif
+.hs-check-wrap { width: 52px; height: 52px; margin: 0 auto 12px; }
 
-                                <div class="col-md-12">
-                                    <div class="hc-result-item">
-                                        <span class="hc-result-item__label">Route</span>
-                                        <span class="hc-result-item__value">{{ $booking->from_airport }} ? {{ $booking->to_airport }}</span>
-                                    </div>
-                                </div>
+.hs-check-circle {
+    fill: none; stroke: #10b981; stroke-width: 3;
+    stroke-dasharray: 170; stroke-dashoffset: 170;
+    animation: hs-circle .5s ease forwards .1s;
+}
+.hs-check-tick {
+    fill: none; stroke: #10b981; stroke-width: 3.5;
+    stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 50; stroke-dashoffset: 50;
+    animation: hs-tick .35s ease forwards .6s;
+}
+@keyframes hs-circle { to { stroke-dashoffset: 0; } }
+@keyframes hs-tick   { to { stroke-dashoffset: 0; } }
 
-                                <div class="col-md-6">
-                                    <div class="hc-result-item">
-                                        <span class="hc-result-item__label">Departure</span>
-                                        <span class="hc-result-item__value">{{ $booking->departure_date?->format('d M, Y') }}</span>
-                                    </div>
-                                </div>
+.hs-title {
+    font-size: 1.18rem;
+    font-weight: 800;
+    color: #064e3b;
+    margin: 0 0 4px;
+}
 
-                                @if($booking->return_date)
-                                    <div class="col-md-6">
-                                        <div class="hc-result-item">
-                                            <span class="hc-result-item__label">Return</span>
-                                            <span class="hc-result-item__value">{{ $booking->return_date?->format('d M, Y') }}</span>
-                                        </div>
-                                    </div>
-                                @endif
+.hs-sub {
+    font-size: .76rem;
+    color: #065f46;
+    margin: 0;
+}
 
-                                <div class="col-md-6">
-                                    <div class="hc-result-item">
-                                        <span class="hc-result-item__label">Passengers</span>
-                                        <span class="hc-result-item__value">{{ $booking->adults + $booking->children + $booking->infants }}</span>
-                                    </div>
-                                </div>
+/* ── Body ── */
+.hs-body {
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: hs-in .4s ease both .75s;
+}
+@keyframes hs-in { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:none; } }
 
-                                <div class="col-md-6">
-                                    <div class="hc-result-item">
-                                        <span class="hc-result-item__label">Total Amount</span>
-                                        <span class="hc-result-item__value hc-result-item__value--primary"><span class="dirham">D</span> {{ number_format($booking->total_amount, 2) }}</span>
-                                    </div>
-                                </div>
+/* Booking # pill */
+.hs-bk-num {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f0fdf4;
+    border: 1px solid #a7f3d0;
+    border-radius: 20px;
+    padding: 3px 11px;
+    font-size: .68rem;
+    font-weight: 700;
+    color: #065f46;
+    align-self: center;
+}
 
-                                <div class="col-md-6">
-                                    <div class="hc-result-item">
-                                        <span class="hc-result-item__label">Lead Passenger</span>
-                                        <span class="hc-result-item__value">{{ $booking->lead_full_name }}</span>
-                                    </div>
-                                </div>
+/* PNR box */
+.hs-pnr {
+    background: #f8faff;
+    border: 1.5px solid #e0e7ff;
+    border-radius: 10px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.hs-pnr__label {
+    font-size: .58rem; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: #8492a6; margin-bottom: 3px;
+}
+.hs-pnr__value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.65rem; font-weight: 800;
+    color: #cd1b4f; letter-spacing: .08em; line-height: 1;
+}
+.hs-pnr__copy {
+    width: 30px; height: 30px;
+    border: 1px solid #e0e7ff; border-radius: 7px;
+    background: #fff; color: #8492a6;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    transition: all .15s; font-size: .9rem;
+}
+.hs-pnr__copy:hover  { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+.hs-pnr__copy.copied { background: #10b981; color: #fff; border-color: #10b981; }
 
-                                <div class="col-md-6">
-                                    <div class="hc-result-item">
-                                        <span class="hc-result-item__label">Email</span>
-                                        <span class="hc-result-item__value">{{ data_get($booking->passengers_data, 'lead.email') }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+/* Route row */
+.hs-route {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #f8faff;
+    border: 1px solid #e4e9f0;
+    border-radius: 10px;
+    padding: 11px 14px;
+}
+.hs-route__city {
+    font-size: 1.45rem; font-weight: 800;
+    color: #1a2540; letter-spacing: .04em;
+}
+.hs-route__mid {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 1px;
+}
+.hs-route__mid i { font-size: 1rem; color: #10b981; }
+.hs-route__type {
+    font-size: .56rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: #10b981;
+}
+.hs-route__date { font-size: .62rem; color: #8492a6; margin-top: 1px; }
 
-                        <div class="mt-4 d-flex gap-2 justify-content-center">
-                            <a href="{{ route('user.dashboard') }}" class="hc-btn hc-btn--primary">
-                                <i class="bx bx-home"></i> Dashboard
-                            </a>
-                            <a href="{{ route('user.bookings.index') }}" class="hc-btn hc-btn--outline">
-                                <i class="bx bx-list-ul"></i> View My Bookings
-                            </a>
-                            <a href="{{ route('user.flights.index') }}" class="hc-btn hc-btn--outline">
-                                <i class="bx bx-search"></i> Search Flights
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+/* Info key-value table */
+.hs-kv { width: 100%; border-collapse: collapse; }
+.hs-kv tr + tr td { border-top: 1px solid #f0f3f8; }
+.hs-kv td { padding: 7px 0; vertical-align: middle; font-size: .82rem; }
+.hs-kv td:first-child {
+    width: 42%; color: #8492a6; font-weight: 600; font-size: .75rem;
+    text-transform: uppercase; letter-spacing: .05em;
+}
+.hs-kv td:first-child i { font-size: .88rem; color: #b0bac8; margin-right: 5px; vertical-align: middle; }
+.hs-kv td:last-child { color: #1a2540; font-weight: 700; }
+.hs-kv .kv-green { color: #15803d; }
+.hs-kv .kv-red   { color: #cd1b4f; }
+.hs-kv .kv-blue  { color: #1d4ed8; }
+
+/* Green success notice */
+.hs-notice {
+    display: flex; align-items: center; gap: 8px;
+    background: #ecfdf5; border: 1px solid #a7f3d0;
+    border-radius: 8px; padding: 9px 12px;
+    font-size: .73rem; color: #065f46; line-height: 1.45;
+}
+.hs-notice i { color: #10b981; font-size: 1rem; flex-shrink: 0; }
+
+/* Action buttons */
+.hs-actions { display: flex; gap: 8px; }
+.hs-btn {
+    flex: 1;
+    display: inline-flex; align-items: center;
+    justify-content: center; gap: 6px;
+    padding: 10px 14px; border-radius: 9px;
+    font-size: .8rem; font-weight: 700;
+    text-decoration: none; transition: all .15s;
+    border: none; cursor: pointer;
+}
+.hs-btn--primary { background: #cd1b4f; color: #fff; }
+.hs-btn--primary:hover { background: #b01542; color: #fff; }
+.hs-btn--outline { background: #fff; color: #4a5568; border: 1.5px solid #e4e9f0; }
+.hs-btn--outline:hover { background: #f5f7fa; color: #1a2540; }
+</style>
 @endsection
+
+@section('content')
+@php
+    $lead     = $booking->passengers_data['lead'] ?? [];
+    $adults   = (int) $booking->adults;
+    $children = (int) $booking->children;
+    $infants  = (int) $booking->infants;
+    $isRound  = !empty($booking->return_date);
+
+    $paxStr = $adults . ' Adult' . ($adults > 1 ? 's' : '');
+    if ($children) $paxStr .= ', ' . $children . ' Child' . ($children > 1 ? 'ren' : '');
+    if ($infants)  $paxStr .= ', ' . $infants  . ' Infant' . ($infants > 1 ? 's' : '');
+
+    $leadName  = strtoupper(trim(($lead['first_name'] ?? '') . ' ' . ($lead['last_name'] ?? ''))) ?: ($booking->lead_full_name ?? null);
+    $payMethod = $booking->payment_method ? strtoupper($booking->payment_method) : 'WALLET';
+    if ($payMethod === 'PAYBY') $payMethod = 'Credit / Debit Card';
+    elseif ($payMethod === 'WALLET') $payMethod = 'Wallet';
+    else $payMethod = ucfirst(strtolower($payMethod));
+
+    $eTicket = data_get($booking->ticket_response, 'AirTicketRS.ETicketNumber')
+        ?? data_get($booking->ticket_response, 'eTicketNumber')
+        ?? null;
+@endphp
+
+<div class="hs-page">
+  <div class="hs-card">
+
+    {{-- Header --}}
+    <div class="hs-header">
+      <div class="hs-check-wrap">
+        <svg viewBox="0 0 72 72" fill="none" width="52" height="52">
+          <circle cx="36" cy="36" r="33" class="hs-check-circle" stroke-linecap="round"/>
+          <polyline points="22,37 31,46 50,27" class="hs-check-tick"/>
+        </svg>
+      </div>
+      <h1 class="hs-title">Booking Confirmed!</h1>
+      <p class="hs-sub">Payment received &nbsp;·&nbsp; Ticket issued on Sabre</p>
+    </div>
+
+    {{-- Body --}}
+    <div class="hs-body">
+
+      {{-- Booking # --}}
+      <div class="hs-bk-num"><i class="bx bx-hash"></i>{{ $booking->booking_number }}</div>
+
+      {{-- PNR --}}
+      @if($booking->sabre_record_locator)
+      <div class="hs-pnr">
+        <div>
+          <div class="hs-pnr__label">PNR / Record Locator</div>
+          <div class="hs-pnr__value" id="hsPnr">{{ $booking->sabre_record_locator }}</div>
+        </div>
+        <button class="hs-pnr__copy" id="hsCopyBtn" onclick="copyPnr()" title="Copy">
+          <i class="bx bx-copy" id="hsCopyIcon"></i>
+        </button>
+      </div>
+      @endif
+
+      {{-- Route --}}
+      <div class="hs-route">
+        <div style="text-align:center;">
+          <div class="hs-route__city">{{ strtoupper($booking->from_airport ?? ' - ') }}</div>
+          <div class="hs-route__date">{{ $booking->departure_date?->format('d M Y') ?? '' }}</div>
+        </div>
+        <div class="hs-route__mid">
+          <i class="{{ $isRound ? 'bx bx-transfer-alt' : 'bx bx-right-arrow-alt' }}"></i>
+          <span class="hs-route__type">{{ $isRound ? 'Round Trip' : 'One Way' }}</span>
+        </div>
+        <div style="text-align:center;">
+          <div class="hs-route__city">{{ strtoupper($booking->to_airport ?? ' - ') }}</div>
+          <div class="hs-route__date">{{ $isRound ? $booking->return_date->format('d M Y') : '' }}</div>
+        </div>
+      </div>
+
+      {{-- Info key-value pairs --}}
+      <table class="hs-kv">
+        <tr>
+          <td><i class="bx bx-user"></i> Passengers</td>
+          <td>{{ $paxStr }}</td>
+        </tr>
+        @if($leadName)
+        <tr>
+          <td><i class="bx bx-id-card"></i> Lead Name</td>
+          <td>{{ $leadName }}</td>
+        </tr>
+        @endif
+        <tr>
+          <td><i class="bx bx-money"></i> Total Paid</td>
+          <td class="kv-green">AED {{ number_format((float)$booking->total_amount, 2) }}</td>
+        </tr>
+        <tr>
+          <td><i class="bx bx-credit-card"></i> Payment Method</td>
+          <td class="kv-blue">{{ $payMethod }}</td>
+        </tr>
+        @if($eTicket)
+        <tr>
+          <td><i class="bx bx-receipt"></i> E-Ticket</td>
+          <td style="font-family:monospace;">{{ $eTicket }}</td>
+        </tr>
+        @endif
+        <tr>
+          <td><i class="bx bx-calendar"></i> Confirmed On</td>
+          <td>{{ now()->format('d M Y, h:i A') }}</td>
+        </tr>
+        @if(!empty($lead['email']))
+        <tr>
+          <td><i class="bx bx-envelope"></i> Email</td>
+          <td>{{ $lead['email'] }}</td>
+        </tr>
+        @endif
+      </table>
+
+      {{-- Green success notice --}}
+      <div class="hs-notice">
+        <i class="bx bx-check-circle"></i>
+        <span>
+          Your ticket has been issued successfully. Save your PNR for check-in and airline correspondence.
+        </span>
+      </div>
+
+      {{-- Actions --}}
+      <div class="hs-actions">
+        <a href="{{ route('user.bookings.flights.detail', $booking->id) }}" class="hs-btn hs-btn--primary">
+          <i class="bx bx-list-ul"></i> View Booking
+        </a>
+        <a href="{{ route('user.flights.index') }}" class="hs-btn hs-btn--outline">
+          <i class="bx bxs-plane-take-off"></i> New Search
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+@endsection
+
+@push('js')
+<script>
+function copyPnr() {
+    const pnr  = document.getElementById('hsPnr')?.innerText?.trim();
+    const btn  = document.getElementById('hsCopyBtn');
+    const icon = document.getElementById('hsCopyIcon');
+    if (!pnr) return;
+    navigator.clipboard.writeText(pnr).then(() => {
+        btn.classList.add('copied');
+        icon.className = 'bx bx-check';
+        setTimeout(() => { btn.classList.remove('copied'); icon.className = 'bx bx-copy'; }, 2000);
+    });
+}
+</script>
+@endpush

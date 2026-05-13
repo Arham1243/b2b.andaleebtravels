@@ -147,7 +147,7 @@ class BookingController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('user.bookings.index')
+                ->route('user.bookings.hotels')
                 ->with('notify_success', 'Booking #' . $booking->booking_number . ' cancelled successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -197,7 +197,7 @@ class BookingController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('user.bookings.index')
+                ->route('user.bookings.hotels')
                 ->with('notify_success', 'Booking #' . $booking->booking_number . ' cancelled successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -220,7 +220,7 @@ class BookingController extends Controller
             return back()->with('notify_error', 'Booking is already cancelled.');
         }
 
-        if ($booking->payment_method !== 'hold') {
+        if ($booking->booking_status !== 'hold') {
             return back()->with('notify_error', 'This action is only available for held bookings.');
         }
 
@@ -241,9 +241,14 @@ class BookingController extends Controller
 
             DB::commit();
 
+            $pnr = trim((string) ($booking->sabre_record_locator ?? ''));
+            $successMsg = $pnr !== ''
+                ? 'Hold released for booking #' . $booking->booking_number . '. PNR ' . $pnr . ' was cancelled on Sabre.'
+                : 'Hold released for booking #' . $booking->booking_number . '.';
+
             return redirect()
-                ->route('user.bookings.index')
-                ->with('notify_success', 'Hold booking #' . $booking->booking_number . ' released. PNR ' . $booking->sabre_record_locator . ' cancelled on Sabre.');
+                ->route('user.bookings.flights')
+                ->with('notify_success', $successMsg);
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -284,7 +289,7 @@ class BookingController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('user.bookings.index')
+                ->route('user.bookings.flights')
                 ->with('notify_success', 'Booking #' . $booking->booking_number . ' cancelled successfully.');
         } catch (\Throwable $e) {
             DB::rollBack();

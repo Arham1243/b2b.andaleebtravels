@@ -48,14 +48,15 @@
 }
 .bkp-search-form button:hover { background: var(--c-brand,#cd1b4f); color: #fff; border-color: var(--c-brand,#cd1b4f); }
 .bkt-pagination {
-    display: flex; align-items: center; justify-content: space-between;
     padding: 12px 16px; border-top: 1px solid #f0f3f8; font-size: .78rem; color: #8492a6;
 }
-.bkt-pagination .pagination { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.bkt-pagination nav { width: 100%; }
+.bkt-pagination .pagination { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .bkt-pagination .page-item .page-link {
     display: flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; border-radius: 6px; border: 1px solid #e4e9f0;
-    background: #fff; color: #4a5568; font-size: .78rem; text-decoration: none; transition: all .12s;
+    min-width: 30px; min-height: 30px; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid #e4e9f0; background: #fff; color: #4a5568; font-size: .78rem;
+    text-decoration: none; transition: all .12s; box-sizing: border-box;
 }
 .bkt-pagination .page-item.active .page-link { background: var(--c-brand,#cd1b4f); color: #fff; border-color: var(--c-brand,#cd1b4f); }
 .bkt-pagination .page-item.disabled .page-link { opacity: .4; pointer-events: none; }
@@ -113,7 +114,8 @@
                                 <th>Booking #</th>
                                 <th>Supplier</th>
                                 <th>Amount</th>
-                                <th>Status</th>
+                                <th>Booking</th>
+                                <th>Payment</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -142,20 +144,20 @@
                             {{-- Check-in --}}
                             <td>
                                 <div style="font-size:.8rem; color:#1a2540; font-weight:600;">
-                                    {{ $booking->check_in_date?->format('d M Y') ?? '—' }}
+                                    {{ $booking->check_in_date?->format('d M Y') ?? ' - ' }}
                                 </div>
                             </td>
 
                             {{-- Check-out --}}
                             <td>
                                 <div style="font-size:.8rem; color:#1a2540; font-weight:600;">
-                                    {{ $booking->check_out_date?->format('d M Y') ?? '—' }}
+                                    {{ $booking->check_out_date?->format('d M Y') ?? ' - ' }}
                                 </div>
                             </td>
 
                             {{-- Nights --}}
                             <td style="font-size:.8rem; color:#4a5568; font-weight:700;">
-                                {{ $nights ? $nights . ' night' . ($nights > 1 ? 's' : '') : '—' }}
+                                {{ $nights ? $nights . ' night' . ($nights > 1 ? 's' : '') : ' - ' }}
                             </td>
 
                             {{-- Booking # --}}
@@ -175,17 +177,31 @@
                                 <div style="font-size:.68rem;color:#8492a6;">{{ ucfirst($booking->payment_method ?? '') }}</div>
                             </td>
 
-                            {{-- Status --}}
+                            {{-- Booking status --}}
                             <td>
                                 <span class="bkp-badge bkp-badge--{{ $st }}">
                                     @if($st === 'confirmed')<i class="bx bx-check-circle"></i> Confirmed
                                     @elseif($st === 'cancelled')<i class="bx bx-x-circle"></i> Cancelled
+                                    @elseif($st === 'failed')<i class="bx bx-error-circle"></i> Failed
                                     @else<i class="bx bx-dots-horizontal"></i> {{ ucfirst($st) }}
                                     @endif
                                 </span>
-                                <br>
-                                <span class="bkp-badge bkp-badge--{{ $booking->payment_status }} mt-1">
-                                    {{ ucfirst($booking->payment_status) }}
+                            </td>
+
+                            {{-- Payment status --}}
+                            <td>
+                                @php
+                                    $ps = $booking->payment_status ?? 'pending';
+                                    $psLabel = match($ps) {
+                                        'paid'    => ['icon' => 'bx-check-circle',   'text' => 'Paid',    'class' => 'bkp-badge--paid'],
+                                        'pending' => ['icon' => 'bx-time',           'text' => 'Pending', 'class' => 'bkp-badge--pending'],
+                                        'failed'  => ['icon' => 'bx-error-circle',   'text' => 'Failed',  'class' => 'bkp-badge--failed'],
+                                        'refunded'=> ['icon' => 'bx-revision',       'text' => 'Refunded','class' => 'bkp-badge--ticket'],
+                                        default   => ['icon' => 'bx-dots-horizontal','text' => ucfirst($ps), 'class' => 'bkp-badge--pending'],
+                                    };
+                                @endphp
+                                <span class="bkp-badge {{ $psLabel['class'] }}">
+                                    <i class="bx {{ $psLabel['icon'] }}"></i> {{ $psLabel['text'] }}
                                 </span>
                             </td>
 
@@ -202,7 +218,6 @@
 
                     @if($hotelBookings->hasPages())
                     <div class="bkt-pagination">
-                        <span>Showing {{ $hotelBookings->firstItem() }}–{{ $hotelBookings->lastItem() }} of {{ $hotelBookings->total() }}</span>
                         {{ $hotelBookings->links() }}
                     </div>
                     @endif
@@ -229,4 +244,8 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('js')
+@include('user.bookings._search-autosubmit')
 @endsection

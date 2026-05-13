@@ -425,7 +425,107 @@
 .bkp-empty i    { font-size: 3rem; display: block; margin-bottom: 10px; }
 .bkp-empty p    { font-size: .9rem; margin: 0 0 16px; }
 
-/* ── Hold banner (detail pages) ──────────────────────────── */
+/* ── Hold expiry banner (detail pages) ───────────────────── */
+.bkpd-hold-expiry {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 100%);
+    border: 1.5px solid #fcd34d;
+    border-left: 5px solid #d97706;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+}
+.bkpd-hold-expiry--urgent {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border-color: #fb923c;
+    border-left-color: #ea580c;
+}
+.bkpd-hold-expiry--expired {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-color: #fca5a5;
+    border-left-color: #dc2626;
+}
+
+.bkpd-hold-expiry__icon {
+    font-size: 1.7rem;
+    flex-shrink: 0;
+    color: #d97706;
+    line-height: 1;
+}
+.bkpd-hold-expiry--urgent .bkpd-hold-expiry__icon { color: #ea580c; }
+.bkpd-hold-expiry--expired .bkpd-hold-expiry__icon { color: #dc2626; }
+
+.bkpd-hold-expiry__body { flex: 1; min-width: 0; }
+
+.bkpd-hold-expiry__title {
+    font-size: .9rem;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+.bkpd-hold-expiry--urgent .bkpd-hold-expiry__title { color: #9a3412; }
+.bkpd-hold-expiry--expired .bkpd-hold-expiry__title { color: #991b1b; }
+
+.bkpd-hold-expiry__meta {
+    font-size: .76rem;
+    color: #a16207;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.5;
+}
+.bkpd-hold-expiry--urgent .bkpd-hold-expiry__meta { color: #c2410c; }
+.bkpd-hold-expiry--expired .bkpd-hold-expiry__meta { color: #b91c1c; }
+
+.bkpd-hold-expiry__remaining {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 700;
+    color: #d97706;
+}
+.bkpd-hold-expiry__remaining--urgent { color: #ea580c; }
+
+/* Right pill */
+.bkpd-hold-expiry__pill {
+    flex-shrink: 0;
+    text-align: center;
+    background: #fef3c7;
+    border: 1.5px solid #fcd34d;
+    border-radius: 10px;
+    padding: 8px 14px;
+    min-width: 90px;
+}
+.bkpd-hold-expiry__pill--urgent {
+    background: #ffedd5;
+    border-color: #fb923c;
+}
+.bkpd-hold-expiry__pill--expired {
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+.bkpd-hold-expiry__pill-top {
+    font-size: .82rem;
+    font-weight: 800;
+    color: #92400e;
+    line-height: 1.2;
+}
+.bkpd-hold-expiry__pill--urgent .bkpd-hold-expiry__pill-top { color: #9a3412; }
+.bkpd-hold-expiry__pill--expired .bkpd-hold-expiry__pill-top { color: #991b1b; }
+.bkpd-hold-expiry__pill-bot {
+    font-size: .64rem;
+    color: #a16207;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-top: 2px;
+}
+
+/* ── Legacy hold banner (kept for backward compat) ─────── */
 .bkp-hold-banner {
     background: linear-gradient(135deg, #fffbeb, #fef3c7);
     border: 1px solid #fcd34d;
@@ -436,7 +536,6 @@
     align-items: flex-start;
     margin-bottom: 18px;
 }
-
 .bkp-hold-banner > i { font-size: 1.3rem; color: #d97706; flex-shrink: 0; margin-top: 2px; }
 .bkp-hold-banner__title { font-size: .85rem; font-weight: 700; color: #92400e; margin-bottom: 4px; }
 .bkp-hold-banner__text  { font-size: .76rem; color: #78350f; line-height: 1.55; }

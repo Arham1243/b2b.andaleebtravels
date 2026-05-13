@@ -550,7 +550,7 @@ class FlightService
                     'booking_status' => 'confirmed',
                 ]);
             } else {
-                // PNR creation returned a response but no locator — log payload for debugging.
+                // PNR creation returned a response but no locator  -  log payload for debugging.
                 Log::error('Hold PNR creation failed', [
                     'booking_id'   => $booking->id,
                     'payload_json' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
@@ -1219,7 +1219,7 @@ XML;
         $token = $this->extractBinarySecurityToken($body);
 
         if (!$token) {
-            // 200 OK but no token — usually a SOAP Fault (bad credentials / PCC / IP not whitelisted)
+            // 200 OK but no token  -  usually a SOAP Fault (bad credentials / PCC / IP not whitelisted)
             $fault = $this->extractSoapFault($body);
             Log::error('Sabre SessionCreate returned no token', [
                 'fault' => $fault,
@@ -1480,7 +1480,7 @@ XML;
 
     private function extractBinarySecurityToken(string $xml): ?string
     {
-        // Regex first — works regardless of namespace prefixes (soap-env / soapenv / S:)
+        // Regex first  -  works regardless of namespace prefixes (soap-env / soapenv / S:)
         // or wsse URI variants. Matches: <prefix:BinarySecurityToken ...>VALUE</prefix:BinarySecurityToken>
         if (preg_match('/<[^>:]*:?BinarySecurityToken[^>]*>([^<]+)<\/[^>:]*:?BinarySecurityToken>/i', $xml, $m)) {
             $token = trim($m[1]);

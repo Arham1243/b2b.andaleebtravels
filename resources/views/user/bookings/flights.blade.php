@@ -94,19 +94,19 @@
 }
 .bkp-search-form button:hover { background: var(--c-brand,#cd1b4f); color: #fff; border-color: var(--c-brand,#cd1b4f); }
 
-/* Pagination */
+/* Pagination (Bootstrap 5 – single nav from $bookings->links()) */
 .bkt-pagination {
-    display: flex; align-items: center; justify-content: space-between;
     padding: 12px 16px; border-top: 1px solid #f0f3f8; font-size: .78rem; color: #8492a6;
 }
+.bkt-pagination nav { width: 100%; }
 .bkt-pagination .pagination {
-    display: flex; gap: 4px; margin: 0; padding: 0; list-style: none;
+    display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none;
 }
 .bkt-pagination .page-item .page-link {
     display: flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; border-radius: 6px; border: 1px solid #e4e9f0;
-    background: #fff; color: #4a5568; font-size: .78rem; text-decoration: none;
-    transition: all .12s;
+    min-width: 30px; min-height: 30px; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid #e4e9f0; background: #fff; color: #4a5568; font-size: .78rem;
+    text-decoration: none; transition: all .12s; box-sizing: border-box;
 }
 .bkt-pagination .page-item.active .page-link {
     background: var(--c-brand, #cd1b4f); color: #fff; border-color: var(--c-brand, #cd1b4f);
@@ -168,7 +168,8 @@
                                 <th>Pax</th>
                                 <th>PNR</th>
                                 <th>Amount</th>
-                                <th>Status</th>
+                                <th>Booking</th>
+                                <th>Payment</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -176,7 +177,7 @@
                         @foreach($flightBookings as $booking)
                         @php
                             $st      = $booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status;
-                            $isHold  = $booking->payment_method === 'hold';
+                            $isHold  = $booking->booking_status === 'hold';
                             $isRound = !empty($booking->return_date);
                             $legs    = $booking->itinerary_data['legs'] ?? [];
                             $carrier = data_get($legs, '0.segments.0.carrier', '');
@@ -202,9 +203,9 @@
                             {{-- Route --}}
                             <td>
                                 <div class="bkt-route">
-                                    {{ strtoupper($booking->from_airport ?? '—') }}
+                                    {{ strtoupper($booking->from_airport ?? ' - ') }}
                                     <span>{{ $isRound ? '⇄' : '→' }}</span>
-                                    {{ strtoupper($booking->to_airport ?? '—') }}
+                                    {{ strtoupper($booking->to_airport ?? ' - ') }}
                                 </div>
                                 <div class="bkt-dates">{{ $isRound ? 'Round Trip' : 'One Way' }}</div>
                             </td>
@@ -212,7 +213,7 @@
                             {{-- Dates --}}
                             <td>
                                 <div style="font-size:.8rem; color:#1a2540; font-weight:600;">
-                                    {{ $booking->departure_date?->format('d M Y') ?? '—' }}
+                                    {{ $booking->departure_date?->format('d M Y') ?? ' - ' }}
                                 </div>
                                 @if($isRound)
                                     <div class="bkt-dates">↩ {{ $booking->return_date->format('d M Y') }}</div>
@@ -235,7 +236,7 @@
                                         {{ $booking->sabre_record_locator }}
                                     </span>
                                 @else
-                                    <span style="color:#b0bac8; font-size:.75rem;">—</span>
+                                    <span style="color:#b0bac8; font-size:.75rem;"> - </span>
                                 @endif
                             </td>
 
@@ -249,18 +250,41 @@
                                 @endif
                             </td>
 
-                            {{-- Status --}}
+                            {{-- Booking status --}}
                             <td>
                                 <span class="bkp-badge bkp-badge--{{ $st }}">
                                     @if($st === 'hold')<i class="bx bx-time-five"></i> On Hold
                                     @elseif($st === 'confirmed')<i class="bx bx-check-circle"></i> Confirmed
                                     @elseif($st === 'cancelled')<i class="bx bx-x-circle"></i> Cancelled
+                                    @elseif($st === 'failed')<i class="bx bx-error-circle"></i> Failed
                                     @else<i class="bx bx-dots-horizontal"></i> {{ ucfirst($st) }}
                                     @endif
                                 </span>
                                 @if($booking->ticket_status)
-                                    <br><span class="bkp-badge bkp-badge--ticket mt-1">
+                                    <br><span class="bkp-badge bkp-badge--ticket" style="margin-top:4px;display:inline-flex;">
                                         <i class="bx bx-receipt"></i> {{ ucfirst($booking->ticket_status) }}
+                                    </span>
+                                @endif
+                            </td>
+
+                            {{-- Payment status --}}
+                            <td>
+                                @php
+                                    $ps = $booking->payment_status ?? 'pending';
+                                    $psLabel = match($ps) {
+                                        'paid'    => ['icon' => 'bx-check-circle',  'text' => 'Paid',    'class' => 'bkp-badge--paid'],
+                                        'pending' => ['icon' => 'bx-time',          'text' => 'Pending', 'class' => 'bkp-badge--pending'],
+                                        'failed'  => ['icon' => 'bx-error-circle',  'text' => 'Failed',  'class' => 'bkp-badge--failed'],
+                                        'refunded'=> ['icon' => 'bx-revision',      'text' => 'Refunded','class' => 'bkp-badge--ticket'],
+                                        default   => ['icon' => 'bx-dots-horizontal','text' => ucfirst($ps), 'class' => 'bkp-badge--pending'],
+                                    };
+                                @endphp
+                                <span class="bkp-badge {{ $psLabel['class'] }}">
+                                    <i class="bx {{ $psLabel['icon'] }}"></i> {{ $psLabel['text'] }}
+                                </span>
+                                @if($isHold)
+                                    <br><span class="bkp-badge bkp-badge--hold" style="margin-top:4px;display:inline-flex;font-size:.62rem;">
+                                        <i class="bx bx-lock-open"></i> Free
                                     </span>
                                 @endif
                             </td>
@@ -279,7 +303,6 @@
                     {{-- Pagination --}}
                     @if($flightBookings->hasPages())
                     <div class="bkt-pagination">
-                        <span>Showing {{ $flightBookings->firstItem() }}–{{ $flightBookings->lastItem() }} of {{ $flightBookings->total() }}</span>
                         {{ $flightBookings->links() }}
                     </div>
                     @endif
@@ -291,4 +314,8 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('js')
+@include('user.bookings._search-autosubmit')
 @endsection

@@ -26,7 +26,7 @@
     if ($infants)  $paxStr .= ', ' . $infants  . ' Infant' . ($infants > 1 ? 's' : '');
 
     function hcf_fmt(?int $mins): string {
-        if (!$mins || $mins < 1) return '—';
+        if (!$mins || $mins < 1) return ' - ';
         $h = intdiv($mins, 60); $r = $mins % 60;
         if ($h && !$r) return "{$h}h";
         if (!$h) return "{$r}m";
@@ -130,7 +130,7 @@
                                             </div>
                                         </div>
                                         <div class="hp-leg__pt">
-                                            <div class="hp-leg__time">{{ $s0['departure_clock'] ?? '—' }}</div>
+                                            <div class="hp-leg__time">{{ $s0['departure_clock'] ?? ' - ' }}</div>
                                             <div class="hp-leg__dt">{{ $s0['departure_weekday'] ?? '' }}, {{ $s0['departure_label'] ?? '' }}</div>
                                             <div class="hp-leg__city">{{ $s0['from'] ?? '' }}@if(!empty($s0['departure_terminal'])), T{{ $s0['departure_terminal'] }}@endif</div>
                                         </div>
@@ -152,7 +152,7 @@
                                         </div>
                                         <div class="hp-leg__pt hp-leg__pt--arr">
                                             <div class="hp-leg__time">
-                                                {{ $sLast['arrival_clock'] ?? '—' }}
+                                                {{ $sLast['arrival_clock'] ?? ' - ' }}
                                                 @if($nextDay)<span class="hp-nextday">+1</span>@endif
                                             </div>
                                             <div class="hp-leg__dt">{{ $sLast['arrival_weekday'] ?? '' }}, {{ $sLast['arrival_label'] ?? '' }}</div>
@@ -405,7 +405,7 @@
                                 <i class="bx bxs-calendar"></i>
                                 <span>
                                     {{ $booking->departure_date?->format('d M Y') ?? '' }}
-                                    @if($isRound) — {{ $booking->return_date?->format('d M Y') }} @endif
+                                    @if($isRound)  -  {{ $booking->return_date?->format('d M Y') }} @endif
                                 </span>
                             </div>
                             <div class="hp-summary__meta-row">

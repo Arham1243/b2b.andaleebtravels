@@ -55,17 +55,17 @@
                                 <div class="bkpd-stay__col">
                                     <div class="bkpd-stay__label">Check-in</div>
                                     <div class="bkpd-stay__date">{{ $booking->check_in_date?->format('d') }}</div>
-                                    <div class="bkpd-stay__month">{{ $booking->check_in_date?->format('M Y') ?? '—' }}</div>
+                                    <div class="bkpd-stay__month">{{ $booking->check_in_date?->format('M Y') ?? ' - ' }}</div>
                                 </div>
                                 <div class="bkpd-stay__mid">
-                                    <div class="bkpd-stay__nights">{{ $nights ?? '—' }} night{{ $nights > 1 ? 's' : '' }}</div>
+                                    <div class="bkpd-stay__nights">{{ $nights ?? ' - ' }} night{{ $nights > 1 ? 's' : '' }}</div>
                                     <div class="bkpd-stay__line"></div>
                                     <i class="bx bxs-hotel" style="color:#8492a6;font-size:1.1rem;"></i>
                                 </div>
                                 <div class="bkpd-stay__col bkpd-stay__col--right">
                                     <div class="bkpd-stay__label">Check-out</div>
                                     <div class="bkpd-stay__date">{{ $booking->check_out_date?->format('d') }}</div>
-                                    <div class="bkpd-stay__month">{{ $booking->check_out_date?->format('M Y') ?? '—' }}</div>
+                                    <div class="bkpd-stay__month">{{ $booking->check_out_date?->format('M Y') ?? ' - ' }}</div>
                                 </div>
                             </div>
                         </div>

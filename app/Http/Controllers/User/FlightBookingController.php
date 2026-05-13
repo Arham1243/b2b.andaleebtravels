@@ -224,7 +224,7 @@ class FlightBookingController extends Controller
                 'payment_response' => $verificationResult['data'] ?? null,
             ]);
 
-            // Hold conversions: PNR already exists — skip creation, go straight to ticketing.
+            // Hold conversions: PNR already exists  -  skip creation, go straight to ticketing.
             if (empty($booking->sabre_record_locator)) {
                 $pnrResult = $flightService->createSabrePnr($booking);
                 if (!$pnrResult['success']) {
@@ -447,7 +447,7 @@ class FlightBookingController extends Controller
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
             ->findOrFail($booking);
 
-        if ($booking->booking_status !== 'hold' || $booking->payment_method !== 'hold') {
+        if ($booking->booking_status !== 'hold') {
             return redirect()->route('user.bookings.flights.detail', $booking->id)
                 ->with('notify_error', 'This booking is not in a hold state.');
         }
@@ -467,7 +467,7 @@ class FlightBookingController extends Controller
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
             ->findOrFail($booking);
 
-        if ($booking->booking_status !== 'hold' || $booking->payment_method !== 'hold') {
+        if ($booking->booking_status !== 'hold') {
             return back()->with('notify_error', 'This booking is not in a hold state.');
         }
 
