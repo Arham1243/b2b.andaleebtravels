@@ -324,7 +324,7 @@
         }
 
         .fs-pro-route-pair--hotel-destination-only {
-            flex: 1 1 0;
+            flex: 1 1 220px;
             min-width: 0;
         }
 
@@ -332,9 +332,8 @@
             padding-right: 0.95rem !important;
         }
 
-        /* Equal width with destination (50 / 50 of the row) */
         .fs-pro-date-pair--hotel-range {
-            flex: 1 1 0;
+            flex: 1.25 1 min(380px, 100%);
             min-width: 0;
         }
 
@@ -393,36 +392,29 @@
             gap: 0.55rem;
         }
 
-        /* Keep check-in / nights / checkout grouped — no stretching across empty space */
-        .hotel-search-redesign .fs-pro-stay-range-display {
+        .fs-pro-stay-range-display {
             display: flex;
             align-items: center;
+            gap: 0.65rem 1rem;
             margin-top: 0.08rem;
-            justify-content: center;
-            flex-wrap: nowrap;
-            gap: 0.55rem 0.85rem;
-            width: 100%;
+            flex-wrap: wrap;
         }
 
-        .hotel-search-redesign .fs-pro-stay-range-display__col {
+        .fs-pro-stay-range-display__col {
             display: flex;
             align-items: baseline;
             gap: 0.45rem;
             min-width: 0;
-            flex: 0 0 auto;
+            flex: 1 1 120px;
         }
 
-        .hotel-search-redesign .fs-pro-stay-range-display__col--end {
-            justify-content: flex-start;
-            text-align: left;
+        .fs-pro-stay-range-display__col--end {
+            justify-content: flex-end;
+            text-align: right;
         }
 
-        .hotel-search-redesign .fs-pro-stay-range-display__col--end .fs-pro-stay-range-display__meta {
-            align-items: flex-start;
-        }
-
-        .hotel-search-redesign .fs-pro-stay-range-display__mid {
-            flex-shrink: 0;
+        .fs-pro-stay-range-display__col--end .fs-pro-stay-range-display__meta {
+            align-items: flex-end;
         }
 
         .fs-pro-stay-range-display__day {
