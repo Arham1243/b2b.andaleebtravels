@@ -323,7 +323,6 @@
                     <span class="fs-pro-recent-row__route">
                         <span class="fs-pro-recent-row__city">@{{ item.destLabel }}</span>
                         <i class='bx bxs-buildings fs-pro-recent-row__arrow'></i>
-                        <span class="fs-pro-recent-row__city">@{{ item.paxLine }}</span>
                     </span>
                     <span class="fs-pro-recent-row__meta">
                         <span class="fs-pro-recent-row__dates">@{{ item.dateLine }}</span>
