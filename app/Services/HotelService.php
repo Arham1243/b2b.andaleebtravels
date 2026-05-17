@@ -30,6 +30,7 @@ class HotelService
     private $yalagoApiUrl = 'https://api.yalago.com/hotels';
     private $tboApiUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Book';
     private $tboSearchUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Search';
+    private $tboPreBookUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/PreBook';
     private $tboCancelUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Cancel';
     private $tboUsername = 'andaleebTest';
     private $tboPassword = 'And@30524459';
@@ -987,6 +988,76 @@ class HotelService
         return null;
     }
 
+    /**
+     * TBO requires a PreBook call between Search and Book to validate the BookingCode
+     * and lock the rate. Without it, Book returns "Session Expired".
+     *
+     * @return array{booking_code: string, supplier_total_fare: float}|null
+     */
+    protected function preBookTbo(B2bHotelBooking $booking, string $bookingCode, float $fallbackSupplierTotal): ?array
+    {
+        try {
+            $response = Http::timeout(30)
+                ->connectTimeout(10)
+                ->retry(2, 2000)
+                ->withBasicAuth($this->tboUsername, $this->tboPassword)
+                ->post($this->tboPreBookUrl, [
+                    'BookingCode' => $bookingCode,
+                    'PaymentMode' => 'Limit',
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('TBO PreBook HTTP failed', [
+                    'booking_id' => $booking->id,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return null;
+            }
+
+            $payload = $response->json();
+            $statusCode = $payload['Status']['Code'] ?? null;
+
+            if ($statusCode !== 200) {
+                Log::warning('TBO PreBook status not ok', [
+                    'booking_id' => $booking->id,
+                    'status' => $payload['Status'] ?? null,
+                ]);
+
+                return null;
+            }
+
+            // PreBook returns the validated rate inside HotelResult[0].Rooms[0] (or
+            // top-level "Rooms"). Pull the freshest BookingCode + price so Book uses
+            // exactly what TBO just confirmed.
+            $room = null;
+            $hotelResults = $payload['HotelResult'] ?? [];
+            if (!empty($hotelResults[0]['Rooms'][0])) {
+                $room = $hotelResults[0]['Rooms'][0];
+            } elseif (!empty($payload['Rooms'][0])) {
+                $room = $payload['Rooms'][0];
+            }
+
+            $confirmedCode = $room['BookingCode'] ?? $bookingCode;
+            $confirmedFare = $room['TotalFare'] ?? ($room['TotalTax'] ?? null);
+
+            return [
+                'booking_code' => (string) $confirmedCode,
+                'supplier_total_fare' => $confirmedFare !== null
+                    ? (float) $confirmedFare
+                    : $fallbackSupplierTotal,
+            ];
+        } catch (Exception $e) {
+            Log::warning('TBO PreBook exception', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
     protected function placeTboBookingOrder(B2bHotelBooking $booking): array
     {
         try {
@@ -1018,6 +1089,24 @@ class HotelService
                     'booking_id' => $booking->id,
                     'hotel_code' => $booking->yalago_hotel_id,
                 ]);
+            }
+
+            // TBO requires PreBook → Book. The BookingCode from Search alone is
+            // rejected with "Session Expired" if Book is called directly.
+            $preBook = $this->preBookTbo($booking, $bookingCode, $supplierTotal);
+            if ($preBook !== null) {
+                $bookingCode = $preBook['booking_code'];
+                $supplierTotal = $preBook['supplier_total_fare'];
+                foreach ($selectedRooms as $i => $sr) {
+                    $selectedRooms[$i]['booking_code'] = $bookingCode;
+                }
+                $booking->update(['selected_rooms' => $selectedRooms]);
+                Log::info('TBO PreBook confirmed before Book', [
+                    'booking_id' => $booking->id,
+                    'hotel_code' => $booking->yalago_hotel_id,
+                ]);
+            } else {
+                throw new Exception('TBO PreBook failed - cannot place Book request.');
             }
 
             $customerNames = [];
