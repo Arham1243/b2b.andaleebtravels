@@ -41,7 +41,7 @@
                         </div>
                         <div class="ps-card__body">
 
-                            <div style="max-width:480px;display:flex;flex-direction:column;gap:18px;">
+                            <div style="display:flex;flex-direction:column;gap:18px;">
 
                                 <div class="ps-field">
                                     <label class="ps-field__label">
