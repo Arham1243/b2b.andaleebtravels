@@ -198,17 +198,105 @@
 
                 {{-- INFO TAB --}}
                 @if ($hasInfoItems)
+                    @php
+                    $amenityIconMap = [
+                        'wifi'             => ['bx-wifi',          'Connectivity'],
+                        'internet'         => ['bx-wifi',          'Connectivity'],
+                        'air condition'    => ['bx-wind',          'Climate'],
+                        'heating'          => ['bxs-thermometer',  'Climate'],
+                        'parking'          => ['bx-car',           'Transport'],
+                        'airport shuttle'  => ['bx-bus',           'Transport'],
+                        'car hire'         => ['bx-trip',          'Transport'],
+                        'restaurant'       => ['bx-restaurant',    'Dining'],
+                        'breakfast'        => ['bx-coffee',        'Dining'],
+                        'bar'              => ['bx-drink',         'Dining'],
+                        'kid meal'         => ['bx-bowl-hot',      'Dining'],
+                        'special diet'     => ['bxs-leaf',         'Dining'],
+                        'pool'             => ['bx-swim',          'Recreation'],
+                        'gym'              => ['bxs-dumbbell',     'Recreation'],
+                        'fitness'          => ['bxs-dumbbell',     'Recreation'],
+                        'spa'              => ['bxs-spa',          'Recreation'],
+                        'sauna'            => ['bxs-hot',          'Recreation'],
+                        'jacuzzi'          => ['bxs-hot',          'Recreation'],
+                        'housekeeping'     => ['bx-home-alt-2',    'Services'],
+                        'laundry'          => ['bx-tshirt',        'Services'],
+                        'room service'     => ['bx-bell',          'Services'],
+                        'concierge'        => ['bx-user-voice',    'Services'],
+                        'tour desk'        => ['bx-map',           'Services'],
+                        'front desk'       => ['bx-buildings',     'Services'],
+                        'check-in'         => ['bx-calendar-check','Services'],
+                        'check-out'        => ['bx-calendar-check','Services'],
+                        'luggage'          => ['bx-briefcase',     'Services'],
+                        'safe'             => ['bxs-lock-alt',     'Safety & Security'],
+                        'security'         => ['bx-shield',        'Safety & Security'],
+                        'cctv'             => ['bx-cctv',          'Safety & Security'],
+                        'fire'             => ['bx-radio-circle',  'Safety & Security'],
+                        'disabled'         => ['bx-accessibility', 'Accessibility'],
+                        'wheelchair'       => ['bx-accessibility', 'Accessibility'],
+                        'smoking'          => ['bx-cigarette',     'Property Rules'],
+                        'non-smoking'      => ['bx-no-entry',      'Property Rules'],
+                        'pet'              => ['bx-dog',           'Property Rules'],
+                        'fax'              => ['bx-printer',       'Business'],
+                        'conference'       => ['bx-presentation',  'Business'],
+                        'business'         => ['bx-briefcase-alt-2','Business'],
+                        'trouser'          => ['bx-tshirt',        'Services'],
+                        'private'          => ['bxs-badge-check',  'Services'],
+                        'family'           => ['bx-group',         'Services'],
+                    ];
+
+                    $defaultIcon = 'bx-check-circle';
+
+                    // Assign icon & group to each item
+                    $categorised = [];
+                    foreach ($info_items as $item) {
+                        $desc = strtolower($item['Description'] ?? '');
+                        $icon  = $defaultIcon;
+                        $group = 'Other';
+                        foreach ($amenityIconMap as $keyword => [$ico, $grp]) {
+                            if (str_contains($desc, $keyword)) {
+                                $icon  = $ico;
+                                $group = $grp;
+                                break;
+                            }
+                        }
+                        $categorised[$group][] = ['label' => $item['Description'], 'icon' => $icon];
+                    }
+                    ksort($categorised);
+
+                    $totalItems  = count($info_items);
+                    $showInitial = 12;  // chips visible before "Show all"
+                    @endphp
+
                     <div class="hd-tabs__panel {{ (!$hasDescription && !$hasRooms && !$hasLocation) ? 'active' : '' }}" id="tab-info">
                         <div class="hd-content-box">
-                            <h3 class="hd-content-box__title">Hotel Information</h3>
-                            <div class="hd-sidebar__info-list">
-                                @foreach ($info_items as $index => $item)
-                                    <div class="hd-sidebar__info-item">
-                                        <span class="hd-sidebar__info-num">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</span>
-                                        <div class="hd-sidebar__info-text">{!! $item['Description'] !!}</div>
+                            <h3 class="hd-content-box__title">What this hotel offers</h3>
+
+                            @php $chipCount = 0; @endphp
+                            @foreach ($categorised as $groupName => $chips)
+                                <div class="ami-group" data-group="{{ Str::slug($groupName) }}">
+                                    <div class="ami-group__head">
+                                        <i class="bx bx-category-alt"></i>
+                                        {{ $groupName }}
+                                        <span class="ami-group__count">{{ count($chips) }}</span>
                                     </div>
-                                @endforeach
-                            </div>
+                                    <div class="ami-grid">
+                                        @foreach ($chips as $chip)
+                                            @php $chipCount++; @endphp
+                                            <div class="ami-chip {{ $chipCount > $showInitial ? 'ami-chip--hidden' : '' }}">
+                                                <i class="bx {{ $chip['icon'] }}"></i>
+                                                <span>{!! $chip['label'] !!}</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+
+                            @if ($totalItems > $showInitial)
+                                <button class="ami-toggle" id="amiToggle" type="button">
+                                    <i class="bx bx-plus-circle" id="amiToggleIcon"></i>
+                                    Show all {{ $totalItems }} amenities
+                                </button>
+                            @endif
                         </div>
                     </div>
                 @endif
@@ -474,6 +562,27 @@
         });
         @endif
     </script>
+    <script>
+        // Amenity "Show all" toggle
+        const amiToggle = document.getElementById('amiToggle');
+        if (amiToggle) {
+            let expanded = false;
+            amiToggle.addEventListener('click', function () {
+                expanded = !expanded;
+                document.querySelectorAll('.ami-chip--hidden').forEach(el => {
+                    el.style.display = expanded ? 'flex' : 'none';
+                });
+                const icon = document.getElementById('amiToggleIcon');
+                if (expanded) {
+                    icon.className = 'bx bx-minus-circle';
+                    amiToggle.innerHTML = '<i class="bx bx-minus-circle" id="amiToggleIcon"></i> Show less';
+                } else {
+                    icon.className = 'bx bx-plus-circle';
+                    amiToggle.innerHTML = '<i class="bx bx-plus-circle" id="amiToggleIcon"></i> Show all {{ $totalItems ?? "" }} amenities';
+                }
+            });
+        }
+    </script>
     <script src="{{ asset('user/assets/js/slick.js') }}"></script>
     <script>
         $(document).ready(function() {
@@ -507,4 +616,80 @@
 @push('css')
     <link rel="stylesheet" href="{{ asset('user/assets/css/slick.css') }}" />
     <link rel="stylesheet" href="{{ asset('user/assets/css/slick-theme.css') }}" />
+    <style>
+        /* ── Amenity grid ── */
+        .ami-group {
+            margin-bottom: 20px;
+        }
+        .ami-group__head {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: .72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .7px;
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+        .ami-group__head .bx { font-size: .9rem; }
+        .ami-group__count {
+            margin-left: auto;
+            background: #f1f5f9;
+            color: #64748b;
+            border-radius: 20px;
+            padding: 1px 8px;
+            font-size: .68rem;
+            font-weight: 700;
+        }
+        .ami-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .ami-chip {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 7px 13px;
+            font-size: .8rem;
+            color: #334155;
+            font-weight: 500;
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        .ami-chip:hover {
+            background: #fdf2f8;
+            border-color: #e91e63;
+            color: #e91e63;
+        }
+        .ami-chip .bx {
+            font-size: 1rem;
+            color: #e91e63;
+            flex-shrink: 0;
+        }
+        .ami-chip--hidden { display: none; }
+        .ami-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 18px;
+            background: none;
+            border: 2px solid #e91e63;
+            color: #e91e63;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: .82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .ami-toggle:hover {
+            background: #e91e63;
+            color: #fff;
+        }
+        .ami-toggle .bx { font-size: 1.1rem; }
+    </style>
 @endpush
