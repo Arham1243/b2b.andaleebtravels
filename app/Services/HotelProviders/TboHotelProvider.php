@@ -5,6 +5,8 @@ namespace App\Services\HotelProviders;
 use App\Models\Country;
 use App\Models\Province;
 use App\Services\HotelProviders\Contracts\HotelProviderInterface;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -18,6 +20,9 @@ class TboHotelProvider implements HotelProviderInterface
     private const API_USERNAME = 'andaleebTest';
     private const API_PASSWORD = 'And@30524459';
     private const SEARCH_CHUNK_SIZE = 100;
+
+    /** Concurrent HotelDetails calls when enriching listing cards missing photos. */
+    private const DETAILS_IMAGE_POOL_SIZE = 10;
 
     private float $commissionPercentage;
 
@@ -67,13 +72,17 @@ class TboHotelProvider implements HotelProviderInterface
         $checkOutDate = $checkOut ? \Carbon\Carbon::parse($checkOut)->format('Y-m-d') : null;
 
         if (!$checkInDate || !$checkOutDate) {
-            return $this->formatHotels($hotels, $destination, collect());
+            $formatted = $this->formatHotels($hotels, $destination, collect());
+
+            return $this->mergeListingImagesFromHotelDetails($formatted);
         }
 
         $guestNationality = (string) $request->input('guest_nationality', 'AE');
         $rates = $this->fetchAvailability($hotels, $rooms, $checkInDate, $checkOutDate, $guestNationality);
 
-        return $this->formatHotels($hotels, $destination, $rates);
+        $formatted = $this->formatHotels($hotels, $destination, $rates);
+
+        return $this->mergeListingImagesFromHotelDetails($formatted);
     }
 
     private function fetchByCity(string $cityCode): Collection
@@ -235,6 +244,143 @@ class TboHotelProvider implements HotelProviderInterface
                 'property_type' => null,
             ];
         });
+    }
+
+    /**
+     * Listing uses HotelCodeList + Search; details use HotelDetails. When both lack a usable URL,
+     * fetch HotelDetails (same as details page) and use the first gallery image.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function mergeListingImagesFromHotelDetails(Collection $hotels): Collection
+    {
+        $codes = $hotels
+            ->filter(function ($hotel) {
+                if (!is_array($hotel)) {
+                    return false;
+                }
+                if (strtoupper((string) ($hotel['supplier'] ?? '')) !== 'TBO') {
+                    return false;
+                }
+                if (trim((string) ($hotel['image'] ?? '')) !== '') {
+                    return false;
+                }
+
+                return trim((string) ($hotel['provider_id'] ?? '')) !== '';
+            })
+            ->map(fn ($hotel) => (string) $hotel['provider_id'])
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($codes === []) {
+            return $hotels;
+        }
+
+        $urlByCode = $this->fetchFirstListingImagesViaHotelDetailsApi($codes);
+
+        return $hotels->map(function ($hotel) use ($urlByCode) {
+            if (!is_array($hotel)) {
+                return $hotel;
+            }
+            if (strtoupper((string) ($hotel['supplier'] ?? '')) !== 'TBO') {
+                return $hotel;
+            }
+            if (trim((string) ($hotel['image'] ?? '')) !== '') {
+                return $hotel;
+            }
+            $code = (string) ($hotel['provider_id'] ?? '');
+            $fallback = $urlByCode[$code] ?? null;
+            if (is_string($fallback) && $fallback !== '') {
+                $hotel['image'] = $fallback;
+            }
+
+            return $hotel;
+        });
+    }
+
+    /**
+     * Same image ordering as {@see \App\Http\Controllers\User\HotelController::detailsTbo}.
+     *
+     * @param  array<string, mixed>  $details
+     */
+    private function firstImageUrlFromHotelDetails(array $details): ?string
+    {
+        foreach ($details['Images'] ?? [] as $entry) {
+            if (is_string($entry) && $entry !== '') {
+                return $entry;
+            }
+            if (is_array($entry)) {
+                $u = $entry['Url'] ?? $entry['ImageUrl'] ?? $entry['url'] ?? null;
+                if (is_string($u) && $u !== '') {
+                    return $u;
+                }
+            }
+        }
+
+        $single = $details['Image'] ?? null;
+
+        return is_string($single) && $single !== '' ? $single : null;
+    }
+
+    private function parseFirstImageFromDetailsHttpResponse(Response $response): ?string
+    {
+        if ($response->failed()) {
+            return null;
+        }
+
+        $payload = $response->json();
+        if (($payload['Status']['Code'] ?? null) !== 200) {
+            return null;
+        }
+
+        $details = $payload['HotelDetails'][0] ?? null;
+
+        return is_array($details) ? $this->firstImageUrlFromHotelDetails($details) : null;
+    }
+
+    /**
+     * @param  list<string>  $hotelCodes
+     * @return array<string, string>
+     */
+    private function fetchFirstListingImagesViaHotelDetailsApi(array $hotelCodes): array
+    {
+        $hotelCodes = array_values(array_unique(array_filter(array_map('strval', $hotelCodes))));
+        $out = [];
+
+        foreach (array_chunk($hotelCodes, self::DETAILS_IMAGE_POOL_SIZE) as $chunk) {
+            try {
+                $responses = Http::pool(function (Pool $pool) use ($chunk) {
+                    foreach ($chunk as $code) {
+                        $pool->as($code)
+                            ->timeout(25)
+                            ->connectTimeout(10)
+                            ->withBasicAuth(self::API_USERNAME, self::API_PASSWORD)
+                            ->post(self::API_DETAILS_URL, [
+                                'Hotelcodes' => $code,
+                                'Language' => 'EN',
+                            ]);
+                    }
+                });
+
+                foreach ($chunk as $code) {
+                    $res = $responses[$code] ?? null;
+                    if ($res instanceof Response) {
+                        $url = $this->parseFirstImageFromDetailsHttpResponse($res);
+                        if ($url !== null && $url !== '') {
+                            $out[$code] = $url;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('TBO HotelDetails batch for listing thumbnails failed', [
+                    'message' => $e->getMessage(),
+                    'chunk_count' => count($chunk),
+                ]);
+            }
+        }
+
+        return $out;
     }
 
     private function fetchAvailability(
