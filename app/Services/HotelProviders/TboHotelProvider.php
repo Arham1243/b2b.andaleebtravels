@@ -116,6 +116,70 @@ class TboHotelProvider implements HotelProviderInterface
         }
     }
 
+    /**
+     * HotelCodeList vs HotelDetails use different image shapes; listing cards only have catalogue data.
+     *
+     * @param  array<string,mixed>  $item
+     */
+    private function imageUrlFromHotelCatalogueRow(array $item): ?string
+    {
+        $candidates = [
+            $item['ImageUrls'] ?? null,
+            $item['Images'] ?? null,
+        ];
+
+        foreach ($candidates as $urls) {
+            if (!is_array($urls) || $urls === []) {
+                continue;
+            }
+            $first = reset($urls);
+            if (is_string($first) && $first !== '') {
+                return $first;
+            }
+            if (is_array($first)) {
+                $url = $first['ImageUrl'] ?? $first['Url'] ?? $first['url'] ?? null;
+                if (is_string($url) && $url !== '') {
+                    return $url;
+                }
+            }
+        }
+
+        $single = $item['Image'] ?? $item['HotelPicture'] ?? null;
+
+        return is_string($single) && $single !== '' ? $single : null;
+    }
+
+    /**
+     * Search availability payload sometimes includes a hotel image when the city catalogue does not.
+     *
+     * @param  array<string,mixed>  $hotelResult
+     */
+    private function imageUrlFromSearchHotelResult(array $hotelResult): ?string
+    {
+        foreach (['HotelPicture', 'HotelImage', 'Image', 'MainImage', 'Thumbnail'] as $key) {
+            $v = $hotelResult[$key] ?? null;
+            if (is_string($v) && $v !== '') {
+                return $v;
+            }
+        }
+
+        $urls = $hotelResult['Images'] ?? $hotelResult['HotelImages'] ?? null;
+        if (!is_array($urls) || $urls === []) {
+            return null;
+        }
+        $first = reset($urls);
+        if (is_string($first) && $first !== '') {
+            return $first;
+        }
+        if (is_array($first)) {
+            $url = $first['ImageUrl'] ?? $first['Url'] ?? $first['url'] ?? null;
+
+            return is_string($url) && $url !== '' ? $url : null;
+        }
+
+        return null;
+    }
+
     private function formatHotels(Collection $hotels, Province $province, Collection $rates): Collection
     {
         $ratingMap = [
@@ -129,10 +193,11 @@ class TboHotelProvider implements HotelProviderInterface
         return $hotels->map(function ($item) use ($province, $ratingMap, $rates) {
             $ratingText = $item['HotelRating'] ?? null;
             $rating = $ratingText && isset($ratingMap[$ratingText]) ? $ratingMap[$ratingText] : null;
-            $image = $item['ImageUrls'][0]['ImageUrl'] ?? null;
             $hotelCode = (string) ($item['HotelCode'] ?? '');
             $rate = $hotelCode !== '' ? ($rates[$hotelCode] ?? null) : null;
-            $rawPrice = $rate['total_fare'] ?? null;
+            $catalogueImage = $this->imageUrlFromHotelCatalogueRow(is_array($item) ? $item : []);
+            $image = $catalogueImage ?? (is_array($rate) ? ($rate['thumbnail_url'] ?? null) : null);
+            $rawPrice = is_array($rate) ? ($rate['total_fare'] ?? null) : null;
             $finalPrice = $rawPrice !== null
                 ? calculatePriceWithCommission((float) $rawPrice, $this->commissionPercentage)
                 : null;
@@ -155,17 +220,17 @@ class TboHotelProvider implements HotelProviderInterface
 
                 'price' => $finalPrice,
 
-                'boards' => !empty($rate['meal_type'])
+                'boards' => is_array($rate) && !empty($rate['meal_type'])
                     ? [str_replace('_', ' ', (string) $rate['meal_type'])]
                     : [],
 
-                'tbo_booking_code' => $rate['booking_code'] ?? null,
-                'tbo_room_name' => $rate['room_name'] ?? null,
-                'tbo_room_names' => $rate['room_names'] ?? [],
-                'tbo_currency' => $rate['currency'] ?? null,
-                'tbo_meal_type' => $rate['meal_type'] ?? null,
-                'tbo_is_refundable' => $rate['is_refundable'] ?? null,
-                'tbo_total_fare_raw' => $rate['total_fare'] ?? null,
+                'tbo_booking_code' => is_array($rate) ? ($rate['booking_code'] ?? null) : null,
+                'tbo_room_name' => is_array($rate) ? ($rate['room_name'] ?? null) : null,
+                'tbo_room_names' => is_array($rate) ? ($rate['room_names'] ?? []) : [],
+                'tbo_currency' => is_array($rate) ? ($rate['currency'] ?? null) : null,
+                'tbo_meal_type' => is_array($rate) ? ($rate['meal_type'] ?? null) : null,
+                'tbo_is_refundable' => is_array($rate) ? ($rate['is_refundable'] ?? null) : null,
+                'tbo_total_fare_raw' => is_array($rate) ? ($rate['total_fare'] ?? null) : null,
 
                 'property_type' => null,
             ];
@@ -290,6 +355,8 @@ class TboHotelProvider implements HotelProviderInterface
                 $totalFare = (float) $bestRoom['TotalTax'];
             }
 
+            $hotelResultArr = is_array($hotelResult) ? $hotelResult : [];
+
             $rates[$hotelCode] = [
                 'booking_code' => $bestRoom['BookingCode'] ?? null,
                 'room_name' => isset($bestRoom['Name']) && is_array($bestRoom['Name'])
@@ -302,6 +369,7 @@ class TboHotelProvider implements HotelProviderInterface
                 'currency' => $hotelResult['Currency'] ?? null,
                 'meal_type' => $bestRoom['MealType'] ?? null,
                 'is_refundable' => $bestRoom['IsRefundable'] ?? null,
+                'thumbnail_url' => $this->imageUrlFromSearchHotelResult($hotelResultArr),
             ];
         }
 
