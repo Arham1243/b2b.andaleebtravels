@@ -1,9 +1,114 @@
 @push('js')
 @include('user.vue.services.hotels-search')
 <script>
+    const HOTEL_SEARCH_ACTION = @json(route('user.hotels.search'));
+    const RECENT_HOTELS_KEY = 'b2b_hotel_recent_searches_v1';
+    const MAX_RECENT_HOTELS = 4;
+
     const HotelSearch = createApp({
         setup() {
 
+            const stableQueryFingerprint = (queryString) => {
+                const params = new URLSearchParams(queryString);
+                const keys = [...new Set([...params.keys()])].sort();
+                const chunks = [];
+                keys.forEach((k) => {
+                    params.getAll(k).sort().forEach((v) => {
+                        chunks.push(`${encodeURIComponent(k)}=${encodeURIComponent(v)}`);
+                    });
+                });
+                return chunks.join('&');
+            };
+
+            const hotelSearchParamsFromFormData = (fd) => {
+                const params = new URLSearchParams();
+                for (const [k, v] of fd.entries()) {
+                    if (v === '' || v === null || v === undefined) {
+                        continue;
+                    }
+                    if (
+                        k === 'destination' ||
+                        k === 'destination_type' ||
+                        k === 'check_in' ||
+                        k === 'check_out' ||
+                        k === 'room_count' ||
+                        k.startsWith('room_')
+                    ) {
+                        params.append(k, v);
+                    }
+                }
+                return params.toString();
+            };
+
+            const recentSearches = ref([]);
+
+            const loadRecentSearches = () => {
+                try {
+                    const raw = localStorage.getItem(RECENT_HOTELS_KEY);
+                    const parsed = raw ? JSON.parse(raw) : [];
+                    recentSearches.value = Array.isArray(parsed)
+                        ? parsed
+                            .filter((e) => e && typeof e.queryString === 'string')
+                            .slice(0, MAX_RECENT_HOTELS)
+                        : [];
+                } catch {
+                    recentSearches.value = [];
+                }
+            };
+
+            const pushRecentSearch = (entry) => {
+                const fp = stableQueryFingerprint(entry.queryString);
+                const next = recentSearches.value.filter(
+                    (e) => stableQueryFingerprint(e.queryString) !== fp
+                );
+                next.unshift({ ...entry, fingerprint: fp });
+                recentSearches.value = next.slice(0, MAX_RECENT_HOTELS);
+                try {
+                    localStorage.setItem(RECENT_HOTELS_KEY, JSON.stringify(recentSearches.value));
+                } catch {
+                    /* ignore quota */
+                }
+            };
+
+            const clearRecentSearches = () => {
+                recentSearches.value = [];
+                try {
+                    localStorage.removeItem(RECENT_HOTELS_KEY);
+                } catch {
+                    /* ignore */
+                }
+            };
+
+            const buildHotelRecentEntry = (queryString) => {
+                const p = new URLSearchParams(queryString);
+                const destLabel = (p.get('destination') || '').trim() || '—';
+                const checkIn = (p.get('check_in') || '').trim();
+                const checkOut = (p.get('check_out') || '').trim();
+                const roomCount = Math.max(1, parseInt(p.get('room_count') || '1', 10) || 1);
+                let adults = 0;
+                let children = 0;
+                for (let i = 1; i <= roomCount; i++) {
+                    adults += parseInt(p.get(`room_${i}_adults`) || '1', 10) || 0;
+                    children += parseInt(p.get(`room_${i}_children`) || '0', 10) || 0;
+                }
+                const guests = adults + children;
+                const roomsBit = `${roomCount} ${roomCount === 1 ? 'Room' : 'Rooms'}`;
+                const guestsBit = `${guests} ${guests === 1 ? 'Guest' : 'Guests'}`;
+                const stayBit =
+                    checkIn && checkOut ? `${checkIn} → ${checkOut}` : 'Dates not set';
+                const dateLine = `${stayBit} · ${roomsBit} · ${guestsBit}`;
+
+                return {
+                    queryString,
+                    destLabel,
+                    dateLine,
+                };
+            };
+
+            const applyRecentSearch = (item) => {
+                const qs = item.queryString || '';
+                window.location.href = qs ? `${HOTEL_SEARCH_ACTION}?${qs}` : HOTEL_SEARCH_ACTION;
+            };
 
             function useDropdown() {
                 const open = ref(false);
@@ -151,6 +256,7 @@
 
             onMounted(() => {
                 loadHotelDestinations('a');
+                loadRecentSearches();
             });
 
             const incrementHotelGuests = (roomIndex, key) => {
@@ -205,6 +311,13 @@
                     event.preventDefault();
                     return;
                 }
+                try {
+                    const fd = new FormData(event.currentTarget);
+                    const queryString = hotelSearchParamsFromFormData(fd);
+                    pushRecentSearch(buildHotelRecentEntry(queryString));
+                } catch (err) {
+                    console.warn('Hotel recent searches persist failed', err);
+                }
                 isHotelSearchSubmitting.value = true;
                 window.__enablePageLoaderOnNav = true;
                 if (typeof window.showPageLoader === 'function') {
@@ -212,7 +325,7 @@
                 }
             };
 
-                return {
+            return {
                 // Hotel
                 hotelCheckInDate,
                 hotelCheckOutDate,
@@ -241,7 +354,11 @@
                 isHotelSearchSubmitting,
                 onHotelSearchSubmit,
                 nightCount,
-                totalGuestsCount
+                totalGuestsCount,
+
+                recentSearches,
+                clearRecentSearches,
+                applyRecentSearch,
             };
         },
     });

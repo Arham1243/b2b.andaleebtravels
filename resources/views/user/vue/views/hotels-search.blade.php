@@ -310,6 +310,24 @@
                     </a>
                 </div>
             </div>
+
+            <div class="fs-pro-aside-card fs-pro-recent-panel" v-if="recentSearches.length">
+                <div class="fs-pro-aside-card__head">
+                    <span class="fs-pro-aside-card__label">Recent Searches</span>
+                    <button type="button" class="fs-pro-aside-card__action fs-pro-aside-card__action--btn"
+                        @click="clearRecentSearches">Clear</button>
+                </div>
+                <a v-for="(item, idx) in recentSearches" :key="item.fingerprint + '-' + idx" href="#"
+                    class="fs-pro-recent-row fs-pro-recent-row--hotel" @click.prevent="applyRecentSearch(item)">
+                    <span class="fs-pro-recent-row__route">
+                        <span class="fs-pro-recent-row__city">@{{ item.destLabel }}</span>
+                        <i class='bx bxs-buildings fs-pro-recent-row__arrow'></i>
+                    </span>
+                    <span class="fs-pro-recent-row__meta">
+                        <span class="fs-pro-recent-row__dates">@{{ item.dateLine }}</span>
+                    </span>
+                </a>
+            </div>
         </aside>
     </form>
 </div>
@@ -418,6 +436,29 @@
 
         .fs-pro-aside--hotel .fs-pro-tile-grid {
             gap: 0.55rem;
+        }
+
+        /* Recent searches (hotel rows: destination + stay / pax line) */
+        .hotel-search-redesign .fs-pro-recent-row--hotel {
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .hotel-search-redesign .fs-pro-recent-row--hotel .fs-pro-recent-row__meta {
+            margin-left: 0;
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .hotel-search-redesign .fs-pro-recent-row--hotel .fs-pro-recent-row__dates {
+            white-space: normal;
+            line-height: 1.35;
+            max-width: 100%;
+        }
+
+        .hotel-search-redesign .fs-pro-recent-row--hotel .fs-pro-recent-row__arrow {
+            color: var(--fs-brand-2);
         }
 
         .fs-pro-stay-range-display {
