@@ -269,7 +269,7 @@
         @endif
         <tr>
           <td><i class="bx bx-money"></i> Total Paid</td>
-          <td class="kv-green">AED {{ number_format((float)$booking->total_amount, 2) }}</td>
+          <td class="kv-green">{!! formatPrice((float)$booking->total_amount) !!}</td>
         </tr>
         <tr>
           <td><i class="bx bx-credit-card"></i> Payment Method</td>

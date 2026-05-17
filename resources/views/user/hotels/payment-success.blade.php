@@ -74,7 +74,7 @@
                                 <div class="col-md-6">
                                     <div class="hc-result-item">
                                         <span class="hc-result-item__label">Total Amount</span>
-                                        <span class="hc-result-item__value hc-result-item__value--primary">{{ $booking->currency }} {{ number_format($booking->total_amount, 2) }}</span>
+                                        <span class="hc-result-item__value hc-result-item__value--primary">{!! formatPrice($booking->total_amount) !!}</span>
                                     </div>
                                 </div>
 
