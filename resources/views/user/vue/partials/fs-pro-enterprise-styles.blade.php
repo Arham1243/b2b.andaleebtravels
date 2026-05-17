@@ -851,6 +851,10 @@
         /* ── Picker container ── */
         .flight-search-redesign .daterangepicker,
         .daterangepicker.flight-search-redesign {
+            /* Body-mounted pickers (hotels: parentEl body) sit outside .fs-pro-enterprise; define tokens here
+               so rules like `border-bottom: solid var(--fs-brand)` are valid. Nested flights inherit either chain. */
+            --fs-brand: #cd1b4f;
+            --fs-brand-2: #b41642;
             z-index: 5600 !important;
             background: #fff !important;
             border: 1px solid #dde3ef !important;
