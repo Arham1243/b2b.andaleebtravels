@@ -411,16 +411,6 @@
             padding: 0.42rem 0.75rem !important;
         }
 
-        /* Aside: fill column height so blank band uses panel chrome */
-        .fs-pro-aside.fs-pro-aside--hotel {
-            align-self: stretch;
-            box-sizing: border-box;
-            background: var(--fs-surface-2);
-            border: 1px solid var(--fs-line);
-            border-radius: 16px;
-            padding: 0.65rem 0.6rem;
-        }
-
         .fs-pro-aside--hotel .fs-pro-tile {
             min-height: 88px;
             padding: 0.65rem 0.72rem 0.72rem !important;
