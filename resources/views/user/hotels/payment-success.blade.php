@@ -99,15 +99,12 @@
                             <span>A confirmation email has been sent to <strong>{{ $booking->lead_email }}</strong>.</span>
                         </div>
 
-                        <div class="mt-4 d-flex gap-2 justify-content-center">
-                            <a href="{{ route('user.dashboard') }}" class="hc-btn hc-btn--primary">
+                        <div class="mt-4 d-flex flex-wrap gap-2 justify-content-center">
+                            <a href="{{ route('user.dashboard') }}" class="hc-btn hc-btn--outline">
                                 <i class="bx bx-home"></i> Dashboard
                             </a>
-                            <a href="{{ route('user.bookings.index') }}" class="hc-btn hc-btn--outline">
-                                <i class="bx bx-list-ul"></i> View My Bookings
-                            </a>
-                            <a href="{{ route('user.hotels.index') }}" class="hc-btn hc-btn--outline">
-                                <i class="bx bx-search"></i> Search Hotels
+                            <a href="{{ route('user.bookings.hotels.detail', $booking->id) }}" class="hc-btn hc-btn--primary">
+                                <i class="bx bx-show-alt"></i> View booking
                             </a>
                         </div>
                     </div>

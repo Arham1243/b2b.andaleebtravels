@@ -10,7 +10,15 @@
     $nights = $booking->check_in_date && $booking->check_out_date
         ? $booking->check_in_date->diffInDays($booking->check_out_date)
         : null;
-    $guests = $booking->booking_data ?? $booking->search_request ?? [];
+    $roomsData = is_array($booking->rooms_data) ? $booking->rooms_data : [];
+    $selectedRooms = is_array($booking->selected_rooms) ? $booking->selected_rooms : [];
+    $guestsData = is_array($booking->guests_data) ? array_values($booking->guests_data) : [];
+    $extrasData = is_array($booking->extras_data) ? $booking->extras_data : [];
+    $confirmRef = $booking->yalago_booking_reference
+        ?: data_get($booking->booking_response, 'BookingReferenceId')
+        ?: data_get($booking->booking_response, 'BookingRef')
+        ?: data_get($booking->booking_response, 'ConfirmationNumber');
+    $hasLeadContact = $booking->lead_first_name || $booking->lead_last_name || $booking->lead_email || $booking->lead_phone;
 @endphp
 
 <div class="bkp">
@@ -58,7 +66,13 @@
                                     <div class="bkpd-stay__month">{{ $booking->check_in_date?->format('M Y') ?? ' - ' }}</div>
                                 </div>
                                 <div class="bkpd-stay__mid">
-                                    <div class="bkpd-stay__nights">{{ $nights ?? ' - ' }} night{{ $nights > 1 ? 's' : '' }}</div>
+                                    <div class="bkpd-stay__nights">
+                                        @if($nights !== null)
+                                            {{ $nights }} night{{ $nights !== 1 ? 's' : '' }}
+                                        @else
+                                            —
+                                        @endif
+                                    </div>
                                     <div class="bkpd-stay__line"></div>
                                     <i class="bx bx-restaurant" style="color:#8492a6;font-size:1.1rem;"></i>
                                 </div>
@@ -70,27 +84,137 @@
                             </div>
                         </div>
 
-                        {{-- Room / guest details --}}
-                        @php
-                            $rooms      = $booking->rooms_data ?? $booking->booking_data['rooms'] ?? null;
-                            $guestName  = $booking->booking_data['lead_name'] ?? ($booking->booking_data['guest_name'] ?? null);
-                        @endphp
-                        @if($rooms || $guestName)
+                        @if($booking->hotel_address)
                         <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head bkpd-card__section-head--purple"><i class="bx bx-user"></i> Guest & Room Info</div>
+                            <div class="bkpd-card__section-head bkpd-card__section-head--blue"><i class="bx bx-map"></i> Address</div>
                             <div class="bkpd-info-rows">
-                                @if($guestName)
+                                <div class="bkpd-info-row" style="align-items:flex-start;">
+                                    <span class="bkpd-info-row__label">Hotel</span>
+                                    <span class="bkpd-info-row__val" style="text-align:right;max-width:70%;">{{ $booking->hotel_address }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
+                        @if($hasLeadContact)
+                        <div class="bkpd-card mb-3">
+                            <div class="bkpd-card__section-head bkpd-card__section-head--purple"><i class="bx bx-phone-call"></i> Primary contact</div>
+                            <div class="bkpd-info-rows">
                                 <div class="bkpd-info-row">
-                                    <span class="bkpd-info-row__label">Lead Guest</span>
-                                    <span class="bkpd-info-row__val">{{ $guestName }}</span>
+                                    <span class="bkpd-info-row__label">Name</span>
+                                    <span class="bkpd-info-row__val">{{ trim(($booking->lead_title ? $booking->lead_title . ' ' : '') . $booking->lead_full_name) ?: '—' }}</span>
+                                </div>
+                                <div class="bkpd-info-row">
+                                    <span class="bkpd-info-row__label">Email</span>
+                                    <span class="bkpd-info-row__val" style="word-break:break-all;">{{ $booking->lead_email ?: '—' }}</span>
+                                </div>
+                                <div class="bkpd-info-row">
+                                    <span class="bkpd-info-row__label">Phone</span>
+                                    <span class="bkpd-info-row__val">{{ $booking->lead_phone ?: '—' }}</span>
+                                </div>
+                                @if($booking->lead_address)
+                                <div class="bkpd-info-row" style="align-items:flex-start;">
+                                    <span class="bkpd-info-row__label">Billing address</span>
+                                    <span class="bkpd-info-row__val" style="text-align:right;max-width:65%;">{{ $booking->lead_address }}</span>
                                 </div>
                                 @endif
-                                @if($rooms)
+                            </div>
+                        </div>
+                        @endif
+
+                        @if(count($guestsData))
+                        <div class="bkpd-card mb-3">
+                            <div class="bkpd-card__section-head bkpd-card__section-head--purple"><i class="bx bx-group"></i> Guests on reservation</div>
+                            <div class="bkpd-pax-list">
+                                @foreach($guestsData as $idx => $g)
+                                    @php
+                                        $gTitle = $g['title'] ?? 'Mr';
+                                        $gFirst = trim((string) ($g['first_name'] ?? ''));
+                                        $gLast = trim((string) ($g['last_name'] ?? ''));
+                                        $gFull = trim($gTitle . ' ' . $gFirst . ' ' . $gLast);
+                                        $gAge = $g['age'] ?? null;
+                                        $gAgeInt = $gAge !== null && $gAge !== '' ? (int) $gAge : null;
+                                        $initial = strtoupper(substr($gFirst !== '' ? $gFirst : ($gLast !== '' ? $gLast : '?'), 0, 1));
+                                    @endphp
+                                    <div class="bkpd-pax">
+                                        <div class="bkpd-pax__avatar">{{ $initial }}</div>
+                                        <div style="min-width:0;">
+                                            <div class="bkpd-pax__name">{{ $gFull ?: ('Guest ' . ($idx + 1)) }}</div>
+                                            <div class="bkpd-pax__meta">
+                                                Guest {{ $idx + 1 }}
+                                                @if($gAgeInt !== null)
+                                                    · Age {{ $gAge }}
+                                                    · {{ $gAgeInt < 12 ? 'Child' : 'Adult' }}
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @elseif($hasLeadContact && count($roomsData))
+                        <div class="bkpd-card mb-3">
+                            <div class="bkpd-card__section-head bkpd-card__section-head--slate"><i class="bx bx-info-circle"></i> Guests</div>
+                            <div class="bkpd-info-rows">
                                 <div class="bkpd-info-row">
-                                    <span class="bkpd-info-row__label">Rooms</span>
-                                    <span class="bkpd-info-row__val">{{ is_array($rooms) ? count($rooms) : $rooms }}</span>
+                                    <span class="bkpd-info-row__val" style="font-weight:500;color:#64748b;">Only the primary contact is stored for this booking. Passenger names were not captured separately.</span>
                                 </div>
-                                @endif
+                            </div>
+                        </div>
+                        @endif
+
+                        @if(count($roomsData) || count($selectedRooms))
+                        <div class="bkpd-card mb-3">
+                            <div class="bkpd-card__section-head bkpd-card__section-head--blue"><i class="bx bx-bed"></i> Rooms & occupancy</div>
+                            <div class="bkpd-info-rows" style="padding-top:8px;">
+                                @php
+                                    $roomCount = max(count($roomsData), count($selectedRooms));
+                                @endphp
+                                @for($idx = 0; $idx < $roomCount; $idx++)
+                                    @php
+                                        $room = $roomsData[$idx] ?? [];
+                                        $sr = $selectedRooms[$idx] ?? [];
+                                        $adults = (int) ($room['Adults'] ?? 0);
+                                        $childAges = isset($room['ChildAges']) && is_array($room['ChildAges']) ? $room['ChildAges'] : [];
+                                    @endphp
+                                    <div class="bkpd-seg-single" style="margin-top:{{ $idx === 0 ? '0' : '8px' }};margin-bottom:8px;">
+                                        <div style="font-weight:700;color:#1a2540;">Room {{ $idx + 1 }}</div>
+                                        @if(!empty($sr['room_name']))
+                                            <div style="margin-top:4px;font-size:.82rem;">{{ $sr['room_name'] }}</div>
+                                        @endif
+                                        @if(!empty($sr['board_title']))
+                                            <div style="font-size:.72rem;color:#64748b;">{{ $sr['board_title'] }}</div>
+                                        @endif
+                                        <div style="margin-top:8px;font-size:.74rem;color:#4a5568;">
+                                            @if($adults > 0)
+                                                {{ $adults }} adult{{ $adults !== 1 ? 's' : '' }}
+                                            @endif
+                                            @if(count($childAges))
+                                                @if($adults > 0)<span> · </span>@endif
+                                                {{ count($childAges) }} child{{ count($childAges) !== 1 ? 'ren' : '' }} (ages {{ implode(', ', $childAges) }})
+                                            @elseif($adults === 0 && empty($sr))
+                                                <span style="color:#94a3b8;">Occupancy details unavailable</span>
+                                            @endif
+                                        </div>
+                                        @if(isset($sr['price']) && $sr['price'] !== '')
+                                            <div style="margin-top:8px;font-size:.78rem;font-weight:600;">Room total: {!! formatPrice((float) $sr['price']) !!}</div>
+                                        @endif
+                                    </div>
+                                @endfor
+                            </div>
+                        </div>
+                        @endif
+
+                        @if(count($extrasData))
+                        <div class="bkpd-card mb-3">
+                            <div class="bkpd-card__section-head bkpd-card__section-head--green"><i class="bx bx-plus-circle"></i> Extras</div>
+                            <div class="bkpd-info-rows">
+                                @foreach($extrasData as $ex)
+                                    <div class="bkpd-info-row">
+                                        <span class="bkpd-info-row__label">{{ $ex['title'] ?? 'Extra' }}</span>
+                                        <span class="bkpd-info-row__val">{!! formatPrice((float) ($ex['price'] ?? 0)) !!}</span>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                         @endif
@@ -104,13 +228,31 @@
                             <div class="bkpd-card__section-head bkpd-card__section-head--green"><i class="bx bx-receipt"></i> Fare Summary</div>
                             <div class="bkpd-fare">
                                 <div class="bkpd-fare__row">
-                                    <span>Room Charge</span>
-                                    <span>{!! formatPrice($booking->total_amount) !!}</span>
+                                    <span>Rooms</span>
+                                    <span>{!! formatPrice($booking->rooms_total ?? $booking->total_amount) !!}</span>
                                 </div>
+                                @if(($booking->extras_total ?? 0) > 0)
+                                <div class="bkpd-fare__row">
+                                    <span>Extras</span>
+                                    <span>{!! formatPrice($booking->extras_total) !!}</span>
+                                </div>
+                                @endif
+                                @if($booking->wallet_amount > 0)
+                                <div class="bkpd-fare__row">
+                                    <span>Wallet applied</span>
+                                    <span>− {!! formatPrice($booking->wallet_amount) !!}</span>
+                                </div>
+                                @endif
                                 <div class="bkpd-fare__row bkpd-fare__row--total">
-                                    <span>Total</span>
+                                    <span>Total paid</span>
                                     <span>{!! formatPrice($booking->total_amount) !!}</span>
                                 </div>
+                                @if($booking->currency)
+                                <div class="bkpd-fare__row" style="font-size:.72rem;color:#8492a6;margin-top:-4px;">
+                                    <span></span>
+                                    <span>Currency: {{ $booking->currency }}</span>
+                                </div>
+                                @endif
                             </div>
                         </div>
 
@@ -121,9 +263,21 @@
                                     <span class="bkpd-info-row__label">Booking #</span>
                                     <span class="bkpd-info-row__val" style="color:#cd1b4f;font-weight:700;">{{ $booking->booking_number }}</span>
                                 </div>
+                                @if($confirmRef)
+                                <div class="bkpd-info-row">
+                                    <span class="bkpd-info-row__label">Supplier confirmation</span>
+                                    <span class="bkpd-info-row__val" style="font-family:monospace;font-size:.78rem;">{{ $confirmRef }}</span>
+                                </div>
+                                @endif
+                                @if($booking->yalago_hotel_id)
+                                <div class="bkpd-info-row">
+                                    <span class="bkpd-info-row__label">Hotel code</span>
+                                    <span class="bkpd-info-row__val" style="font-family:monospace;font-size:.78rem;">{{ $booking->yalago_hotel_id }}</span>
+                                </div>
+                                @endif
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Supplier</span>
-                                    <span class="bkpd-info-row__val">{{ ucfirst($booking->supplier ?? 'Yalago') }}</span>
+                                    <span class="bkpd-info-row__val">{{ formatBookingSupplierLabel($booking->supplier, 'Yalago') }}</span>
                                 </div>
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Payment</span>

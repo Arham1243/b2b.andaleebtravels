@@ -3,6 +3,16 @@
    SHARED BOOKINGS PAGES   bkp-* / bkpd-*
    ════════════════════════════════════════════════════════════ */
 
+/* UAE dirham mark (same treatment as flight checkout / hotel checkout) */
+.bkp .dirham {
+    font-family: "UAEDirham", "Segoe UI", sans-serif;
+    font-size: 0.8em;
+    font-weight: 400;
+    color: inherit;
+    margin-right: 0.18rem;
+    vertical-align: baseline;
+}
+
 /* ── Outer shell ─────────────────────────────────────────── */
 .bkp { padding: 28px 0 56px; min-height: 82vh; background: #f7f9fc; }
 

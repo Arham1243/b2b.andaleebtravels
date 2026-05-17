@@ -242,7 +242,7 @@
 
                             {{-- Amount --}}
                             <td>
-                                <div class="bkt-amount">AED {{ number_format((float)$booking->total_amount, 2) }}</div>
+                                <div class="bkt-amount"><span class="dirham">D</span> {{ number_format((float) $booking->total_amount, 2) }}</div>
                                 @if($isHold)
                                     <div class="bkt-hold-tag">Hold · Free</div>
                                 @else

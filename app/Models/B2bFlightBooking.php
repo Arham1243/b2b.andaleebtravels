@@ -68,6 +68,7 @@ class B2bFlightBooking extends Model
         'wallet_amount' => 'decimal:2',
         'hold_expires_at' => 'datetime',
         'confirmation_email_sent_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public static function generateBookingNumber(): string

@@ -27,6 +27,24 @@ if (! function_exists('formatPrice')) {
         return new HtmlString(currencySymbol()->toHtml() . $val);
     }
 }
+
+if (! function_exists('formatBookingSupplierLabel')) {
+    /** Supplier label for booking UIs (e.g. TBO must stay uppercase). */
+    function formatBookingSupplierLabel(?string $supplier, string $emptyLabel = 'N/A'): string
+    {
+        $s = strtolower(trim((string) $supplier));
+
+        if ($s === '') {
+            return $emptyLabel;
+        }
+
+        return match ($s) {
+            'tbo' => 'TBO',
+            default => ucfirst($s),
+        };
+    }
+}
+
 if (! function_exists('formatDateTime')) {
     function formatDateTime($date)
     {

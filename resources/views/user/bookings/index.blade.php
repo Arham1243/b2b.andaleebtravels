@@ -1105,7 +1105,7 @@
                                 </div>
                                 <div class="bk-info-item">
                                     <div class="bk-info-label">Supplier</div>
-                                    <div class="bk-info-value">{{ ucfirst($booking->supplier ?? 'Yalago') }}</div>
+                                    <div class="bk-info-value">{{ formatBookingSupplierLabel($booking->supplier, 'Yalago') }}</div>
                                 </div>
                                 <div class="bk-info-item">
                                     <div class="bk-info-label">Payment</div>

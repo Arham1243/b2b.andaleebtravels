@@ -138,7 +138,7 @@
                                 <div class="bkt-route" style="font-size:.84rem;">
                                     {{ $booking->hotel_name ?? 'Hotel Booking' }}
                                 </div>
-                                <div class="bkt-dates">{{ ucfirst($booking->supplier ?? 'N/A') }}</div>
+                                <div class="bkt-dates">{{ formatBookingSupplierLabel($booking->supplier) }}</div>
                             </td>
 
                             {{-- Check-in --}}
@@ -168,12 +168,12 @@
 
                             {{-- Supplier --}}
                             <td>
-                                <span class="bkp-row__supplier">{{ strtoupper($booking->supplier ?? 'N/A') }}</span>
+                                <span class="bkp-row__supplier">{{ formatBookingSupplierLabel($booking->supplier) }}</span>
                             </td>
 
                             {{-- Amount --}}
                             <td>
-                                <div class="bkt-amount">{!! formatPrice($booking->total_amount) !!}</div>
+                                <div class="bkt-amount"><span class="dirham">D</span> {{ number_format((float) $booking->total_amount, 2) }}</div>
                                 <div style="font-size:.68rem;color:#8492a6;">{{ ucfirst($booking->payment_method ?? '') }}</div>
                             </td>
 
