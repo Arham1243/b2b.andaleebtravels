@@ -15,14 +15,12 @@
             ->filter(fn($value, $key) => in_array($key, $defaultParams) || str_starts_with($key, 'room_'))
             ->toArray();
 
-        $sortOptions = [
-            '' => 'Select',
-            'recommended' => 'Recommended',
-            'price_low_to_high' => 'Price Low to High',
-            'price_high_to_low' => 'Price High to Low',
-            'top_rated' => 'Top Rated',
-        ];
         $sortBy = request('sort_by', '');
+        $isPriceSort =
+            $sortBy === '' ||
+            $sortBy === 'price_low_to_high' ||
+            $sortBy === 'price_high_to_low';
+        $isPriceDesc = $sortBy === 'price_high_to_low';
     @endphp
 
     {{-- Listing only: sticky search strip (index page uses hotels/index.blade.php) --}}
@@ -41,24 +39,30 @@
         </div>
 
         <div class="container hl-shell">
-            {{-- RESULTS HEADER --}}
-            <div class="hl-results-header">
-                <div class="hl-results-header__left">
-                    <span class="hl-results-count">{{ $totalHotels }} results found</span>
+            {{-- Results toolbar (flight-style count + SORT BY pills) --}}
+            <div class="hl-rp-bar">
+                <div class="hl-rp-bar__left">
+                    <span class="hl-rp-bar__count">Showing <strong>{{ $hotels->count() }}</strong> of
+                        <strong>{{ $totalHotels }}</strong> hotels found</span>
                     @if (count($userFilters) > 0)
                         <a href="{{ route('user.hotels.search', $query) }}" class="hl-reset-btn">
                             <i class="bx bx-refresh"></i> Reset Filters
                         </a>
                     @endif
                 </div>
-                <div class="hl-results-header__right">
-                    <label class="hl-sort-label">Sort by:</label>
-                    <select class="hl-sort-select" name="sort_by" id="sort_by">
-                        @foreach ($sortOptions as $value => $label)
-                            <option value="{{ $value }}" {{ $sortBy === $value ? 'selected' : '' }}>
-                                {{ $label }}</option>
-                        @endforeach
-                    </select>
+                <div class="hl-rp-bar__sort">
+                    <span class="hl-rp-bar__sortlabel">SORT BY:</span>
+                    <div class="hl-rp-sortrow">
+                        <button type="button"
+                            class="hl-rp-sortbtn {{ $sortBy === 'recommended' ? 'hl-rp-sortbtn--active' : '' }}"
+                            data-hl-sort="recommended">Recommended</button>
+                        <button type="button"
+                            class="hl-rp-sortbtn {{ $isPriceSort ? 'hl-rp-sortbtn--active' : '' }} {{ $isPriceDesc ? 'is-desc' : '' }}"
+                            data-hl-sort="price">Price <i class="bx bx-down-arrow-alt hl-rp-sortbtn__dir"></i></button>
+                        <button type="button"
+                            class="hl-rp-sortbtn {{ $sortBy === 'top_rated' ? 'hl-rp-sortbtn--active' : '' }}"
+                            data-hl-sort="top_rated">Top rated</button>
+                    </div>
                 </div>
             </div>
 
@@ -434,16 +438,36 @@
                 });
             }
 
-            // Sort
-            const sortSelect = document.getElementById("sort_by");
-            if (sortSelect) {
-                sortSelect.addEventListener("change", function() {
+            // Sort (flight-style pill buttons)
+            document.querySelectorAll('.hl-rp-sortbtn[data-hl-sort]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const kind = btn.dataset.hlSort;
                     const url = new URL(window.location.href);
-                    this.value ? url.searchParams.set("sort_by", this.value) : url.searchParams.delete(
-                        "sort_by");
-                    navigateWithLoader(url.toString());
+                    if (kind === 'price') {
+                        const cur = url.searchParams.get('sort_by') || '';
+                        let next;
+                        if (cur === 'recommended' || cur === 'top_rated') {
+                            next = 'price_low_to_high';
+                        } else if (cur === 'price_high_to_low') {
+                            next = 'price_low_to_high';
+                        } else {
+                            next = 'price_high_to_low';
+                        }
+                        url.searchParams.set('sort_by', next);
+                        navigateWithLoader(url.toString());
+                        return;
+                    }
+                    if (kind === 'recommended') {
+                        url.searchParams.set('sort_by', 'recommended');
+                        navigateWithLoader(url.toString());
+                        return;
+                    }
+                    if (kind === 'top_rated') {
+                        url.searchParams.set('sort_by', 'top_rated');
+                        navigateWithLoader(url.toString());
+                    }
                 });
-            }
+            });
 
             // Pagination
             document.querySelectorAll('.hl-pagination__btn')?.forEach(btn => {
