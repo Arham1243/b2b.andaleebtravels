@@ -46,6 +46,20 @@ class TboHotelProvider implements HotelProviderInterface
             return collect();
         }
 
+        // Page-aware budget — see HotelProviderManager. The city catalogue can
+        // contain thousands of hotels for places like Dubai; checking availability
+        // for all of them is what makes the page take forever to load. When the
+        // earlier providers (Yalago, TripInDeal) already brought enough hotels to
+        // cover the page, we only need to top up the remainder.
+        $budget = (int) $request->attributes->get('hotel_search_budget', PHP_INT_MAX);
+        if ($budget <= 0) {
+            return collect();
+        }
+
+        if ($budget < PHP_INT_MAX && $hotels->count() > $budget) {
+            $hotels = $hotels->take($budget)->values();
+        }
+
         $checkIn = $request->input('check_in');
         $checkOut = $request->input('check_out');
 
