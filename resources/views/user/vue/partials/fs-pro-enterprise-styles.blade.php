@@ -2517,4 +2517,210 @@
                 padding-bottom: 0.42rem !important;
             }
         }
+
+        /*
+         * Hotel listing / compact toolbar (/hotels/search, hotel details)
+         * Mirrors flight listing: one flex row, workspace aside hidden, trust strip hidden.
+         */
+        .hs-mount--hotel-listing .fs-pro-layout {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+            align-items: stretch;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-aside--hotel {
+            display: none !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-layout__main {
+            z-index: 40;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-card__head {
+            display: none !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-trust-strip {
+            display: none !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-footer {
+            display: contents !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-footer.fs-pro-footer {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+            border-top: none !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-card {
+            padding: 0.42rem 0.62rem !important;
+            border-radius: 12px !important;
+            box-shadow:
+                var(--fs-shadow-sm),
+                0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
+            display: flex;
+            flex-flow: row wrap;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.35rem 0.55rem !important;
+            background:
+                repeating-linear-gradient(
+                    -10deg,
+                    #f8fafc 0,
+                    #f8fafc 11px,
+                    #f4f6f9 11px,
+                    #f4f6f9 22px
+                );
+        }
+
+        .hs-mount--hotel-listing .fs-pro-card > .fs-pro-route-sheet {
+            order: 1;
+            flex: 1 1 340px;
+            min-width: 0;
+            margin-bottom: 0 !important;
+            flex-wrap: nowrap !important;
+            gap: 0.35rem !important;
+            align-items: stretch;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-card > .fs-pro-pax-cabin-row {
+            order: 2;
+            flex: 0 1 240px;
+            min-width: 0;
+            max-width: 440px;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            border-radius: 8px !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-card > .fs-pro-actions-footer {
+            order: 5;
+            margin-left: auto;
+            flex: 0 0 auto;
+            padding-top: 0 !important;
+            gap: 0.48rem !important;
+            justify-content: flex-end;
+            align-self: stretch;
+            display: flex !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-actions-footer--hotel-only {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            border-top: none !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-travellers {
+            padding: 0.42rem 0.58rem !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-label {
+            font-size: 0.66rem !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-pax-line {
+            font-size: 0.86rem !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-route-pair--hotel-destination-only {
+            flex: 2 1 160px !important;
+            min-width: 0 !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-date-pair--hotel-range {
+            flex: 1 1 180px !important;
+            max-width: 300px !important;
+            min-width: 0 !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-route-pair,
+        .hs-mount--hotel-listing .fs-pro-date-pair {
+            gap: 0.38rem !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-route-field__shell {
+            min-height: 52px !important;
+            border-radius: 8px !important;
+            background: #fff !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-route-pair--hotel-destination-only .fs-pro-route-field__shell {
+            min-height: 52px !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-route-field .hs-field__inner {
+            padding: 0.38rem 0.52rem !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-route-pair--hotel-destination-only .fs-pro-route-field--from .hs-field__inner {
+            padding-right: 0.75rem !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-date-cell .hs-field__inner {
+            min-height: 52px !important;
+            padding: 0.38rem 0.52rem !important;
+            border-radius: 8px !important;
+            background: #fff !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-stay-range-display {
+            margin-top: 0 !important;
+            gap: 0.3rem !important;
+            flex-wrap: nowrap !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-stay-range-display__day {
+            font-size: 1.05rem !important;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-stay-range-display__mid {
+            flex-shrink: 0;
+        }
+
+        .hs-mount--hotel-listing .fs-pro-search-btn {
+            padding: 0.5rem 1.05rem !important;
+            font-size: 0.82rem !important;
+            border-radius: 8px !important;
+            white-space: nowrap;
+            box-shadow: 0 3px 10px rgba(205, 27, 79, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.42) !important;
+        }
+
+        @media (max-width: 991px) {
+            .hs-mount--hotel-listing .fs-pro-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .hs-mount--hotel-listing .fs-pro-card > * {
+                order: unset !important;
+                width: 100%;
+                max-width: none !important;
+                margin-left: 0 !important;
+            }
+
+            .hs-mount--hotel-listing .fs-pro-card > .fs-pro-actions-footer {
+                justify-content: stretch;
+            }
+
+            .hs-mount--hotel-listing .fs-pro-route-sheet {
+                flex-wrap: wrap !important;
+            }
+
+            .hs-mount--hotel-listing .fs-pro-search-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hs-mount--hotel-listing .fs-pro-route-pair--hotel-destination-only,
+            .hs-mount--hotel-listing .fs-pro-date-pair--hotel-range {
+                flex-basis: 100% !important;
+                max-width: none !important;
+            }
+        }
 </style>

@@ -65,10 +65,14 @@
             <div class="row">
                 {{-- FILTERS SIDEBAR --}}
                 <div class="col-lg-3">
-                    <div class="hl-sidebar">
-                        <div class="hl-sidebar__title">Filters</div>
+                    <aside class="sf" aria-label="Hotel filters">
+                        <div class="sf__head">
+                            <span class="sf__title"><i class="bx bx-slider-alt"></i> Filters</span>
+                            <a href="{{ route('user.hotels.search', $query) }}" class="sf__reset">
+                                <i class="bx bx-refresh"></i> Reset
+                            </a>
+                        </div>
 
-                        {{-- Supplier --}}
                         @php
                             $selectedSuppliers = request()->input('supplier', []);
                             if (!is_array($selectedSuppliers)) {
@@ -78,100 +82,81 @@
                             $suppliers = $availableSuppliers ?? ['Yalago', 'TBO', 'TripInDeal'];
                         @endphp
                         @if (count($suppliers) !== 1)
-                            <div class="hl-filter-group">
-                                <div class="hl-filter-group__header"
-                                    onclick="this.parentElement.classList.toggle('collapsed')">
-                                    <span>Supplier</span>
-                                    <i class="bx bx-chevron-down"></i>
-                                </div>
-                                <div class="hl-filter-group__body">
+                            <div class="sf__section">
+                                <div class="sf__sechead"><i class="bx bx-link"></i> Supplier</div>
+                                <div class="sf__stop-row">
                                     @foreach ($suppliers as $supplier)
-                                        <label class="hl-checkbox">
-                                            <input type="checkbox" name="supplier" class="check-filter__input"
-                                                value="{{ $supplier }}"
+                                        <label class="sf__stoplbl">
+                                            <input type="checkbox" name="supplier"
+                                                class="check-filter__input sf__stopchk" value="{{ $supplier }}"
                                                 {{ in_array(strtolower($supplier), $selectedSuppliers) ? 'checked' : '' }}>
-                                            <span class="hl-checkbox__mark"></span>
-                                            <span class="hl-checkbox__text">{{ $supplier }}</span>
+                                            <span class="sf__stoppill">{{ $supplier }}</span>
                                         </label>
                                     @endforeach
                                 </div>
                             </div>
                         @endif
 
-                        {{-- Board Type --}}
-                        <div class="hl-filter-group">
-                            <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
-                                <span>Board Type</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                @php
-                                    $selectedBoards = request()->input('board_type', []);
-                                    if (!is_array($selectedBoards)) {
-                                        $selectedBoards = explode(',', $selectedBoards);
-                                    }
-                                    $selectedBoards = array_map('strtolower', $selectedBoards);
-                                    $boards = ['Room Only', 'Bed And Breakfast', 'Half Board', 'Full Board'];
-                                @endphp
-                                @foreach ($boards as $index => $board)
-                                    <label class="hl-checkbox">
-                                        <input type="checkbox" name="board_type" class="check-filter__input"
-                                            value="{{ $board }}"
+                        <div class="sf__section">
+                            <div class="sf__sechead"><i class="bx bx-restaurant"></i> Board type</div>
+                            @php
+                                $selectedBoards = request()->input('board_type', []);
+                                if (!is_array($selectedBoards)) {
+                                    $selectedBoards = explode(',', $selectedBoards);
+                                }
+                                $selectedBoards = array_map('strtolower', $selectedBoards);
+                                $boards = ['Room Only', 'Bed And Breakfast', 'Half Board', 'Full Board'];
+                            @endphp
+                            <div class="sf__stop-row">
+                                @foreach ($boards as $board)
+                                    <label class="sf__stoplbl">
+                                        <input type="checkbox" name="board_type"
+                                            class="check-filter__input sf__stopchk" value="{{ $board }}"
                                             {{ in_array(strtolower($board), $selectedBoards) ? 'checked' : '' }}>
-                                        <span class="hl-checkbox__mark"></span>
-                                        <span class="hl-checkbox__text">{{ $board }}</span>
+                                        <span class="sf__stoppill">{{ $board }}</span>
                                     </label>
                                 @endforeach
                             </div>
                         </div>
 
-                        {{-- Price Range --}}
-                        <div class="hl-filter-group">
-                            <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
-                                <span>Price Range</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                @php
-                                    $minPrice = request()->input('min_price', 0);
-                                    $maxPrice = request()->input('max_price', 100000);
-                                @endphp
-                                <div class="hl-price-inputs">
-                                    <div class="hl-price-input">
-                                        <label>Min</label>
-                                        <input type="number" min="0" name="min_price" value="{{ $minPrice }}">
-                                    </div>
-                                    <span class="hl-price-sep">&mdash;</span>
-                                    <div class="hl-price-input">
-                                        <label>Max</label>
-                                        <input type="number" name="max_price" value="{{ $maxPrice }}">
-                                    </div>
+                        <div class="sf__section">
+                            <div class="sf__sechead"><i class="bx bx-wallet-alt"></i> Price range</div>
+                            @php
+                                $minPrice = request()->input('min_price', 0);
+                                $maxPrice = request()->input('max_price', 100000);
+                            @endphp
+                            <div class="sf__hotel-price-grid">
+                                <div class="sf__hotel-price-field">
+                                    <label for="hl-min-price">Min</label>
+                                    <input id="hl-min-price" type="number" min="0" name="min_price"
+                                        value="{{ $minPrice }}">
+                                </div>
+                                <span>-</span>
+                                <div class="sf__hotel-price-field">
+                                    <label for="hl-max-price">Max</label>
+                                    <input id="hl-max-price" type="number" name="max_price"
+                                        value="{{ $maxPrice }}">
                                 </div>
                             </div>
                         </div>
 
-                        {{-- Star Rating --}}
-                        <div class="hl-filter-group">
-                            <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
-                                <span>Star Rating</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                @php
-                                    $selectedRatings = request()->input('rating', []);
-                                    if (!is_array($selectedRatings)) {
-                                        $selectedRatings = explode(',', $selectedRatings);
-                                    }
-                                @endphp
+                        <div class="sf__section">
+                            <div class="sf__sechead"><i class="bx bxs-star"></i> Star rating</div>
+                            @php
+                                $selectedRatings = request()->input('rating', []);
+                                if (!is_array($selectedRatings)) {
+                                    $selectedRatings = explode(',', $selectedRatings);
+                                }
+                            @endphp
+                            <div class="sf__stop-row">
                                 @for ($i = 5; $i >= 1; $i--)
-                                    <label class="hl-checkbox">
-                                        <input type="checkbox" name="rating" class="check-filter__input"
+                                    <label class="sf__stoplbl">
+                                        <input type="checkbox" name="rating" class="check-filter__input sf__stopchk"
                                             value="{{ $i }}"
                                             {{ in_array((string) $i, $selectedRatings) ? 'checked' : '' }}>
-                                        <span class="hl-checkbox__mark"></span>
-                                        <span class="hl-checkbox__text">
+                                        <span class="sf__stoppill">
                                             @for ($s = 1; $s <= $i; $s++)
-                                                <i class="bx bxs-star" style="color: #f2ac06; font-size: 14px;"></i>
+                                                <i class="bx bxs-star" style="color: #f2ac06; font-size: 13px;"></i>
                                             @endfor
                                         </span>
                                     </label>
@@ -179,48 +164,37 @@
                             </div>
                         </div>
 
-                        {{-- Property Type --}}
-                        <div class="hl-filter-group">
-                            <div class="hl-filter-group__header" onclick="this.parentElement.classList.toggle('collapsed')">
-                                <span>Property Type</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                @php
-                                    $propertyTypes = request()->input('property_type', []);
-                                    if (!is_array($propertyTypes)) {
-                                        $propertyTypes = explode(',', $propertyTypes);
-                                    }
-                                    $propertyTypes = array_map('strtolower', $propertyTypes);
-                                @endphp
-                                <label class="hl-checkbox">
-                                    <input type="checkbox" name="property_type" class="check-filter__input"
-                                        value="Hotel" {{ in_array('hotel', $propertyTypes) ? 'checked' : '' }}>
-                                    <span class="hl-checkbox__mark"></span>
-                                    <span class="hl-checkbox__text">Hotel</span>
+                        <div class="sf__section">
+                            <div class="sf__sechead"><i class="bx bx-building-house"></i> Property type</div>
+                            @php
+                                $propertyTypes = request()->input('property_type', []);
+                                if (!is_array($propertyTypes)) {
+                                    $propertyTypes = explode(',', $propertyTypes);
+                                }
+                                $propertyTypes = array_map('strtolower', $propertyTypes);
+                            @endphp
+                            <div class="sf__stop-row">
+                                <label class="sf__stoplbl">
+                                    <input type="checkbox" name="property_type"
+                                        class="check-filter__input sf__stopchk" value="Hotel"
+                                        {{ in_array('hotel', $propertyTypes) ? 'checked' : '' }}>
+                                    <span class="sf__stoppill">Hotel</span>
                                 </label>
-                                <label class="hl-checkbox">
-                                    <input type="checkbox" name="property_type" class="check-filter__input"
-                                        value="Apartment" {{ in_array('apartment', $propertyTypes) ? 'checked' : '' }}>
-                                    <span class="hl-checkbox__mark"></span>
-                                    <span class="hl-checkbox__text">Apartment</span>
+                                <label class="sf__stoplbl">
+                                    <input type="checkbox" name="property_type"
+                                        class="check-filter__input sf__stopchk" value="Apartment"
+                                        {{ in_array('apartment', $propertyTypes) ? 'checked' : '' }}>
+                                    <span class="sf__stoppill">Apartment</span>
                                 </label>
                             </div>
                         </div>
 
-                        {{-- Hotel Name --}}
-                        <div class="hl-filter-group">
-                            <div class="hl-filter-group__header"
-                                onclick="this.parentElement.classList.toggle('collapsed')">
-                                <span>Hotel Name</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </div>
-                            <div class="hl-filter-group__body">
-                                <input type="text" class="hl-text-input" placeholder="Search by name"
-                                    name="hotel_name" id="hotel-name" value="{{ request('hotel_name') }}">
-                            </div>
+                        <div class="sf__section">
+                            <div class="sf__sechead"><i class="bx bx-search-alt"></i> Hotel name</div>
+                            <input type="text" class="sf__text-input" placeholder="Search by name" name="hotel_name"
+                                id="hotel-name" value="{{ request('hotel_name') }}">
                         </div>
-                    </div>
+                    </aside>
                 </div>
 
                 {{-- HOTEL CARDS --}}

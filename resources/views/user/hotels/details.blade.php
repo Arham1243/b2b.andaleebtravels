@@ -13,8 +13,21 @@
         $children = collect($roomsRequest)->flatMap(fn($room) => $room['ChildAges'] ?? [])->count();
     @endphp
 
-    <div class="hd-page">
-        <div class="container">
+    <div class="hd-page hd-page--toolbar">
+        <div class="hd-swrap">
+            <div class="container">
+                <div class="hd-search-bar hd-search-bar--listing">
+                    @include('user.vue.main', [
+                        'appId' => 'hotels-search',
+                        'appComponent' => 'hotels-search',
+                        'appJs' => 'hotels-search',
+                        'hotelSearchListingMode' => true,
+                    ])
+                </div>
+            </div>
+        </div>
+
+        <div class="container hd-shell">
             {{-- BREADCRUMB --}}
             <nav class="hd-breadcrumb">
                 <a href="{{ route('user.hotels.index') }}">Hotels</a>
@@ -23,15 +36,6 @@
                 <i class="bx bx-chevron-right"></i>
                 <span>{{ $hotel['name'] }}</span>
             </nav>
-
-            {{-- SEARCH BAR --}}
-            <div class="hd-search-bar mb-4">
-                @include('user.vue.main', [
-                    'appId' => 'hotels-search',
-                    'appComponent' => 'hotels-search',
-                    'appJs' => 'hotels-search',
-                ])
-            </div>
 
             {{-- MAIN LAYOUT: Images (col-8) + Details Sidebar (col-4) --}}
             <div class="row">
