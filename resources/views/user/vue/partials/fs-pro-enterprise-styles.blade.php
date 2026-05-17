@@ -1145,15 +1145,15 @@
             background: #f3f5fb !important;
         }
 
-        /* Airline preference  -  lavender strip */
+        /* Airline preference — neutral strip (matches cabin / field chrome) */
         .fs-pro-airline-pref {
             display: flex;
             align-items: center;
             gap: 0.85rem;
             flex-wrap: wrap;
             padding: 0.7rem 0.95rem;
-            background: linear-gradient(90deg, var(--fs-lavender) 0%, var(--fs-lavender-2) 100%);
-            border: 1px solid #d4d9ff;
+            background: var(--fs-surface);
+            border: 1px solid var(--fs-line);
             border-radius: 10px;
         }
 
@@ -1162,10 +1162,10 @@
             align-items: center;
             gap: 0.4rem;
             font-size: 0.76rem;
-            font-weight: 600;
-            letter-spacing: 0.01em;
+            font-weight: 400;
+            letter-spacing: 0;
             text-transform: none;
-            color: #5b5fa9;
+            color: #6b7280;
             padding-right: 0;
             border-right: none;
         }
@@ -1182,9 +1182,9 @@
         }
 
         .fs-air-chip {
-            border: 1px solid transparent;
-            background: rgba(255, 255, 255, 0.6);
-            color: #475569;
+            border: 1px solid var(--fs-line);
+            background: #fff;
+            color: #374151;
             font-family: inherit;
             font-size: 0.8rem;
             font-weight: 500 !important;
@@ -1209,20 +1209,21 @@
         }
 
         .fs-air-chip:hover {
-            background: rgba(255, 255, 255, 0.85);
-            color: #1f2937;
+            background: #f9fafb;
+            color: #111827;
+            border-color: #d1d5db;
         }
 
         .fs-air-chip.is-active {
-            border-color: rgba(205, 27, 79, 0.42);
+            border-color: #111827;
             background: #fff;
-            color: var(--fs-accent-dark);
+            color: #111827;
             box-shadow: var(--fs-shadow-sm);
         }
 
         .fs-air-chip.is-active .fs-air-chip__indicator {
-            border-color: var(--fs-brand-2);
-            background: var(--fs-brand);
+            border-color: #111827;
+            background: #111827;
         }
 
         .fs-air-chip.is-active .fs-air-chip__indicator::after {
@@ -1239,19 +1240,19 @@
             transform: translate(-52%, -55%) rotate(45deg);
         }
 
-        /* "All Airlines" pill  -  distinct closable chip (reference) */
+        /* "All Airlines" closable chip — same neutral treatment */
         .fs-air-chip--all {
-            border: 1px solid #c6cbe6;
-            background: #f5f6ff;
-            color: #4b5283;
+            border: 1px solid var(--fs-line);
+            background: #fff;
+            color: #374151;
             padding-right: 0.32rem !important;
         }
 
         .fs-air-chip--all.is-active {
-            border-color: #c6cbe6;
-            background: #f5f6ff;
-            color: #4b5283;
-            box-shadow: none;
+            border-color: #111827;
+            background: #fff;
+            color: #111827;
+            box-shadow: var(--fs-shadow-sm);
         }
 
         .fs-air-chip__close {
@@ -1261,7 +1262,7 @@
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #6b7280;
+            background: #374151;
             color: #fff;
             font-size: 0.85rem;
         }
@@ -2188,7 +2189,7 @@
             padding-block: 0.12rem;
         }
 
-        /* Listing toolbar row only  -  flex-grow breaks multi-city footer (lavender bar blows up vertically) */
+        /* Listing toolbar row only — flex-grow breaks multi-city footer (airline row blows up vertically) */
         .fs-mount--flight-listing .fs-pro-card:not(:has(.fs-multicity)) .fs-pro-airline-pref {
             flex-wrap: wrap;
             align-items: center;
