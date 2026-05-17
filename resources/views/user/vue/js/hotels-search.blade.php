@@ -256,32 +256,29 @@
     <script src="{{ asset('user/assets/js/moment.min.js') }}"></script>
     <script type="text/javascript" src="{{ asset('user/assets/js/daterangepicker.min.js') }}"></script>
     <script>
-        function updateDateDisplay(prefix, dateMoment) {
+        function updateHotelStayDisplay(prefix, dateMoment) {
             $(`#${prefix}-dd`).text(dateMoment.format('D'));
             $(`#${prefix}-mon`).text(dateMoment.format("MMM'YY"));
             $(`#${prefix}-day`).text(dateMoment.format('dddd'));
         }
 
         /**
-         * Unified range picker (two-month calendar) for check-in + check-out — matches flights UX.
+         * Unified range picker (two-month calendar) for stay dates.
+         * parentEl: body — avoids clipping/stacking under .fs-pro-layout__main (z-index 40) vs fixed topbar (1000).
          */
         function initHotelDateRangePicker() {
             const vue = window.__hotelSearchVue;
-            const $pair = $('#hotel-date-pair-wrap');
-            const $checkinBox = $('#hotel-checkin-box');
-            const $checkoutBox = $('#hotel-checkout-box');
+            const $anchor = $('#hotel-drp-anchor');
             const $checkinInput = $('#hotel-checkin-input');
             const $checkoutInput = $('#hotel-checkout-input');
 
-            if (!$pair.length || !$checkinInput.length) return;
+            if (!$anchor.length) return;
 
             const fmt = 'MMM D, YYYY';
 
-            if ($checkinInput.data('daterangepicker')) {
-                $checkinInput.data('daterangepicker').remove();
+            if ($anchor.data('daterangepicker')) {
+                $anchor.data('daterangepicker').remove();
             }
-            $checkinBox.off('click.drp');
-            $checkoutBox.off('click.drp');
 
             const inVal = ($checkinInput.val() || '').trim();
             const outVal = ($checkoutInput.val() || '').trim();
@@ -293,7 +290,7 @@
                 showDropdowns: true,
                 minDate: moment().startOf('day'),
                 autoUpdateInput: false,
-                parentEl: $pair,
+                parentEl: 'body',
                 opens: 'center',
                 drops: 'down',
                 linkedCalendars: false,
@@ -306,41 +303,41 @@
             if (inM && inM.isValid()) opts.startDate = inM.clone();
             if (outM && outM.isValid()) opts.endDate = outM.clone();
 
-            $checkinInput.daterangepicker(opts);
+            $anchor.daterangepicker(opts);
 
-            $checkinInput.on('apply.daterangepicker', function(ev, picker) {
+            const drpInst = $anchor.data('daterangepicker');
+            if (drpInst && drpInst.container) {
+                $(drpInst.container).addClass('flight-search-redesign hotel-stay-drp');
+            }
+
+            $anchor.on('show.daterangepicker', function(ev, picker) {
+                $(picker.container).addClass('flight-search-redesign hotel-stay-drp');
+            });
+
+            $anchor.on('apply.daterangepicker', function(ev, picker) {
                 const start = picker.startDate.clone();
                 const endRaw = picker.endDate.clone();
                 const hasRange = endRaw.isValid() && !endRaw.isSame(start, 'day');
                 const end = hasRange ? endRaw : start.clone().add(1, 'day');
 
                 $checkinInput.val(start.format(fmt));
-                updateDateDisplay('hotel-checkin', start);
                 $checkoutInput.val(end.format(fmt));
-                updateDateDisplay('hotel-checkout', end);
+                updateHotelStayDisplay('hotel-stay-start', start);
+                updateHotelStayDisplay('hotel-stay-end', end);
 
                 if (vue) {
                     vue.hotelCheckInDate = start.clone();
                     vue.hotelCheckOutDate = end.clone();
                 }
             });
-
-            $checkinBox.on('click.drp', function(e) {
-                if (!$(e.target).is($checkinInput)) {
-                    $checkinInput.data('daterangepicker')?.show();
-                }
-            });
-
-            $checkoutBox.on('click.drp', function() {
-                $checkinInput.data('daterangepicker')?.show();
-            });
         }
 
         $(document).ready(function() {
             initHotelDateRangePicker();
 
-            const $checkinInput = $("#hotel-checkin-input");
-            const $checkoutInput = $("#hotel-checkout-input");
+            const $anchor = $('#hotel-drp-anchor');
+            const $checkinInput = $('#hotel-checkin-input');
+            const $checkoutInput = $('#hotel-checkout-input');
 
             // Populate all search fields from URL params via jQuery
             (function populateFromUrl() {
@@ -383,11 +380,11 @@
                     }, 50);
                 }, 50);
 
-                // Dates (range picker on check-in input)
+                // Dates (range picker on anchor)
                 const fmt = 'MMM D, YYYY';
                 const checkIn = params.get('check_in');
                 const checkOut = params.get('check_out');
-                const drp = $checkinInput.data('daterangepicker');
+                const drp = $anchor.data('daterangepicker');
 
                 if (drp && checkIn && checkOut) {
                     const checkInMoment = moment(checkIn, fmt, true);
@@ -397,8 +394,8 @@
                         drp.setEndDate(checkOutMoment);
                         $checkinInput.val(checkInMoment.format(fmt));
                         $checkoutInput.val(checkOutMoment.format(fmt));
-                        updateDateDisplay('hotel-checkin', checkInMoment);
-                        updateDateDisplay('hotel-checkout', checkOutMoment);
+                        updateHotelStayDisplay('hotel-stay-start', checkInMoment);
+                        updateHotelStayDisplay('hotel-stay-end', checkOutMoment);
                         vue.hotelCheckInDate = checkInMoment.clone();
                         vue.hotelCheckOutDate = checkOutMoment.clone();
                     }

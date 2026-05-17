@@ -1,6 +1,6 @@
 <div class="hotel-search-redesign flight-search-redesign fs-pro-enterprise" v-cloak>
     <form method="GET" action="{{ route('user.hotels.search') }}" @submit="onHotelSearchSubmit"
-        class="fs-pro-layout fs-pro-layout--hotel-single">
+        class="fs-pro-layout">
         <div class="fs-pro-layout__main">
             <div class="fs-pro-card">
 
@@ -89,47 +89,53 @@
                         </div>
                     </div>
 
-                    <div class="fs-pro-date-pair fs-pro-date-pair--hotel" id="hotel-date-pair-wrap">
-                        <div class="fs-pro-date-cell hs-field hs-field--date" id="hotel-checkin-box">
+                    <div class="fs-pro-date-pair fs-pro-date-pair--hotel-range" id="hotel-date-range-shell">
+                        <div class="fs-pro-date-cell fs-pro-date-cell--stay-range hs-field hs-field--date"
+                            id="hotel-stay-dates-box">
                             <div class="hs-field__inner fs-pro-date-inner">
-                                <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>Check
-                                        in</span>
+                                <div class="hs-field__label fs-pro-date-label">
+                                    <i class='bx bx-calendar'></i>
+                                    <span>Check in &mdash; Check out</span>
                                     <i class='bx bx-chevron-down fs-pro-date-chevron'></i>
                                 </div>
-                                <div class="hs-date-display">
-                                    <span class="hs-date-display__day" id="hotel-checkin-dd">&mdash;</span>
-                                    <div class="hs-date-display__meta">
-                                        <span class="hs-date-display__month" id="hotel-checkin-mon">&nbsp;</span>
-                                        <span class="hs-date-display__weekday" id="hotel-checkin-day">&nbsp;</span>
+                                <div class="fs-pro-stay-range-display">
+                                    <div class="fs-pro-stay-range-display__col">
+                                        <span class="fs-pro-stay-range-display__day"
+                                            id="hotel-stay-start-dd">&mdash;</span>
+                                        <div class="fs-pro-stay-range-display__meta">
+                                            <span class="fs-pro-stay-range-display__month"
+                                                id="hotel-stay-start-mon">&nbsp;</span>
+                                            <span class="fs-pro-stay-range-display__weekday"
+                                                id="hotel-stay-start-day">&nbsp;</span>
+                                        </div>
+                                    </div>
+                                    <div class="fs-pro-stay-range-display__mid" aria-hidden="true">
+                                        <i class='bx bx-right-arrow-alt'></i>
+                                        <span class="fs-pro-stay-range-display__nights">
+                                            <strong>@{{ nightCount }}</strong>
+                                            <span class="fs-pro-stay-range-display__nights-label">
+                                                night<span v-if="nightCount !== 1">s</span>
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div class="fs-pro-stay-range-display__col fs-pro-stay-range-display__col--end">
+                                        <span class="fs-pro-stay-range-display__day"
+                                            id="hotel-stay-end-dd">&mdash;</span>
+                                        <div class="fs-pro-stay-range-display__meta">
+                                            <span class="fs-pro-stay-range-display__month"
+                                                id="hotel-stay-end-mon">&nbsp;</span>
+                                            <span class="fs-pro-stay-range-display__weekday"
+                                                id="hotel-stay-end-day">&nbsp;</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <input readonly autocomplete="off" type="hidden" name="check_in"
-                                    id="hotel-checkin-input">
-                            </div>
-                        </div>
-
-                        <div class="fs-pro-swap-wrap fs-pro-hotel-night-wrap" aria-hidden="true">
-                            <div class="hs-night-badge">
-                                <span class="hs-night-badge__count">@{{ nightCount }}</span>
-                                <span class="hs-night-badge__label">NIGHT</span>
-                            </div>
-                        </div>
-
-                        <div class="fs-pro-date-cell hs-field hs-field--date" id="hotel-checkout-box">
-                            <div class="hs-field__inner fs-pro-date-inner">
-                                <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>Check
-                                        out</span>
-                                    <i class='bx bx-chevron-down fs-pro-date-chevron'></i>
-                                </div>
-                                <div class="hs-date-display">
-                                    <span class="hs-date-display__day" id="hotel-checkout-dd">&mdash;</span>
-                                    <div class="hs-date-display__meta">
-                                        <span class="hs-date-display__month" id="hotel-checkout-mon">&nbsp;</span>
-                                        <span class="hs-date-display__weekday" id="hotel-checkout-day">&nbsp;</span>
-                                    </div>
-                                </div>
-                                <input readonly autocomplete="off" type="hidden" name="check_out"
-                                    id="hotel-checkout-input">
+                                <input type="text" readonly autocomplete="off"
+                                    class="fs-pro-hotel-drp-anchor"
+                                    id="hotel-drp-anchor"
+                                    tabindex="-1"
+                                    aria-label="Select check-in and check-out dates">
+                                <input type="hidden" name="check_in" id="hotel-checkin-input">
+                                <input type="hidden" name="check_out" id="hotel-checkout-input">
                             </div>
                         </div>
                     </div>
@@ -271,6 +277,40 @@
 
             </div>
         </div>
+
+        <aside class="fs-pro-aside">
+            <div class="fs-pro-aside-card">
+                <div class="fs-pro-aside-card__head">
+                    <span class="fs-pro-aside-card__label">Workspace</span>
+                </div>
+                <div class="fs-pro-tile-grid">
+                    <a href="#" class="fs-pro-tile fs-pro-tile--offline" @click.prevent>
+                        <span class="fs-pro-tile__icon"><i class='bx bx-file'></i></span>
+                        <span class="fs-pro-tile__meta">
+                            <span class="fs-pro-tile__title">Offline Request</span>
+                        </span>
+                    </a>
+                    <a href="#" class="fs-pro-tile fs-pro-tile--import" @click.prevent>
+                        <span class="fs-pro-tile__icon"><i class='bx bx-import'></i></span>
+                        <span class="fs-pro-tile__meta">
+                            <span class="fs-pro-tile__title">Import PNR</span>
+                        </span>
+                    </a>
+                    <a href="#" class="fs-pro-tile fs-pro-tile--hold" @click.prevent>
+                        <span class="fs-pro-tile__icon"><i class='bx bx-time-five'></i></span>
+                        <span class="fs-pro-tile__meta">
+                            <span class="fs-pro-tile__title">Hold Itineraries</span>
+                        </span>
+                    </a>
+                    <a href="#" class="fs-pro-tile fs-pro-tile--calendar" @click.prevent>
+                        <span class="fs-pro-tile__icon"><i class='bx bx-calendar-event'></i></span>
+                        <span class="fs-pro-tile__meta">
+                            <span class="fs-pro-tile__title">Travel Calendar</span>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </aside>
     </form>
 </div>
 @push('css')
@@ -278,10 +318,6 @@
 @endpush
 @push('css')
     <style>
-        .fs-pro-layout.fs-pro-layout--hotel-single {
-            grid-template-columns: minmax(0, 1fr) !important;
-        }
-
         .fs-pro-route-pair--hotel-destination-only {
             flex: 1 1 100%;
         }
@@ -290,25 +326,123 @@
             padding-right: 0.95rem !important;
         }
 
-        .fs-pro-date-pair--hotel>.fs-pro-date-cell:first-child .hs-field__inner {
-            padding-right: calc(0.95rem + 24px) !important;
+        .fs-pro-date-pair--hotel-range {
+            flex: 1 1 100%;
+            min-width: 0;
         }
 
-        .fs-pro-date-pair--hotel>.fs-pro-date-cell:last-child .hs-field__inner {
-            padding-left: calc(0.95rem + 24px) !important;
+        .fs-pro-date-cell--stay-range {
+            flex: 1 1 100%;
+            min-width: 0;
         }
 
-        .fs-pro-hotel-night-wrap .hs-night-badge {
-            left: 0;
+        .fs-pro-stay-range-display {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem 1rem;
+            margin-top: 0.2rem;
+            flex-wrap: wrap;
+        }
+
+        .fs-pro-stay-range-display__col {
+            display: flex;
+            align-items: baseline;
+            gap: 0.45rem;
+            min-width: 0;
+            flex: 1 1 120px;
+        }
+
+        .fs-pro-stay-range-display__col--end {
+            justify-content: flex-end;
+            text-align: right;
+        }
+
+        .fs-pro-stay-range-display__col--end .fs-pro-stay-range-display__meta {
+            align-items: flex-end;
+        }
+
+        .fs-pro-stay-range-display__day {
+            font-variant-numeric: tabular-nums;
+            font-size: 1.7rem !important;
+            font-weight: 700 !important;
+            color: #111827 !important;
+            line-height: 1 !important;
+            letter-spacing: -0.02em !important;
+        }
+
+        .fs-pro-stay-range-display__meta {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            line-height: 1.15;
+            min-width: 0;
+        }
+
+        .fs-pro-stay-range-display__month {
+            font-size: 0.86rem !important;
+            font-weight: 600 !important;
+            color: #374151 !important;
+        }
+
+        .fs-pro-stay-range-display__weekday {
+            font-size: 0.74rem !important;
+            font-weight: 400 !important;
+            color: #6b7280 !important;
+        }
+
+        .fs-pro-stay-range-display__mid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.15rem;
+            flex-shrink: 0;
+            color: var(--fs-slate-2);
+            padding: 0 0.25rem;
+        }
+
+        .fs-pro-stay-range-display__mid i {
+            font-size: 1.35rem;
+            color: var(--fs-muted);
+        }
+
+        .fs-pro-stay-range-display__nights {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--fs-brand-2);
+            white-space: nowrap;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .fs-pro-stay-range-display__nights-label {
+            font-weight: 600;
+            display: block;
+        }
+
+        .fs-pro-date-cell--stay-range .hs-field__inner.fs-pro-date-inner {
             position: relative;
-            pointer-events: none;
-            background: var(--fs-lime-2);
-            border-radius: 999px;
-            width: auto;
-            min-width: 42px;
-            height: auto;
-            padding: 6px 10px;
-            box-shadow: 0 0 0 6px #fff, 0 4px 10px rgba(15, 23, 42, 0.12);
+        }
+
+        .fs-pro-hotel-drp-anchor {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+            background: transparent;
+            z-index: 2;
+        }
+
+        /* Picker on body must stack above fixed topbar (z-index 1000); main column uses low z-index context */
+        body .daterangepicker.hotel-stay-drp {
+            z-index: 12050 !important;
         }
 
         .fs-pro-footer .fs-pro-pax-cabin-row--hotel-only {
@@ -326,22 +460,21 @@
         }
 
         @media (max-width: 640px) {
-            .fs-pro-date-pair--hotel>.fs-pro-date-cell:first-child .hs-field__inner {
-                padding-right: 0.95rem !important;
+            .fs-pro-stay-range-display__col--end {
+                justify-content: flex-start;
+                text-align: left;
             }
 
-            .fs-pro-date-pair--hotel>.fs-pro-date-cell:last-child .hs-field__inner {
-                padding-left: 0.95rem !important;
+            .fs-pro-stay-range-display__col--end .fs-pro-stay-range-display__meta {
+                align-items: flex-start;
             }
 
-            .fs-pro-hotel-night-wrap {
-                position: relative !important;
-                left: auto !important;
-                top: auto !important;
-                transform: none !important;
-                display: flex;
+            .fs-pro-stay-range-display__mid {
+                flex-direction: row;
+                width: 100%;
                 justify-content: center;
-                margin: -0.35rem 0 0.15rem;
+                gap: 0.5rem;
+                padding: 0.25rem 0;
             }
         }
     </style>
