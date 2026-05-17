@@ -117,18 +117,20 @@
                     </div>
                 </div>
 
-                {{-- ══ TWO-COLUMN LAYOUT ══ --}}
-                <div class="rp-layout">
+                {{-- ══ Grid: row1 [filter head | slider+sort], row2 [filter body | cards] ══ --}}
+                <div class="rp-stack">
 
-                {{-- ── LEFT: Filter Sidebar ── --}}
-                <aside class="sf" id="sf-sidebar">
-
-                    <div class="sf__head">
-                        <span class="sf__title"><i class="bx bx-slider-alt"></i> Filters</span>
-                        <button class="sf__reset" id="sf-reset" title="Reset all filters">
-                            <i class="bx bx-refresh"></i> Reset
-                        </button>
+                <div class="rp-stack__lead">
+                    <div class="sf sf--filter-cap">
+                        <div class="sf__head">
+                            <span class="sf__title"><i class="bx bx-slider-alt"></i> Filters</span>
+                            <button class="sf__reset" id="sf-reset" title="Reset all filters">
+                                <i class="bx bx-refresh"></i> Reset
+                            </button>
+                        </div>
                     </div>
+
+                    <aside class="sf sf--filter-rest" id="sf-sidebar">
 
                     {{-- Price Range --}}
                     <div class="sf__section">
@@ -240,69 +242,70 @@
                     </div>
                     @endif
 
-                </aside>{{-- /.sf --}}
+                    </aside>{{-- /.sf--filter-rest --}}
+                </div>{{-- /.rp-stack__lead --}}
 
-                {{-- ── RIGHT: Results column — airline pills, sort, then cards (slider stays ~col-8 width vs sidebar) --}}
-                <div class="rp-main">
+                <div class="rp-stack__tools">
+                    {{-- ── Airline filter slider (results column width, aligned with filter header row) ── --}}
+                    <div class="as-wrap" id="as-wrap">
+                        <button class="as-arrow as-arrow--prev" id="as-prev" aria-label="Scroll left" disabled>
+                            <i class="bx bx-chevron-left"></i>
+                        </button>
 
-                {{-- ── Airline filter slider (this column only) ── --}}
-                <div class="as-wrap" id="as-wrap">
-                    <button class="as-arrow as-arrow--prev" id="as-prev" aria-label="Scroll left" disabled>
-                        <i class="bx bx-chevron-left"></i>
-                    </button>
+                        <div class="as-viewport" id="as-viewport">
+                            <div class="as-track" id="as-track">
 
-                    <div class="as-viewport" id="as-viewport">
-                        <div class="as-track" id="as-track">
+                                {{-- All pill --}}
+                                <button class="as-pill as-pill--active" data-as-code="all">
+                                    <div class="as-pill__logo as-pill__logo--all">
+                                        <i class="bx bxs-plane-take-off"></i>
+                                    </div>
+                                    <div class="as-pill__body">
+                                        <span class="as-pill__nameline">All <span class="as-pill__cnt">({{ $itineraryCount }})</span></span>
+                                        <span class="as-pill__price">All Airlines</span>
+                                    </div>
+                                </button>
 
-                            {{-- All pill --}}
-                            <button class="as-pill as-pill--active" data-as-code="all">
-                                <div class="as-pill__logo as-pill__logo--all">
-                                    <i class="bx bxs-plane-take-off"></i>
-                                </div>
-                                <div class="as-pill__body">
-                                    <span class="as-pill__nameline">All <span class="as-pill__cnt">({{ $itineraryCount }})</span></span>
-                                    <span class="as-pill__price">All Airlines</span>
-                                </div>
-                            </button>
+                                @foreach($airlineMap as $_al)
+                                <button class="as-pill" data-as-code="{{ $_al['code'] }}">
+                                    <img class="as-pill__logo"
+                                        src="{{ fl_carrier_logo($_al['code']) }}"
+                                        loading="lazy"
+                                        alt="{{ $_al['name'] }}"
+                                        onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($_al['code']) }}&background=cd1b4f&color=fff&size=80'">
+                                    <div class="as-pill__body">
+                                        <span class="as-pill__nameline">{{ $_al['name'] }} <span class="as-pill__cnt">({{ $_al['count'] }})</span></span>
+                                        <span class="as-pill__price">{{ $currencyCode }} {{ number_format($_al['min_price'], 2) }}</span>
+                                    </div>
+                                </button>
+                                @endforeach
 
-                            @foreach($airlineMap as $_al)
-                            <button class="as-pill" data-as-code="{{ $_al['code'] }}">
-                                <img class="as-pill__logo"
-                                    src="{{ fl_carrier_logo($_al['code']) }}"
-                                    loading="lazy"
-                                    alt="{{ $_al['name'] }}"
-                                    onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($_al['code']) }}&background=cd1b4f&color=fff&size=80'">
-                                <div class="as-pill__body">
-                                    <span class="as-pill__nameline">{{ $_al['name'] }} <span class="as-pill__cnt">({{ $_al['count'] }})</span></span>
-                                    <span class="as-pill__price">{{ $currencyCode }} {{ number_format($_al['min_price'], 2) }}</span>
-                                </div>
-                            </button>
-                            @endforeach
-
+                            </div>
                         </div>
+
+                        <button class="as-arrow as-arrow--next" id="as-next" aria-label="Scroll right">
+                            <i class="bx bx-chevron-right"></i>
+                        </button>
                     </div>
 
-                    <button class="as-arrow as-arrow--next" id="as-next" aria-label="Scroll right">
-                        <i class="bx bx-chevron-right"></i>
-                    </button>
-                </div>
-
-                <div class="rp-bar rp-bar--sort">
-                    <div class="rp-bar__sort">
-                        <span class="rp-bar__sortlabel">SORT BY:</span>
-                        <div class="rp-sortrow">
-                            <button class="rp-sortbtn" data-rp-sort="airline">Airline</button>
-                            <button class="rp-sortbtn" data-rp-sort="departure-o">Departure</button>
-                            <button class="rp-sortbtn" data-rp-sort="duration-o-asc">Duration</button>
-                            <button class="rp-sortbtn" data-rp-sort="best-value">Best Value</button>
-                            <button class="rp-sortbtn" data-rp-sort="arrival-o">Arrival</button>
-                            <button class="rp-sortbtn rp-sortbtn--active" data-rp-sort="price-asc" data-rp-cycle>
-                                Price <i class="bx bx-down-arrow-alt rp-sortbtn__dir"></i>
-                            </button>
+                    <div class="rp-bar rp-bar--sort">
+                        <div class="rp-bar__sort">
+                            <span class="rp-bar__sortlabel">SORT BY:</span>
+                            <div class="rp-sortrow">
+                                <button class="rp-sortbtn" data-rp-sort="airline">Airline</button>
+                                <button class="rp-sortbtn" data-rp-sort="departure-o">Departure</button>
+                                <button class="rp-sortbtn" data-rp-sort="duration-o-asc">Duration</button>
+                                <button class="rp-sortbtn" data-rp-sort="best-value">Best Value</button>
+                                <button class="rp-sortbtn" data-rp-sort="arrival-o">Arrival</button>
+                                <button class="rp-sortbtn rp-sortbtn--active" data-rp-sort="price-asc" data-rp-cycle>
+                                    Price <i class="bx bx-down-arrow-alt rp-sortbtn__dir"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </div>{{-- /.rp-stack__tools --}}
 
+                <div class="rp-stack__main rp-main">
                 <div id="rp-list">
                     @foreach ($results as $result)
                         @php
@@ -698,8 +701,8 @@
 
                     @endforeach
                 </div>{{-- /#rp-list --}}
-                </div>{{-- /.rp-main --}}
-                </div>{{-- /.rp-layout --}}
+                </div>{{-- /.rp-stack__main --}}
+                </div>{{-- /.rp-stack --}}
 
             @elseif($hasSearch && empty($results))
                 <div class="rp-empty">
@@ -1222,13 +1225,52 @@
 }
 
 /* =========================================================
-   TWO-COLUMN LAYOUT
+   RESULTS GRID (filter head row aligns with slider; cards align with filter body)
    ========================================================= */
-.rp-layout {
+.rp-stack {
     display: grid;
     grid-template-columns: 270px 1fr;
     gap: 1.1rem;
     align-items: start;
+}
+.rp-stack__lead {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+}
+.rp-stack__tools {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+}
+.rp-stack__main {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+}
+
+.rp-stack .sf.sf--filter-cap,
+.rp-stack .sf.sf--filter-rest {
+    position: static;
+}
+.rp-stack__lead .sf.sf--filter-cap {
+    border-radius: 14px 14px 0 0;
+    border: 1px solid var(--c-line);
+    border-bottom: none;
+    overflow: hidden;
+    background: var(--c-white);
+}
+.rp-stack__lead .sf.sf--filter-rest {
+    border-radius: 0 0 14px 14px;
+    border: 1px solid var(--c-line);
+    border-top: none;
+    overflow: hidden;
 }
 .rp-main { min-width: 0; }
 
@@ -1663,15 +1705,29 @@
    RESPONSIVE
    ========================================================= */
 @media (max-width: 1100px) {
-    .rp-layout { grid-template-columns: 230px 1fr; }
+    .rp-stack { grid-template-columns: 230px 1fr; }
 }
 @media (max-width: 991px) {
     .rc__leg { grid-template-columns: 155px 1fr 145px 1fr 24px; gap: .4rem .65rem; }
-    .rp-layout { grid-template-columns: 210px 1fr; gap: .75rem; }
+    .rp-stack { grid-template-columns: 210px 1fr; gap: .75rem; }
     .sf__time-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 767px) {
-    .rp-layout { grid-template-columns: 1fr; }
+    .rp-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .rp-stack__lead {
+        grid-column: unset;
+        grid-row: unset;
+        position: static;
+        width: 100%;
+    }
+    .rp-stack__tools,
+    .rp-stack__main {
+        width: 100%;
+    }
     .sf { position: static; }
     .sf__section { padding: .7rem .9rem; }
     .rc__leg {
