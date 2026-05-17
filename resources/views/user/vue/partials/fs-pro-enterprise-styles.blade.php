@@ -1182,9 +1182,9 @@
         }
 
         .fs-air-chip {
-            border: 1px solid var(--fs-line);
-            background: #fff;
-            color: #374151;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.75);
+            color: #475569;
             font-family: inherit;
             font-size: 0.8rem;
             font-weight: 500 !important;
@@ -1209,21 +1209,20 @@
         }
 
         .fs-air-chip:hover {
-            background: #f9fafb;
-            color: #111827;
-            border-color: #d1d5db;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1f2937;
         }
 
         .fs-air-chip.is-active {
-            border-color: #111827;
+            border-color: rgba(205, 27, 79, 0.42);
             background: #fff;
-            color: #111827;
+            color: var(--fs-accent-dark);
             box-shadow: var(--fs-shadow-sm);
         }
 
         .fs-air-chip.is-active .fs-air-chip__indicator {
-            border-color: #111827;
-            background: #111827;
+            border-color: var(--fs-brand-2);
+            background: var(--fs-brand);
         }
 
         .fs-air-chip.is-active .fs-air-chip__indicator::after {
@@ -1240,18 +1239,18 @@
             transform: translate(-52%, -55%) rotate(45deg);
         }
 
-        /* "All Airlines" closable chip — same neutral treatment */
+        /* "All Airlines" — pink when on, neutral when off */
         .fs-air-chip--all {
             border: 1px solid var(--fs-line);
             background: #fff;
-            color: #374151;
+            color: #475569;
             padding-right: 0.32rem !important;
         }
 
         .fs-air-chip--all.is-active {
-            border-color: #111827;
-            background: #fff;
-            color: #111827;
+            border-color: rgba(205, 27, 79, 0.42);
+            background: var(--fs-green-soft);
+            color: var(--fs-accent-dark);
             box-shadow: var(--fs-shadow-sm);
         }
 
@@ -1262,7 +1261,7 @@
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #374151;
+            background: var(--fs-brand-2);
             color: #fff;
             font-size: 0.85rem;
         }
@@ -1718,23 +1717,27 @@
         }
 
         .fs-pro-enterprise .fs-trip-types__item {
+            --fs-trip-pad-top: 0.45rem;
             border: none;
             background: transparent;
             color: #6b7280;
             border-radius: 999px;
-            padding: 0.4rem 0.85rem 0.4rem 0.55rem;
+            padding: var(--fs-trip-pad-top) 0.72rem 0.42rem;
             font-family: inherit;
             font-size: 0.82rem;
             font-weight: 500;
             display: inline-flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.4rem;
+            gap: 0.28rem;
             min-width: 0;
             cursor: pointer;
             transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
             position: relative;
             letter-spacing: -0.005em;
+            text-align: center;
+            line-height: 1.15;
         }
 
         .fs-pro-enterprise .fs-trip-types__item::before {
@@ -1776,11 +1779,11 @@
         .fs-pro-enterprise .fs-trip-types__item.active::after {
             content: "\2713";
             position: absolute;
-            left: 0.55rem;
-            top: 50%;
+            left: 50%;
+            top: calc(var(--fs-trip-pad-top) + 7px);
             width: 14px;
             height: 14px;
-            transform: translateY(-50%);
+            transform: translate(-50%, -50%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1788,6 +1791,7 @@
             font-weight: 800;
             color: #fff;
             line-height: 1;
+            pointer-events: none;
         }
 
         /* Legacy dot (no longer used but kept hidden if rendered) */
@@ -2155,8 +2159,10 @@
         }
 
         .fs-mount--flight-listing .fs-trip-types__item {
+            --fs-trip-pad-top: 0.38rem;
             padding: 0.38rem 0.62rem !important;
             font-size: 0.72rem !important;
+            gap: 0.22rem !important;
         }
 
         .fs-mount--flight-listing .fs-pro-pax-cabin-row {
