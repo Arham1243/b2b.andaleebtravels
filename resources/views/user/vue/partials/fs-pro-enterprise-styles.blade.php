@@ -2562,7 +2562,7 @@
                 0 1px 0 rgba(255, 255, 255, 0.9) inset !important;
             display: flex;
             flex-flow: row wrap;
-            align-items: center;
+            align-items: stretch;
             justify-content: flex-start;
             gap: 0.35rem 0.55rem !important;
             background:
@@ -2613,7 +2613,7 @@
             padding-top: 0 !important;
             gap: 0.48rem !important;
             justify-content: flex-end;
-            align-self: stretch;
+            align-self: center;
             display: flex !important;
             flex-wrap: nowrap !important;
         }
