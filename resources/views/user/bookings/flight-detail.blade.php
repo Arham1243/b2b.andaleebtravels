@@ -385,48 +385,8 @@
                                     <span class="bkpd-info-row__val" style="color:#b91c1c;">{{ formatBookingCancelledAt($booking->cancelled_at) ?? '—' }}</span>
                                 </div>
                                 @endif
-                                @if($booking->cancelled_by)
-                                <div class="bkpd-info-row">
-                                    <span class="bkpd-info-row__label">Cancelled by</span>
-                                    <span class="bkpd-info-row__val">{{ formatBookingCancelledByLabel($booking->cancelled_by) }}</span>
-                                </div>
-                                @endif
                             </div>
                         </div>
-
-                        @if($status === 'cancelled')
-                            @php
-                                $cancelEnvelope = $booking->cancel_response;
-                                $cancelApiPayload = bookingCancellationApiPayload(is_array($cancelEnvelope) ? $cancelEnvelope : null);
-                            @endphp
-                            @if(!empty($cancelApiPayload) || (is_array($cancelEnvelope) && !empty($cancelEnvelope['cancellation_type'] ?? '')))
-                        <div class="bkpd-card mb-3">
-                            <div class="bkpd-card__section-head bkpd-card__section-head--slate"><i class="bx bx-data"></i> Cancellation record</div>
-                            <div class="bkpd-info-rows">
-                                @if(is_array($cancelEnvelope))
-                                    @if(!empty($cancelEnvelope['cancellation_type']))
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">Type</span>
-                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-size:.72rem;">{{ $cancelEnvelope['cancellation_type'] }}</span>
-                                    </div>
-                                    @endif
-                                    @if(!empty($cancelEnvelope['recorded_at']))
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">Response recorded</span>
-                                        <span class="bkpd-info-row__val" style="font-size:.78rem;">{{ $cancelEnvelope['recorded_at'] }}</span>
-                                    </div>
-                                    @endif
-                                @endif
-                            </div>
-                            @if(!empty($cancelApiPayload))
-                            <details style="padding:0 18px 14px;">
-                                <summary style="cursor:pointer;font-size:.74rem;font-weight:700;color:#64748b;">Supplier / API response (JSON)</summary>
-                                <pre style="margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e4e9f0;border-radius:8px;font-size:.65rem;overflow:auto;max-height:280px;white-space:pre-wrap;word-break:break-word;">{{ Str::limit(json_encode($cancelApiPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE), 12000) }}</pre>
-                            </details>
-                            @endif
-                        </div>
-                            @endif
-                        @endif
 
                         {{-- Actions --}}
                         <div class="bkpd-card">
