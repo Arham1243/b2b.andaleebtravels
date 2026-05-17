@@ -332,6 +332,30 @@
             padding-right: 0.95rem !important;
         }
 
+        /* Stretch destination tile to match date row height (same baseline / bottom edge) */
+        .hotel-search-redesign .fs-pro-route-pair--hotel-destination-only > .fs-pro-route-field {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            align-self: stretch;
+            min-height: 0;
+        }
+
+        .hotel-search-redesign .fs-pro-route-pair--hotel-destination-only .fs-pro-route-field__shell {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: stretch;
+            min-height: 70px;
+        }
+
+        .hotel-search-redesign .fs-pro-route-pair--hotel-destination-only .fs-pro-route-field__shell > .hs-field__inner {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 0;
+        }
+
         .fs-pro-date-pair--hotel-range {
             flex: 1.25 1 min(380px, 100%);
             min-width: 0;
@@ -340,6 +364,20 @@
         .fs-pro-date-cell--stay-range {
             flex: 1 1 100%;
             min-width: 0;
+        }
+
+        .hotel-search-redesign .fs-pro-date-pair--hotel-range > .fs-pro-date-cell {
+            align-self: stretch;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hotel-search-redesign .fs-pro-date-pair--hotel-range .hs-field__inner.fs-pro-date-inner {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            min-height: 0;
         }
 
         /* Less vertical padding than default 88px enterprise tiles */

@@ -4145,7 +4145,6 @@ body .search-box__input.search-box__input {
 .hs-field--destination {
     flex: 1;
     min-width: 0;
-    border-right: 1.5px solid #e0e0e0;
 }
 
 /* Date fields */
@@ -4153,7 +4152,6 @@ body .search-box__input.search-box__input {
     min-width: 155px;
     flex-shrink: 0;
     position: relative;
-    border-right: 1.5px solid #e0e0e0;
 }
 .hs-field--date:last-of-type {
     border-right: none;
