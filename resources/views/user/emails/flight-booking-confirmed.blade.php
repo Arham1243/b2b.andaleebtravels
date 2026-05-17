@@ -11,7 +11,7 @@
         'tamara' => 'Tamara',
         'wallet' => 'Wallet',
         'hold' => 'Hold',
-        default => $payMethod !== '' ? ucfirst($payMethod) : '—',
+        default => $payMethod !== '' ? ucfirst($payMethod) : '-',
     };
     $routeStr = strtoupper((string) ($booking->from_airport ?? ''))
         . (($booking->return_date ?? null) ? ' ⇄ ' : ' → ')
@@ -26,7 +26,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ $forAdmin ? 'Admin: ' : '' }}Flight confirmed — {{ $booking->booking_number }}</title>
+    <title>{{ $forAdmin ? 'Admin: ' : '' }}Flight confirmed - {{ $booking->booking_number }}</title>
     <style type="text/css">
         body { margin: 0; padding: 0; background-color: #f3f5fb; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
         table { border-collapse: collapse; }
@@ -60,7 +60,7 @@
                             <tr>
                                 <td>
                                     <p style="margin:0;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em;">
-                                        {{ $brand }} — B2B
+                                        {{ $brand }} - B2B
                                     </p>
                                     <p style="margin:6px 0 0;font-size:17px;font-weight:700;color:#ffffff;">
                                         Flight booking confirmed
@@ -122,11 +122,11 @@
                             <tr>
                                 <td valign="top" width="50%" class="mob-full" style="padding:8px 8px 8px 0;">
                                     <div class="label">Departure</div>
-                                    <div class="value">{{ $booking->departure_date?->format('l, d M Y') ?? '—' }}</div>
+                                    <div class="value">{{ $booking->departure_date?->format('l, d M Y') ?? '-' }}</div>
                                 </td>
                                 <td valign="top" width="50%" class="mob-full" style="padding:8px 0;">
                                     <div class="label">Return</div>
-                                    <div class="value">{{ $booking->return_date?->format('l, d M Y') ?? '—' }}</div>
+                                    <div class="value">{{ $booking->return_date?->format('l, d M Y') ?? '-' }}</div>
                                 </td>
                             </tr>
                             <tr>

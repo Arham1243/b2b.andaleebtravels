@@ -264,7 +264,7 @@
 
         /**
          * Unified range picker (two-month calendar) for stay dates.
-         * parentEl: body — avoids clipping/stacking under .fs-pro-layout__main (z-index 40) vs fixed topbar (1000).
+         * parentEl: body - avoids clipping/stacking under .fs-pro-layout__main (z-index 40) vs fixed topbar (1000).
          */
         function initHotelDateRangePicker() {
             const vue = window.__hotelSearchVue;
@@ -293,7 +293,7 @@
                 parentEl: 'body',
                 opens: 'center',
                 drops: 'down',
-                /* true: left/right are always consecutive months — avoids both panes showing the same month
+                /* true: left/right are always consecutive months - avoids both panes showing the same month
                    (which duplicates start/end highlights = four “selected” days). */
                 linkedCalendars: true,
                 singleDatePicker: false,

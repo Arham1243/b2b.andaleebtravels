@@ -1724,7 +1724,7 @@
     };
 
     /* ─────────────────────────────────────────────────────
-       APPLY FILTERS — single source of truth
+       APPLY FILTERS - single source of truth
     ───────────────────────────────────────────────────── */
     function applyFilters(){
         let visible = 0;
@@ -1959,7 +1959,7 @@
         });
     });
 
-    /* Time slot buttons — departure */
+    /* Time slot buttons - departure */
     document.querySelectorAll('[data-sf-dep]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
             const slot = btn.dataset.sfDep;
@@ -1969,7 +1969,7 @@
         });
     });
 
-    /* Time slot buttons — arrival */
+    /* Time slot buttons - arrival */
     document.querySelectorAll('[data-sf-arr]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
             const slot = btn.dataset.sfArr;

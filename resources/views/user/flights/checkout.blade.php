@@ -126,7 +126,7 @@
                                     <div class="hp-saved-row">
                                         <label class="hp-label" for="saved-{{ $pIndex }}">Load from saved passengers</label>
                                         <select class="hp-select hp-saved-pick" id="saved-{{ $pIndex }}" data-pax-idx="{{ $pIndex }}">
-                                            <option value="">— Select saved passenger —</option>
+                                            <option value="">- Select saved passenger -</option>
                                             @foreach ($savedPassengers as $sp)
                                                 <option value="{{ json_encode($sp) }}">
                                                     {{ $sp['title'] }} {{ $sp['first_name'] }} {{ $sp['last_name'] }}
@@ -265,7 +265,7 @@
                             @php $pIndex++; @endphp
                         @endfor
 
-                        {{-- Contact (airline + e-ticket) — names come from Adult 1 above --}}
+                        {{-- Contact (airline + e-ticket) - names come from Adult 1 above --}}
                         <div class="hp-card mb-3">
                             <div class="hp-card__head">
                                 <i class="bx bx-phone hp-card__head-icon"></i>
@@ -706,7 +706,7 @@
                             }
                         });
 
-                        sel.innerHTML = '<option value="">— Select saved passenger —</option>';
+                        sel.innerHTML = '<option value="">- Select saved passenger -</option>';
                         savedList.forEach(function (sp) {
                             const sid = sp.id != null ? String(sp.id) : null;
                             if (sid && othersTaken.has(sid)) {

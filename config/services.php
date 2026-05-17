@@ -48,8 +48,9 @@ return [
         /*
          * When true: hotel checkout with PayBy skips the gateway redirect and payment verification,
          * and completes booking like a successful card payment (local/staging testing only).
+         * While enabled, HotelService does not send hotel booking confirmation/failure emails.
          */
-        'hotel_skip_gateway' => filter_var(env('PAYBY_HOTEL_SKIP_GATEWAY', true), FILTER_VALIDATE_BOOLEAN),
+        'hotel_skip_gateway' => filter_var(env('PAYBY_HOTEL_SKIP_GATEWAY', false), FILTER_VALIDATE_BOOLEAN),
     ],
 
     'tabby' => [

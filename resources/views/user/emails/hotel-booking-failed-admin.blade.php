@@ -7,7 +7,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>[Admin] Hotel booking failed — {{ $booking->booking_number }}</title>
+    <title>[Admin] Hotel booking failed - {{ $booking->booking_number }}</title>
     <style type="text/css">
         body { margin: 0; padding: 0; background-color: #f3f5fb; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #1a2540; }
         .banner { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; padding: 14px 16px; border-radius: 6px; margin-bottom: 16px; line-height: 1.45; }
@@ -24,7 +24,7 @@
             <table role="presentation" width="640" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width:640px;width:100%;border:1px solid #e2e8f0;border-radius:10px;">
                 <tr>
                     <td style="padding:20px 22px;border-bottom:1px solid #e2e8f0;">
-                        <strong style="font-size:16px;">{{ $brand }} — Hotel booking failed</strong>
+                        <strong style="font-size:16px;">{{ $brand }} - Hotel booking failed</strong>
                         <div style="color:#64748b;font-size:13px;margin-top:6px;">{{ $booking->booking_number }} · supplier {{ strtoupper((string) ($booking->supplier ?? '')) }}</div>
                     </td>
                 </tr>

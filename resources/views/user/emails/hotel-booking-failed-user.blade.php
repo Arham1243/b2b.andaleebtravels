@@ -6,7 +6,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hotel booking issue — {{ $booking->booking_number }}</title>
+    <title>Hotel booking issue - {{ $booking->booking_number }}</title>
     <style type="text/css">
         body { margin: 0; padding: 0; background-color: #f3f5fb; font-family: Arial, Helvetica, sans-serif; }
         h1 { font-size: 20px; font-weight: 700; color: #1a2540; margin: 0 0 12px 0; }
@@ -24,7 +24,7 @@
             <table role="presentation" width="600" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:12px;">
                 <tr>
                     <td style="padding:22px 24px;background:linear-gradient(135deg,#1a2540 0%,#2d3b5f 100%);">
-                        <p style="margin:0;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em;">{{ $brand }} — B2B</p>
+                        <p style="margin:0;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em;">{{ $brand }} - B2B</p>
                         <p style="margin:8px 0 0;font-size:17px;font-weight:700;color:#ffffff;">Hotel booking could not be completed</p>
                     </td>
                 </tr>

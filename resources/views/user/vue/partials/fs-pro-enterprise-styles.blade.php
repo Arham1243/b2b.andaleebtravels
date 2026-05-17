@@ -842,7 +842,7 @@
         }
 
         /* ═══════════════════════════════════════════════════════════
-           DATERANGEPICKER — full reset + redesign
+           DATERANGEPICKER - full reset + redesign
            style.css uses `body .daterangepicker` (lower specificity).
            Nested: `.flight-search-redesign .daterangepicker …`
            Body-mounted (hotels): `.daterangepicker.flight-search-redesign …`
@@ -902,7 +902,7 @@
             display: none !important;
         }
 
-        /* ── Cell sizing — override style.css 44px ── */
+        /* ── Cell sizing - override style.css 44px ── */
         .flight-search-redesign .daterangepicker .calendar-table th,
         .flight-search-redesign .daterangepicker .calendar-table td,
         .daterangepicker.flight-search-redesign .calendar-table th,

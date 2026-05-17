@@ -952,7 +952,7 @@
                     }
                 });
 
-                sel.innerHTML = '<option value="">— Select saved passenger —</option>';
+                sel.innerHTML = '<option value="">- Select saved passenger -</option>';
                 savedList.forEach(function (sp) {
                     const sid = sp.id != null ? String(sp.id) : null;
                     if (sid && othersTaken.has(sid)) {

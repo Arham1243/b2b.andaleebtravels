@@ -352,7 +352,7 @@
                                                     <div class="hc-payment-option__name">Credit / Debit Card</div>
                                                     <div class="hc-payment-option__desc">
                                                         @if (!empty($payby_hotel_skip_gateway))
-                                                            PayBy — completes without redirect (test bypass)
+                                                            PayBy - completes without redirect (test bypass)
                                                         @else
                                                             Redirected to secure payment gateway
                                                         @endif

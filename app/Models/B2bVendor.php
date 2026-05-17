@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\B2bVendorResetPassword;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -49,5 +50,10 @@ class B2bVendor extends Authenticatable
     public function savedPassengers(): HasMany
     {
         return $this->hasMany(B2bSavedPassenger::class, 'b2b_vendor_id');
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new B2bVendorResetPassword($token));
     }
 }

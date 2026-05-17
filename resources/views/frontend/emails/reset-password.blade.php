@@ -93,12 +93,9 @@
         }
     </style>
 
-    <!-- MESSAGE SUBJECT -->
-    <title>Reset Your Password </title>
+    <title>Reset Your Password</title>
 
 </head>
-
-<!-- BODY -->
 
 <body topmargin="0" rightmargin="0" bottommargin="0" leftmargin="0" marginwidth="0" marginheight="0" width="100%"
     style="border-collapse: collapse; border-spacing: 0;  padding: 0; width: 100%; height: 100%; -webkit-font-smoothing: antialiased; text-size-adjust: 100%; -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; line-height: 100%;
@@ -122,7 +119,7 @@
 			font-family: sans-serif;"
                             class="header">
                             <img border="0" vspace="0" hspace="0" src="{{ $data['logo'] }}" width="200"
-                                height="58" alt="{{ env('APP_NAME') }}" title="{{ env('APP_NAME') }}" />
+                                height="58" alt="{{ config('app.name') }}" title="{{ config('app.name') }}" />
                         </td>
                     </tr>
                     <tr>
@@ -137,12 +134,12 @@
                     <tr>
                         <td align="center" valign="top"
                             style="border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; padding-left: 6.25%; padding-right: 6.25%; width: 87.5%; font-size: 17px; font-weight: 400; line-height: 160%;
-			padding-top: 25px; 
+			padding-top: 25px;
 			color: #000000;
 			font-family: sans-serif;"
                             class="paragraph">
                             Hi {{ $data['full_name'] }},<br>
-                            Looks like you've forgotten your password. No problem – we'll help!To reset
+                            Looks like you've forgotten your password. No problem - we'll help! To reset
                             your password, just click below.
 
                         </td>
@@ -188,7 +185,7 @@
 			color: #000000;
 			font-family: sans-serif;"
                             class="paragraph">
-                            © {{ env('APP_NAME') }} {{ date('Y') }}. All rights reserved.
+                            © {{ config('app.name') }} {{ date('Y') }}. All rights reserved.
                         </td>
                     </tr>
                 </table>

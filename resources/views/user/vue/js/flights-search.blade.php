@@ -876,7 +876,7 @@
             $(`#${prefix}-day`).html('&nbsp;');
         }
 
-        /* syncFlightReturnPickerMinDate removed — replaced by unified range picker */
+        /* syncFlightReturnPickerMinDate removed - replaced by unified range picker */
 
         
 
@@ -947,7 +947,7 @@
                         vue.setTripType('round_trip');
                     }
                 } else {
-                    // Single date selected — clear return + revert to one_way
+                    // Single date selected - clear return + revert to one_way
                     $retIn.val('');
                     clearFlightDateDisplay('flight-return');
                     if (vue) vue.returnDate = '';

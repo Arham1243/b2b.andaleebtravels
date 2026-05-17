@@ -636,20 +636,20 @@ class FlightBookingController extends Controller
         try {
             if ($leadEmail !== '' && filter_var($leadEmail, FILTER_VALIDATE_EMAIL)) {
                 Mail::send(
-                    'emails.flight-booking-confirmed',
+                    'user.emails.flight-booking-confirmed',
                     $dataFor('Your flight is confirmed and your ticket has been issued. Your reservation summary is below.', false),
                     function ($message) use ($leadEmail, $booking) {
-                        $message->to($leadEmail)->subject('Flight confirmed — ' . $booking->booking_number);
+                        $message->to($leadEmail)->subject('Flight confirmed - ' . $booking->booking_number);
                     }
                 );
             }
 
             if ($adminEmail !== '' && filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
                 Mail::send(
-                    'emails.flight-booking-confirmed',
+                    'user.emails.flight-booking-confirmed',
                     $dataFor('A B2B flight booking was confirmed and ticketed. Summary for your records.', true),
                     function ($message) use ($adminEmail, $booking) {
-                        $message->to($adminEmail)->subject('[B2B] Flight ticketed — ' . $booking->booking_number);
+                        $message->to($adminEmail)->subject('[B2B] Flight ticketed - ' . $booking->booking_number);
                     }
                 );
             }

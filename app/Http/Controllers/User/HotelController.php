@@ -1252,7 +1252,7 @@ class HotelController extends Controller
                 $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
             } elseif ($booking->payment_method === 'payby') {
                 if (config('services.payby.hotel_skip_gateway')) {
-                    Log::warning('PayBy hotel gateway skipped — booking marked paid without card verification', [
+                    Log::warning('PayBy hotel gateway skipped - booking marked paid without card verification', [
                         'booking_id' => $booking->id,
                         'booking_number' => $booking->booking_number,
                     ]);
@@ -1260,7 +1260,7 @@ class HotelController extends Controller
                         'success' => true,
                         'data' => [
                             'skipped_payby_gateway' => true,
-                            'note' => 'PAYBY_HOTEL_SKIP_GATEWAY — no acquireOrder verification performed',
+                            'note' => 'PAYBY_HOTEL_SKIP_GATEWAY - no acquireOrder verification performed',
                         ],
                     ];
                 } else {

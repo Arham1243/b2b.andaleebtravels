@@ -32,7 +32,7 @@ class VendorInviteMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.vendor-invite',
+            view: 'user.emails.vendor-invite',
         );
     }
 }
