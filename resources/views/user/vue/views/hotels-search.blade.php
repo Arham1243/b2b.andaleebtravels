@@ -278,7 +278,7 @@
             </div>
         </div>
 
-        <aside class="fs-pro-aside">
+        <aside class="fs-pro-aside fs-pro-aside--hotel">
             <div class="fs-pro-aside-card">
                 <div class="fs-pro-aside-card__head">
                     <span class="fs-pro-aside-card__label">Workspace</span>
@@ -318,8 +318,14 @@
 @endpush
 @push('css')
     <style>
+        /* Same row as flights: destination | stay dates */
+        .hotel-search-redesign.fs-pro-enterprise .fs-pro-layout {
+            align-items: stretch;
+        }
+
         .fs-pro-route-pair--hotel-destination-only {
-            flex: 1 1 100%;
+            flex: 1 1 220px;
+            min-width: 0;
         }
 
         .fs-pro-route-pair--hotel-destination-only .fs-pro-route-field--from .hs-field__inner {
@@ -327,7 +333,7 @@
         }
 
         .fs-pro-date-pair--hotel-range {
-            flex: 1 1 100%;
+            flex: 1.25 1 min(380px, 100%);
             min-width: 0;
         }
 
@@ -336,11 +342,61 @@
             min-width: 0;
         }
 
+        /* Less vertical padding than default 88px enterprise tiles */
+        .hotel-search-redesign .fs-pro-route-field__shell {
+            min-height: 70px;
+        }
+
+        .hotel-search-redesign .fs-pro-route-field .hs-field__inner {
+            padding: 0.5rem 0.85rem !important;
+        }
+
+        .hotel-search-redesign .fs-pro-date-cell .hs-field__inner {
+            min-height: 70px;
+            padding: 0.5rem 0.85rem !important;
+        }
+
+        .hotel-search-redesign .fs-pro-card {
+            padding: 1.05rem 1.2rem;
+        }
+
+        .hotel-search-redesign .fs-pro-route-sheet {
+            margin-bottom: 0.6rem;
+            gap: 0.55rem;
+        }
+
+        .hotel-search-redesign .fs-pro-footer {
+            margin-top: 0.5rem;
+        }
+
+        .hotel-search-redesign .fs-pro-travellers {
+            padding: 0.42rem 0.75rem !important;
+        }
+
+        /* Aside: fill column height so blank band uses panel chrome */
+        .fs-pro-aside.fs-pro-aside--hotel {
+            align-self: stretch;
+            box-sizing: border-box;
+            background: var(--fs-surface-2);
+            border: 1px solid var(--fs-line);
+            border-radius: 16px;
+            padding: 0.65rem 0.6rem;
+        }
+
+        .fs-pro-aside--hotel .fs-pro-tile {
+            min-height: 88px;
+            padding: 0.65rem 0.72rem 0.72rem !important;
+        }
+
+        .fs-pro-aside--hotel .fs-pro-tile-grid {
+            gap: 0.55rem;
+        }
+
         .fs-pro-stay-range-display {
             display: flex;
             align-items: center;
             gap: 0.65rem 1rem;
-            margin-top: 0.2rem;
+            margin-top: 0.08rem;
             flex-wrap: wrap;
         }
 
@@ -363,7 +419,7 @@
 
         .fs-pro-stay-range-display__day {
             font-variant-numeric: tabular-nums;
-            font-size: 1.7rem !important;
+            font-size: 1.32rem !important;
             font-weight: 700 !important;
             color: #111827 !important;
             line-height: 1 !important;
@@ -379,13 +435,13 @@
         }
 
         .fs-pro-stay-range-display__month {
-            font-size: 0.86rem !important;
+            font-size: 0.8rem !important;
             font-weight: 600 !important;
             color: #374151 !important;
         }
 
         .fs-pro-stay-range-display__weekday {
-            font-size: 0.74rem !important;
+            font-size: 0.7rem !important;
             font-weight: 400 !important;
             color: #6b7280 !important;
         }
@@ -395,14 +451,14 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.15rem;
+            gap: 0.1rem;
             flex-shrink: 0;
             color: var(--fs-slate-2);
-            padding: 0 0.25rem;
+            padding: 0 0.2rem;
         }
 
         .fs-pro-stay-range-display__mid i {
-            font-size: 1.35rem;
+            font-size: 1.15rem;
             color: var(--fs-muted);
         }
 
@@ -457,6 +513,14 @@
         .fs-pro-actions-footer.fs-pro-actions-footer--hotel-only .fs-pro-search-btn {
             width: auto;
             min-width: 200px;
+        }
+
+        @media (max-width: 900px) {
+
+            .fs-pro-route-pair--hotel-destination-only,
+            .fs-pro-date-pair--hotel-range {
+                flex: 1 1 100%;
+            }
         }
 
         @media (max-width: 640px) {
