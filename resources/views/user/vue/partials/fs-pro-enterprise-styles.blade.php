@@ -68,6 +68,16 @@
             align-items: start;
         }
 
+        /* Grid itself only takes the height it needs — no extra whitespace below search card */
+        .hotel-search-redesign .fs-pro-layout,
+        .flight-search-redesign .fs-pro-layout {
+            align-self: start;
+        }
+
+        .fs-pro-aside {
+            align-self: start;
+        }
+
         /* Main search column must stack above sibling grid tracks (aside + promo strip)
            when absolutely positioned overlays extend past the card. */
         .fs-pro-layout__main {

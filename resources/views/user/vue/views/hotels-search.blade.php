@@ -342,6 +342,11 @@
             align-items: stretch;
         }
 
+        /* The main search card must not grow taller than its content due to aside column */
+        .hotel-search-redesign.fs-pro-enterprise .fs-pro-layout__main {
+            align-self: start;
+        }
+
         .fs-pro-route-pair--hotel-destination-only {
             flex: 1 1 220px;
             min-width: 0;
