@@ -534,6 +534,7 @@
                         </div>
                     </div>
 
+                    <Teleport to="#flight-listing-airline-pref-teleport" :disabled="!flightListingPrefTeleportReady">
                     <div class="fs-pro-airline-pref">
                         <div class="fs-pro-airline-pref__label">
                             <span>Airline preference</span>
@@ -557,6 +558,7 @@
                             </button>
                         </div>
                     </div>
+                    </Teleport>
 
                     <div class="fs-pro-actions-footer">
                         <div class="fs-search-filters">
