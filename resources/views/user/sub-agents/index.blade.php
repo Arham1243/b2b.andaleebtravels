@@ -29,7 +29,7 @@
                             <i class="bx bx-plus"></i> Add Sub Agent
                         </a>
                     </div>
-                    <div class="ps-card__body" style="padding:0;">
+                    <div class="ps-card__body" style="padding:16px 20px;">
                         <div class="table-responsive">
                             <table class="data-table" style="margin:0;">
                                 <thead>
