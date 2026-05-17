@@ -15,6 +15,8 @@ use App\Http\Controllers\Admin\AdminFlightController;
 use App\Http\Controllers\Admin\AdminBookingController;
 use Illuminate\Support\Facades\Route;
 
+Route::redirect('/admin', '/admin/dashboard');
+
 Route::get('/admins', function () {
     return redirect()->route('admin.login');
 })->name('admin.admin');

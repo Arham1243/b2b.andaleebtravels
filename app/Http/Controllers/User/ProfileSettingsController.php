@@ -8,6 +8,7 @@ use App\Models\Config;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class ProfileSettingsController extends Controller
 {
@@ -27,10 +28,22 @@ class ProfileSettingsController extends Controller
 
     public function updatePersonalInfo(Request $request)
     {
+        $vendorId = Auth::user()->id;
+
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255',
-            'agent_code' => 'required|string|max:255',
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('b2b_vendors', 'username')->ignore($vendorId),
+            ],
+            'agent_code' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('b2b_vendors', 'agent_code')->ignore($vendorId),
+            ],
             'avatar' => 'nullable|image|max:2048',
             'hotel_search_providers' => 'nullable|array',
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
