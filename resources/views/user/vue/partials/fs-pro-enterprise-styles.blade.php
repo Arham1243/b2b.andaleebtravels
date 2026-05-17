@@ -1051,12 +1051,6 @@
             color: #cd1b4f !important;
         }
 
-        .flight-search-redesign .daterangepicker td.today:not(.active),
-        .daterangepicker.flight-search-redesign td.today:not(.active) {
-            font-weight: 700 !important;
-            border-bottom: 2px solid #cd1b4f !important;
-        }
-
         .flight-search-redesign .daterangepicker td.off,
         .daterangepicker.flight-search-redesign td.off {
             color: #c9d0dc !important;
@@ -1100,6 +1094,24 @@
         .flight-search-redesign .daterangepicker td.start-date.end-date,
         .daterangepicker.flight-search-redesign td.start-date.end-date {
             border-radius: 6px !important;
+        }
+
+        /* Today when not range endpoints: pink bottom border only (no fill).
+           Placed after .in-range / .active so it wins. Hotels + flights use same picker skin. */
+        .flight-search-redesign .daterangepicker td.today:not(.start-date):not(.end-date),
+        .daterangepicker.flight-search-redesign td.today:not(.start-date):not(.end-date) {
+            background: transparent !important;
+            color: #111827 !important;
+            font-weight: 700 !important;
+            border-bottom: 3px solid var(--fs-brand) !important;
+            border-radius: 6px !important;
+        }
+
+        .flight-search-redesign .daterangepicker td.today:not(.start-date):not(.end-date):hover,
+        .daterangepicker.flight-search-redesign td.today:not(.start-date):not(.end-date):hover {
+            background: rgba(205,27,79,.08) !important;
+            color: #111827 !important;
+            border-bottom-color: var(--fs-brand) !important;
         }
 
         /* ── Apply / Cancel buttons ── */

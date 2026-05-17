@@ -293,7 +293,9 @@
                 parentEl: 'body',
                 opens: 'center',
                 drops: 'down',
-                linkedCalendars: false,
+                /* true: left/right are always consecutive months — avoids both panes showing the same month
+                   (which duplicates start/end highlights = four “selected” days). */
+                linkedCalendars: true,
                 singleDatePicker: false,
                 locale: {
                     format: fmt
