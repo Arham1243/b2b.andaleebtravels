@@ -12,7 +12,7 @@
             <div class="ps-page-head__icon"><i class="bx bx-user-plus"></i></div>
             <div>
                 <h1 class="ps-page-head__title">Account Settings</h1>
-                <p class="ps-page-head__sub">Manage your profile, password, and preferences</p>
+                <p class="ps-page-head__sub">Manage your profile</p>
             </div>
         </div>
 
