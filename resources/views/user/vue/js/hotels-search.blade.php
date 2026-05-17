@@ -262,57 +262,82 @@
             $(`#${prefix}-day`).text(dateMoment.format('dddd'));
         }
 
-        function clearDateDisplay(prefix) {
-            $(`#${prefix}-dd`).html('&mdash;');
-            $(`#${prefix}-mon`).html('&nbsp;');
-            $(`#${prefix}-day`).html('&nbsp;');
-        }
+        /**
+         * Unified range picker (two-month calendar) for check-in + check-out — matches flights UX.
+         */
+        function initHotelDateRangePicker() {
+            const vue = window.__hotelSearchVue;
+            const $pair = $('#hotel-date-pair-wrap');
+            const $checkinBox = $('#hotel-checkin-box');
+            const $checkoutBox = $('#hotel-checkout-box');
+            const $checkinInput = $('#hotel-checkin-input');
+            const $checkoutInput = $('#hotel-checkout-input');
 
-        function initSingleDatePicker(wrapperId, inputId, displayPrefix) {
-            const format = "MMM D, YYYY";
-            const $wrapper = $(`#${wrapperId}`);
-            const $input = $(`#${inputId}`);
-            if (!$wrapper.length || !$input.length) return;
+            if (!$pair.length || !$checkinInput.length) return;
 
-            $input.daterangepicker({
-                singleDatePicker: true,
+            const fmt = 'MMM D, YYYY';
+
+            if ($checkinInput.data('daterangepicker')) {
+                $checkinInput.data('daterangepicker').remove();
+            }
+            $checkinBox.off('click.drp');
+            $checkoutBox.off('click.drp');
+
+            const inVal = ($checkinInput.val() || '').trim();
+            const outVal = ($checkoutInput.val() || '').trim();
+            const inM = inVal ? moment(inVal, fmt, true) : null;
+            const outM = outVal ? moment(outVal, fmt, true) : null;
+
+            const opts = {
                 autoApply: true,
                 showDropdowns: true,
-                minDate: moment(),
+                minDate: moment().startOf('day'),
                 autoUpdateInput: false,
-                parentEl: $wrapper,
+                parentEl: $pair,
+                opens: 'center',
+                drops: 'down',
+                linkedCalendars: false,
+                singleDatePicker: false,
                 locale: {
-                    format
+                    format: fmt
+                }
+            };
+
+            if (inM && inM.isValid()) opts.startDate = inM.clone();
+            if (outM && outM.isValid()) opts.endDate = outM.clone();
+
+            $checkinInput.daterangepicker(opts);
+
+            $checkinInput.on('apply.daterangepicker', function(ev, picker) {
+                const start = picker.startDate.clone();
+                const endRaw = picker.endDate.clone();
+                const hasRange = endRaw.isValid() && !endRaw.isSame(start, 'day');
+                const end = hasRange ? endRaw : start.clone().add(1, 'day');
+
+                $checkinInput.val(start.format(fmt));
+                updateDateDisplay('hotel-checkin', start);
+                $checkoutInput.val(end.format(fmt));
+                updateDateDisplay('hotel-checkout', end);
+
+                if (vue) {
+                    vue.hotelCheckInDate = start.clone();
+                    vue.hotelCheckOutDate = end.clone();
                 }
             });
 
-            $input.on("apply.daterangepicker", function(ev, picker) {
-                $input.val(picker.startDate.format(format));
-                updateDateDisplay(displayPrefix, picker.startDate);
-
-                // Sync back to Vue refs
-                if (window.__hotelSearchVue) {
-                    if (inputId === 'hotel-checkin-input') {
-                        window.__hotelSearchVue.hotelCheckInDate = picker.startDate.clone();
-                    } else if (inputId === 'hotel-checkout-input') {
-                        window.__hotelSearchVue.hotelCheckOutDate = picker.startDate.clone();
-                    }
+            $checkinBox.on('click.drp', function(e) {
+                if (!$(e.target).is($checkinInput)) {
+                    $checkinInput.data('daterangepicker')?.show();
                 }
             });
 
-            $wrapper.on("click", function(e) {
-                if (!$(e.target).is($input)) {
-                    const pickerInstance = $input.data('daterangepicker');
-                    if (pickerInstance) {
-                        pickerInstance.show();
-                    }
-                }
+            $checkoutBox.on('click.drp', function() {
+                $checkinInput.data('daterangepicker')?.show();
             });
         }
 
         $(document).ready(function() {
-            initSingleDatePicker("hotel-checkin-box", "hotel-checkin-input", "hotel-checkin");
-            initSingleDatePicker("hotel-checkout-box", "hotel-checkout-input", "hotel-checkout");
+            initHotelDateRangePicker();
 
             const $checkinInput = $("#hotel-checkin-input");
             const $checkoutInput = $("#hotel-checkout-input");
@@ -358,55 +383,27 @@
                     }, 50);
                 }, 50);
 
-                // Dates
+                // Dates (range picker on check-in input)
+                const fmt = 'MMM D, YYYY';
                 const checkIn = params.get('check_in');
                 const checkOut = params.get('check_out');
+                const drp = $checkinInput.data('daterangepicker');
 
-                if (checkIn) {
-                    const checkInMoment = moment(checkIn, 'MMM D, YYYY');
-                    if (checkInMoment.isValid()) {
-                        const checkinPicker = $checkinInput.data('daterangepicker');
-                        if (checkinPicker) {
-                            checkinPicker.setStartDate(checkInMoment);
-                            $checkinInput.val(checkInMoment.format('MMM D, YYYY'));
-                            updateDateDisplay('hotel-checkin', checkInMoment);
-                            vue.hotelCheckInDate = checkInMoment.clone();
-                        }
-                    }
-                }
-
-                if (checkOut) {
-                    const checkOutMoment = moment(checkOut, 'MMM D, YYYY');
-                    if (checkOutMoment.isValid()) {
-                        const checkoutPicker = $checkoutInput.data('daterangepicker');
-                        if (checkoutPicker) {
-                            checkoutPicker.setStartDate(checkOutMoment);
-                            $checkoutInput.val(checkOutMoment.format('MMM D, YYYY'));
-                            updateDateDisplay('hotel-checkout', checkOutMoment);
-                            vue.hotelCheckOutDate = checkOutMoment.clone();
-                        }
+                if (drp && checkIn && checkOut) {
+                    const checkInMoment = moment(checkIn, fmt, true);
+                    const checkOutMoment = moment(checkOut, fmt, true);
+                    if (checkInMoment.isValid() && checkOutMoment.isValid()) {
+                        drp.setStartDate(checkInMoment);
+                        drp.setEndDate(checkOutMoment);
+                        $checkinInput.val(checkInMoment.format(fmt));
+                        $checkoutInput.val(checkOutMoment.format(fmt));
+                        updateDateDisplay('hotel-checkin', checkInMoment);
+                        updateDateDisplay('hotel-checkout', checkOutMoment);
+                        vue.hotelCheckInDate = checkInMoment.clone();
+                        vue.hotelCheckOutDate = checkOutMoment.clone();
                     }
                 }
             })();
-
-            // Sync checkout with checkin
-            $checkinInput.on("apply.daterangepicker", function(ev, picker) {
-                const checkinDate = picker.startDate;
-                const checkoutPicker = $checkoutInput.data('daterangepicker');
-
-                if (checkoutPicker) {
-                    checkoutPicker.minDate = checkinDate.clone().add(1, 'day');
-                    checkoutPicker.setStartDate(checkinDate.clone().add(1, 'day'));
-
-                    if ($checkoutInput.val()) {
-                        const currentCheckout = moment($checkoutInput.val(), "MMM D, YYYY");
-                        if (currentCheckout.isSameOrBefore(checkinDate)) {
-                            $checkoutInput.val('');
-                            clearDateDisplay('hotel-checkout');
-                        }
-                    }
-                }
-            });
         });
     </script>
 @endpush

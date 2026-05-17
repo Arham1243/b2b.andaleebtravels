@@ -71,7 +71,6 @@ class TboHotelProvider implements HotelProviderInterface
                 ->withBasicAuth(self::API_USERNAME, self::API_PASSWORD)
                 ->post(self::API_URL, [
                     'CityCode' => $cityCode,
-                    'IsDetailedResponse' => true,
                 ]);
 
             if ($response->failed()) {

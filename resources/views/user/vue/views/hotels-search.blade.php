@@ -1,240 +1,348 @@
-<div class="hotel-search-redesign" v-cloak>
-    <div class="hotel-search-redesign__title">Book Domestic and International Hotels</div>
-    <form method="GET" action="{{ route('user.hotels.search') }}" @submit="onHotelSearchSubmit">
-        <!-- ROW 1: Destination + Check In + Night + Check Out -->
-        <div class="hs-row hs-row--top">
-            <!-- DESTINATION -->
-            <div class="hs-field hs-field--destination" ref="hotelDestinationWrapperRef">
-                <div class="hs-field__inner" @click.stop="onHotelDestinationBoxClick">
-                    <div class="hs-field__label">ENTER YOUR DESTINATION</div>
-                    <div class="hs-field__value-row">
-                        <input type="text" autocomplete="off" class="hs-field__input"
-                            v-model="hotelDestinationInputValue"
-                            @input="onHotelDestinationInput" placeholder="Select Destination"
-                            ref="hotelDestinationInputRef" name="destination">
-                        <input type="hidden" name="destination_type" :value="selectedHotelDestinationType">
-                        <i class='bx bx-world hs-field__icon'></i>
-                    </div>
-                </div>
+<div class="hotel-search-redesign flight-search-redesign fs-pro-enterprise" v-cloak>
+    <form method="GET" action="{{ route('user.hotels.search') }}" @submit="onHotelSearchSubmit"
+        class="fs-pro-layout fs-pro-layout--hotel-single">
+        <div class="fs-pro-layout__main">
+            <div class="fs-pro-card">
 
-                <!-- Destination Dropdown -->
-                <div class="options-dropdown-wrapper options-dropdown-wrapper--from"
-                    :class="{
-                        open: hotelDestinationDropdownOpen,
-                        scroll: (hotelDestinations?.length || 0) > 9
-                    }">
-                    <!-- Loading State -->
-                    <div class="options-dropdown" v-if="loadingHotelDestination">
-                        <div class="options-dropdown__body p-0">
-                            <ul class="options-dropdown-list">
-                                <li class="options-dropdown-list__item no-hover" v-for="n in 5"
-                                    :key="'hotel-dest-skel-' + n">
-                                    <div class="skeleton"></div>
-                                </li>
-                            </ul>
+                <header class="fs-pro-card__head">
+                    <div class="fs-pro-card__title-wrap">
+                        <div class="fs-pro-eyebrow">
+                            <span class="fs-pro-eyebrow__dot"></span>
+                            <span class="fs-pro-eyebrow__label">Live inventory</span>
+                            <span class="fs-pro-eyebrow__sep">·</span>
+                            <span class="fs-pro-eyebrow__meta">International · Domestic</span>
                         </div>
+                        <h2 class="fs-pro-card__title">Search Hotels</h2>
+                        <p class="fs-pro-card__subtitle">Domestic &amp; international properties,
+                            consolidator-grade pricing.</p>
                     </div>
+                </header>
 
-                    <!-- Destinations -->
-                    <div class="options-dropdown"
-                        v-if="!loadingHotelDestination && (hotelDestinations?.length || 0) > 0">
-                        <div class="options-dropdown__header">
-                            <span>Destinations</span>
-                        </div>
-                        <div class="options-dropdown__body p-0">
-                            <ul class="options-dropdown-list">
-                                <li class="options-dropdown-list__item" v-for="item in hotelDestinations"
-                                    :key="'destination-' + item.type + '-' + item.id"
-                                    @click="selectHotelDestination(item)">
-
-                                    <div class="icon">
-                                        <i class='bx bx-map-pin'></i>
+                <div class="fs-pro-route-sheet">
+                    <div class="fs-pro-route-pair fs-pro-route-pair--hotel-destination-only">
+                        <div class="fs-pro-route-field hs-field hs-field--destination fs-pro-route-field--from"
+                            ref="hotelDestinationWrapperRef">
+                            <div class="fs-pro-route-field__shell">
+                                <div class="fs-pro-route-field__inner hs-field__inner"
+                                    @click.stop="onHotelDestinationBoxClick">
+                                    <span class="fs-pro-route-field__label hs-field__label">Destination</span>
+                                    <div class="hs-field__value-row">
+                                        <input type="text" autocomplete="off" class="hs-field__input fs-pro-route-input"
+                                            v-model="hotelDestinationInputValue"
+                                            @input="onHotelDestinationInput" placeholder="City or area"
+                                            ref="hotelDestinationInputRef" name="destination">
+                                        <input type="hidden" name="destination_type"
+                                            :value="selectedHotelDestinationType">
+                                        <i class='bx bx-world fs-pro-route-inline-icon'></i>
                                     </div>
-
-                                    <div class="info">
-                                        <div class="name">@{{ item.name }}</div>
-
-                                        <span class="sub-text">@{{ item.country_name }}</span>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- No Matches -->
-                    <div class="options-dropdown options-dropdown--norm"
-                        v-if="!loadingHotelDestination && !(hotelDestinations?.length || 0)">
-                        <div class="options-dropdown__header justify-content-center">
-                            <span class="text-danger" style="font-weight: 500;">No Matches Found</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CHECK IN DATE -->
-            <div class="hs-field hs-field--date" id="hotel-checkin-box">
-                <div class="hs-field__inner">
-                    <div class="hs-field__label"><i class='bx bx-calendar'></i> CHECK IN <i class='bx bx-chevron-down'
-                            style="font-size:11px"></i></div>
-                    <div class="hs-date-display">
-                        <span class="hs-date-display__day" id="hotel-checkin-dd">&mdash;</span>
-                        <div class="hs-date-display__meta">
-                            <span class="hs-date-display__month" id="hotel-checkin-mon">&nbsp;</span>
-                            <span class="hs-date-display__weekday" id="hotel-checkin-day">&nbsp;</span>
-                        </div>
-                    </div>
-                    <input readonly autocomplete="off" type="hidden" name="check_in"
-                        id="hotel-checkin-input">
-                </div>
-            </div>
-
-            <!-- NIGHT BADGE -->
-            <div class="hs-night-badge">
-                <span class="hs-night-badge__count">@{{ nightCount }}</span>
-                <span class="hs-night-badge__label">NIGHT</span>
-            </div>
-
-            <!-- CHECK OUT DATE -->
-            <div class="hs-field hs-field--date" id="hotel-checkout-box">
-                <div class="hs-field__inner">
-                    <div class="hs-field__label"><i class='bx bx-calendar'></i> CHECK OUT <i class='bx bx-chevron-down'
-                            style="font-size:11px"></i></div>
-                    <div class="hs-date-display">
-                        <span class="hs-date-display__day" id="hotel-checkout-dd">&mdash;</span>
-                        <div class="hs-date-display__meta">
-                            <span class="hs-date-display__month" id="hotel-checkout-mon">&nbsp;</span>
-                            <span class="hs-date-display__weekday" id="hotel-checkout-day">&nbsp;</span>
-                        </div>
-                    </div>
-                    <input readonly autocomplete="off" type="hidden" name="check_out"
-                        id="hotel-checkout-input">
-                </div>
-            </div>
-        </div>
-
-        <!-- ROW 2: Rooms & Guests + Search -->
-        <div class="hs-row hs-row--bottom">
-            <!-- ROOMS & GUESTS -->
-            <div class="hs-field hs-field--rooms" ref="hotelRoomsRef">
-                <div class="hs-field__inner" @click.stop="toggleHotelRooms">
-                    <div class="hs-field__label">ROOMS & GUESTS <i class='bx bx-chevron-down'
-                            style="font-size:11px"></i></div>
-                    <div class="hs-field__value">
-                        <span class="hs-rooms-text">
-                            <strong>@{{ hotelRoomCount || 0 }}</strong> Room
-                            <strong>@{{ totalGuestsCount }}</strong> Guests
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Rooms Dropdown -->
-                <div class="options-dropdown-wrapper options-dropdown-wrapper--pax"
-                    :class="{ open: hotelRoomsOpen, scroll: hotelRoomCount > 1 }">
-                    <div class="options-dropdown options-dropdown--norm">
-                        <div class="options-dropdown__body">
-                            <!-- Room Count Selector -->
-                            <div class="child-ages child-ages-search">
-                                <div class="child-age">
-                                    <label>Number of Rooms</label>
-                                    <select v-model="hotelRoomCount" name="room_count" class="form-control">
-                                        <option value="" selected disabled>Select</option>
-                                        <option v-for="n in 5" :key="n" :value="n">
-                                            @{{ n }} Room<template v-if="n > 1">s</template></option>
-                                    </select>
                                 </div>
                             </div>
 
-                            <!-- Rooms Configuration -->
-                            <div class="child-ages mt-3" v-if="hotelRooms.length > 0">
-                                <div class="room-section w-100" v-for="(room, roomIndex) in hotelRooms"
-                                    :key="'room-' + roomIndex">
-                                    <div class="title mb-2" style="font-size: 0.85rem; font-weight: 600;">Room
-                                        @{{ roomIndex + 1 }}</div>
+                            <div class="options-dropdown-wrapper options-dropdown-wrapper--from"
+                                :class="{
+                                    open: hotelDestinationDropdownOpen,
+                                    scroll: (hotelDestinations?.length || 0) > 9
+                                }">
+                                <div class="options-dropdown" v-if="loadingHotelDestination">
+                                    <div class="options-dropdown__body p-0">
+                                        <ul class="options-dropdown-list">
+                                            <li class="options-dropdown-list__item no-hover" v-for="n in 5"
+                                                :key="'hotel-dest-skel-' + n">
+                                                <div class="skeleton"></div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
 
-                                    <!-- Hidden inputs for adults and children count -->
-                                    <input type="hidden" :name="'room_' + (roomIndex + 1) + '_adults'"
-                                        :value="room.adults">
-                                    <input type="hidden" :name="'room_' + (roomIndex + 1) + '_children'"
-                                        :value="room.children">
+                                <div class="options-dropdown"
+                                    v-if="!loadingHotelDestination && (hotelDestinations?.length || 0) > 0">
+                                    <div class="options-dropdown__header">
+                                        <span>Destinations</span>
+                                    </div>
+                                    <div class="options-dropdown__body p-0">
+                                        <ul class="options-dropdown-list">
+                                            <li class="options-dropdown-list__item" v-for="item in hotelDestinations"
+                                                :key="'destination-' + item.type + '-' + item.id"
+                                                @click="selectHotelDestination(item)">
 
-                                    <ul class="paxs-list mt-0">
-                                        <!-- Adults -->
-                                        <li class="paxs-item">
-                                            <div class="info">
-                                                <div class="name">Adults</div>
-                                                <span>18+ years</span>
-                                            </div>
-                                            <div class="quantity-counter">
-                                                <button type="button" class="quantity-counter__btn"
-                                                    @click.stop="decrementHotelGuests(roomIndex, 'adults')">
-                                                    <i class='bx bx-minus'></i>
-                                                </button>
-                                                <span
-                                                    class="quantity-counter__btn quantity-counter__btn--quantity">@{{ room.adults }}</span>
-                                                <button type="button" class="quantity-counter__btn"
-                                                    @click.stop="incrementHotelGuests(roomIndex, 'adults')">
-                                                    <i class='bx bx-plus'></i>
-                                                </button>
-                                            </div>
-                                        </li>
+                                                <div class="icon">
+                                                    <i class='bx bx-map-pin'></i>
+                                                </div>
 
-                                        <!-- Children -->
-                                        <li class="paxs-item">
-                                            <div class="info">
-                                                <div class="name">Children</div>
-                                                <span>1-17 years</span>
-                                            </div>
-                                            <div class="quantity-counter">
-                                                <button type="button" class="quantity-counter__btn"
-                                                    @click.stop="decrementHotelGuests(roomIndex, 'children')">
-                                                    <i class='bx bx-minus'></i>
-                                                </button>
-                                                <span
-                                                    class="quantity-counter__btn quantity-counter__btn--quantity">@{{ room.children }}</span>
-                                                <button type="button" class="quantity-counter__btn"
-                                                    @click.stop="incrementHotelGuests(roomIndex, 'children')">
-                                                    <i class='bx bx-plus'></i>
-                                                </button>
-                                            </div>
-                                        </li>
-                                    </ul>
+                                                <div class="info">
+                                                    <div class="name">@{{ item.name }}</div>
 
-                                    <!-- Child Ages -->
-                                    <div class="child-ages child-ages-search mt-2" v-if="room.children > 0">
-                                        <div class="child-age child-age--half"
-                                            v-for="(age, childIndex) in room.childAges"
-                                            :key="'room-' + roomIndex + '-child-' + childIndex">
-                                            <label>Child @{{ childIndex + 1 }} Age</label>
-                                            <select v-model="room.childAges[childIndex]"
-                                                :name="'room_' + (roomIndex + 1) + '_child_age_' + (childIndex + 1)"
-                                                class="form-control">
-                                                <option value="">Select</option>
-                                                <option v-for="n in 17" :key="n"
-                                                    :value="n">
-                                                    @{{ n }}
-                                                </option>
-                                            </select>
+                                                    <span class="sub-text">@{{ item.country_name }}</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="options-dropdown options-dropdown--norm"
+                                    v-if="!loadingHotelDestination && !(hotelDestinations?.length || 0)">
+                                    <div class="options-dropdown__header justify-content-center">
+                                        <span class="text-danger" style="font-weight: 500;">No Matches Found</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fs-pro-date-pair fs-pro-date-pair--hotel" id="hotel-date-pair-wrap">
+                        <div class="fs-pro-date-cell hs-field hs-field--date" id="hotel-checkin-box">
+                            <div class="hs-field__inner fs-pro-date-inner">
+                                <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>Check
+                                        in</span>
+                                    <i class='bx bx-chevron-down fs-pro-date-chevron'></i>
+                                </div>
+                                <div class="hs-date-display">
+                                    <span class="hs-date-display__day" id="hotel-checkin-dd">&mdash;</span>
+                                    <div class="hs-date-display__meta">
+                                        <span class="hs-date-display__month" id="hotel-checkin-mon">&nbsp;</span>
+                                        <span class="hs-date-display__weekday" id="hotel-checkin-day">&nbsp;</span>
+                                    </div>
+                                </div>
+                                <input readonly autocomplete="off" type="hidden" name="check_in"
+                                    id="hotel-checkin-input">
+                            </div>
+                        </div>
+
+                        <div class="fs-pro-swap-wrap fs-pro-hotel-night-wrap" aria-hidden="true">
+                            <div class="hs-night-badge">
+                                <span class="hs-night-badge__count">@{{ nightCount }}</span>
+                                <span class="hs-night-badge__label">NIGHT</span>
+                            </div>
+                        </div>
+
+                        <div class="fs-pro-date-cell hs-field hs-field--date" id="hotel-checkout-box">
+                            <div class="hs-field__inner fs-pro-date-inner">
+                                <div class="hs-field__label fs-pro-date-label"><i class='bx bx-calendar'></i><span>Check
+                                        out</span>
+                                    <i class='bx bx-chevron-down fs-pro-date-chevron'></i>
+                                </div>
+                                <div class="hs-date-display">
+                                    <span class="hs-date-display__day" id="hotel-checkout-dd">&mdash;</span>
+                                    <div class="hs-date-display__meta">
+                                        <span class="hs-date-display__month" id="hotel-checkout-mon">&nbsp;</span>
+                                        <span class="hs-date-display__weekday" id="hotel-checkout-day">&nbsp;</span>
+                                    </div>
+                                </div>
+                                <input readonly autocomplete="off" type="hidden" name="check_out"
+                                    id="hotel-checkout-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fs-pro-footer">
+                    <div class="fs-pro-pax-cabin-row fs-pro-pax-cabin-row--hotel-only">
+                        <div class="hs-field hs-field--rooms fs-pro-travellers" ref="hotelRoomsRef">
+                            <div class="hs-field__inner fs-pro-travellers__inner" @click.stop="toggleHotelRooms">
+                                <div class="hs-field__label fs-pro-label">Rooms &amp; guests
+                                    <i class='bx bx-chevron-down fs-pro-chevron'></i>
+                                </div>
+                                <div class="hs-field__value">
+                                    <span class="hs-rooms-text fs-pro-pax-line">
+                                        <strong>@{{ hotelRoomCount || 0 }}</strong> Room
+                                        <strong>@{{ totalGuestsCount }}</strong> Guests
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="options-dropdown-wrapper options-dropdown-wrapper--pax"
+                                :class="{ open: hotelRoomsOpen, scroll: hotelRoomCount > 1 }">
+                                <div class="options-dropdown options-dropdown--norm">
+                                    <div class="options-dropdown__body">
+                                        <div class="child-ages child-ages-search">
+                                            <div class="child-age">
+                                                <label>Number of Rooms</label>
+                                                <select v-model="hotelRoomCount" name="room_count"
+                                                    class="form-control">
+                                                    <option value="" selected disabled>Select</option>
+                                                    <option v-for="n in 5" :key="n" :value="n">
+                                                        @{{ n }} Room<template v-if="n > 1">s</template></option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="child-ages mt-3" v-if="hotelRooms.length > 0">
+                                            <div class="room-section w-100" v-for="(room, roomIndex) in hotelRooms"
+                                                :key="'room-' + roomIndex">
+                                                <div class="title mb-2" style="font-size: 0.85rem; font-weight: 600;">
+                                                    Room
+                                                    @{{ roomIndex + 1 }}</div>
+
+                                                <input type="hidden" :name="'room_' + (roomIndex + 1) + '_adults'"
+                                                    :value="room.adults">
+                                                <input type="hidden" :name="'room_' + (roomIndex + 1) + '_children'"
+                                                    :value="room.children">
+
+                                                <ul class="paxs-list mt-0">
+                                                    <li class="paxs-item">
+                                                        <div class="info">
+                                                            <div class="name">Adults</div>
+                                                            <span>18+ years</span>
+                                                        </div>
+                                                        <div class="quantity-counter">
+                                                            <button type="button" class="quantity-counter__btn"
+                                                                @click.stop="decrementHotelGuests(roomIndex, 'adults')">
+                                                                <i class='bx bx-minus'></i>
+                                                            </button>
+                                                            <span
+                                                                class="quantity-counter__btn quantity-counter__btn--quantity">@{{ room.adults }}</span>
+                                                            <button type="button" class="quantity-counter__btn"
+                                                                @click.stop="incrementHotelGuests(roomIndex, 'adults')">
+                                                                <i class='bx bx-plus'></i>
+                                                            </button>
+                                                        </div>
+                                                    </li>
+
+                                                    <li class="paxs-item">
+                                                        <div class="info">
+                                                            <div class="name">Children</div>
+                                                            <span>1-17 years</span>
+                                                        </div>
+                                                        <div class="quantity-counter">
+                                                            <button type="button" class="quantity-counter__btn"
+                                                                @click.stop="decrementHotelGuests(roomIndex, 'children')">
+                                                                <i class='bx bx-minus'></i>
+                                                            </button>
+                                                            <span
+                                                                class="quantity-counter__btn quantity-counter__btn--quantity">@{{ room.children }}</span>
+                                                            <button type="button" class="quantity-counter__btn"
+                                                                @click.stop="incrementHotelGuests(roomIndex, 'children')">
+                                                                <i class='bx bx-plus'></i>
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+
+                                                <div class="child-ages child-ages-search mt-2"
+                                                    v-if="room.children > 0">
+                                                    <div class="child-age child-age--half"
+                                                        v-for="(age, childIndex) in room.childAges"
+                                                        :key="'room-' + roomIndex + '-child-' + childIndex">
+                                                        <label>Child @{{ childIndex + 1 }} Age</label>
+                                                        <select v-model="room.childAges[childIndex]"
+                                                            :name="'room_' + (roomIndex + 1) + '_child_age_' + (childIndex + 1)"
+                                                            class="form-control">
+                                                            <option value="">Select</option>
+                                                            <option v-for="n in 17" :key="n"
+                                                                :value="n">
+                                                                @{{ n }}
+                                                            </option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- SEARCH BUTTON -->
-            <div class="hs-field hs-field--btn">
-                <button type="submit" :disabled="!isHotelSearchEnabled || isHotelSearchSubmitting"
-                    class="hs-search-btn">
-                    <template v-if="isHotelSearchSubmitting">
-                        <i class='bx bx-loader-alt bx-spin'></i> Searching...
-                    </template>
-                    <template v-else>
-                        Search Hotels
-                    </template>
-                </button>
+                    <div class="fs-pro-actions-footer fs-pro-actions-footer--hotel-only">
+                        <button type="submit" class="fs-pro-search-btn"
+                            :disabled="!isHotelSearchEnabled || isHotelSearchSubmitting">
+                            <template v-if="isHotelSearchSubmitting">
+                                <i class='bx bx-loader-alt bx-spin'></i>
+                                Searching…
+                            </template>
+                            <template v-else>
+                                <span>Search Hotels</span>
+                            </template>
+                        </button>
+                    </div>
+
+                    <div class="fs-pro-trust-strip">
+                        <span class="fs-pro-trust-item">
+                            <i class='bx bx-shield-quarter'></i> Secure rates &amp; trusted suppliers
+                        </span>
+                        <span class="fs-pro-trust-item">
+                            <i class='bx bx-time-five'></i> Fast search response
+                        </span>
+                        <span class="fs-pro-trust-item">
+                            <i class='bx bx-support'></i> 24×7 desk support
+                        </span>
+                    </div>
+                </div>
+
             </div>
         </div>
     </form>
 </div>
+@push('css')
+    @include('user.vue.partials.fs-pro-enterprise-styles')
+@endpush
+@push('css')
+    <style>
+        .fs-pro-layout.fs-pro-layout--hotel-single {
+            grid-template-columns: minmax(0, 1fr) !important;
+        }
+
+        .fs-pro-route-pair--hotel-destination-only {
+            flex: 1 1 100%;
+        }
+
+        .fs-pro-route-pair--hotel-destination-only .fs-pro-route-field--from .hs-field__inner {
+            padding-right: 0.95rem !important;
+        }
+
+        .fs-pro-date-pair--hotel>.fs-pro-date-cell:first-child .hs-field__inner {
+            padding-right: calc(0.95rem + 24px) !important;
+        }
+
+        .fs-pro-date-pair--hotel>.fs-pro-date-cell:last-child .hs-field__inner {
+            padding-left: calc(0.95rem + 24px) !important;
+        }
+
+        .fs-pro-hotel-night-wrap .hs-night-badge {
+            left: 0;
+            position: relative;
+            pointer-events: none;
+            background: var(--fs-lime-2);
+            border-radius: 999px;
+            width: auto;
+            min-width: 42px;
+            height: auto;
+            padding: 6px 10px;
+            box-shadow: 0 0 0 6px #fff, 0 4px 10px rgba(15, 23, 42, 0.12);
+        }
+
+        .fs-pro-footer .fs-pro-pax-cabin-row--hotel-only {
+            grid-template-columns: 1fr;
+            flex-wrap: wrap;
+        }
+
+        .fs-pro-actions-footer.fs-pro-actions-footer--hotel-only {
+            justify-content: flex-end;
+        }
+
+        .fs-pro-actions-footer.fs-pro-actions-footer--hotel-only .fs-pro-search-btn {
+            width: auto;
+            min-width: 200px;
+        }
+
+        @media (max-width: 640px) {
+            .fs-pro-date-pair--hotel>.fs-pro-date-cell:first-child .hs-field__inner {
+                padding-right: 0.95rem !important;
+            }
+
+            .fs-pro-date-pair--hotel>.fs-pro-date-cell:last-child .hs-field__inner {
+                padding-left: 0.95rem !important;
+            }
+
+            .fs-pro-hotel-night-wrap {
+                position: relative !important;
+                left: auto !important;
+                top: auto !important;
+                transform: none !important;
+                display: flex;
+                justify-content: center;
+                margin: -0.35rem 0 0.15rem;
+            }
+        }
+    </style>
+@endpush
