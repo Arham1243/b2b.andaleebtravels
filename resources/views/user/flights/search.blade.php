@@ -821,7 +821,6 @@
     padding: .5rem .35rem 1rem;
     margin: 0 -.35rem;
     border-radius: 16px;
-    background: linear-gradient(180deg, #f3f5fa 0%, #eef2f8 100%);
 }
 
 .rc {
@@ -830,7 +829,7 @@
     border-radius: 16px;
     overflow: hidden;
     transition: border-color .15s ease, box-shadow .15s ease;
-    box-shadow: 0 1px 3px rgba(26, 37, 64, 0.045);
+    box-shadow: 0 0 15px 1px #00000020;
 }
 .rc:hover {
     border-color: rgba(205, 27, 79, 0.22);

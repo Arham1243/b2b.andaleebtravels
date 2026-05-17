@@ -352,7 +352,7 @@
             const navigateWithLoader = (url, message = 'Updating hotel results...') => {
                 if (typeof window.showPageLoader === 'function') {
                     window.__enablePageLoaderOnNav = true;
-                    window.showPageLoader(message, 'bx bxs-dish');
+                    window.showPageLoader(message, 'bx bx-restaurant');
                 }
                 window.location.href = url;
             };
