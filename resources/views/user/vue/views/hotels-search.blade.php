@@ -308,26 +308,19 @@
                             <span class="fs-pro-tile__title">Travel Calendar</span>
                         </span>
                     </a>
+                    <a href="{{ route('user.bookings.hotels') }}" class="fs-pro-tile fs-pro-tile--bookings">
+                        <span class="fs-pro-tile__icon"><i class='bx bx-hotel'></i></span>
+                        <span class="fs-pro-tile__meta">
+                            <span class="fs-pro-tile__title">My Bookings</span>
+                        </span>
+                    </a>
+                    <a href="#" class="fs-pro-tile fs-pro-tile--voucher" @click.prevent>
+                        <span class="fs-pro-tile__icon"><i class='bx bx-receipt'></i></span>
+                        <span class="fs-pro-tile__meta">
+                            <span class="fs-pro-tile__title">Hotel Voucher</span>
+                        </span>
+                    </a>
                 </div>
-            </div>
-
-            <div class="fs-pro-aside-card fs-pro-recent-panel" v-if="recentSearches.length">
-                <div class="fs-pro-aside-card__head">
-                    <span class="fs-pro-aside-card__label">Recent Searches</span>
-                    <button type="button"
-                        class="fs-pro-aside-card__action fs-pro-aside-card__action--btn text-sm fs-pro-clear-recent"
-                        @click="clearRecentSearches">Clear</button>
-                </div>
-                <a v-for="(item, idx) in recentSearches" :key="item.fingerprint + '-' + idx" href="#"
-                    class="fs-pro-recent-row" @click.prevent="applyRecentSearch(item)">
-                    <span class="fs-pro-recent-row__route">
-                        <span class="fs-pro-recent-row__city">@{{ item.destLabel }}</span>
-                        <i class='bx bxs-buildings fs-pro-recent-row__arrow'></i>
-                    </span>
-                    <span class="fs-pro-recent-row__meta">
-                        <span class="fs-pro-recent-row__dates">@{{ item.dateLine }}</span>
-                    </span>
-                </a>
             </div>
         </aside>
     </form>

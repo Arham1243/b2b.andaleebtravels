@@ -1488,6 +1488,24 @@
             color: #be185d;
         }
 
+        .fs-pro-tile--bookings {
+            background: linear-gradient(160deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e3a8a !important;
+        }
+        .fs-pro-tile--bookings .fs-pro-tile__icon {
+            background: rgba(255, 255, 255, 0.65);
+            color: #1d4ed8;
+        }
+
+        .fs-pro-tile--voucher {
+            background: linear-gradient(160deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46 !important;
+        }
+        .fs-pro-tile--voucher .fs-pro-tile__icon {
+            background: rgba(255, 255, 255, 0.65);
+            color: #059669;
+        }
+
         /* Tailwind-scale helper (scoped): Recent panel Clear */
         .fs-pro-enterprise .text-sm {
             font-size: 0.875rem !important;
