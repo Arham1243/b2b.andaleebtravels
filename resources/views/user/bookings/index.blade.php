@@ -1051,7 +1051,7 @@
                                     <p style="font-size:.7rem;color:#8492a6;margin-top:8px;">
                                         Releasing the hold cancels the PNR at the airline end. No refund is needed since no payment was made.
                                     </p>
-                                @elseif($bkStatus === 'confirmed' && $booking->payment_status === 'paid')
+                                @elseif($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
                                     <div class="bk-actions">
                                         <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}"
                                            class="bk-btn bk-btn--danger"
@@ -1125,7 +1125,7 @@
                             @if($bkStatus !== 'cancelled')
                             <p class="bk-section-label"><i class="bx bx-cog"></i> Actions</p>
                             <div class="bk-actions">
-                                @if($bkStatus === 'confirmed' && $booking->payment_status === 'paid')
+                                @if($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
                                     @if(($booking->supplier ?? 'yalago') === 'tbo')
                                         <button type="button" class="bk-btn bk-btn--danger cancel-booking-btn-tbo"
                                                 data-booking-id="{{ $booking->id }}">

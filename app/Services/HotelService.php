@@ -1468,10 +1468,36 @@ class HotelService
         $statusCode = $payload['Status']['Code'] ?? null;
         if ($statusCode !== 200) {
             $message = $payload['Status']['Description'] ?? 'TBO cancel failed.';
+            // Supplier-side booking already voided — treat as success so we sync local state.
+            if ($this->tboCancelDescriptionIsAlreadyCancelled($message)) {
+                Log::info('TBO cancel: supplier reports booking already cancelled; syncing locally.', [
+                    'booking_id' => $booking->id,
+                    'confirmation' => $confirmationNumber,
+                ]);
+
+                return array_merge(
+                    is_array($payload) ? $payload : [],
+                    ['_supplier_already_cancelled' => true]
+                );
+            }
             throw new \Exception($message);
         }
 
         return $payload;
+    }
+
+    /**
+     * TBO returns non-200 when the reservation is already cancelled at their end.
+     */
+    private function tboCancelDescriptionIsAlreadyCancelled(string $description): bool
+    {
+        $d = strtolower($description);
+
+        return str_contains($d, 'already cancelled')
+            || str_contains($d, 'already canceled')
+            || str_contains($d, 'booking already cancel')
+            || str_contains($d, 'already been cancelled')
+            || str_contains($d, 'already been canceled');
     }
 
     public function cancelYalagoBooking(B2bHotelBooking $booking, array $charges): array

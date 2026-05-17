@@ -45,6 +45,54 @@ if (! function_exists('formatBookingSupplierLabel')) {
     }
 }
 
+if (! function_exists('formatBookingCancelledAt')) {
+    /**
+     * @param  \Carbon\Carbon|\DateTimeInterface|string|null  $value
+     */
+    function formatBookingCancelledAt($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('d M Y, h:i A');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+}
+
+if (! function_exists('formatBookingCancelledByLabel')) {
+    function formatBookingCancelledByLabel(?string $by): string
+    {
+        return match ($by) {
+            'vendor' => 'Agent',
+            'vendor_release' => 'Hold released (agent)',
+            'admin' => 'Administrator',
+            default => $by ? ucfirst(str_replace('_', ' ', $by)) : '—',
+        };
+    }
+}
+
+if (! function_exists('bookingCancellationApiPayload')) {
+    /**
+     * Cancel_response envelope stores payload under api_response; older rows may be raw JSON only.
+     *
+     * @return array<string, mixed>|null
+     */
+    function bookingCancellationApiPayload(?array $cancelResponse): ?array
+    {
+        if ($cancelResponse === null || $cancelResponse === []) {
+            return null;
+        }
+
+        return isset($cancelResponse['api_response']) && is_array($cancelResponse['api_response'])
+            ? $cancelResponse['api_response']
+            : $cancelResponse;
+    }
+}
+
 if (! function_exists('formatDateTime')) {
     function formatDateTime($date)
     {

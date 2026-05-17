@@ -5,6 +5,8 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bHotelBooking;
+use App\Services\BookingCancellationNotifier;
+use App\Services\BookingCancellationRecorder;
 use App\Services\FlightService;
 use App\Services\HotelService;
 use Illuminate\Http\Request;
@@ -141,10 +143,12 @@ class BookingController extends Controller
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'vendor',
-                'cancel_response' => $cancelResponse,
+                'cancel_response' => BookingCancellationRecorder::envelope('hotel_yalago_cancel', $cancelResponse, 'vendor'),
             ]);
 
             DB::commit();
+
+            app(BookingCancellationNotifier::class)->notifyHotelCancelled($booking->fresh());
 
             return redirect()
                 ->route('user.bookings.hotels')
@@ -191,10 +195,12 @@ class BookingController extends Controller
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'vendor',
-                'cancel_response' => $cancelResponse,
+                'cancel_response' => BookingCancellationRecorder::envelope('hotel_tbo_cancel', $cancelResponse, 'vendor'),
             ]);
 
             DB::commit();
+
+            app(BookingCancellationNotifier::class)->notifyHotelCancelled($booking->fresh());
 
             return redirect()
                 ->route('user.bookings.hotels')
@@ -228,18 +234,27 @@ class BookingController extends Controller
 
         try {
             $cancelResponse = [];
-            if (!empty($booking->sabre_record_locator)) {
+            $cancellationType = 'flight_hold_release_local';
+
+            if (! empty($booking->sabre_record_locator)) {
                 $cancelResponse = $flightService->cancelSabreBooking($booking);
+                $cancellationType = 'flight_hold_release_sabre';
+            } else {
+                $cancelResponse = [
+                    'note' => 'No Sabre PNR on record; hold cleared locally only.',
+                ];
             }
 
             $booking->update([
                 'booking_status' => 'cancelled',
                 'cancelled_at'   => now(),
                 'cancelled_by'   => 'vendor_release',
-                'cancel_response' => $cancelResponse,
+                'cancel_response' => BookingCancellationRecorder::envelope($cancellationType, $cancelResponse, 'vendor_release'),
             ]);
 
             DB::commit();
+
+            app(BookingCancellationNotifier::class)->notifyFlightHoldReleased($booking->fresh());
 
             $pnr = trim((string) ($booking->sabre_record_locator ?? ''));
             $successMsg = $pnr !== ''
@@ -283,10 +298,12 @@ class BookingController extends Controller
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'vendor',
-                'cancel_response' => $cancelResponse,
+                'cancel_response' => BookingCancellationRecorder::envelope('flight_sabre_cancel', $cancelResponse, 'vendor'),
             ]);
 
             DB::commit();
+
+            app(BookingCancellationNotifier::class)->notifyFlightCancelled($booking->fresh());
 
             return redirect()
                 ->route('user.bookings.flights')

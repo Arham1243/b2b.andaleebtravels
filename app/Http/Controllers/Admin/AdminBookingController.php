@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bHotelBooking;
+use App\Services\BookingCancellationNotifier;
+use App\Services\BookingCancellationRecorder;
 use App\Services\FlightService;
 use App\Services\HotelService;
 use Illuminate\Http\Request;
@@ -53,19 +55,23 @@ class AdminBookingController extends Controller
         try {
             if (($bookingModel->supplier ?? '') === 'tbo') {
                 $cancelResponse = $hotelService->cancelTboBooking($bookingModel);
+                $type = 'hotel_tbo_cancel';
             } else {
                 $charges = $hotelService->getCancellationCharges($bookingModel);
                 $cancelResponse = $hotelService->cancelYalagoBooking($bookingModel, $charges);
+                $type = 'hotel_yalago_cancel';
             }
 
             $bookingModel->update([
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'admin',
-                'cancel_response' => $cancelResponse,
+                'cancel_response' => BookingCancellationRecorder::envelope($type, $cancelResponse, 'admin'),
             ]);
 
             DB::commit();
+
+            app(BookingCancellationNotifier::class)->notifyHotelCancelled($bookingModel->fresh());
 
             return redirect()->back()->with('notify_success', 'Hotel booking cancelled successfully.');
         } catch (\Throwable $e) {
@@ -97,10 +103,12 @@ class AdminBookingController extends Controller
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'admin',
-                'cancel_response' => $cancelResponse,
+                'cancel_response' => BookingCancellationRecorder::envelope('flight_sabre_cancel', $cancelResponse, 'admin'),
             ]);
 
             DB::commit();
+
+            app(BookingCancellationNotifier::class)->notifyFlightCancelled($bookingModel->fresh());
 
             return redirect()->back()->with('notify_success', 'Flight booking cancelled successfully.');
         } catch (\Throwable $e) {

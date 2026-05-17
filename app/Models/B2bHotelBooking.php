@@ -73,6 +73,7 @@ class B2bHotelBooking extends Model
         'extras_total' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'wallet_amount' => 'decimal:2',
+        'cancelled_at' => 'datetime',
     ];
 
     /**
