@@ -25,17 +25,22 @@
         $sortBy = request('sort_by', '');
     @endphp
 
-    <div class="hl-page">
-        <div class="container">
-            {{-- SEARCH BAR --}}
-            <div class="hl-search-bar mb-5">
-                @include('user.vue.main', [
-                    'appId' => 'hotels-search',
-                    'appComponent' => 'hotels-search',
-                    'appJs' => 'hotels-search',
-                ])
+    {{-- Listing only: sticky search strip (index page uses hotels/index.blade.php) --}}
+    <div class="hl-page hl-page--listing">
+        <div class="hl-swrap">
+            <div class="container">
+                <div class="hl-search-bar hl-search-bar--listing">
+                    @include('user.vue.main', [
+                        'appId' => 'hotels-search',
+                        'appComponent' => 'hotels-search',
+                        'appJs' => 'hotels-search',
+                        'hotelSearchListingMode' => true,
+                    ])
+                </div>
             </div>
+        </div>
 
+        <div class="container hl-shell">
             {{-- RESULTS HEADER --}}
             <div class="hl-results-header">
                 <div class="hl-results-header__left">

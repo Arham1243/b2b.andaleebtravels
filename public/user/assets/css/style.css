@@ -4513,6 +4513,58 @@ body .search-box__input.search-box__input {
     padding: 1.25rem 0 2rem;
 }
 
+/* Results route only: search bar full-width strip, sticks under sticky topbar (see flights /flights/search rp-swrap) */
+.hl-page--listing {
+    padding-top: 0;
+}
+
+.hl-page--listing .hl-swrap {
+    position: sticky;
+    /* Sit below `.topbar` (sticky, z-index 1000); tune if topbar height changes */
+    top: clamp(92px, 18vw, 124px);
+    z-index: 990;
+    background: #fff;
+    padding: 0.65rem 0 0.75rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid #e8eaef;
+    box-shadow: 0 6px 18px rgba(6, 18, 41, 0.06);
+}
+
+.hl-page--listing .hl-search-bar--listing {
+    margin-bottom: 0;
+}
+
+.hl-page--listing .hl-shell {
+    padding-top: 1.25rem;
+    padding-bottom: 2rem;
+}
+
+/* Sidebar pins below topbar + sticky search strip (approximate combined height) */
+.hl-page--listing .hl-sidebar {
+    top: clamp(200px, 32vh, 280px);
+}
+
+@media (max-width: 991.98px) {
+    .hl-page--listing .hl-swrap {
+        top: clamp(88px, 22vw, 118px);
+    }
+
+    .hl-page--listing .hl-sidebar {
+        position: relative;
+        top: auto;
+    }
+}
+
+/* Hotel results (/hotels/search): slimmer toolbar like flight listing */
+.hs-mount--hotel-listing .fs-pro-card__head {
+    display: none !important;
+}
+
+.hs-mount--hotel-listing .fs-pro-card {
+    padding: 0.45rem 0.6rem !important;
+    border-radius: 12px !important;
+}
+
 /* Results Header */
 .hl-results-header {
     display: flex;
