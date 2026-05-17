@@ -74,7 +74,7 @@
 
                 <div class="bkp-header">
                     <div>
-                        <h1 class="bkp-header__title"><i class="bx bxs-hotel"></i> Hotel Bookings</h1>
+                        <h1 class="bkp-header__title"><i class="bx bx-restaurant"></i> Hotel Bookings</h1>
                         <p class="bkp-header__sub">{{ $hotelBookings->total() }} booking{{ $hotelBookings->total() !== 1 ? 's' : '' }} found</p>
                     </div>
                     <div class="bkp-header__actions">
@@ -130,7 +130,7 @@
                         <tr class="bkt-row--{{ $st }}">
                             {{-- Icon --}}
                             <td style="padding-right:0;">
-                                <div class="bkt-logo-fallback"><i class="bx bxs-hotel"></i></div>
+                                <div class="bkt-logo-fallback"><i class="bx bx-restaurant"></i></div>
                             </td>
 
                             {{-- Hotel name --}}

@@ -24,7 +24,7 @@
 
         <a href="{{ route('user.bookings.hotels') }}"
            class="bk-nav__item {{ ($activeSection ?? '') === 'hotels' ? 'bk-nav__item--active' : '' }}">
-            <span class="bk-nav__item-icon"><i class="bx bxs-hotel"></i></span>
+            <span class="bk-nav__item-icon"><i class="bx bx-restaurant"></i></span>
             <span class="bk-nav__item-text">Hotel Bookings</span>
             <span class="bk-nav__item-count">{{ $counts['hotels'] ?? 0 }}</span>
         </a>

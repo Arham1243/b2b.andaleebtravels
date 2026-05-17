@@ -88,7 +88,7 @@
                     </li>
                     <li class="topbar-nav__item">
                         <a href="{{ route('user.hotels.index') }}" class="topbar-nav__link {{ request()->routeIs('user.hotels.*') ? 'active' : '' }}">
-                            <i class='bx bxs-building-house topbar-nav__icon'></i>
+                            <i class='bx bx-restaurant topbar-nav__icon'></i>
                             <span class="topbar-nav__label">{{ __('Hotels') }}</span>
                         </a>
                     </li>
