@@ -222,8 +222,12 @@ class TboHotelProvider implements HotelProviderInterface
 
                 $payload = $response->json();
                 $statusCode = $payload['Status']['Code'] ?? null;
+                // 201 = no rooms for this chunk/criteria — normal during batched search; do not treat as error.
+                if ($statusCode === 201) {
+                    continue;
+                }
                 if ($statusCode !== 200) {
-                    Log::error('TBO Hotel Search API status not ok', [
+                    Log::warning('TBO Hotel Search API unexpected status', [
                         'status' => $payload['Status'] ?? null,
                     ]);
                     continue;
