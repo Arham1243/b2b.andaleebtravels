@@ -122,21 +122,29 @@
                         <div class="sf__section">
                             <div class="sf__sechead"><i class="bx bx-wallet-alt"></i> Price range</div>
                             @php
-                                $minPrice = request()->input('min_price', 0);
-                                $maxPrice = request()->input('max_price', 100000);
+                                $hlPriceSliderMin = 0;
+                                $hlPriceSliderMax = 100000;
+                                $hlMinPrice = (int) request()->input('min_price', $hlPriceSliderMin);
+                                $hlMaxPrice = (int) request()->input('max_price', $hlPriceSliderMax);
+                                $hlMinPrice = max($hlPriceSliderMin, min($hlMinPrice, $hlPriceSliderMax - 1));
+                                $hlMaxPrice = max($hlMinPrice + 1, min($hlMaxPrice, $hlPriceSliderMax));
                             @endphp
-                            <div class="sf__hotel-price-grid">
-                                <div class="sf__hotel-price-field">
-                                    <label for="hl-min-price">Min</label>
-                                    <input id="hl-min-price" type="number" min="0" name="min_price"
-                                        value="{{ $minPrice }}">
+                            <div class="sf__price-labels">
+                                <span>{!! currencySymbol() !!}<strong
+                                        id="hl-price-lo-lbl">{{ number_format($hlMinPrice, 0, '.', ',') }}</strong></span>
+                                <span>{!! currencySymbol() !!}<strong
+                                        id="hl-price-hi-lbl">{{ number_format($hlMaxPrice, 0, '.', ',') }}</strong></span>
+                            </div>
+                            <div class="sf__dual-wrap">
+                                <div class="sf__dual-track">
+                                    <div class="sf__dual-fill" id="hl-price-fill"></div>
                                 </div>
-                                <span>-</span>
-                                <div class="sf__hotel-price-field">
-                                    <label for="hl-max-price">Max</label>
-                                    <input id="hl-max-price" type="number" name="max_price"
-                                        value="{{ $maxPrice }}">
-                                </div>
+                                <input type="range" class="sf__dual-input sf__dual-input--lo" id="hl-price-lo"
+                                    min="{{ $hlPriceSliderMin }}" max="{{ $hlPriceSliderMax }}"
+                                    value="{{ $hlMinPrice }}" step="1">
+                                <input type="range" class="sf__dual-input sf__dual-input--hi" id="hl-price-hi"
+                                    min="{{ $hlPriceSliderMin }}" max="{{ $hlPriceSliderMax }}"
+                                    value="{{ $hlMaxPrice }}" step="1">
                             </div>
                         </div>
 
@@ -148,7 +156,7 @@
                                     $selectedRatings = explode(',', $selectedRatings);
                                 }
                             @endphp
-                            <div class="sf__stop-row">
+                            <div class="sf__stop-row sf__stop-row--stars">
                                 @for ($i = 5; $i >= 1; $i--)
                                     <label class="sf__stoplbl">
                                         <input type="checkbox" name="rating" class="check-filter__input sf__stopchk"
@@ -363,31 +371,56 @@
                 });
             });
 
-            // Price inputs
-            const minInput = document.querySelector('input[name="min_price"]');
-            const maxInput = document.querySelector('input[name="max_price"]');
-            if (minInput && maxInput) {
-                const enforce = () => {
-                    let minVal = parseInt(minInput.value) || 0,
-                        maxVal = parseInt(maxInput.value) || 0;
-                    if (minVal < 0) minVal = 0;
-                    if (minVal >= maxVal) minVal = maxVal - 1;
-                    if (minVal < 0) minVal = 0;
-                    if (maxVal <= minVal) maxVal = minVal + 1;
-                    minInput.value = minVal;
-                    maxInput.value = maxVal;
-                };
-                const reload = () => {
-                    enforce();
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('min_price', minInput.value);
-                    url.searchParams.set('max_price', maxInput.value);
-                    navigateWithLoader(url.toString());
-                };
-                minInput.addEventListener('input', enforce);
-                maxInput.addEventListener('input', enforce);
-                minInput.addEventListener('blur', reload);
-                maxInput.addEventListener('blur', reload);
+            // Price dual range (flight-style sidebar; reload on release)
+            const hlPriceLo = document.getElementById('hl-price-lo');
+            const hlPriceHi = document.getElementById('hl-price-hi');
+            const hlPriceFill = document.getElementById('hl-price-fill');
+            const hlPriceLoLbl = document.getElementById('hl-price-lo-lbl');
+            const hlPriceHiLbl = document.getElementById('hl-price-hi-lbl');
+
+            function hlFmtPriceNum(v) {
+                return parseFloat(v).toLocaleString(undefined, {
+                    maximumFractionDigits: 0
+                });
+            }
+
+            function hlUpdatePriceFill() {
+                if (!hlPriceLo || !hlPriceHi || !hlPriceFill) return;
+                const mn = parseFloat(hlPriceLo.min);
+                const mx = parseFloat(hlPriceLo.max);
+                const lo = parseFloat(hlPriceLo.value);
+                const hi = parseFloat(hlPriceHi.value);
+                const pct = (v) => (mx === mn ? 0 : ((v - mn) / (mx - mn)) * 100);
+                hlPriceFill.style.left = pct(lo) + '%';
+                hlPriceFill.style.width = Math.max(0, pct(hi) - pct(lo)) + '%';
+                if (hlPriceLoLbl) hlPriceLoLbl.textContent = hlFmtPriceNum(lo);
+                if (hlPriceHiLbl) hlPriceHiLbl.textContent = hlFmtPriceNum(hi);
+            }
+
+            function hlReloadPriceFilter() {
+                if (!hlPriceLo || !hlPriceHi) return;
+                const url = new URL(window.location.href);
+                url.searchParams.set('min_price', hlPriceLo.value);
+                url.searchParams.set('max_price', hlPriceHi.value);
+                navigateWithLoader(url.toString());
+            }
+
+            if (hlPriceLo && hlPriceHi) {
+                hlPriceLo.addEventListener('input', () => {
+                    if (parseFloat(hlPriceLo.value) > parseFloat(hlPriceHi.value) - 1) {
+                        hlPriceLo.value = parseFloat(hlPriceHi.value) - 1;
+                    }
+                    hlUpdatePriceFill();
+                });
+                hlPriceHi.addEventListener('input', () => {
+                    if (parseFloat(hlPriceHi.value) < parseFloat(hlPriceLo.value) + 1) {
+                        hlPriceHi.value = parseFloat(hlPriceLo.value) + 1;
+                    }
+                    hlUpdatePriceFill();
+                });
+                hlPriceLo.addEventListener('change', hlReloadPriceFilter);
+                hlPriceHi.addEventListener('change', hlReloadPriceFilter);
+                hlUpdatePriceFill();
             }
 
             // Hotel name
