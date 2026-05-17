@@ -837,6 +837,7 @@ class HotelController extends Controller
             'hotelCommissionPercentage'              => $this->hotelCommissionPercentage,
             'walletBalance'          => (float) Auth::user()->main_balance,
             'provider'               => 'yalago',
+            'payby_hotel_skip_gateway' => (bool) config('services.payby.hotel_skip_gateway'),
         ]);
     }
 
@@ -953,6 +954,7 @@ class HotelController extends Controller
             'walletBalance'          => (float) Auth::user()->main_balance,
             'provider'               => 'tbo',
             'tbo_currency'           => $tboCurrency,
+            'payby_hotel_skip_gateway' => (bool) config('services.payby.hotel_skip_gateway'),
         ]);
     }
 
@@ -1179,6 +1181,14 @@ class HotelController extends Controller
                 return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
             }
 
+            // PayBy test bypass: no gateway redirect (hotel bookings only; see PAYBY_HOTEL_SKIP_GATEWAY)
+            if (
+                ($validated['payment_method'] ?? '') === 'payby'
+                && config('services.payby.hotel_skip_gateway')
+            ) {
+                return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
+            }
+
             // Get payment redirect URL for remaining amount
             try {
                 $redirectUrl = $hotelService->getRedirectUrl($booking, $validated['payment_method']);
@@ -1241,7 +1251,21 @@ class HotelController extends Controller
                 }
                 $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
             } elseif ($booking->payment_method === 'payby') {
-                $verificationResult = $hotelService->verifyPayByPayment($booking);
+                if (config('services.payby.hotel_skip_gateway')) {
+                    Log::warning('PayBy hotel gateway skipped — booking marked paid without card verification', [
+                        'booking_id' => $booking->id,
+                        'booking_number' => $booking->booking_number,
+                    ]);
+                    $verificationResult = [
+                        'success' => true,
+                        'data' => [
+                            'skipped_payby_gateway' => true,
+                            'note' => 'PAYBY_HOTEL_SKIP_GATEWAY — no acquireOrder verification performed',
+                        ],
+                    ];
+                } else {
+                    $verificationResult = $hotelService->verifyPayByPayment($booking);
+                }
             } elseif ($booking->payment_method === 'tabby') {
                 $verificationResult = $hotelService->verifyTabbyPayment($booking);
             } elseif ($booking->payment_method === 'tamara') {

@@ -45,6 +45,11 @@ return [
         'partner_id' => env('PAYBY_PARTNER_ID', '200009116289'),
         'api_url' => env('PAYBY_API_URL', 'https://api.payby.com/sgs/api/acquire2'),
         'private_key_path' => env('PAYBY_PRIVATE_KEY_PATH', 'app/keys/Merchant_private_key.pem'),
+        /*
+         * When true: hotel checkout with PayBy skips the gateway redirect and payment verification,
+         * and completes booking like a successful card payment (local/staging testing only).
+         */
+        'hotel_skip_gateway' => filter_var(env('PAYBY_HOTEL_SKIP_GATEWAY', true), FILTER_VALIDATE_BOOLEAN),
     ],
 
     'tabby' => [
