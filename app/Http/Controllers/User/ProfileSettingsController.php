@@ -14,6 +14,11 @@ class ProfileSettingsController extends Controller
 {
     use UploadImageTrait;
 
+    public function index()
+    {
+        return redirect()->route('user.profile.personalInfo');
+    }
+
     public function personalInfo()
     {
         $user = Auth::user();

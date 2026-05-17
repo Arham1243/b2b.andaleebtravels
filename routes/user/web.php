@@ -31,6 +31,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     Route::get('/dashboard', [UserDashController::class, 'dashboard'])->name('dashboard');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+    Route::get('profile', [ProfileSettingsController::class, 'index'])->name('profile.index');
     Route::get('profile/personal-info', [ProfileSettingsController::class, 'personalInfo'])->name('profile.personalInfo');
     Route::post('profile/personal-info/update', [ProfileSettingsController::class, 'updatePersonalInfo'])->name('profile.updatePersonalInfo');
 

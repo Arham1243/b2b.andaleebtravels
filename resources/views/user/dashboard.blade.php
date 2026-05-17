@@ -7,7 +7,7 @@
                 <h3 class="heading">Quick Actions</h3>
             </div>
             <div class="quick-actions-grid">
-                <a href="{{ route('user.profile.personalInfo') }}" class="quick-action-item">
+                <a href="{{ route('user.profile.index') }}" class="quick-action-item">
                     <div class="quick-action-circle">
                         <i class='bx bxs-user'></i>
                     </div>

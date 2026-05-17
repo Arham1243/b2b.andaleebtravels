@@ -1,190 +1,185 @@
 @extends('user.layouts.main')
+
+@section('css')
+    @include('user.profile-settings._styles')
+@endsection
+
 @section('content')
-    <div class="col-md-12">
-        <div class="dashboard-content">
-            {{ Breadcrumbs::render('user.profile.personalInfo') }}
-            <form action="{{ route('user.profile.updatePersonalInfo') }}" method="POST" enctype="multipart/form-data"
-                id="validation-form">
-                @csrf
-                @method('POST')
-                <div class="custom-sec custom-sec--form">
-                    <div class="custom-sec__header">
-                        <div class="section-content">
-                            <h3 class="heading">Edit: Personal Information</h3>
+<div class="ps">
+    <div class="container">
+
+        {{-- Page header --}}
+        <div class="ps-page-head">
+            <div class="ps-page-head__icon">
+                <i class="bx bxs-user-circle"></i>
+            </div>
+            <div>
+                <h1 class="ps-page-head__title">Account Settings</h1>
+                <p class="ps-page-head__sub">Manage your profile, password, and preferences</p>
+            </div>
+        </div>
+
+        <div class="ps-shell">
+
+            {{-- ── SIDEBAR ── --}}
+            @include('user.profile-settings._sidebar')
+
+            {{-- ── MAIN CONTENT ── --}}
+            <main class="ps-main">
+                <form action="{{ route('user.profile.updatePersonalInfo') }}" method="POST"
+                      enctype="multipart/form-data" id="validation-form">
+                    @csrf
+                    @method('POST')
+
+                    {{-- Personal Information --}}
+                    <div class="ps-card">
+                        <div class="ps-card__head">
+                            <h2 class="ps-card__title">
+                                <i class="bx bxs-id-card"></i> Personal Information
+                            </h2>
+                            <button type="submit" class="ps-btn-save">
+                                <i class="bx bx-save"></i> Save Changes
+                            </button>
                         </div>
-                        <button type="submit" class="themeBtn">Save Changes</button>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="form-wrapper">
-                            <div class="form-box">
-                                <div class="form-box__header">
-                                    <div class="title">Information</div>
+                        <div class="ps-card__body">
+                            <div class="ps-form-grid">
+
+                                <div class="ps-field">
+                                    <label class="ps-field__label">
+                                        Name <span class="req">*</span>
+                                    </label>
+                                    <input type="text" name="name" class="ps-field__input"
+                                           value="{{ old('name', $user->name) }}" required>
+                                    @error('name')
+                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                    @enderror
                                 </div>
-                                <div class="form-box__body">
-                                    <div class="row">
-                                        <div class="col-md-6 mb-4">
-                                            <div class="form-fields">
-                                                <label class="title">Name<span class="text-danger">*</span>
-                                                    :</label>
-                                                <input type="text" name="name" class="field"
-                                                    value="{{ old('name', $user->name) }}" required="">
-                                                @error('name')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6 mb-4">
-                                            <div class="form-fields">
-                                                <label class="title">Username<span class="text-danger">*</span>
-                                                    :</label>
-                                                <input type="text" name="username" class="field"
-                                                    value="{{ old('username', $user->username) }}" required="">
-                                                @error('username')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6 mb-4">
-                                            <div class="form-fields">
-                                                <label class="title">Email<span class="text-danger">*</span> :</label>
-                                                <input type="email" readonly class="field"
-                                                    value="{{ old('email', $user->email) }}" required="">
-                                                @error('email')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6 mb-4">
-                                            <div class="form-fields">
-                                                <label class="title">Agent Code<span class="text-danger">*</span> :</label>
-                                                <input type="text" name="agent_code" class="field"
-                                                    value="{{ old('agent_code', $user->agent_code) }}" required="">
-                                                @error('agent_code')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                        <div class="col-md-12">
-                                            <div class="placeholder-user">
-                                                <label for="profile-img" class="placeholder-user__img">
-                                                    <img src="{{ $user->avatar ? asset($user->avatar) : asset('admin/assets/images/placeholder.png') }}"
-                                                        alt="image" style=" object-fit: contain;" class="imgFluid"
-                                                        id="profile-preview" loading="lazy">
-                                                </label>
-                                                <input type="file" name="avatar" id="profile-img"
-                                                    onchange="showImage(this, 'profile-preview', 'filename-preview');"
-                                                    class="d-none" accept="image/*">
-                                                <div class="placeholder-user__name" id="filename-preview">Profile Image
-                                                </div>
-                                                @error('avatar')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                    </div>
+
+                                <div class="ps-field">
+                                    <label class="ps-field__label">
+                                        Username <span class="req">*</span>
+                                    </label>
+                                    <input type="text" name="username" class="ps-field__input"
+                                           value="{{ old('username', $user->username) }}" required>
+                                    @error('username')
+                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                    @enderror
                                 </div>
+
+                                <div class="ps-field">
+                                    <label class="ps-field__label">Email</label>
+                                    <input type="email" class="ps-field__input" readonly
+                                           value="{{ old('email', $user->email) }}">
+                                    <span class="ps-field__hint">Email address cannot be changed.</span>
+                                </div>
+
+                                <div class="ps-field">
+                                    <label class="ps-field__label">
+                                        Agent Code <span class="req">*</span>
+                                    </label>
+                                    <input type="text" name="agent_code" class="ps-field__input"
+                                           value="{{ old('agent_code', $user->agent_code) }}" required>
+                                    @error('agent_code')
+                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
                             </div>
-                            <div class="form-box">
-                                <div class="form-box__header">
-                                    <div class="title">Hotel Search Providers</div>
-                                </div>
-                                <div class="form-box__body">
-                                    @php
-                                        $selectedProviders = $user->hotel_search_providers ?? null;
-                                        if (!is_array($selectedProviders) || empty($selectedProviders)) {
-                                            $selectedProviders = $adminProviders ?? [];
-                                        }
-                                        $providerOptions = [
-                                            'yalago' => 'Yalago',
-                                            'tbo' => 'TBO',
-                                            'tripindeal' => 'TripInDeal',
-                                        ];
-                                    @endphp
-                                    <div class="row">
-                                        <div class="col-md-6 mb-4">
-                                            <div class="form-fields">
-                                                <label class="title">Enable Providers</label>
-                                                <select name="hotel_search_providers[]" class="field select2-select" multiple>
-                                                    @foreach ($providerOptions as $key => $label)
-                                                        <option value="{{ $key }}" {{ in_array($key, $selectedProviders, true) ? 'selected' : '' }}>
-                                                            {{ $label }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                <small class="text-muted">If none selected, all providers are enabled.</small>
-                                            </div>
+
+                            {{-- Avatar --}}
+                            <div style="margin-top:20px;">
+                                <div class="ps-field__label" style="margin-bottom:10px;">Profile Picture</div>
+                                <div class="ps-avatar-pick">
+                                    <img src="{{ $user->avatar ? asset($user->avatar) : asset('admin/assets/images/placeholder.png') }}"
+                                         alt="Profile" class="ps-avatar-pick__preview"
+                                         id="profile-preview">
+                                    <div>
+                                        <label for="profile-img" class="ps-avatar-pick__btn">
+                                            <i class="bx bx-upload"></i> Upload Photo
+                                        </label>
+                                        <input type="file" name="avatar" id="profile-img" class="d-none"
+                                               accept="image/*"
+                                               onchange="showImage(this, 'profile-preview', 'avatar-filename')">
+                                        <div class="ps-avatar-pick__name" id="avatar-filename">
+                                            JPG, PNG or GIF &mdash; max 2 MB
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-box">
-                                <div class="form-box__header">
-                                    <div class="title">Flight Search Providers</div>
-                                </div>
-                                <div class="form-box__body">
-                                    @php
-                                        $selectedFlightProviders = $user->flight_search_providers ?? null;
-                                        if (!is_array($selectedFlightProviders) || empty($selectedFlightProviders)) {
-                                            $selectedFlightProviders = $adminFlightProviders ?? [];
-                                        }
-                                        $flightProviderOptions = [
-                                            'sabre' => 'Sabre',
-                                        ];
-                                    @endphp
-                                    <div class="row">
-                                        <div class="col-md-6 mb-4">
-                                            <div class="form-fields">
-                                                <label class="title">Enable Providers</label>
-                                                <select name="flight_search_providers[]" class="field select2-select" multiple>
-                                                    @foreach ($flightProviderOptions as $key => $label)
-                                                        <option value="{{ $key }}" {{ in_array($key, $selectedFlightProviders, true) ? 'selected' : '' }}>
-                                                            {{ $label }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                <small class="text-muted">If none selected, all providers are enabled.</small>
-                                            </div>
-                                        </div>
+                                        @error('avatar')
+                                            <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                        @enderror
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </form>
+
+                    {{-- Hotel Search Providers --}}
+                    <div class="ps-card">
+                        <div class="ps-card__head">
+                            <h2 class="ps-card__title">
+                                <i class="bx bxs-hotel"></i> Hotel Search Providers
+                            </h2>
+                        </div>
+                        <div class="ps-card__body">
+                            @php
+                                $selectedProviders = $user->hotel_search_providers ?? null;
+                                if (!is_array($selectedProviders) || empty($selectedProviders)) {
+                                    $selectedProviders = $adminProviders ?? [];
+                                }
+                                $providerOptions = [
+                                    'yalago'     => 'Yalago',
+                                    'tbo'        => 'TBO',
+                                    'tripindeal' => 'TripInDeal',
+                                ];
+                            @endphp
+                            <div class="ps-field" style="max-width:420px;">
+                                <label class="ps-field__label">Enable Providers</label>
+                                <select name="hotel_search_providers[]" class="ps-field__input select2-select" multiple>
+                                    @foreach ($providerOptions as $key => $label)
+                                        <option value="{{ $key }}"
+                                            {{ in_array($key, $selectedProviders, true) ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <span class="ps-field__hint">If none selected, all providers are enabled.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Flight Search Providers --}}
+                    <div class="ps-card">
+                        <div class="ps-card__head">
+                            <h2 class="ps-card__title">
+                                <i class="bx bxs-plane-alt"></i> Flight Search Providers
+                            </h2>
+                        </div>
+                        <div class="ps-card__body">
+                            @php
+                                $selectedFlightProviders = $user->flight_search_providers ?? null;
+                                if (!is_array($selectedFlightProviders) || empty($selectedFlightProviders)) {
+                                    $selectedFlightProviders = $adminFlightProviders ?? [];
+                                }
+                                $flightProviderOptions = ['sabre' => 'Sabre'];
+                            @endphp
+                            <div class="ps-field" style="max-width:420px;">
+                                <label class="ps-field__label">Enable Providers</label>
+                                <select name="flight_search_providers[]" class="ps-field__input select2-select" multiple>
+                                    @foreach ($flightProviderOptions as $key => $label)
+                                        <option value="{{ $key }}"
+                                            {{ in_array($key, $selectedFlightProviders, true) ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <span class="ps-field__hint">If none selected, all providers are enabled.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </main>
+
         </div>
     </div>
+</div>
 @endsection
-@push('js')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const roleSelect = document.getElementById('role');
-            const otherRoleField = document.getElementById('other-role-field');
-            const otherRoleInput = document.getElementById('other-role');
-
-
-            if (roleSelect.value === 'Other') {
-                otherRoleField.style.display = 'block';
-            }
-
-
-            roleSelect.addEventListener('change', function() {
-                if (roleSelect.value === 'Other') {
-
-                    roleSelect.removeAttribute('name');
-                    otherRoleField.style.display = 'block';
-                    otherRoleInput.setAttribute('name',
-                        'role');
-                } else {
-
-                    roleSelect.setAttribute('name', 'role');
-                    otherRoleField.style.display = 'none';
-                    otherRoleField.classList.remove('d-block');
-                    otherRoleInput.removeAttribute('name');
-                }
-            });
-        });
-    </script>
-@endpush
