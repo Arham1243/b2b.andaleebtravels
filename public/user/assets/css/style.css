@@ -5333,12 +5333,6 @@ body .search-box__input.search-box__input {
     box-shadow: none;
 }
 
-/* Inner Vue card also paints a striped panel + shadow on listing mode — flatten on detail only */
-.hd-page--toolbar .hs-mount--hotel-listing .fs-pro-card {
-    box-shadow: none !important;
-    background: transparent !important;
-}
-
 .hd-page--toolbar .hd-search-bar--listing {
     margin-bottom: 0;
 }
