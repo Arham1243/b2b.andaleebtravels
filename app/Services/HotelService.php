@@ -30,8 +30,8 @@ class HotelService
     private $yalagoApiUrl = 'https://api.yalago.com/hotels';
     private $tboApiUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Book';
     private $tboCancelUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Cancel';
-    private $tboUsername = 'SkylineexperienceTest';
-    private $tboPassword = 'Sky@69774762';
+    private $tboUsername = 'andaleebTest';
+    private $tboPassword = 'And@30524459';
     protected $adminEmail;
 
 

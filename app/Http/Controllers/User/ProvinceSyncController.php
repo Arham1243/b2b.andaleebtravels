@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Log;
 class ProvinceSyncController extends Controller
 {
     private const TBO_API_CITY_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/CityList';
-    private const TBO_API_USERNAME = 'SkylineexperienceTest';
-    private const TBO_API_PASSWORD = 'Sky@69774762';
+    private const TBO_API_USERNAME = 'andaleebTest';
+    private const TBO_API_PASSWORD = 'And@30524459';
     private const NAME_NORMALIZE_PATTERN = '/[^a-z0-9\\s]/u';
     private const DEBUG_LOG_UNMATCHED = false;
 

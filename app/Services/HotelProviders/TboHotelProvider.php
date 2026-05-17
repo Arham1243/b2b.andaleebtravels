@@ -15,8 +15,8 @@ class TboHotelProvider implements HotelProviderInterface
     private const API_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/TBOHotelCodeList';
     private const API_SEARCH_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Search';
     private const API_DETAILS_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/HotelDetails';
-    private const API_USERNAME = 'SkylineexperienceTest';
-    private const API_PASSWORD = 'Sky@69774762';
+    private const API_USERNAME = 'andaleebTest';
+    private const API_PASSWORD = 'And@30524459';
     private const SEARCH_CHUNK_SIZE = 100;
 
     private float $commissionPercentage;
