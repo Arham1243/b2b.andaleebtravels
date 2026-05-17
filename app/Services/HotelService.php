@@ -29,6 +29,7 @@ class HotelService
     private $yalagoApiKey = '93082895-c45f-489f-ae10-bed9eaae161e';
     private $yalagoApiUrl = 'https://api.yalago.com/hotels';
     private $tboApiUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Book';
+    private $tboSearchUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Search';
     private $tboCancelUrl = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/Cancel';
     private $tboUsername = 'andaleebTest';
     private $tboPassword = 'And@30524459';
@@ -859,6 +860,133 @@ class HotelService
         }
     }
 
+    /**
+     * TBO session/booking codes from search expire quickly ("Session Expired" on Book).
+     * Pull a fresh code + fare via Search immediately before Book.
+     *
+     * @return array{booking_code: string, supplier_total_fare: float}|null
+     */
+    protected function fetchFreshTboBookingCode(B2bHotelBooking $booking): ?array
+    {
+        $hotelCode = (string) $booking->yalago_hotel_id;
+        if ($hotelCode === '') {
+            return null;
+        }
+
+        $checkIn = $booking->check_in_date->format('Y-m-d');
+        $checkOut = $booking->check_out_date->format('Y-m-d');
+
+        $roomsData = $booking->rooms_data ?? [];
+        $paxRooms = collect($roomsData)->map(function ($room) {
+            $childAges = $room['ChildAges'] ?? [];
+            $childrenCount = is_array($childAges) ? count($childAges) : 0;
+
+            $payload = [
+                'Adults' => (int) ($room['Adults'] ?? 1),
+                'Children' => $childrenCount,
+            ];
+
+            if ($childrenCount > 0) {
+                $payload['ChildrenAges'] = array_values($childAges);
+            }
+
+            return $payload;
+        })->values()->all();
+
+        if ($paxRooms === []) {
+            return null;
+        }
+
+        $nationality = strtoupper(substr((string) ($booking->source_market ?? 'AE'), 0, 2));
+        if (strlen($nationality) !== 2) {
+            $nationality = 'AE';
+        }
+
+        try {
+            $response = Http::timeout(30)
+                ->connectTimeout(10)
+                ->retry(2, 2000)
+                ->withBasicAuth($this->tboUsername, $this->tboPassword)
+                ->post($this->tboSearchUrl, [
+                    'CheckIn' => $checkIn,
+                    'CheckOut' => $checkOut,
+                    'HotelCodes' => $hotelCode,
+                    'GuestNationality' => $nationality,
+                    'PaxRooms' => $paxRooms,
+                    'ResponseTime' => 23.0,
+                    'IsDetailedResponse' => false,
+                    'Filters' => [
+                        'Refundable' => false,
+                        'NoOfRooms' => count($paxRooms),
+                        'MealType' => 'All',
+                    ],
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('TBO pre-book Search HTTP failed', [
+                    'booking_id' => $booking->id,
+                    'status' => $response->status(),
+                ]);
+
+                return null;
+            }
+
+            $payload = $response->json();
+            if (($payload['Status']['Code'] ?? null) !== 200) {
+                Log::warning('TBO pre-book Search status not ok', [
+                    'booking_id' => $booking->id,
+                    'status' => $payload['Status'] ?? null,
+                ]);
+
+                return null;
+            }
+
+            $hotelResults = $payload['HotelResult'] ?? [];
+            foreach ($hotelResults as $hotelResult) {
+                if ((string) ($hotelResult['HotelCode'] ?? '') !== $hotelCode) {
+                    continue;
+                }
+
+                $rooms = collect($hotelResult['Rooms'] ?? []);
+                if ($rooms->isEmpty()) {
+                    continue;
+                }
+
+                $bestRoom = $rooms->sortBy(function ($room) {
+                    $fare = $room['TotalFare'] ?? null;
+
+                    return $fare !== null ? (float) $fare : (float) ($room['TotalTax'] ?? 0);
+                })->first();
+
+                if (!$bestRoom) {
+                    continue;
+                }
+
+                $code = $bestRoom['BookingCode'] ?? null;
+                if (empty($code)) {
+                    continue;
+                }
+
+                $totalFare = $bestRoom['TotalFare'] ?? null;
+                if ($totalFare === null && isset($bestRoom['TotalTax'])) {
+                    $totalFare = (float) $bestRoom['TotalTax'];
+                }
+
+                return [
+                    'booking_code' => (string) $code,
+                    'supplier_total_fare' => (float) $totalFare,
+                ];
+            }
+        } catch (Exception $e) {
+            Log::warning('TBO pre-book Search exception', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
     protected function placeTboBookingOrder(B2bHotelBooking $booking): array
     {
         try {
@@ -876,6 +1004,20 @@ class HotelService
 
             if ($supplierTotal <= 0) {
                 $supplierTotal = (float) $booking->rooms_total;
+            }
+
+            $fresh = $this->fetchFreshTboBookingCode($booking);
+            if ($fresh !== null) {
+                $bookingCode = $fresh['booking_code'];
+                $supplierTotal = $fresh['supplier_total_fare'];
+                foreach ($selectedRooms as $i => $sr) {
+                    $selectedRooms[$i]['booking_code'] = $bookingCode;
+                }
+                $booking->update(['selected_rooms' => $selectedRooms]);
+                Log::info('TBO booking code refreshed before Book', [
+                    'booking_id' => $booking->id,
+                    'hotel_code' => $booking->yalago_hotel_id,
+                ]);
             }
 
             $customerNames = [];
