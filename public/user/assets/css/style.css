@@ -1869,7 +1869,7 @@ body.responsive.fancybox-active.compensate-for-scrollbar {
     animation: rotation 1s linear infinite;
 }
 
-.portal-loader__plane {
+.portal-loader__icon {
     position: absolute;
     inset: 0;
     margin: auto;
@@ -1877,7 +1877,7 @@ body.responsive.fancybox-active.compensate-for-scrollbar {
     height: 30px;
     font-size: 30px;
     color: var(--color-primary);
-    animation: floatPlane 1.2s ease-in-out infinite;
+    animation: floatLoaderIcon 1.2s ease-in-out infinite;
 }
 
 .portal-loader__text {
@@ -1896,7 +1896,7 @@ body.responsive.fancybox-active.compensate-for-scrollbar {
     }
 }
 
-@keyframes floatPlane {
+@keyframes floatLoaderIcon {
     0%,
     100% {
         transform: translateY(0);
@@ -4534,11 +4534,8 @@ body .search-box__input.search-box__input {
     /* Sit below `.topbar` (sticky, z-index 1000); tune if topbar height changes */
     top: clamp(92px, 18vw, 124px);
     z-index: 990;
-    background: #fff;
     padding: 0.65rem 0 0.75rem;
     margin-bottom: 0;
-    border-bottom: 1px solid #e8eaef;
-    box-shadow: 0 6px 18px rgba(6, 18, 41, 0.06);
 }
 
 .hl-page--listing .hl-search-bar--listing {

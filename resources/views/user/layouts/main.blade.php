@@ -28,7 +28,7 @@
         <div class="portal-loader">
             <div class="portal-loader__orbit">
                 <span class="portal-loader__ring"></span>
-                <i class='bx bxs-plane-alt portal-loader__plane'></i>
+                <i class='bx bxs-plane-alt portal-loader__icon' data-loader-icon aria-hidden="true"></i>
             </div>
             <div class="portal-loader__text" data-loader-message>Fetching your travel results...</div>
         </div>

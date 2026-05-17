@@ -96,13 +96,30 @@ function showIcon(iconField) {
 const getPageLoader = () => document.getElementById("loader");
 window.__enablePageLoaderOnNav = false;
 
-window.showPageLoader = function (message) {
+window.showPageLoader = function (message, iconClasses) {
     const loader = getPageLoader();
     if (!loader) return;
     const messageElement = loader.querySelector("[data-loader-message]");
-    if (messageElement && typeof message === "string" && message.trim() !== "") {
-        messageElement.textContent = message.trim();
+    const iconEl = loader.querySelector("[data-loader-icon]");
+
+    if (messageElement) {
+        if (typeof message === "string" && message.trim() !== "") {
+            messageElement.textContent = message.trim();
+        } else {
+            messageElement.textContent = "Fetching your travel results...";
+        }
     }
+
+    if (iconEl) {
+        const icon =
+            typeof iconClasses === "string" && iconClasses.trim() !== ""
+                ? iconClasses.trim()
+                : "bx bxs-plane-alt";
+        iconEl.className = `${icon} portal-loader__icon`;
+        iconEl.setAttribute("data-loader-icon", "");
+        iconEl.setAttribute("aria-hidden", "true");
+    }
+
     loader.classList.add("is-visible");
 };
 

@@ -44,11 +44,6 @@
                 <div class="hl-rp-bar__left">
                     <span class="hl-rp-bar__count">Showing <strong>{{ $hotels->count() }}</strong> of
                         <strong>{{ $totalHotels }}</strong> hotels found</span>
-                    @if (count($userFilters) > 0)
-                        <a href="{{ route('user.hotels.search', $query) }}" class="hl-reset-btn">
-                            <i class="bx bx-refresh"></i> Reset Filters
-                        </a>
-                    @endif
                 </div>
                 <div class="hl-rp-bar__sort">
                     <span class="hl-rp-bar__sortlabel">SORT BY:</span>
@@ -357,7 +352,7 @@
             const navigateWithLoader = (url, message = 'Updating hotel results...') => {
                 if (typeof window.showPageLoader === 'function') {
                     window.__enablePageLoaderOnNav = true;
-                    window.showPageLoader(message);
+                    window.showPageLoader(message, 'bx bxs-dish');
                 }
                 window.location.href = url;
             };
