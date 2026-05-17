@@ -1109,32 +1109,83 @@ class HotelService
                 throw new Exception('TBO PreBook failed - cannot place Book request.');
             }
 
-            $customerNames = [];
-            $customerNames[] = [
-                'Title' => $booking->lead_title ?? 'Mr',
-                'FirstName' => $booking->lead_first_name,
-                'LastName' => $booking->lead_last_name,
-                'Type' => 'Adult',
-            ];
+            // Build per-room CustomerDetails — TBO compares this against the
+            // original search request and rejects any count mismatch.
+            //
+            // The checkout form collects one "guest" entry per Adult across all
+            // rooms (lead included). It does NOT collect child entries, so child
+            // details are synthesised from rooms_data.ChildAges using the lead's
+            // surname as a placeholder.
+            $roomsData = $booking->rooms_data ?? [];
+            $guestsData = $booking->guests_data ?? [];
 
-            $guests = $booking->guests_data ?? [];
-            foreach ($guests as $guest) {
-                $age = isset($guest['age']) ? (int) $guest['age'] : null;
-                $customerNames[] = [
+            // Flat adult pool from the form. Pad with the lead guest if the form
+            // somehow under-collected (defensive — shouldn't normally happen).
+            $adultsPool = [];
+            foreach ($guestsData as $guest) {
+                $adultsPool[] = [
                     'Title' => $guest['title'] ?? 'Mr',
                     'FirstName' => $guest['first_name'] ?? '',
                     'LastName' => $guest['last_name'] ?? '',
-                    'Type' => $age !== null && $age < 12 ? 'Child' : 'Adult',
+                    'Type' => 'Adult',
                 ];
+            }
+
+            $totalAdultsRequired = array_sum(array_map(
+                fn($r) => (int) ($r['Adults'] ?? 0),
+                $roomsData
+            ));
+
+            if ($totalAdultsRequired === 0) {
+                $totalAdultsRequired = max(1, count($adultsPool));
+            }
+
+            while (count($adultsPool) < $totalAdultsRequired) {
+                $adultsPool[] = [
+                    'Title' => $booking->lead_title ?? 'Mr',
+                    'FirstName' => $booking->lead_first_name ?: 'Guest',
+                    'LastName' => $booking->lead_last_name ?: '',
+                    'Type' => 'Adult',
+                ];
+            }
+
+            $leadLast = $booking->lead_last_name ?: 'Guest';
+            $adultIdx = 0;
+            $customerDetails = [];
+
+            if (empty($roomsData)) {
+                // Fallback: treat as a single room with whatever adults we have.
+                $customerDetails[] = [
+                    'CustomerNames' => $adultsPool,
+                ];
+            } else {
+                foreach ($roomsData as $room) {
+                    $adultCount = (int) ($room['Adults'] ?? 0);
+                    $childAges = $room['ChildAges'] ?? [];
+                    $names = [];
+
+                    for ($a = 0; $a < $adultCount; $a++) {
+                        $names[] = $adultsPool[$adultIdx] ?? end($adultsPool);
+                        $adultIdx++;
+                    }
+
+                    foreach (array_values($childAges) as $cIdx => $age) {
+                        $names[] = [
+                            'Title' => 'Mr',
+                            'FirstName' => 'Child' . ($cIdx + 1),
+                            'LastName' => $leadLast,
+                            'Type' => 'Child',
+                            'Age' => (int) $age,
+                        ];
+                    }
+
+                    $customerDetails[] = ['CustomerNames' => $names];
+                }
             }
 
             $requestData = [
                 'BookingCode' => $bookingCode,
-                'CustomerDetails' => [
-                    [
-                        'CustomerNames' => $customerNames,
-                    ],
-                ],
+                'CustomerDetails' => $customerDetails,
                 'ClientReferenceId' => $booking->booking_number,
                 'BookingReferenceId' => (string) $booking->id,
                 'TotalFare' => number_format((float) $supplierTotal, 2, '.', ''),
