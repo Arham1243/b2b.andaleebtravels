@@ -569,5 +569,73 @@
                 padding: 0.25rem 0;
             }
         }
+
+        /*
+         * Sticky toolbar (/hotels/search listing + hotel detail): default hotel-search styles use 70px
+         * tiles and flex stretch so destination / pax read taller than the stay-range block.
+         * Tie all three to the same vertical rhythm as the date row.
+         */
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-route-pair--hotel-destination-only > .fs-pro-route-field {
+            align-self: center !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-route-pair--hotel-destination-only .fs-pro-route-field__shell {
+            flex: 0 1 auto !important;
+            min-height: 0 !important;
+            align-items: center !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-route-field .hs-field__inner {
+            padding: 0.34rem 0.55rem !important;
+            min-height: 0 !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-date-cell .hs-field__inner.fs-pro-date-inner {
+            min-height: 0 !important;
+            padding: 0.34rem 0.52rem !important;
+            justify-content: center !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-date-label {
+            margin-bottom: 0.12rem !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-stay-range-display {
+            margin-top: 0 !important;
+            gap: 0.28rem !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-stay-range-display__day {
+            font-size: 1.06rem !important;
+            line-height: 1.05 !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-stay-range-display__month {
+            font-size: 0.72rem !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-stay-range-display__weekday {
+            font-size: 0.62rem !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-stay-range-display__mid {
+            gap: 0.06rem !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-stay-range-display__nights {
+            font-size: 0.66rem !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-pax-cabin-row--hotel-only {
+            align-self: center !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-travellers {
+            padding: 0.34rem 0.52rem !important;
+        }
+
+        .hs-mount--hotel-listing .hotel-search-redesign .fs-pro-actions-footer--hotel-only {
+            align-self: center !important;
+        }
     </style>
 @endpush
