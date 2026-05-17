@@ -23,56 +23,7 @@
     top: 80px;
 }
 
-.ps-nav__head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 18px 16px 14px;
-    border-bottom: 1px solid #f0f3f8;
-}
-
-.ps-nav__logo {
-    width: 34px;
-    height: 34px;
-    background: var(--c-brand, #cd1b4f);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-}
-
-.ps-nav__title { font-size: .88rem; font-weight: 800; color: #1a2540; line-height: 1.2; }
-.ps-nav__sub   { font-size: .65rem; color: #8492a6; }
-
-/* balance pill */
-.ps-nav__balance {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 10px 10px 4px;
-    padding: 7px 10px;
-    background: #f5f7fa;
-    border: 1px solid #e4e9f0;
-    border-radius: 8px;
-    font-size: .72rem;
-    color: #4a5568;
-}
-.ps-nav__balance i { font-size: .95rem; color: var(--c-brand, #cd1b4f); }
-.ps-nav__balance strong { color: #1a2540; }
-
-.ps-nav__menu { padding: 8px 10px 6px; }
-
-.ps-nav__section-label {
-    font-size: .6rem;
-    font-weight: 700;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: #b0bac8;
-    padding: 8px 6px 4px;
-}
+.ps-nav__menu { padding: 8px 10px 8px; }
 
 .ps-nav__item {
     display: flex;
@@ -109,11 +60,6 @@
     opacity: .4;
 }
 
-.ps-nav__divider {
-    height: 1px;
-    background: #f0f3f8;
-    margin: 4px 10px;
-}
 
 /* ── Main content area ───────────────────────────────────── */
 .ps-main { min-width: 0; }

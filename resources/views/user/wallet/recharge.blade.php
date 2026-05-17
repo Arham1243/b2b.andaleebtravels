@@ -1,6 +1,7 @@
 @extends('user.layouts.main')
 
 @section('css')
+    @include('user.profile-settings._styles')
     <style>
         .recharge-section {
             background: #fff;
@@ -177,8 +178,21 @@
 @endsection
 
 @section('content')
-    <div class="col-md-12">
-        <div class="dashboard-content">
+<div class="ps">
+    <div class="container">
+
+        <div class="ps-page-head">
+            <div class="ps-page-head__icon"><i class="bx bxs-wallet-alt"></i></div>
+            <div>
+                <h1 class="ps-page-head__title">Account Settings</h1>
+                <p class="ps-page-head__sub">Manage your profile, password, and preferences</p>
+            </div>
+        </div>
+
+        <div class="ps-shell">
+            @include('user.profile-settings._sidebar')
+
+            <main class="ps-main">
             <div class="recharge-section">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                     <h3 class="heading fw-bold mb-0">Wallet Recharge</h3>
@@ -317,8 +331,10 @@
                     @endif
                 </div>
             </div>
+            </main>
         </div>
     </div>
+</div>
 @endsection
 
 @push('js')
