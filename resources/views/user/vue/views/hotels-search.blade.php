@@ -95,7 +95,7 @@
                             <div class="hs-field__inner fs-pro-date-inner">
                                 <div class="hs-field__label fs-pro-date-label">
                                     <i class='bx bx-calendar'></i>
-                                    <span>Check in &mdash; Check out</span>
+                                    <span>Check in - Check out</span>
                                     <i class='bx bx-chevron-down fs-pro-date-chevron'></i>
                                 </div>
                                 <div class="fs-pro-stay-range-display">
@@ -324,7 +324,7 @@
         }
 
         .fs-pro-route-pair--hotel-destination-only {
-            flex: 1 1 220px;
+            flex: 1 1 0;
             min-width: 0;
         }
 
@@ -332,8 +332,9 @@
             padding-right: 0.95rem !important;
         }
 
+        /* Equal width with destination (50 / 50 of the row) */
         .fs-pro-date-pair--hotel-range {
-            flex: 1.25 1 min(380px, 100%);
+            flex: 1 1 0;
             min-width: 0;
         }
 
@@ -392,29 +393,36 @@
             gap: 0.55rem;
         }
 
-        .fs-pro-stay-range-display {
+        /* Keep check-in / nights / checkout grouped — no stretching across empty space */
+        .hotel-search-redesign .fs-pro-stay-range-display {
             display: flex;
             align-items: center;
-            gap: 0.65rem 1rem;
             margin-top: 0.08rem;
-            flex-wrap: wrap;
+            justify-content: center;
+            flex-wrap: nowrap;
+            gap: 0.55rem 0.85rem;
+            width: 100%;
         }
 
-        .fs-pro-stay-range-display__col {
+        .hotel-search-redesign .fs-pro-stay-range-display__col {
             display: flex;
             align-items: baseline;
             gap: 0.45rem;
             min-width: 0;
-            flex: 1 1 120px;
+            flex: 0 0 auto;
         }
 
-        .fs-pro-stay-range-display__col--end {
-            justify-content: flex-end;
-            text-align: right;
+        .hotel-search-redesign .fs-pro-stay-range-display__col--end {
+            justify-content: flex-start;
+            text-align: left;
         }
 
-        .fs-pro-stay-range-display__col--end .fs-pro-stay-range-display__meta {
-            align-items: flex-end;
+        .hotel-search-redesign .fs-pro-stay-range-display__col--end .fs-pro-stay-range-display__meta {
+            align-items: flex-start;
+        }
+
+        .hotel-search-redesign .fs-pro-stay-range-display__mid {
+            flex-shrink: 0;
         }
 
         .fs-pro-stay-range-display__day {
