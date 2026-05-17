@@ -826,19 +826,15 @@
 
 .rc {
     background: var(--c-white);
-    border: 1px solid var(--c-line-strong);
+    border: 1px solid var(--c-line);
     border-radius: 16px;
     overflow: hidden;
     transition: border-color .15s ease, box-shadow .15s ease;
-    box-shadow:
-        0 1px 2px rgba(26, 37, 64, 0.05),
-        0 6px 18px rgba(26, 37, 64, 0.07);
+    box-shadow: 0 1px 3px rgba(26, 37, 64, 0.045);
 }
 .rc:hover {
-    border-color: rgba(205, 27, 79, 0.38);
-    box-shadow:
-        0 2px 4px rgba(26, 37, 64, 0.06),
-        0 10px 28px rgba(26, 37, 64, 0.1);
+    border-color: rgba(205, 27, 79, 0.22);
+    box-shadow: 0 2px 8px rgba(26, 37, 64, 0.055);
 }
 
 /* leg row */
@@ -860,7 +856,7 @@
     border-radius: 12px;
     border: 1.5px solid var(--c-line);
     background: #fff;
-    box-shadow: 0 2px 8px rgba(26,37,64,.08);
+    box-shadow: 0 1px 3px rgba(26, 37, 64, 0.05);
     display: flex; align-items: center; justify-content: center;
     padding: 4px;
     overflow: hidden;
@@ -1013,10 +1009,10 @@
     background: linear-gradient(180deg, var(--c-brand) 0%, var(--c-brand2) 100%);
     color: #fff !important; font-weight: 700; font-size: .84rem;
     white-space: nowrap;
-    box-shadow: 0 5px 14px rgba(205,27,79,.25);
+    box-shadow: 0 2px 6px rgba(205, 27, 79, 0.18);
     transition: transform .13s, box-shadow .13s;
 }
-.rc__cta:hover { transform: translateY(-1px); box-shadow: 0 9px 20px rgba(205,27,79,.35); }
+.rc__cta:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(205, 27, 79, 0.22); }
 
 /* =========================================================
    FLIGHT DETAILS MODAL
@@ -1216,7 +1212,7 @@
     padding: .55rem 1.2rem; border-radius: 8px;
     background: linear-gradient(180deg, var(--c-brand) 0%, var(--c-brand2) 100%);
     color: #fff !important; font-weight: 700; font-size: .84rem; white-space: nowrap;
-    box-shadow: 0 5px 14px rgba(205,27,79,.25); transition: transform .13s;
+    box-shadow: 0 2px 6px rgba(205, 27, 79, 0.18); transition: transform .13s;
 }
 .fd-foot__book:hover { transform: translateY(-1px); }
 
@@ -1237,7 +1233,7 @@
     background: var(--c-brand); color: #fff !important;
     padding: .6rem 1.2rem; border-radius: 8px;
     font-weight: 700; font-size: .86rem;
-    box-shadow: 0 6px 16px rgba(205,27,79,.25);
+    box-shadow: 0 2px 8px rgba(205, 27, 79, 0.2);
 }
 
 /* =========================================================

@@ -102,19 +102,16 @@ window.showPageLoader = function (message, iconClasses) {
     const messageElement = loader.querySelector("[data-loader-message]");
     const iconEl = loader.querySelector("[data-loader-icon]");
 
-    if (messageElement) {
-        if (typeof message === "string" && message.trim() !== "") {
-            messageElement.textContent = message.trim();
-        } else {
-            messageElement.textContent = "Fetching your travel results...";
-        }
+    if (messageElement && typeof message === "string" && message.trim() !== "") {
+        messageElement.textContent = message.trim();
     }
 
-    if (iconEl) {
-        const icon =
-            typeof iconClasses === "string" && iconClasses.trim() !== ""
-                ? iconClasses.trim()
-                : "bx bxs-plane-alt";
+    if (
+        iconEl &&
+        typeof iconClasses === "string" &&
+        iconClasses.trim() !== ""
+    ) {
+        const icon = iconClasses.trim();
         iconEl.className = `${icon} portal-loader__icon`;
         iconEl.setAttribute("data-loader-icon", "");
         iconEl.setAttribute("aria-hidden", "true");
