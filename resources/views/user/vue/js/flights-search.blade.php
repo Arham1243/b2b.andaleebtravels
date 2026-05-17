@@ -56,11 +56,6 @@
             const airlineGds = ref(true);
             const airlineNdc = ref(false);
 
-            const flightListingPrefTeleportReady = ref(
-                typeof document !== 'undefined' &&
-                    !!document.getElementById('flight-listing-airline-pref-teleport')
-            );
-
             const fromInput = ref('');
             const toInput = ref('');
             const fromQuery = ref('');
@@ -809,7 +804,6 @@
                 airlineLowCost,
                 airlineGds,
                 airlineNdc,
-                flightListingPrefTeleportReady,
                 travellersOpen,
                 travellersRef,
                 toggleTravellers,

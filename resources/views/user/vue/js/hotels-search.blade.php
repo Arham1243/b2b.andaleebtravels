@@ -42,14 +42,68 @@
 
             const recentSearches = ref([]);
 
+            const formatHotelRecentDates = (checkIn, checkOut) => {
+                const fmt = (s) => {
+                    const t = (s || '').trim();
+                    if (!t) return '';
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+                        const [y, mo, d] = t.split('-').map(Number);
+                        const dt = new Date(y, mo - 1, d);
+                        return Number.isNaN(dt.getTime())
+                            ? t
+                            : dt.toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                              });
+                    }
+                    return t;
+                };
+                const a = fmt(checkIn);
+                const b = fmt(checkOut);
+                if (a && b) return `${a} | ${b}`;
+                if (a || b) return a || b;
+                return 'Dates not set';
+            };
+
+            const buildHotelRecentEntry = (queryString) => {
+                const p = new URLSearchParams(queryString);
+                const destLabel = (p.get('destination') || '').trim() || '—';
+                const checkIn = (p.get('check_in') || '').trim();
+                const checkOut = (p.get('check_out') || '').trim();
+                const roomCount = Math.max(1, parseInt(p.get('room_count') || '1', 10) || 1);
+                let adults = 0;
+                let children = 0;
+                for (let i = 1; i <= roomCount; i++) {
+                    adults += parseInt(p.get(`room_${i}_adults`) || '1', 10) || 0;
+                    children += parseInt(p.get(`room_${i}_children`) || '0', 10) || 0;
+                }
+                const guests = adults + children;
+                const roomsBit = `${roomCount} ${roomCount === 1 ? 'Room' : 'Rooms'}`;
+                const guestsBit = `${guests} ${guests === 1 ? 'Guest' : 'Guests'}`;
+                const paxLine = `${roomsBit} · ${guestsBit}`;
+                const dateLine = formatHotelRecentDates(checkIn, checkOut);
+
+                return {
+                    queryString,
+                    destLabel,
+                    dateLine,
+                    paxLine,
+                };
+            };
+
             const loadRecentSearches = () => {
                 try {
                     const raw = localStorage.getItem(RECENT_HOTELS_KEY);
                     const parsed = raw ? JSON.parse(raw) : [];
                     recentSearches.value = Array.isArray(parsed)
                         ? parsed
-                            .filter((e) => e && typeof e.queryString === 'string')
-                            .slice(0, MAX_RECENT_HOTELS)
+                              .filter((e) => e && typeof e.queryString === 'string')
+                              .map((e) => ({
+                                  ...buildHotelRecentEntry(e.queryString),
+                                  fingerprint: stableQueryFingerprint(e.queryString),
+                              }))
+                              .slice(0, MAX_RECENT_HOTELS)
                         : [];
                 } catch {
                     recentSearches.value = [];
@@ -77,32 +131,6 @@
                 } catch {
                     /* ignore */
                 }
-            };
-
-            const buildHotelRecentEntry = (queryString) => {
-                const p = new URLSearchParams(queryString);
-                const destLabel = (p.get('destination') || '').trim() || '—';
-                const checkIn = (p.get('check_in') || '').trim();
-                const checkOut = (p.get('check_out') || '').trim();
-                const roomCount = Math.max(1, parseInt(p.get('room_count') || '1', 10) || 1);
-                let adults = 0;
-                let children = 0;
-                for (let i = 1; i <= roomCount; i++) {
-                    adults += parseInt(p.get(`room_${i}_adults`) || '1', 10) || 0;
-                    children += parseInt(p.get(`room_${i}_children`) || '0', 10) || 0;
-                }
-                const guests = adults + children;
-                const roomsBit = `${roomCount} ${roomCount === 1 ? 'Room' : 'Rooms'}`;
-                const guestsBit = `${guests} ${guests === 1 ? 'Guest' : 'Guests'}`;
-                const stayBit =
-                    checkIn && checkOut ? `${checkIn} → ${checkOut}` : 'Dates not set';
-                const dateLine = `${stayBit} · ${roomsBit} · ${guestsBit}`;
-
-                return {
-                    queryString,
-                    destLabel,
-                    dateLine,
-                };
             };
 
             const applyRecentSearch = (item) => {

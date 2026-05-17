@@ -108,72 +108,12 @@
                     $sfStopsAvail = array_keys($sfStopsAvail);
                 @endphp
 
-                {{-- Full-width rows above the filter/results grid so card tops align with the Filters header --}}
+                {{-- Fare count full-width above filters/results --}}
                 <div class="row g-2 rp-listing-prelude">
-                    <div class="col-12" id="flight-listing-airline-pref-teleport"></div>
-                    <div class="col-12">
-                        {{-- toolbar --}}
-                        <div class="rp-bar">
-                            <span class="rp-bar__count">
-                                Showing <strong>{{ $itineraryCount }}</strong> of <strong>{{ $itineraryCount }}</strong> Fares found
-                            </span>
-                            <div class="rp-bar__sort">
-                                <span class="rp-bar__sortlabel">SORT BY:</span>
-                                <div class="rp-sortrow">
-                                    <button class="rp-sortbtn" data-rp-sort="airline">Airline</button>
-                                    <button class="rp-sortbtn" data-rp-sort="departure-o">Departure</button>
-                                    <button class="rp-sortbtn" data-rp-sort="duration-o-asc">Duration</button>
-                                    <button class="rp-sortbtn" data-rp-sort="best-value">Best Value</button>
-                                    <button class="rp-sortbtn" data-rp-sort="arrival-o">Arrival</button>
-                                    <button class="rp-sortbtn rp-sortbtn--active" data-rp-sort="price-asc" data-rp-cycle>
-                                        Price <i class="bx bx-down-arrow-alt rp-sortbtn__dir"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        {{-- ── Airline filter slider ── --}}
-                        <div class="as-wrap" id="as-wrap">
-                            <button class="as-arrow as-arrow--prev" id="as-prev" aria-label="Scroll left" disabled>
-                                <i class="bx bx-chevron-left"></i>
-                            </button>
-
-                            <div class="as-viewport" id="as-viewport">
-                                <div class="as-track" id="as-track">
-
-                                    {{-- All pill --}}
-                                    <button class="as-pill as-pill--active" data-as-code="all">
-                                        <div class="as-pill__logo as-pill__logo--all">
-                                            <i class="bx bxs-plane-take-off"></i>
-                                        </div>
-                                        <div class="as-pill__body">
-                                            <span class="as-pill__nameline">All <span class="as-pill__cnt">({{ $itineraryCount }})</span></span>
-                                            <span class="as-pill__price">All Airlines</span>
-                                        </div>
-                                    </button>
-
-                                    @foreach($airlineMap as $_al)
-                                    <button class="as-pill" data-as-code="{{ $_al['code'] }}">
-                                        <img class="as-pill__logo"
-                                            src="{{ fl_carrier_logo($_al['code']) }}"
-                                            loading="lazy"
-                                            alt="{{ $_al['name'] }}"
-                                            onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($_al['code']) }}&background=cd1b4f&color=fff&size=80'">
-                                        <div class="as-pill__body">
-                                            <span class="as-pill__nameline">{{ $_al['name'] }} <span class="as-pill__cnt">({{ $_al['count'] }})</span></span>
-                                            <span class="as-pill__price">{{ $currencyCode }} {{ number_format($_al['min_price'], 2) }}</span>
-                                        </div>
-                                    </button>
-                                    @endforeach
-
-                                </div>
-                            </div>
-
-                            <button class="as-arrow as-arrow--next" id="as-next" aria-label="Scroll right">
-                                <i class="bx bx-chevron-right"></i>
-                            </button>
-                        </div>
+                    <div class="col-12 rp-listing-prelude__count-wrap">
+                        <span class="rp-bar__count">
+                            Showing <strong>{{ $itineraryCount }}</strong> of <strong>{{ $itineraryCount }}</strong> Fares found
+                        </span>
                     </div>
                 </div>
 
@@ -302,8 +242,67 @@
 
                 </aside>{{-- /.sf --}}
 
-                {{-- ── RIGHT: Main results column (cards only; toolbar lives in .rp-listing-prelude) --}}
+                {{-- ── RIGHT: Results column — airline pills, sort, then cards (slider stays ~col-8 width vs sidebar) --}}
                 <div class="rp-main">
+
+                {{-- ── Airline filter slider (this column only) ── --}}
+                <div class="as-wrap" id="as-wrap">
+                    <button class="as-arrow as-arrow--prev" id="as-prev" aria-label="Scroll left" disabled>
+                        <i class="bx bx-chevron-left"></i>
+                    </button>
+
+                    <div class="as-viewport" id="as-viewport">
+                        <div class="as-track" id="as-track">
+
+                            {{-- All pill --}}
+                            <button class="as-pill as-pill--active" data-as-code="all">
+                                <div class="as-pill__logo as-pill__logo--all">
+                                    <i class="bx bxs-plane-take-off"></i>
+                                </div>
+                                <div class="as-pill__body">
+                                    <span class="as-pill__nameline">All <span class="as-pill__cnt">({{ $itineraryCount }})</span></span>
+                                    <span class="as-pill__price">All Airlines</span>
+                                </div>
+                            </button>
+
+                            @foreach($airlineMap as $_al)
+                            <button class="as-pill" data-as-code="{{ $_al['code'] }}">
+                                <img class="as-pill__logo"
+                                    src="{{ fl_carrier_logo($_al['code']) }}"
+                                    loading="lazy"
+                                    alt="{{ $_al['name'] }}"
+                                    onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ urlencode($_al['code']) }}&background=cd1b4f&color=fff&size=80'">
+                                <div class="as-pill__body">
+                                    <span class="as-pill__nameline">{{ $_al['name'] }} <span class="as-pill__cnt">({{ $_al['count'] }})</span></span>
+                                    <span class="as-pill__price">{{ $currencyCode }} {{ number_format($_al['min_price'], 2) }}</span>
+                                </div>
+                            </button>
+                            @endforeach
+
+                        </div>
+                    </div>
+
+                    <button class="as-arrow as-arrow--next" id="as-next" aria-label="Scroll right">
+                        <i class="bx bx-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="rp-bar rp-bar--sort">
+                    <div class="rp-bar__sort">
+                        <span class="rp-bar__sortlabel">SORT BY:</span>
+                        <div class="rp-sortrow">
+                            <button class="rp-sortbtn" data-rp-sort="airline">Airline</button>
+                            <button class="rp-sortbtn" data-rp-sort="departure-o">Departure</button>
+                            <button class="rp-sortbtn" data-rp-sort="duration-o-asc">Duration</button>
+                            <button class="rp-sortbtn" data-rp-sort="best-value">Best Value</button>
+                            <button class="rp-sortbtn" data-rp-sort="arrival-o">Arrival</button>
+                            <button class="rp-sortbtn rp-sortbtn--active" data-rp-sort="price-asc" data-rp-cycle>
+                                Price <i class="bx bx-down-arrow-alt rp-sortbtn__dir"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="rp-list">
                     @foreach ($results as $result)
                         @php
@@ -766,15 +765,8 @@
     --rp-prelude-gap: 0.5rem;
     margin-bottom: var(--rp-prelude-gap);
 }
-.rp-listing-prelude > .col-12:first-child:empty {
-    display: none;
-}
-.rp-listing-prelude .as-wrap {
-    margin-bottom: 0;
-}
-.rp-listing-prelude .rp-bar {
-    margin-bottom: 0;
-    padding-bottom: 0;
+.rp-listing-prelude__count-wrap {
+    padding: .45rem 0 .35rem;
 }
 
 /* =========================================================
@@ -790,6 +782,9 @@
     padding: .45rem 0;
     background: transparent;
     border: none;
+}
+.rp-bar.rp-bar--sort {
+    justify-content: flex-end;
 }
 .rp-bar__count { font-size: .82rem; color: var(--c-slate); }
 .rp-bar__count strong { color: var(--c-ink); font-weight: 700; }

@@ -1472,6 +1472,21 @@
             color: #be185d;
         }
 
+        /* Tailwind-scale helper (scoped): Recent panel Clear */
+        .fs-pro-enterprise .text-sm {
+            font-size: 0.875rem !important;
+            line-height: 1.25rem !important;
+        }
+
+        .fs-pro-recent-panel .fs-pro-clear-recent {
+            font-weight: 700 !important;
+            color: var(--fs-brand) !important;
+        }
+
+        .fs-pro-recent-panel .fs-pro-clear-recent:hover {
+            color: var(--fs-brand-2) !important;
+        }
+
         /* Recent panel  -  single pill row */
         .fs-pro-recent-panel .fs-pro-aside-card__head {
             margin-bottom: 0.45rem;
@@ -2204,34 +2219,6 @@
             max-width: 100%;
         }
 
-        /* Full-width airline preference teleported above listing grid (outside .fs-pro-card) */
-        .fs-mount--flight-listing #flight-listing-airline-pref-teleport .fs-pro-airline-pref {
-            width: 100%;
-            margin: 0;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 0.42rem 0.55rem !important;
-            border-radius: 8px !important;
-            gap: 0.42rem 0.55rem !important;
-        }
-
-        .fs-mount--flight-listing #flight-listing-airline-pref-teleport .fs-pro-airline-pref__toggles {
-            flex: 1 1 180px;
-            min-width: 0;
-            flex-wrap: wrap;
-            justify-content: flex-start;
-            overflow-x: visible;
-            gap: 0.35rem !important;
-        }
-
-        .fs-mount--flight-listing #flight-listing-airline-pref-teleport .fs-air-chip {
-            font-size: 0.7rem !important;
-            padding: 0.3rem 0.62rem !important;
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-
         .fs-mount--flight-listing .fs-air-chip {
             font-size: 0.7rem !important;
             padding: 0.3rem 0.62rem !important;
@@ -2490,20 +2477,7 @@
                 flex-wrap: wrap !important;
             }
 
-            .fs-mount--flight-listing #flight-listing-airline-pref-teleport .fs-pro-airline-pref {
-                margin-left: 0 !important;
-                justify-content: flex-start !important;
-                flex-wrap: wrap !important;
-            }
-
             .fs-mount--flight-listing .fs-pro-airline-pref__toggles {
-                justify-content: flex-start;
-                flex-wrap: wrap;
-                overflow-x: visible;
-                white-space: normal;
-            }
-
-            .fs-mount--flight-listing #flight-listing-airline-pref-teleport .fs-pro-airline-pref__toggles {
                 justify-content: flex-start;
                 flex-wrap: wrap;
                 overflow-x: visible;

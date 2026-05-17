@@ -534,7 +534,6 @@
                         </div>
                     </div>
 
-                    <Teleport to="#flight-listing-airline-pref-teleport" :disabled="!flightListingPrefTeleportReady">
                     <div class="fs-pro-airline-pref">
                         <div class="fs-pro-airline-pref__label">
                             <span>Airline preference</span>
@@ -558,7 +557,6 @@
                             </button>
                         </div>
                     </div>
-                    </Teleport>
 
                     <div class="fs-pro-actions-footer">
                         <div class="fs-search-filters">
@@ -644,7 +642,8 @@
             <div class="fs-pro-aside-card fs-pro-recent-panel" v-if="recentSearches.length">
                 <div class="fs-pro-aside-card__head">
                     <span class="fs-pro-aside-card__label">Recent Searches</span>
-                    <button type="button" class="fs-pro-aside-card__action fs-pro-aside-card__action--btn"
+                    <button type="button"
+                        class="fs-pro-aside-card__action fs-pro-aside-card__action--btn text-sm fs-pro-clear-recent"
                         @click="clearRecentSearches">Clear</button>
                 </div>
                 <a v-for="(item, idx) in recentSearches" :key="item.fingerprint + '-' + idx" href="#"
