@@ -250,7 +250,7 @@
                     </div>
 
                     <div class="fs-pro-actions-footer fs-pro-actions-footer--hotel-only">
-                        <button type="submit" class="fs-pro-search-btn"
+                        <button type="submit" class="fs-pro-search-btn" style="min-width: auto"
                             :disabled="!isHotelSearchEnabled || isHotelSearchSubmitting">
                             <template v-if="isHotelSearchSubmitting">
                                 <i class='bx bx-loader-alt bx-spin'></i>
