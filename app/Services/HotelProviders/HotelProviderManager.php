@@ -63,9 +63,15 @@ class HotelProviderManager
         $multiplier = $hasNarrowingFilter ? 6 : 3;
         $target     = max(30, $perPage * $page * $multiplier);
 
+        // When the user has explicitly filtered by supplier, only run the
+        // requested providers. Otherwise the budget is consumed by earlier
+        // providers (Yalago, TripInDeal) and the filtered provider (e.g. TBO)
+        // ends up with budget = 0 and returns nothing — leaving the page empty.
+        $activeProviders = $this->filterProvidersBySupplier($this->providers, $request);
+
         $results = collect();
 
-        foreach ($this->providers as $provider) {
+        foreach ($activeProviders as $provider) {
             $remaining = $hotelNameSearch ? PHP_INT_MAX : max(0, $target - $results->count());
 
             // Expose budget to provider via Request attributes. Providers that
@@ -85,5 +91,37 @@ class HotelProviderManager
         $request->attributes->remove('hotel_search_collected');
 
         return $results->values();
+    }
+
+    /**
+     * Narrow the provider list to those matching the request's `supplier` filter.
+     * Returns the full list when no supplier filter is present (or none match).
+     *
+     * @param  HotelProviderInterface[]  $providers
+     * @return HotelProviderInterface[]
+     */
+    private function filterProvidersBySupplier(array $providers, Request $request): array
+    {
+        $raw = trim((string) $request->input('supplier', ''));
+        if ($raw === '') {
+            return $providers;
+        }
+
+        $requested = collect(explode(',', $raw))
+            ->map(fn($key) => strtolower(trim((string) $key)))
+            ->filter()
+            ->unique()
+            ->flip();
+
+        if ($requested->isEmpty()) {
+            return $providers;
+        }
+
+        $filtered = array_values(array_filter(
+            $providers,
+            fn(HotelProviderInterface $provider) => $requested->has(strtolower($provider->key()))
+        ));
+
+        return empty($filtered) ? $providers : $filtered;
     }
 }
