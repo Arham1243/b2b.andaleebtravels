@@ -27,6 +27,11 @@ return [
         'route' => route('admin.inquiries.index'),
     ],
     [
+        'title' => 'Wallet Bank Transfers',
+        'icon' => 'bx bxs-bank',
+        'route' => route('admin.wallet.bank-transfers.index'),
+    ],
+    [
         'title' => 'Layout',
         'icon' => 'bx bxs-cog',
         'submenu' => [

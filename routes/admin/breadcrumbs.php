@@ -22,6 +22,11 @@ Breadcrumbs::for('admin.vendors.show', function (BreadcrumbTrail $trail, $vendor
     $trail->push($vendor->name, route('admin.vendors.show', $vendor));
 });
 
+Breadcrumbs::for('admin.wallet.bank-transfers.index', function (BreadcrumbTrail $trail) {
+    $trail->parent('admin.dashboard');
+    $trail->push('Wallet Bank Transfers', route('admin.wallet.bank-transfers.index'));
+});
+
 Breadcrumbs::for('admin.inquiries.index', function (BreadcrumbTrail $trail) {
     $trail->parent('admin.dashboard');
     $trail->push('Inquiries', route('admin.inquiries.index'));

@@ -16,17 +16,21 @@ class B2bWalletRecharge extends Model
         'status',
         'payment_reference',
         'tabby_payment_id',
+        'proof_image_path',
         'payment_response',
         'failure_reason',
         'ip_address',
         'user_agent',
         'paid_at',
+        'confirmed_by_b2b_admin_id',
+        'admin_confirmed_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'payment_response' => 'array',
         'paid_at' => 'datetime',
+        'admin_confirmed_at' => 'datetime',
     ];
 
     public static function generateTransactionNumber(): string
@@ -41,6 +45,11 @@ class B2bWalletRecharge extends Model
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(B2bVendor::class, 'b2b_vendor_id');
+    }
+
+    public function confirmedByAdmin(): BelongsTo
+    {
+        return $this->belongsTo(B2bAdmin::class, 'confirmed_by_b2b_admin_id');
     }
 
     public function isPaid(): bool

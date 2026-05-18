@@ -25,7 +25,21 @@
                                 <span class="fw-semibold">{{ $recharge->transaction_number }}</span>
                             </td>
                             <td>{!! formatPrice($recharge->amount) !!}</td>
-                            <td>{{ strtoupper($recharge->payment_method) }}</td>
+                            <td>
+                                @switch($recharge->payment_method)
+                                    @case('bank_transfer')
+                                        Bank transfer
+                                        @break
+                                    @case('payby')
+                                        Card (PayBy)
+                                        @break
+                                    @case('tabby')
+                                        Tabby
+                                        @break
+                                    @default
+                                        {{ strtoupper($recharge->payment_method) }}
+                                @endswitch
+                            </td>
                             <td>
                                 <span
                                     class="badge rounded-pill bg-{{ $recharge->status === 'paid' ? 'success' : ($recharge->status === 'pending' ? 'warning' : 'danger') }}">
@@ -42,6 +56,10 @@
                                         <i class='bx bxs-x-circle'></i>
                                         {{ $recharge->failure_reason ?? 'Payment failed' }}
                                     </span>
+                                @elseif ($recharge->payment_method === 'bank_transfer')
+                                    <span class="text-warning">
+                                        <i class='bx bxs-time'></i> Awaiting admin confirmation
+                                    </span>
                                 @else
                                     <span class="text-warning">
                                         <i class='bx bxs-time'></i> Awaiting payment
@@ -50,7 +68,12 @@
                             </td>
                             <td>{{ $recharge->created_at->format('d M Y, h:i A') }}</td>
                             <td>
-                                @if ($recharge->status === 'failed')
+                                @if ($recharge->proof_image_path && $recharge->payment_method === 'bank_transfer')
+                                    <a href="{{ asset('storage/' . $recharge->proof_image_path) }}" target="_blank" rel="noopener"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class='bx bx-image'></i> Proof
+                                    </a>
+                                @elseif ($recharge->status === 'failed' && in_array($recharge->payment_method, ['payby', 'tabby'], true))
                                     <a href="{{ route('user.wallet.recharge.retry', $recharge->id) }}"
                                         class="btn btn-sm btn-outline-primary"
                                         onclick="return confirm('Retry payment of {{ number_format($recharge->amount, 2) }} AED?')">

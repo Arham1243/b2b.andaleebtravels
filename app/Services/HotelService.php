@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\B2bHotelBooking;
 use App\Models\Config;
+use App\Support\HotelRefundPresentation;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -916,11 +917,10 @@ class HotelService
                     'PaxRooms' => $paxRooms,
                     'ResponseTime' => 23.0,
                     'IsDetailedResponse' => false,
-                    'Filters' => [
-                        'Refundable' => false,
-                        'NoOfRooms' => count($paxRooms),
-                        'MealType' => 'All',
-                    ],
+                        'Filters' => [
+                            'NoOfRooms' => count($paxRooms),
+                            'MealType' => 'All',
+                        ],
                 ]);
 
             if (!$response->successful()) {
@@ -1210,6 +1210,14 @@ class HotelService
             $booking->update([
                 'booking_request' => $requestData,
                 'booking_response' => $responseData,
+            ]);
+
+            Log::info('TBO Book refundable audit', [
+                'booking_id' => $booking->id,
+                'hotel_name' => $booking->hotel_name,
+                'hotel_code' => $booking->yalago_hotel_id,
+                'resolved_meta' => HotelRefundPresentation::tboRefundMetaFromBookingResponse($responseData),
+                'is_refundable_hits' => HotelRefundPresentation::tboRefundFlagAudit($responseData),
             ]);
 
             $statusCode = $responseData['Status']['Code'] ?? null;

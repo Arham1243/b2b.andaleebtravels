@@ -905,6 +905,56 @@
     text-align: right;
 }
 
+.bkpd-info-row--refund {
+    align-items: flex-start;
+}
+
+.bkpd-info-row__val--refund {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.bkpd-refund-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    line-height: 1.2;
+}
+
+.bkpd-refund-pill i {
+    font-size: .85rem;
+}
+
+.bkpd-refund-pill--yes {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.bkpd-refund-pill--no {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.bkpd-refund-note {
+    margin: 0;
+    font-size: .74rem;
+    color: #4b5563;
+    line-height: 1.45;
+    font-weight: 400;
+    text-align: right;
+    max-width: 280px;
+}
+
 /* Actions */
 .bkpd-actions { padding: 14px 18px; }
 .bkpd-no-action { font-size: .8rem; color: #8492a6; margin: 0; display: flex; align-items: center; gap: 6px; }

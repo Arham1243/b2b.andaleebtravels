@@ -106,6 +106,24 @@
 
                     <div class="form-box">
                         <div class="form-box__header">
+                            <div class="title">Wallet bank transfer (agents)</div>
+                        </div>
+                        <div class="form-box__body">
+                            <div class="row">
+                                <div class="col-lg-12 col-md-12 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Bank account details</label>
+                                        <textarea name="WALLET_BANK_TRANSFER_DETAILS" class="field" rows="8"
+                                            placeholder="Shown to B2B agents on Direct Bank Transfer recharge - bank name, IBAN, account title, reference format, etc.">{{ $config['WALLET_BANK_TRANSFER_DETAILS'] ?? '' }}</textarea>
+                                        <small class="text-muted d-block mt-1">Plain text; line breaks are preserved on the recharge page.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="form-box__header">
                             <div class="title">Footer Content</div>
                         </div>
                         <div class="form-box__body">

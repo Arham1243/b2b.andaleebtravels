@@ -19,6 +19,12 @@
         ?: data_get($booking->booking_response, 'BookingRef')
         ?: data_get($booking->booking_response, 'ConfirmationNumber');
     $hasLeadContact = $booking->lead_first_name || $booking->lead_last_name || $booking->lead_email || $booking->lead_phone;
+    $tboRefundMeta = ['is_refundable' => null, 'summary' => null];
+    if (strtolower((string) ($booking->supplier ?? '')) === 'tbo') {
+        $tboRefundMeta = \App\Support\HotelRefundPresentation::tboRefundMetaFromBookingResponse(
+            is_array($booking->booking_response) ? $booking->booking_response : null
+        );
+    }
 @endphp
 
 <div class="bkp">
@@ -279,6 +285,22 @@
                                     <span class="bkpd-info-row__label">Supplier</span>
                                     <span class="bkpd-info-row__val">{{ formatBookingSupplierLabel($booking->supplier, 'Yalago') }}</span>
                                 </div>
+                                @if(strtolower((string) ($booking->supplier ?? '')) === 'tbo')
+                                <div class="bkpd-info-row bkpd-info-row--refund">
+                                    <span class="bkpd-info-row__label">Refund</span>
+                                    <div class="bkpd-info-row__val bkpd-info-row__val--refund">
+                                        @if ($tboRefundMeta['is_refundable'] === true)
+                                            <span class="bkpd-refund-pill bkpd-refund-pill--yes"><i class="bx bx-check-shield"></i> Refundable rate</span>
+                                            <p class="bkpd-refund-note">Recorded as refundable on your TBO confirmation. Cancellation penalties still follow supplier timing and hotel rules.</p>
+                                        @elseif ($tboRefundMeta['is_refundable'] === false)
+                                            <span class="bkpd-refund-pill bkpd-refund-pill--no"><i class="bx bx-x-circle"></i> Non-refundable rate</span>
+                                            <p class="bkpd-refund-note">Recorded as non-refundable on your TBO confirmation.</p>
+                                        @elseif (!empty($tboRefundMeta['summary']))
+                                            <p class="bkpd-refund-note">{{ $tboRefundMeta['summary'] }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                @endif
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Payment</span>
                                     <span class="bkpd-info-row__val">{{ ucfirst($booking->payment_method ?? 'N/A') }}</span>
