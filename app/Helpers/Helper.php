@@ -26,7 +26,7 @@ if (! function_exists('walletBankProofUrl')) {
             return asset($path);
         }
 
-        return asset('storage/'.$path);
+        return asset($path);
     }
 }
 
