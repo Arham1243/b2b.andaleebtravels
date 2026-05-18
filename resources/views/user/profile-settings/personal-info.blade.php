@@ -101,7 +101,7 @@
                                                accept="image/*"
                                                onchange="showImage(this, 'profile-preview', 'avatar-filename')">
                                         <div class="ps-avatar-pick__name" id="avatar-filename">
-                                            JPG, PNG or GIF &mdash; max 2 MB
+                                            JPG, PNG or GIF — max 2 MB
                                         </div>
                                         @error('avatar')
                                             <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
