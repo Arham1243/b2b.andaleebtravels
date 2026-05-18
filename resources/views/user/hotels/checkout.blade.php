@@ -300,13 +300,6 @@
                                     <div class="hc-card__title">Payment Method</div>
                                 </div>
 
-                                @if (!empty($payby_hotel_skip_gateway))
-                                    <div class="hc-alert mb-3" style="border-color: #f59e0b; background: #fffbeb;">
-                                        <i class="bx bx-error-circle"></i>
-                                        <span><strong>PayBy test mode:</strong> Submitting with Card (PayBy) skips the gateway and confirms the booking without charging a card. Tabby/Tamara are unchanged. Disable via <code>PAYBY_HOTEL_SKIP_GATEWAY</code> in <code>.env</code>.</span>
-                                    </div>
-                                @endif
-
                                 {{-- Wallet Toggle --}}
                                 @if ($walletBalance > 0)
                                 <div class="hc-wallet-toggle" id="wallet-toggle-section">
@@ -350,13 +343,7 @@
                                                 <div class="hc-payment-option__icon"><i class="bx bxs-credit-card"></i></div>
                                                 <div class="hc-payment-option__info">
                                                     <div class="hc-payment-option__name">Credit / Debit Card</div>
-                                                    <div class="hc-payment-option__desc">
-                                                        @if (!empty($payby_hotel_skip_gateway))
-                                                            PayBy - completes without redirect (test bypass)
-                                                        @else
-                                                            Redirected to secure payment gateway
-                                                        @endif
-                                                    </div>
+                                                    <div class="hc-payment-option__desc">Redirected to secure payment gateway</div>
                                                 </div>
                                                 <div class="hc-payment-option__check"><i class="bx bxs-check-circle"></i></div>
                                             </div>
@@ -499,7 +486,6 @@
         document.addEventListener("DOMContentLoaded", function() {
             const roomsTotal = @json($total_price);
             const walletBalance = @json($walletBalance);
-            const paybyHotelSkipGateway = @json(!empty($payby_hotel_skip_gateway));
             const formatPrice = (v) => Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             const els = {
@@ -573,13 +559,9 @@
 
                 // Update pay button text
                 const payBtn = document.getElementById('pay-btn');
-                const selectedPayMethod = document.querySelector('input[name="payment_method"]:checked');
-                const paybyBypassActive = paybyHotelSkipGateway && selectedPayMethod && selectedPayMethod.value === 'payby';
                 if (payBtn && !payBtn.disabled) {
                     if (walletCoversAll && useWallet) {
                         payBtn.innerHTML = '<i class="bx bx-lock-alt"></i> Pay with Wallet';
-                    } else if (paybyBypassActive) {
-                        payBtn.innerHTML = '<i class="bx bx-check-circle"></i> Complete booking (PayBy test)';
                     } else if (useWallet) {
                         payBtn.innerHTML = `<i class="bx bx-lock-alt"></i> Pay D ${formatPrice(remaining)}`;
                     } else {

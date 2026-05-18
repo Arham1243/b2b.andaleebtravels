@@ -1256,27 +1256,10 @@ class HotelService
 
 
     /**
-     * PayBy hotel test mode (gateway skip): suppress outbound booking emails so tests don't notify users/admins.
-     */
-    protected function hotelPaybyTestModeSkipsEmails(): bool
-    {
-        return (bool) config('services.payby.hotel_skip_gateway');
-    }
-
-    /**
      * Send booking confirmation email to user
      */
     public function sendBookingConfirmationEmail(B2bHotelBooking $booking)
     {
-        if ($this->hotelPaybyTestModeSkipsEmails()) {
-            Log::info('Hotel booking email skipped (PayBy hotel test mode)', [
-                'booking_id' => $booking->id,
-                'channel' => 'confirmation_user',
-            ]);
-
-            return;
-        }
-
         try {
             $detailUrl = route('user.bookings.hotels.detail', $booking->id);
 
@@ -1307,15 +1290,6 @@ class HotelService
      */
     public function sendBookingConfirmationEmailToAdmin(B2bHotelBooking $booking)
     {
-        if ($this->hotelPaybyTestModeSkipsEmails()) {
-            Log::info('Hotel booking email skipped (PayBy hotel test mode)', [
-                'booking_id' => $booking->id,
-                'channel' => 'confirmation_admin',
-            ]);
-
-            return;
-        }
-
         try {
             $adminEmail = $this->adminEmail;
             $detailUrl = route('user.bookings.hotels.detail', $booking->id);
@@ -1347,16 +1321,6 @@ class HotelService
      */
     public function sendBookingFailureEmail(B2bHotelBooking $booking, string $reason = '')
     {
-        if ($this->hotelPaybyTestModeSkipsEmails()) {
-            Log::info('Hotel booking email skipped (PayBy hotel test mode)', [
-                'booking_id' => $booking->id,
-                'channel' => 'failure_user',
-                'reason' => $reason,
-            ]);
-
-            return;
-        }
-
         try {
             Mail::send('user.emails.hotel-booking-failed-user', [
                 'booking' => $booking,
@@ -1383,16 +1347,6 @@ class HotelService
      */
     public function sendBookingFailureEmailToAdmin(B2bHotelBooking $booking, string $reason = '')
     {
-        if ($this->hotelPaybyTestModeSkipsEmails()) {
-            Log::info('Hotel booking email skipped (PayBy hotel test mode)', [
-                'booking_id' => $booking->id,
-                'channel' => 'failure_admin',
-                'reason' => $reason,
-            ]);
-
-            return;
-        }
-
         try {
             $adminEmail = $this->adminEmail;
 

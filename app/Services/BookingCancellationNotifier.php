@@ -23,21 +23,8 @@ class BookingCancellationNotifier
         );
     }
 
-    protected function hotelEmailsSkipped(): bool
-    {
-        return (bool) config('services.payby.hotel_skip_gateway');
-    }
-
     public function notifyHotelCancelled(B2bHotelBooking $booking): void
     {
-        if ($this->hotelEmailsSkipped()) {
-            Log::info('Hotel cancellation emails skipped (PayBy hotel test mode)', [
-                'booking_id' => $booking->id,
-            ]);
-
-            return;
-        }
-
         $detailUrl = route('user.bookings.hotels.detail', $booking->id);
 
         try {
