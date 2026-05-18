@@ -3016,7 +3016,7 @@ ol.breadcrumb {
 .topbar-agency__avatar img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 
 .topbar-agency__avatar i {
