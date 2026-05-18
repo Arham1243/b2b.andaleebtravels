@@ -10,6 +10,26 @@ if (! function_exists('sanitizedLink')) {
     }
 }
 
+if (! function_exists('walletBankProofUrl')) {
+    /**
+     * Bank proof files live under public/uploads/... New uploads use public/; legacy rows may still be under storage/app/public.
+     */
+    function walletBankProofUrl(?string $path): ?string
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+
+        if (is_file(public_path($path))) {
+            return asset($path);
+        }
+
+        return asset('storage/'.$path);
+    }
+}
+
 if (! function_exists('currencySymbol')) {
     function currencySymbol(): HtmlString
     {

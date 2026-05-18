@@ -8,11 +8,10 @@
             background: #f8faff;
             border: 1px solid #e4e9f0;
             border-radius: 10px;
-            padding: 16px 18px;
+            padding: 14px 18px;
             font-size: .84rem;
             color: #1a2540;
-            white-space: pre-wrap;
-            line-height: 1.55;
+            line-height: 1.45;
             margin-bottom: 20px;
         }
         .bank-info-box--empty {
@@ -51,7 +50,10 @@
                     <i class='bx bxs-bank'></i> Bank details
                 </div>
                 @if ($bankInstructions !== '')
-                    <div class="bank-info-box">{!! nl2br(e($bankInstructions)) !!}</div>
+                    @php
+                        $bankLines = preg_replace('/\R+/u', "\n", trim($bankInstructions));
+                    @endphp
+                    <div class="bank-info-box">{!! nl2br(e($bankLines)) !!}</div>
                 @else
                     <div class="bank-info-box bank-info-box--empty">
                         Bank transfer instructions are not configured yet. Please contact support or try another recharge method.

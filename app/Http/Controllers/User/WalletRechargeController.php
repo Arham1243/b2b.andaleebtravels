@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class WalletRechargeController extends Controller
 {
@@ -23,6 +24,29 @@ class WalletRechargeController extends Controller
     protected $paybyPartnerId = '200009116289';
     protected $paybyApiUrl = 'https://api.payby.com/sgs/api/acquire2';
     protected $paybyPrivateKey = 'user/assets/files/payby-private-key.pem';
+
+    /**
+     * Store proof under public/uploads/wallet-bank-proofs (not storage disk symlink).
+     *
+     * @return non-falsy-string|null Relative path from public/, e.g. uploads/wallet-bank-proofs/uuid.png
+     */
+    protected function storeWalletBankProofPublic(\Illuminate\Http\UploadedFile $file): ?string
+    {
+        $relativeDir = 'uploads/wallet-bank-proofs';
+        $dir = public_path($relativeDir);
+        if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            Log::error('Wallet bank proof: could not create directory', ['dir' => $dir]);
+
+            return null;
+        }
+
+        $filename = Str::uuid()->'.'.$file->getClientOriginalExtension();
+        if (! $file->move($dir, $filename)) {
+            return null;
+        }
+
+        return $relativeDir.'/'.$filename;
+    }
 
     public function rechargeCard()
     {
@@ -52,7 +76,7 @@ class WalletRechargeController extends Controller
             'proof' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
-        $proofPath = $this->uploadImage($request->file('proof'), 'wallet-bank-proofs');
+        $proofPath = $this->storeWalletBankProofPublic($request->file('proof'));
         if (!$proofPath) {
             return redirect()->back()->withInput()->with('notify_error', 'Could not upload proof image. Please try again.');
         }

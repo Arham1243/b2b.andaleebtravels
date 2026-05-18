@@ -147,4 +147,21 @@
     .current-balance i {
         font-size: 20px;
     }
+
+    /* Transaction history actions: icon + label inline */
+    .custom-table .wallet-action-btn {
+        display: inline-flex !important;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .custom-table .wallet-action-btn i {
+        font-size: 1rem;
+        line-height: 1;
+        vertical-align: middle;
+    }
 </style>
