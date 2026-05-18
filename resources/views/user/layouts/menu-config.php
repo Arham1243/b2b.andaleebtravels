@@ -25,11 +25,6 @@ return [
                 'route' => route('user.profile.changePassword'),
             ],
             [
-                'title' => 'Recharge',
-                'icon' => 'bx bx-wallet-alt',
-                'route' => route('user.wallet.recharge.card'),
-            ],
-            [
                 'title' => 'Sub Agents',
                 'icon' => 'bx bx-user-plus',
                 'route' => route('user.sub-agents.index'),

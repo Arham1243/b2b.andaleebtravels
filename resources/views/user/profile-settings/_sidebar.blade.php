@@ -19,15 +19,6 @@
             @endif
         </a>
 
-        <a href="{{ route('user.wallet.recharge.card') }}"
-           class="ps-nav__item {{ request()->routeIs('user.wallet.recharge.card', 'user.wallet.recharge.tabby', 'user.wallet.recharge') ? 'ps-nav__item--active' : '' }}">
-            <span class="ps-nav__item-icon"><i class="bx bx-wallet-alt"></i></span>
-            <span class="ps-nav__item-text">Recharge</span>
-            @if(request()->routeIs('user.wallet.recharge.card', 'user.wallet.recharge.tabby', 'user.wallet.recharge'))
-                <i class="bx bx-chevron-right ps-nav__item-arrow"></i>
-            @endif
-        </a>
-
         <a href="{{ route('user.sub-agents.index') }}"
            class="ps-nav__item {{ request()->routeIs('user.sub-agents.*') ? 'ps-nav__item--active' : '' }}">
             <span class="ps-nav__item-icon"><i class="bx bx-user-plus"></i></span>

@@ -61,7 +61,7 @@
                     </div>
 
                     <button type="submit" class="btn-recharge" id="rechargeBtn">
-                        <i class='bx bxs-bolt'></i> Continue with Tabby
+                        <i class='bx bxs-bolt'></i> Recharge Now
                     </button>
                 </form>
             </div>
