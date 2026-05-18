@@ -10,9 +10,6 @@
                             <h3 class="heading">{{ $title }}</h3>
                         </div>
                     </div>
-                    <p class="text-muted px-3 mb-3" style="font-size: 0.85rem;">
-                        Pending submissions appear first. Confirm after you verify the deposit in your bank account; the agent wallet is credited via the same ledger as card and Tabby recharges.
-                    </p>
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
@@ -28,7 +25,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($recharges as $r)
+                                @foreach ($recharges as $r)
                                     <tr>
                                         <td>{{ $r->created_at->format('d M Y, H:i') }}</td>
                                         <td><span class="fw-semibold">{{ $r->transaction_number }}</span></td>
@@ -83,11 +80,7 @@
                                             @endif
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="8" class="text-center py-4 text-muted">No bank transfer requests yet.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

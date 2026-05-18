@@ -27,6 +27,11 @@ Breadcrumbs::for('user.wallet.recharge.tabby', function (BreadcrumbTrail $trail)
     $trail->push('Recharge - Tabby', route('user.wallet.recharge.tabby'));
 });
 
+Breadcrumbs::for('user.wallet.recharge.bank-transfer', function (BreadcrumbTrail $trail) {
+    $trail->parent('user.dashboard');
+    $trail->push('Recharge - Bank Transfer', route('user.wallet.recharge.bank-transfer'));
+});
+
 Breadcrumbs::for('user.sub-agents.index', function (BreadcrumbTrail $trail) {
     $trail->parent('user.dashboard');
     $trail->push('Sub Agents', route('user.sub-agents.index'));

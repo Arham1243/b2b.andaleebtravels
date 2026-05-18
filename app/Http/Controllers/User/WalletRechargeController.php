@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bWalletLedger;
 use App\Models\B2bWalletRecharge;
 use App\Models\Config;
+use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 
 class WalletRechargeController extends Controller
 {
+    use UploadImageTrait;
+
     protected $tabbyApiKey = 'pk_03168c56-d196-4e58-a72a-48dbebb88b87';
     protected $tabbyMerchantCode = 'ATA';
     protected $tabbyApiUrl = 'https://api.tabby.ai/api/v2';
@@ -33,6 +36,43 @@ class WalletRechargeController extends Controller
             ->with('title', 'Recharge - Tabby');
     }
 
+    public function rechargeBankTransfer()
+    {
+        $bankInstructions = trim((string) (Config::where('config_key', 'WALLET_BANK_TRANSFER_DETAILS')->value('config_value') ?? ''));
+
+        return view('user.wallet.recharge-bank-transfer', array_merge($this->rechargePageData(), [
+            'bankInstructions' => $bankInstructions,
+        ]))->with('title', 'Recharge - Bank Transfer');
+    }
+
+    public function submitBankTransfer(Request $request)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:100|max:50000',
+            'proof' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ]);
+
+        $proofPath = $this->uploadImage($request->file('proof'), 'wallet-bank-proofs');
+        if (!$proofPath) {
+            return redirect()->back()->withInput()->with('notify_error', 'Could not upload proof image. Please try again.');
+        }
+
+        B2bWalletRecharge::create([
+            'b2b_vendor_id' => Auth::id(),
+            'transaction_number' => B2bWalletRecharge::generateTransactionNumber(),
+            'amount' => (float) $validated['amount'],
+            'currency' => 'AED',
+            'payment_method' => 'bank_transfer',
+            'status' => 'pending',
+            'proof_image_path' => $proofPath,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return redirect()->route('user.wallet.recharge.bank-transfer')
+            ->with('notify_success', 'Your transfer details were submitted. We will credit your wallet after verifying payment.');
+    }
+
     /**
      * @return array{recharges: \Illuminate\Contracts\Pagination\LengthAwarePaginator}
      */
@@ -47,9 +87,11 @@ class WalletRechargeController extends Controller
 
     protected function rechargeListRoute(string $paymentMethod): string
     {
-        return $paymentMethod === 'tabby'
-            ? 'user.wallet.recharge.tabby'
-            : 'user.wallet.recharge.card';
+        return match ($paymentMethod) {
+            'tabby' => 'user.wallet.recharge.tabby',
+            'bank_transfer' => 'user.wallet.recharge.bank-transfer',
+            default => 'user.wallet.recharge.card',
+        };
     }
 
     public function processCard(Request $request)
@@ -240,6 +282,7 @@ class WalletRechargeController extends Controller
             $recharge = B2bWalletRecharge::where('b2b_vendor_id', Auth::id())
                 ->where('id', $recharge)
                 ->where('status', 'failed')
+                ->whereIn('payment_method', ['payby', 'tabby'])
                 ->firstOrFail();
 
             $transactionNumber = B2bWalletRecharge::generateTransactionNumber();
@@ -288,8 +331,8 @@ class WalletRechargeController extends Controller
                 ],
                 'paySceneCode' => 'PAYPAGE',
                 'paySceneParams' => [
-                    'redirectUrl' => route('user.wallet.payment.success', ['transactionNumber' => $data['transaction_number']]),
-                    'backUrl' => route('user.wallet.payment.failed', ['transactionNumber' => $data['transaction_number']])
+                    'redirectUrl' => paymentCallbackRoute('user.wallet.payment.success', ['transactionNumber' => $data['transaction_number']]),
+                    'backUrl' => paymentCallbackRoute('user.wallet.payment.failed', ['transactionNumber' => $data['transaction_number']]),
                 ],
                 'reserved' => 'Andaleeb Wallet Recharge',
                 'accessoryContent' => [
@@ -439,10 +482,10 @@ class WalletRechargeController extends Controller
             'lang' => 'en',
             'merchant_code' => $this->tabbyMerchantCode,
             'merchant_urls' => [
-                'success' => route('user.wallet.payment.success', ['transactionNumber' => $data['transaction_number']]),
-                'cancel' => route('user.wallet.payment.failed'),
-                'failure' => route('user.wallet.payment.failed')
-            ]
+                'success' => paymentCallbackRoute('user.wallet.payment.success', ['transactionNumber' => $data['transaction_number']]),
+                'cancel' => paymentCallbackRoute('user.wallet.payment.failed'),
+                'failure' => paymentCallbackRoute('user.wallet.payment.failed'),
+            ],
         ];
 
         $response = Http::withHeaders([

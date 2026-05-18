@@ -17,5 +17,14 @@
                 <i class="bx bx-chevron-right ps-nav__item-arrow"></i>
             @endif
         </a>
+
+        <a href="{{ route('user.wallet.recharge.bank-transfer') }}"
+           class="ps-nav__item {{ request()->routeIs('user.wallet.recharge.bank-transfer') ? 'ps-nav__item--active' : '' }}">
+            <span class="ps-nav__item-icon"><i class="bx bxs-bank"></i></span>
+            <span class="ps-nav__item-text">Direct Bank Transfer</span>
+            @if (request()->routeIs('user.wallet.recharge.bank-transfer'))
+                <i class="bx bx-chevron-right ps-nav__item-arrow"></i>
+            @endif
+        </a>
     </nav>
 </aside>

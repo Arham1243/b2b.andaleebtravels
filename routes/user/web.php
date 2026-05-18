@@ -104,6 +104,8 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/recharge', fn () => redirect()->route('user.wallet.recharge.card'))->name('recharge');
         Route::get('/recharge/card', [WalletRechargeController::class, 'rechargeCard'])->name('recharge.card');
         Route::get('/recharge/tabby', [WalletRechargeController::class, 'rechargeTabby'])->name('recharge.tabby');
+        Route::get('/recharge/bank-transfer', [WalletRechargeController::class, 'rechargeBankTransfer'])->name('recharge.bank-transfer');
+        Route::post('/recharge/bank-transfer', [WalletRechargeController::class, 'submitBankTransfer'])->name('recharge.bank-transfer.submit');
         Route::post('/recharge/card/process', [WalletRechargeController::class, 'processCard'])->name('recharge.card.process');
         Route::post('/recharge/tabby/process', [WalletRechargeController::class, 'processTabby'])->name('recharge.tabby.process');
         Route::get('/recharge/retry/{recharge}', [WalletRechargeController::class, 'retryPayment'])->name('recharge.retry');

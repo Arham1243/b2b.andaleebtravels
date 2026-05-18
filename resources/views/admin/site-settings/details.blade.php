@@ -114,8 +114,7 @@
                                     <div class="form-fields">
                                         <label class="title">Bank account details</label>
                                         <textarea name="WALLET_BANK_TRANSFER_DETAILS" class="field" rows="8"
-                                            placeholder="Shown to B2B agents on Direct Bank Transfer recharge - bank name, IBAN, account title, reference format, etc.">{{ $config['WALLET_BANK_TRANSFER_DETAILS'] ?? '' }}</textarea>
-                                        <small class="text-muted d-block mt-1">Plain text; line breaks are preserved on the recharge page.</small>
+                                            >{{ $config['WALLET_BANK_TRANSFER_DETAILS'] ?? '' }}</textarea>
                                     </div>
                                 </div>
                             </div>
