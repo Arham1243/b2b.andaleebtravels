@@ -5173,8 +5173,25 @@ body .search-box__input.search-box__input {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+/* Listing cards: compact refund badge */
+.hl-card__refund .hotel-refund-pill {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    gap: 3px;
+    border-radius: 4px;
+}
+.hl-card__refund .hotel-refund-pill i {
+    font-size: 0.75rem;
+}
+.hl-card__refund .hotel-refund-note {
+    font-size: 0.68rem;
+    line-height: 1.35;
 }
 
 .hd-sidebar__refund {
