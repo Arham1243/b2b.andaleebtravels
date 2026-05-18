@@ -1583,16 +1583,30 @@
     width: 34px;
     border: none;
     background: transparent;
-    color: var(--c-muted);
+    color: #475569;
     cursor: pointer;
-    font-size: 1.2rem;
+    font-size: 1.35rem;
+    line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color .13s, background .13s;
+    transition: color .13s, background .13s, opacity .13s;
+}
+.as-arrow i {
+    display: block;
+    opacity: 1;
 }
 .as-arrow:hover:not(:disabled) { color: var(--c-brand); background: var(--c-brand-soft); }
-.as-arrow:disabled { opacity: .28; cursor: default; }
+/* Disabled must stay visible (avoid opacity on whole control — was ~invisible on white) */
+.as-arrow:disabled {
+    opacity: 1;
+    color: #94a3b8;
+    cursor: default;
+}
+.as-arrow:focus-visible {
+    outline: 2px solid var(--c-brand);
+    outline-offset: 1px;
+}
 .as-arrow--prev { border-right: 1px solid var(--c-line); }
 .as-arrow--next { border-left:  1px solid var(--c-line); }
 
@@ -1756,7 +1770,7 @@
     .fd-seg__pt--arr { align-items: flex-start; text-align: left; }
     .fd-box { max-height: 95vh; border-radius: 12px; }
     /* airline slider on mobile */
-    .as-arrow { width: 26px; font-size: 1rem; }
+    .as-arrow { width: 30px; font-size: 1.25rem; }
     .as-pill { padding: .6rem .75rem; gap: .45rem; }
     .as-pill__logo, .as-pill__logo--all { width: 30px; height: 30px; }
     .as-pill__nameline { max-width: 90px; font-size: .74rem; }
