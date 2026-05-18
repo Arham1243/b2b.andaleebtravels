@@ -18,6 +18,12 @@
             color: #8492a6;
             font-style: italic;
         }
+
+        /* Less gap between section rule and bank info box */
+        .recharge-section__title--bank-details {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+        }
     </style>
 @endsection
 
@@ -46,7 +52,7 @@
                     </div>
                 </div>
 
-                <div class="recharge-section__title">
+                <div class="recharge-section__title recharge-section__title--bank-details">
                     <i class='bx bxs-bank'></i> Bank details
                 </div>
                 @if ($bankInstructions !== '')

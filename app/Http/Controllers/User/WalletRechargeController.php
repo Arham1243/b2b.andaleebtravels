@@ -120,17 +120,7 @@ class WalletRechargeController extends Controller
 
     public function processCard(Request $request)
     {
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:100|max:50000',
-            'proof' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
-        ]);
-
-        $proofPath = $this->storeWalletBankProofPublic($request->file('proof'));
-        if (! $proofPath) {
-            return redirect()->back()->withInput()->with('notify_error', 'Could not upload payment proof. Please try again.');
-        }
-
-        return $this->beginRecharge($request, 'payby', ['proof_image_path' => $proofPath]);
+        return $this->beginRecharge($request, 'payby');
     }
 
     public function processTabby(Request $request)
@@ -139,9 +129,9 @@ class WalletRechargeController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $extraSession
+     * Start PayBy or Tabby checkout; session key wallet_recharge.{txn} holds amount & meta until callback.
      */
-    protected function beginRecharge(Request $request, string $paymentMethod, array $extraSession = []): \Illuminate\Http\RedirectResponse
+    protected function beginRecharge(Request $request, string $paymentMethod): \Illuminate\Http\RedirectResponse
     {
         $request->validate([
             'amount' => 'required|numeric|min:100|max:50000',
@@ -152,13 +142,13 @@ class WalletRechargeController extends Controller
         try {
             $transactionNumber = B2bWalletRecharge::generateTransactionNumber();
 
-            $rechargeData = array_merge([
+            $rechargeData = [
                 'transaction_number' => $transactionNumber,
                 'amount' => (float) $request->input('amount'),
                 'payment_method' => $paymentMethod,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
-            ], $extraSession);
+            ];
 
             session()->put("wallet_recharge.{$transactionNumber}", $rechargeData);
 
