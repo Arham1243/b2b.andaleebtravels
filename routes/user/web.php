@@ -101,8 +101,11 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     });
 
     Route::prefix('wallet')->name('wallet.')->group(function () {
-        Route::get('/recharge', [WalletRechargeController::class, 'index'])->name('recharge');
-        Route::post('/recharge/process', [WalletRechargeController::class, 'process'])->name('recharge.process');
+        Route::get('/recharge', fn () => redirect()->route('user.wallet.recharge.card'))->name('recharge');
+        Route::get('/recharge/card', [WalletRechargeController::class, 'rechargeCard'])->name('recharge.card');
+        Route::get('/recharge/tabby', [WalletRechargeController::class, 'rechargeTabby'])->name('recharge.tabby');
+        Route::post('/recharge/card/process', [WalletRechargeController::class, 'processCard'])->name('recharge.card.process');
+        Route::post('/recharge/tabby/process', [WalletRechargeController::class, 'processTabby'])->name('recharge.tabby.process');
         Route::get('/recharge/retry/{recharge}', [WalletRechargeController::class, 'retryPayment'])->name('recharge.retry');
         Route::get('/payment/success/{transactionNumber}', [WalletRechargeController::class, 'paymentSuccess'])->name('payment.success');
         Route::get('/payment/failed/{transactionNumber?}', [WalletRechargeController::class, 'paymentFailed'])->name('payment.failed');

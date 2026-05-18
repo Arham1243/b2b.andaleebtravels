@@ -270,6 +270,11 @@
                                             @endif
                                         </div>
 
+                                        @include('user.hotels.partials.refund-info', [
+                                            'hotel' => $hotel,
+                                            'wrapperClass' => 'hl-card__refund',
+                                        ])
+
                                         @if ($hotel['rating'])
                                             <div class="hl-card__rating">
                                                 <div class="hl-card__stars">

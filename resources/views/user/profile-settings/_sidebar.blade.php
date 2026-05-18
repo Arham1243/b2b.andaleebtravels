@@ -19,11 +19,11 @@
             @endif
         </a>
 
-        <a href="{{ route('user.wallet.recharge') }}"
-           class="ps-nav__item {{ request()->routeIs('user.wallet.*') ? 'ps-nav__item--active' : '' }}">
-            <span class="ps-nav__item-icon"><i class="bx bxs-wallet-alt"></i></span>
-            <span class="ps-nav__item-text">Wallet &amp; Recharge</span>
-            @if(request()->routeIs('user.wallet.*'))
+        <a href="{{ route('user.wallet.recharge.card') }}"
+           class="ps-nav__item {{ request()->routeIs('user.wallet.recharge.card', 'user.wallet.recharge.tabby', 'user.wallet.recharge') ? 'ps-nav__item--active' : '' }}">
+            <span class="ps-nav__item-icon"><i class="bx bx-wallet-alt"></i></span>
+            <span class="ps-nav__item-text">Recharge</span>
+            @if(request()->routeIs('user.wallet.recharge.card', 'user.wallet.recharge.tabby', 'user.wallet.recharge'))
                 <i class="bx bx-chevron-right ps-nav__item-arrow"></i>
             @endif
         </a>

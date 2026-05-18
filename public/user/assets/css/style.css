@@ -5168,6 +5168,61 @@ body .search-box__input.search-box__input {
     color: #999;
 }
 
+/* Refundable / cancellation (listing + detail sidebar) */
+.hl-card__refund {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.hd-sidebar__refund {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.hotel-refund-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    line-height: 1.2;
+}
+
+.hotel-refund-pill i {
+    font-size: 1rem;
+}
+
+.hotel-refund-pill--yes {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.hotel-refund-pill--no {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.hotel-refund-note {
+    font-size: 0.78rem;
+    color: #555;
+    line-height: 1.45;
+    max-width: 100%;
+}
+
 /* Price Column */
 .hl-card__price-col {
     display: flex;

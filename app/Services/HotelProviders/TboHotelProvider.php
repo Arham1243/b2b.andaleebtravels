@@ -5,6 +5,7 @@ namespace App\Services\HotelProviders;
 use App\Models\Country;
 use App\Models\Province;
 use App\Services\HotelProviders\Contracts\HotelProviderInterface;
+use App\Support\HotelRefundPresentation;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
@@ -211,6 +212,9 @@ class TboHotelProvider implements HotelProviderInterface
                 ? calculatePriceWithCommission((float) $rawPrice, $this->commissionPercentage)
                 : null;
 
+            $tboRefRaw = is_array($rate) ? ($rate['is_refundable'] ?? null) : null;
+            $tboRefBool = $tboRefRaw === null ? null : (bool) $tboRefRaw;
+
             return [
                 'id' => null,
                 'provider_id' => $item['HotelCode'] ?? null,
@@ -238,7 +242,9 @@ class TboHotelProvider implements HotelProviderInterface
                 'tbo_room_names' => is_array($rate) ? ($rate['room_names'] ?? []) : [],
                 'tbo_currency' => is_array($rate) ? ($rate['currency'] ?? null) : null,
                 'tbo_meal_type' => is_array($rate) ? ($rate['meal_type'] ?? null) : null,
-                'tbo_is_refundable' => is_array($rate) ? ($rate['is_refundable'] ?? null) : null,
+                'tbo_is_refundable' => $tboRefRaw,
+                'is_refundable' => $tboRefBool,
+                'refund_policy_summary' => HotelRefundPresentation::tboSummary($tboRefBool),
                 'tbo_total_fare_raw' => is_array($rate) ? ($rate['total_fare'] ?? null) : null,
 
                 'property_type' => null,

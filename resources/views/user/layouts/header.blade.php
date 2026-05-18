@@ -16,7 +16,7 @@
                         <button type="button" class="topbar-balance-refresh" id="topbarBalanceRefresh" title="{{ __('Refresh') }}" aria-label="Refresh balance">
                             <i class='bx bx-revision'></i>
                         </button>
-                        <a href="{{ route('user.wallet.recharge') }}" class="topbar-balance-link">
+                        <a href="{{ route('user.wallet.recharge.card') }}" class="topbar-balance-link">
                             <div class="topbar-balance-label-row">
                                 <span class="topbar-balance-label">Main Balance</span>
                                 <i class='bx bx-chevron-down'></i>
@@ -55,6 +55,11 @@
                                     </a>
                                 </li>
                             @endif
+                            <li>
+                                <a href="{{ route('user.wallet.recharge.card') }}" class="dropdown-item">
+                                    <i class='bx bx-wallet-alt'></i> {{ __('Recharge') }}
+                                </a>
+                            </li>
                             <li class="dropdown-divider"></li>
                             <li>
                                 <form action="{{ route('user.logout') }}" method="POST">

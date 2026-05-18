@@ -21,42 +21,71 @@ class WalletRechargeController extends Controller
     protected $paybyApiUrl = 'https://api.payby.com/sgs/api/acquire2';
     protected $paybyPrivateKey = 'user/assets/files/payby-private-key.pem';
 
-    public function index()
+    public function rechargeCard()
+    {
+        return view('user.wallet.recharge-card', $this->rechargePageData())
+            ->with('title', 'Recharge — Credit / Debit Card');
+    }
+
+    public function rechargeTabby()
+    {
+        return view('user.wallet.recharge-tabby', $this->rechargePageData())
+            ->with('title', 'Recharge — Tabby');
+    }
+
+    /**
+     * @return array{recharges: \Illuminate\Contracts\Pagination\LengthAwarePaginator}
+     */
+    protected function rechargePageData(): array
     {
         $recharges = B2bWalletRecharge::where('b2b_vendor_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
-        return view('user.wallet.recharge', compact('recharges'))
-            ->with('title', 'Wallet Recharge');
+        return compact('recharges');
     }
 
-    public function process(Request $request)
+    protected function rechargeListRoute(string $paymentMethod): string
     {
-        $validated = $request->validate([
+        return $paymentMethod === 'tabby'
+            ? 'user.wallet.recharge.tabby'
+            : 'user.wallet.recharge.card';
+    }
+
+    public function processCard(Request $request)
+    {
+        return $this->beginRecharge($request, 'payby');
+    }
+
+    public function processTabby(Request $request)
+    {
+        return $this->beginRecharge($request, 'tabby');
+    }
+
+    protected function beginRecharge(Request $request, string $paymentMethod): \Illuminate\Http\RedirectResponse
+    {
+        $request->validate([
             'amount' => 'required|numeric|min:100|max:50000',
-            'payment_method' => 'required|in:payby,tabby',
         ]);
+
+        $listRoute = $this->rechargeListRoute($paymentMethod);
 
         try {
             $transactionNumber = B2bWalletRecharge::generateTransactionNumber();
 
             $rechargeData = [
                 'transaction_number' => $transactionNumber,
-                'amount' => $validated['amount'],
-                'payment_method' => $validated['payment_method'],
+                'amount' => (float) $request->input('amount'),
+                'payment_method' => $paymentMethod,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ];
 
-            // Store in session keyed by transaction number
             session()->put("wallet_recharge.{$transactionNumber}", $rechargeData);
 
-            if ($validated['payment_method'] === 'payby') {
-                $redirectUrl = $this->paybyRedirect($rechargeData);
-            } else {
-                $redirectUrl = $this->tabbyRedirect($rechargeData);
-            }
+            $redirectUrl = $paymentMethod === 'payby'
+                ? $this->paybyRedirect($rechargeData)
+                : $this->tabbyRedirect($rechargeData);
 
             return redirect()->away($redirectUrl);
         } catch (\Exception $e) {
@@ -65,7 +94,7 @@ class WalletRechargeController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return redirect()->route('user.wallet.recharge')
+            return redirect()->route($listRoute)
                 ->with('notify_error', 'Payment initiation failed. Please try again.');
         }
     }
@@ -76,7 +105,7 @@ class WalletRechargeController extends Controller
             // Check if already processed
             $existing = B2bWalletRecharge::where('transaction_number', $transactionNumber)->first();
             if ($existing && $existing->isPaid()) {
-                return redirect()->route('user.wallet.recharge')
+                return redirect()->route($this->rechargeListRoute($existing->payment_method))
                     ->with('notify_success', 'This recharge has already been processed.');
             }
 
@@ -84,9 +113,11 @@ class WalletRechargeController extends Controller
             $rechargeData = session()->get("wallet_recharge.{$transactionNumber}");
 
             if (!$rechargeData) {
-                return redirect()->route('user.wallet.recharge')
+                return redirect()->route('user.wallet.recharge.card')
                     ->with('notify_error', 'Recharge session expired. Please try again.');
             }
+
+            $listRoute = $this->rechargeListRoute($rechargeData['payment_method']);
 
             // Verify payment with gateway
             if ($rechargeData['payment_method'] === 'payby') {
@@ -127,7 +158,7 @@ class WalletRechargeController extends Controller
 
                 session()->forget("wallet_recharge.{$transactionNumber}");
 
-                return redirect()->route('user.wallet.recharge')
+                return redirect()->route($listRoute)
                     ->with('notify_success', 'Wallet recharged successfully with ' . number_format($recharge->amount, 2) . ' AED');
             }
 
@@ -147,7 +178,7 @@ class WalletRechargeController extends Controller
 
             session()->forget("wallet_recharge.{$transactionNumber}");
 
-            return redirect()->route('user.wallet.recharge')
+            return redirect()->route($listRoute)
                 ->with('notify_error', 'Payment verification failed. Please contact support.');
         } catch (\Exception $e) {
             Log::error('Wallet recharge payment success handler failed', [
@@ -155,7 +186,7 @@ class WalletRechargeController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return redirect()->route('user.wallet.recharge')
+            return redirect()->route('user.wallet.recharge.card')
                 ->with('notify_error', 'Something went wrong. Please contact support.');
         }
     }
@@ -167,6 +198,7 @@ class WalletRechargeController extends Controller
                 $rechargeData = session()->get("wallet_recharge.{$transactionNumber}");
 
                 if ($rechargeData) {
+                    $listRoute = $this->rechargeListRoute($rechargeData['payment_method']);
                     // Only create a failed record if not already in DB
                     $existing = B2bWalletRecharge::where('transaction_number', $transactionNumber)->first();
                     if (!$existing) {
@@ -184,17 +216,20 @@ class WalletRechargeController extends Controller
                     }
 
                     session()->forget("wallet_recharge.{$transactionNumber}");
+
+                    return redirect()->route($listRoute)
+                        ->with('notify_error', 'Payment was cancelled or failed.');
                 }
             }
 
-            return redirect()->route('user.wallet.recharge')
+            return redirect()->route('user.wallet.recharge.card')
                 ->with('notify_error', 'Payment was cancelled or failed.');
         } catch (\Exception $e) {
             Log::error('Wallet recharge payment failed handler error', [
                 'error' => $e->getMessage(),
             ]);
 
-            return redirect()->route('user.wallet.recharge')
+            return redirect()->route('user.wallet.recharge.card')
                 ->with('notify_error', 'Payment failed.');
         }
     }
@@ -232,7 +267,7 @@ class WalletRechargeController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return redirect()->route('user.wallet.recharge')
+            return redirect()->route($this->rechargeListRoute($recharge->payment_method ?? 'payby'))
                 ->with('notify_error', 'Payment retry failed. Please try again.');
         }
     }

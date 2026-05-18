@@ -12,6 +12,7 @@ use App\Models\Province;
 use App\Services\HotelProviders\HotelProviderManager;
 use App\Services\HotelProviders\TboHotelProvider;
 use App\Services\HotelProviders\TripInDealHotelProvider;
+use App\Support\HotelRefundPresentation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
@@ -447,6 +448,8 @@ class HotelController extends Controller
             $cheapestBoard['NetCost']['Amount'] ?? null,
             $boardsCollection->all()
         );
+        $hotelFormatted['is_refundable'] = $cheapestBoard ? empty($cheapestBoard['NonRefundable']) : null;
+        $hotelFormatted['refund_policy_summary'] = HotelRefundPresentation::yalagoBoardSummary($cheapestBoard);
         $roomCode  = $firstRoom['Code'] ?? null;
         $boardCode = $firstRoom['Boards'][0]['Code'] ?? null;
 
@@ -554,6 +557,11 @@ class HotelController extends Controller
             'image' => $images[0]['Url'] ?? null,
             'price' => $tboPrice,
         ];
+
+        $tboRefRaw = $tboRate['is_refundable'] ?? null;
+        $tboRefBool = $tboRefRaw === null ? null : (bool) $tboRefRaw;
+        $hotelFormatted['is_refundable'] = $tboRefBool;
+        $hotelFormatted['refund_policy_summary'] = HotelRefundPresentation::tboSummary($tboRefBool);
 
         $infoItems = [];
         foreach (($details['HotelFacilities'] ?? []) as $facility) {

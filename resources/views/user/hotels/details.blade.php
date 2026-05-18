@@ -93,6 +93,10 @@
                                     <span class="hd-sidebar__price-value">Price on request</span>
                                 @endif
                             </div>
+                            @include('user.hotels.partials.refund-info', [
+                                'hotel' => $hotel,
+                                'wrapperClass' => 'hd-sidebar__refund',
+                            ])
                         </div>
 
                         {{-- Booking Summary --}}

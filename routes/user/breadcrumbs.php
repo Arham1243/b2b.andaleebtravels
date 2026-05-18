@@ -17,6 +17,16 @@ Breadcrumbs::for('user.profile.changePassword', function (BreadcrumbTrail $trail
     $trail->push('Change Password', route('user.profile.changePassword'));
 });
 
+Breadcrumbs::for('user.wallet.recharge.card', function (BreadcrumbTrail $trail) {
+    $trail->parent('user.dashboard');
+    $trail->push('Recharge — Card', route('user.wallet.recharge.card'));
+});
+
+Breadcrumbs::for('user.wallet.recharge.tabby', function (BreadcrumbTrail $trail) {
+    $trail->parent('user.dashboard');
+    $trail->push('Recharge — Tabby', route('user.wallet.recharge.tabby'));
+});
+
 Breadcrumbs::for('user.sub-agents.index', function (BreadcrumbTrail $trail) {
     $trail->parent('user.dashboard');
     $trail->push('Sub Agents', route('user.sub-agents.index'));

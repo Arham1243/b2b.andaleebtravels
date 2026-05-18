@@ -6,6 +6,7 @@ use App\Models\Country;
 use App\Models\Hotel;
 use App\Models\Province;
 use App\Services\HotelProviders\Contracts\HotelProviderInterface;
+use App\Support\HotelRefundPresentation;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -112,6 +113,7 @@ class YalagoHotelProvider implements HotelProviderInterface
 
             $cheapestBoard = $boards->sortBy('NetCost.Amount')->first();
             $netAmount = data_get($cheapestBoard, 'NetCost.Amount');
+            $isRefundable = $cheapestBoard !== null ? empty($cheapestBoard['NonRefundable']) : null;
 
             // decode images if they are JSON string
             $imagesRaw = $localHotel?->images;
@@ -146,6 +148,9 @@ class YalagoHotelProvider implements HotelProviderInterface
                     ->unique()
                     ->values()
                     ->all(),
+
+                'is_refundable' => $isRefundable,
+                'refund_policy_summary' => HotelRefundPresentation::yalagoBoardSummary($cheapestBoard),
 
                 'property_type' => $item['EstablishmentInfo']['AccomodationType'] ?? null,
             ];
