@@ -45,7 +45,7 @@ final class HotelRefundPresentation
             return null;
         }
 
-        return 'Refund rules apply — see room options';
+        return 'Refund rules apply - see room options';
     }
 
     public static function tboSummary(?bool $isRefundable): ?string
@@ -55,7 +55,7 @@ final class HotelRefundPresentation
         }
 
         return $isRefundable
-            ? 'Refundable rate — supplier cancellation rules apply.'
+            ? 'Refundable rate - supplier cancellation rules apply.'
             : 'Non-refundable rate.';
     }
 }

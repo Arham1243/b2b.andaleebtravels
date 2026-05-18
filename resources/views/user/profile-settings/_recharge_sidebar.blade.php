@@ -3,7 +3,7 @@
         <a href="{{ route('user.wallet.recharge.card') }}"
            class="ps-nav__item {{ request()->routeIs('user.wallet.recharge.card') ? 'ps-nav__item--active' : '' }}">
             <span class="ps-nav__item-icon"><i class="bx bx-credit-card"></i></span>
-            <span class="ps-nav__item-text">Credit — Debit Card</span>
+            <span class="ps-nav__item-text">Credit - Debit Card</span>
             @if (request()->routeIs('user.wallet.recharge.card'))
                 <i class="bx bx-chevron-right ps-nav__item-arrow"></i>
             @endif

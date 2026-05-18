@@ -83,7 +83,7 @@
                                 <div style="background:#f5f7fa;border:1px solid #e4e9f0;border-radius:8px;padding:12px 14px;">
                                     <p style="font-size:.75rem;color:#4a5568;margin:0;display:flex;align-items:center;gap:7px;">
                                         <i class="bx bx-info-circle" style="font-size:1rem;color:#8492a6;flex-shrink:0;"></i>
-                                        Password must be at least <strong>8 characters</strong> — use a mix of letters, numbers and symbols for a stronger password.
+                                        Password must be at least <strong>8 characters</strong> - use a mix of letters, numbers and symbols for a stronger password.
                                     </p>
                                 </div>
 

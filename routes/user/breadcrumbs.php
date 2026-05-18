@@ -19,12 +19,12 @@ Breadcrumbs::for('user.profile.changePassword', function (BreadcrumbTrail $trail
 
 Breadcrumbs::for('user.wallet.recharge.card', function (BreadcrumbTrail $trail) {
     $trail->parent('user.dashboard');
-    $trail->push('Recharge — Card', route('user.wallet.recharge.card'));
+    $trail->push('Recharge - Card', route('user.wallet.recharge.card'));
 });
 
 Breadcrumbs::for('user.wallet.recharge.tabby', function (BreadcrumbTrail $trail) {
     $trail->parent('user.dashboard');
-    $trail->push('Recharge — Tabby', route('user.wallet.recharge.tabby'));
+    $trail->push('Recharge - Tabby', route('user.wallet.recharge.tabby'));
 });
 
 Breadcrumbs::for('user.sub-agents.index', function (BreadcrumbTrail $trail) {

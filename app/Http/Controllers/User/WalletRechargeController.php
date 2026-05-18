@@ -24,13 +24,13 @@ class WalletRechargeController extends Controller
     public function rechargeCard()
     {
         return view('user.wallet.recharge-card', $this->rechargePageData())
-            ->with('title', 'Recharge — Credit — Debit Card');
+            ->with('title', 'Recharge - Credit - Debit Card');
     }
 
     public function rechargeTabby()
     {
         return view('user.wallet.recharge-tabby', $this->rechargePageData())
-            ->with('title', 'Recharge — Tabby');
+            ->with('title', 'Recharge - Tabby');
     }
 
     /**
