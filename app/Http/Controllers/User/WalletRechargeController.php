@@ -40,7 +40,7 @@ class WalletRechargeController extends Controller
             return null;
         }
 
-        $filename = Str::uuid()->'.'.$file->getClientOriginalExtension();
+        $filename = Str::uuid()->toString().'.'.$file->getClientOriginalExtension();
         if (! $file->move($dir, $filename)) {
             return null;
         }
@@ -120,7 +120,17 @@ class WalletRechargeController extends Controller
 
     public function processCard(Request $request)
     {
-        return $this->beginRecharge($request, 'payby');
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:100|max:50000',
+            'proof' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ]);
+
+        $proofPath = $this->storeWalletBankProofPublic($request->file('proof'));
+        if (! $proofPath) {
+            return redirect()->back()->withInput()->with('notify_error', 'Could not upload payment proof. Please try again.');
+        }
+
+        return $this->beginRecharge($request, 'payby', ['proof_image_path' => $proofPath]);
     }
 
     public function processTabby(Request $request)
@@ -128,7 +138,10 @@ class WalletRechargeController extends Controller
         return $this->beginRecharge($request, 'tabby');
     }
 
-    protected function beginRecharge(Request $request, string $paymentMethod): \Illuminate\Http\RedirectResponse
+    /**
+     * @param  array<string, mixed>  $extraSession
+     */
+    protected function beginRecharge(Request $request, string $paymentMethod, array $extraSession = []): \Illuminate\Http\RedirectResponse
     {
         $request->validate([
             'amount' => 'required|numeric|min:100|max:50000',
@@ -139,13 +152,13 @@ class WalletRechargeController extends Controller
         try {
             $transactionNumber = B2bWalletRecharge::generateTransactionNumber();
 
-            $rechargeData = [
+            $rechargeData = array_merge([
                 'transaction_number' => $transactionNumber,
                 'amount' => (float) $request->input('amount'),
                 'payment_method' => $paymentMethod,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
-            ];
+            ], $extraSession);
 
             session()->put("wallet_recharge.{$transactionNumber}", $rechargeData);
 
@@ -201,6 +214,7 @@ class WalletRechargeController extends Controller
                     'currency' => 'AED',
                     'payment_method' => $rechargeData['payment_method'],
                     'status' => 'paid',
+                    'proof_image_path' => $rechargeData['proof_image_path'] ?? null,
                     'payment_response' => $verification['data'] ?? null,
                     'paid_at' => now(),
                     'ip_address' => $rechargeData['ip_address'],
@@ -237,6 +251,7 @@ class WalletRechargeController extends Controller
                 'payment_method' => $rechargeData['payment_method'],
                 'status' => 'failed',
                 'failure_reason' => $verification['error'] ?? 'Payment verification failed',
+                'proof_image_path' => $rechargeData['proof_image_path'] ?? null,
                 'payment_response' => $verification['data'] ?? null,
                 'ip_address' => $rechargeData['ip_address'],
                 'user_agent' => $rechargeData['user_agent'],
@@ -276,6 +291,7 @@ class WalletRechargeController extends Controller
                             'payment_method' => $rechargeData['payment_method'],
                             'status' => 'failed',
                             'failure_reason' => 'Payment was cancelled or failed by the user.',
+                            'proof_image_path' => $rechargeData['proof_image_path'] ?? null,
                             'ip_address' => $rechargeData['ip_address'],
                             'user_agent' => $rechargeData['user_agent'],
                         ]);
@@ -355,8 +371,8 @@ class WalletRechargeController extends Controller
                 ],
                 'paySceneCode' => 'PAYPAGE',
                 'paySceneParams' => [
-                    'redirectUrl' => paymentCallbackRoute('user.wallet.payment.success', ['transactionNumber' => $data['transaction_number']]),
-                    'backUrl' => paymentCallbackRoute('user.wallet.payment.failed', ['transactionNumber' => $data['transaction_number']]),
+                    'redirectUrl' => route('user.wallet.payment.success', ['transactionNumber' => $data['transaction_number']]),
+                    'backUrl' => route('user.wallet.payment.failed', ['transactionNumber' => $data['transaction_number']]),
                 ],
                 'reserved' => 'Andaleeb Wallet Recharge',
                 'accessoryContent' => [
@@ -506,9 +522,9 @@ class WalletRechargeController extends Controller
             'lang' => 'en',
             'merchant_code' => $this->tabbyMerchantCode,
             'merchant_urls' => [
-                'success' => paymentCallbackRoute('user.wallet.payment.success', ['transactionNumber' => $data['transaction_number']]),
-                'cancel' => paymentCallbackRoute('user.wallet.payment.failed'),
-                'failure' => paymentCallbackRoute('user.wallet.payment.failed'),
+                'success' => route('user.wallet.payment.success', ['transactionNumber' => $data['transaction_number']]),
+                'cancel' => route('user.wallet.payment.failed', ['transactionNumber' => $data['transaction_number']]),
+                'failure' => route('user.wallet.payment.failed', ['transactionNumber' => $data['transaction_number']]),
             ],
         ];
 

@@ -12,7 +12,7 @@ if (! function_exists('sanitizedLink')) {
 
 if (! function_exists('walletBankProofUrl')) {
     /**
-     * Bank proof files live under public/uploads/... New uploads use public/; legacy rows may still be under storage/app/public.
+     * Proof files are stored under public/; URL is always via asset() (no /storage).
      */
     function walletBankProofUrl(?string $path): ?string
     {
@@ -21,10 +21,6 @@ if (! function_exists('walletBankProofUrl')) {
         }
 
         $path = ltrim(str_replace('\\', '/', $path), '/');
-
-        if (is_file(public_path($path))) {
-            return asset($path);
-        }
 
         return asset($path);
     }

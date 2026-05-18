@@ -68,20 +68,24 @@
                             </td>
                             <td>{{ $recharge->created_at->format('d M Y, h:i A') }}</td>
                             <td>
-                                @if ($recharge->proof_image_path && $recharge->payment_method === 'bank_transfer')
-                                    <a href="{{ walletBankProofUrl($recharge->proof_image_path) }}" target="_blank" rel="noopener"
-                                       class="btn btn-sm btn-outline-secondary wallet-action-btn">
-                                        <i class='bx bx-image'></i> Proof
-                                    </a>
-                                @elseif ($recharge->status === 'failed' && in_array($recharge->payment_method, ['payby', 'tabby'], true))
-                                    <a href="{{ route('user.wallet.recharge.retry', $recharge->id) }}"
-                                        class="btn btn-sm btn-outline-primary wallet-action-btn"
-                                        onclick="return confirm('Retry payment of {{ number_format($recharge->amount, 2) }} AED?')">
-                                        <i class='bx bx-refresh'></i> Pay Again
-                                    </a>
-                                @else
-                                    <span class="text-muted"> - </span>
-                                @endif
+                                <div class="d-flex flex-wrap gap-1 justify-content-start align-items-center">
+                                    @if ($recharge->proof_image_path)
+                                        <a href="{{ walletBankProofUrl($recharge->proof_image_path) }}" target="_blank" rel="noopener"
+                                           class="btn btn-sm btn-outline-secondary wallet-action-btn">
+                                            <i class='bx bx-image'></i> Proof
+                                        </a>
+                                    @endif
+                                    @if ($recharge->status === 'failed' && in_array($recharge->payment_method, ['payby', 'tabby'], true))
+                                        <a href="{{ route('user.wallet.recharge.retry', $recharge->id) }}"
+                                            class="btn btn-sm btn-outline-primary wallet-action-btn"
+                                            onclick="return confirm('Retry payment of {{ number_format($recharge->amount, 2) }} AED?')">
+                                            <i class='bx bx-refresh'></i> Pay Again
+                                        </a>
+                                    @endif
+                                    @if (!$recharge->proof_image_path && !($recharge->status === 'failed' && in_array($recharge->payment_method, ['payby', 'tabby'], true)))
+                                        <span class="text-muted"> - </span>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach

@@ -30,7 +30,7 @@
                     </div>
                 </div>
 
-                <form action="{{ route('user.wallet.recharge.card.process') }}" method="POST" id="rechargeForm">
+                <form action="{{ route('user.wallet.recharge.card.process') }}" method="POST" enctype="multipart/form-data" id="rechargeForm">
                     @csrf
 
                     <div class="mb-4">
@@ -50,6 +50,16 @@
                                     placeholder="1000" min="100" max="50000" step="0.01" required>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size: 13px;">Payment proof (screenshot) *</label>
+                        <input type="file" name="proof" id="cardProofInput" class="form-control form-control-sm" style="max-width: 320px;"
+                               accept="image/jpeg,image/png,image/jpg,image/webp" required>
+                        <small class="text-muted d-block mt-1">Upload a receipt or proof before continuing to PayBy. JPG, PNG or WebP — max 5 MB</small>
+                        @error('proof')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="recharge-method-note">
@@ -78,6 +88,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const quickBtns = document.querySelectorAll('.quick-amount-btn');
             const amountInput = document.getElementById('amountInput');
+            const proofInput = document.getElementById('cardProofInput');
             const form = document.getElementById('rechargeForm');
 
             quickBtns.forEach(btn => {
@@ -99,7 +110,13 @@
                 quickBtns[0].click();
             }
 
-            form.addEventListener('submit', function() {
+            form.addEventListener('submit', function(e) {
+                if (!proofInput || !proofInput.files || proofInput.files.length === 0) {
+                    e.preventDefault();
+                    proofInput?.focus();
+                    proofInput?.reportValidity();
+                    return;
+                }
                 const btn = document.getElementById('rechargeBtn');
                 btn.disabled = true;
                 btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing...';
