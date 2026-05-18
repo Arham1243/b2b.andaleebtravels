@@ -28,10 +28,6 @@ class WalletBankTransferController extends Controller
 
     public function confirm(Request $request, B2bWalletRecharge $recharge)
     {
-        $request->validate([
-            'note' => 'nullable|string|max:500',
-        ]);
-
         if ($recharge->payment_method !== 'bank_transfer') {
             abort(404);
         }
@@ -41,16 +37,14 @@ class WalletBankTransferController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($recharge, $request) {
+            DB::transaction(function () use ($recharge) {
                 $locked = B2bWalletRecharge::whereKey($recharge->id)
                     ->where('payment_method', 'bank_transfer')
                     ->where('status', 'pending')
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $note = $request->input('note');
                 $paymentResponse = array_merge($locked->payment_response ?? [], [
-                    'admin_confirmation_note' => $note,
                     'confirmed_at' => now()->toIso8601String(),
                 ]);
 
