@@ -204,8 +204,11 @@
             <div class="d-flex align-items-flex-start justify-content-between gap-3 flex-wrap">
                 <div>
                     <h1 style="font-size:clamp(1.5rem,2.4vw,1.9rem); font-weight:700; color:#18181b; letter-spacing:-.02em; margin:0 0 .3rem;">
-                        {{ $vendor->name }}
+                        {{ $vendor->display_agency_name ?: $vendor->name }}
                     </h1>
+                    @if ($vendor->contact_name)
+                        <p style="font-size:.9rem; color:#6b6573; margin:0 0 .35rem;">{{ $vendor->contact_name }}{{ $vendor->designation ? ' · ' . $vendor->designation : '' }}</p>
+                    @endif
                     <p style="font-size:.88rem; color:#6b6573; margin:0; display:flex; flex-wrap:wrap; gap:.4rem .75rem; align-items:center;">
                         <span><i class="bx bx-envelope" style="vertical-align:middle;"></i> {{ $vendor->email }}</span>
                         <span style="color:#d0d0d8;">·</span>
@@ -222,7 +225,7 @@
                     <a href="{{ route('admin.vendors.change-status', $vendor->id) }}"
                         class="btn btn-sm {{ $vendor->status === 'active' ? 'btn-outline-danger' : 'btn-outline-success' }} fw-semibold px-3"
                         style="border-radius:8px; font-size:.82rem;"
-                        onclick="return confirm('Are you sure you want to {{ $vendor->status === 'active' ? 'deactivate' : 'activate' }} {{ addslashes($vendor->name) }}?')">
+                        onclick="return confirm('Are you sure you want to {{ $vendor->status === 'active' ? 'deactivate' : 'activate' }} {{ addslashes($vendor->display_agency_name ?: $vendor->name) }}?')">
                         <i class="bx {{ $vendor->status === 'active' ? 'bx-pause-circle' : 'bx-play-circle' }}"></i>
                         {{ $vendor->status === 'active' ? 'Deactivate' : 'Activate' }}
                     </a>
@@ -275,12 +278,16 @@
         <div class="vs-card mb-4">
             <div class="vs-info-grid">
                 <div class="vs-info-item">
-                    <span class="vs-info-label">Full Name</span>
-                    <span class="vs-info-value">{{ $vendor->name }}</span>
+                    <span class="vs-info-label">Travel Agency</span>
+                    <span class="vs-info-value">{{ $vendor->display_agency_name ?: '—' }}</span>
                 </div>
                 <div class="vs-info-item">
-                    <span class="vs-info-label">Agent Code</span>
-                    <span class="vs-info-value"><code style="color:var(--color-primary); font-size:.88em;">{{ $vendor->agent_code }}</code></span>
+                    <span class="vs-info-label">Contact Name</span>
+                    <span class="vs-info-value">{{ $vendor->contact_name ?: $vendor->name ?: '—' }}</span>
+                </div>
+                <div class="vs-info-item">
+                    <span class="vs-info-label">Designation</span>
+                    <span class="vs-info-value">{{ $vendor->designation ?: '—' }}</span>
                 </div>
                 <div class="vs-info-item">
                     <span class="vs-info-label">Email Address</span>
@@ -289,6 +296,18 @@
                 <div class="vs-info-item">
                     <span class="vs-info-label">Username</span>
                     <span class="vs-info-value">{{ $vendor->username }}</span>
+                </div>
+                <div class="vs-info-item">
+                    <span class="vs-info-label">Agent Code</span>
+                    <span class="vs-info-value"><code style="color:var(--color-primary); font-size:.88em;">{{ $vendor->agent_code }}</code></span>
+                </div>
+                <div class="vs-info-item">
+                    <span class="vs-info-label">Trade License Number</span>
+                    <span class="vs-info-value">{{ $vendor->trade_license_number ?: '—' }}</span>
+                </div>
+                <div class="vs-info-item">
+                    <span class="vs-info-label">Trade License Expiry</span>
+                    <span class="vs-info-value">{{ $vendor->trade_license_expiry ? $vendor->trade_license_expiry->format('d M Y') : '—' }}</span>
                 </div>
                 <div class="vs-info-item">
                     <span class="vs-info-label">Wallet Balance</span>

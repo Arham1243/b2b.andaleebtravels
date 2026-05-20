@@ -21,7 +21,7 @@
                 <p class="muted" style="font-size:12px;font-weight:700;color:#999999;text-transform:uppercase;margin:0 0 8px;">
                     {{ $brand }} - B2B
                 </p>
-                <h1>Welcome, {{ $vendor->name }}</h1>
+                <h1>Welcome, {{ $vendor->contact_name ?: $vendor->display_agency_name }}</h1>
                 <p class="muted" style="margin:12px 0 0;">Your vendor account has been created. Below are your login credentials.</p>
             </td>
         </tr>

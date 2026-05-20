@@ -26,20 +26,30 @@ class VendorController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'travel_agency' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:b2b_vendors,email|max:255',
+            'designation' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:b2b_vendors,username',
-            'agent_code' => 'required|string|max:255|unique:b2b_vendors,agent_code',
+            'trade_license_number' => 'required|string|max:255',
+            'trade_license_expiry' => 'required|date',
             'status' => 'required|in:active,inactive',
         ]);
 
         $plainPassword = '12345678';
 
         $vendor = B2bVendor::create([
-            'name' => $validated['name'],
+            'name' => $validated['travel_agency'],
+            'travel_agency' => $validated['travel_agency'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
             'email' => $validated['email'],
+            'designation' => $validated['designation'],
             'username' => $validated['username'],
-            'agent_code' => $validated['agent_code'],
+            'trade_license_number' => $validated['trade_license_number'],
+            'trade_license_expiry' => $validated['trade_license_expiry'],
+            'agent_code' => $this->generateUniqueAgentCode(),
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
         ]);
@@ -91,5 +101,14 @@ class VendorController extends Controller
         $vendor->delete();
 
         return redirect()->route('admin.vendors.index')->with('notify_success', 'Vendor deleted successfully!');
+    }
+
+    private function generateUniqueAgentCode(): string
+    {
+        do {
+            $code = 'AT' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+        } while (B2bVendor::where('agent_code', $code)->exists());
+
+        return $code;
     }
 }

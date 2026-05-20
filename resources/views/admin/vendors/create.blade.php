@@ -14,12 +14,35 @@
                                 </div>
                                 <div class="form-box__body">
                                     <div class="form-fields">
-                                        <label class="title">Full Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="name" class="field" value="{{ old('name') }}"
-                                            placeholder="Enter full name" required>
-                                        @error('name')
+                                        <label class="title">Travel Agency <span class="text-danger">*</span></label>
+                                        <input type="text" name="travel_agency" class="field"
+                                            value="{{ old('travel_agency') }}" placeholder="Enter travel agency name" required>
+                                        @error('travel_agency')
                                             <div class="text-danger">{{ $message }}</div>
                                         @enderror
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-fields">
+                                                <label class="title">First Name <span class="text-danger">*</span></label>
+                                                <input type="text" name="first_name" class="field"
+                                                    value="{{ old('first_name') }}" placeholder="Enter first name" required>
+                                                @error('first_name')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-fields">
+                                                <label class="title">Last Name <span class="text-danger">*</span></label>
+                                                <input type="text" name="last_name" class="field"
+                                                    value="{{ old('last_name') }}" placeholder="Enter last name" required>
+                                                @error('last_name')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="form-fields">
@@ -27,6 +50,15 @@
                                         <input type="email" name="email" class="field" value="{{ old('email') }}"
                                             placeholder="Enter email address" required>
                                         @error('email')
+                                            <div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="form-fields">
+                                        <label class="title">Designation <span class="text-danger">*</span></label>
+                                        <input type="text" name="designation" class="field"
+                                            value="{{ old('designation') }}" placeholder="e.g. Owner, Manager" required>
+                                        @error('designation')
                                             <div class="text-danger">{{ $message }}</div>
                                         @enderror
                                     </div>
@@ -40,17 +72,32 @@
                                         @enderror
                                     </div>
 
-                                    <div class="form-fields">
-                                        <label class="title">Agent Code <span class="text-danger">*</span></label>
-                                        <input type="text" name="agent_code" class="field"
-                                            value="{{ old('agent_code') }}" placeholder="Enter agent code" required>
-                                        @error('agent_code')
-                                            <div class="text-danger">{{ $message }}</div>
-                                        @enderror
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-fields">
+                                                <label class="title">Trade License Number <span class="text-danger">*</span></label>
+                                                <input type="text" name="trade_license_number" class="field"
+                                                    value="{{ old('trade_license_number') }}"
+                                                    placeholder="Enter trade license number" required>
+                                                @error('trade_license_number')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-fields">
+                                                <label class="title">Trade License Expiry <span class="text-danger">*</span></label>
+                                                <input type="date" name="trade_license_expiry" class="field"
+                                                    value="{{ old('trade_license_expiry') }}" required>
+                                                @error('trade_license_expiry')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="form-fields">
-                                        <small class="text-muted">Default password is 12345678. The vendor will receive a welcome email with a password reset link.</small>
+                                        <small class="text-muted">Default password is 12345678. An agent code is generated automatically. The vendor will receive a welcome email with login details and a password reset link.</small>
                                     </div>
                                 </div>
                             </div>

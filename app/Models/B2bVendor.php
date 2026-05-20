@@ -15,7 +15,18 @@ class B2bVendor extends Authenticatable
     protected $casts = [
         'hotel_search_providers' => 'array',
         'flight_search_providers' => 'array',
+        'trade_license_expiry' => 'date',
     ];
+
+    public function getContactNameAttribute(): string
+    {
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+    }
+
+    public function getDisplayAgencyNameAttribute(): string
+    {
+        return $this->travel_agency ?: $this->name ?: '';
+    }
 
     public function hotelBookings(): HasMany
     {

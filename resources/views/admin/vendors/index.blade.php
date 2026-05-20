@@ -40,7 +40,8 @@
                                                 <input type="checkbox" id="select-all">
                                             </div>
                                         </th>
-                                        <th>Name</th>
+                                        <th>Travel Agency</th>
+                                        <th>Contact</th>
                                         <th>Email</th>
                                         <th>Username</th>
                                         <th>Agent Code</th>
@@ -59,7 +60,8 @@
                                                         value="{{ $vendor->id }}">
                                                 </div>
                                             </td>
-                                            <td>{{ $vendor->name }}</td>
+                                            <td>{{ $vendor->display_agency_name ?: $vendor->name }}</td>
+                                            <td>{{ $vendor->contact_name ?: '—' }}</td>
                                             <td>{{ $vendor->email }}</td>
                                             <td>{{ $vendor->username }}</td>
                                             <td>{{ $vendor->agent_code }}</td>
