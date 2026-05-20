@@ -661,6 +661,7 @@
             const payBtn = document.getElementById('pay-btn');
             if (form && payBtn) {
                 form.addEventListener('submit', function() {
+                    recalcWallet();
                     payBtn.disabled = true;
                     payBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing...';
                 });

@@ -178,16 +178,24 @@ class FlightBookingController extends Controller
         if ($useWallet) {
             $user = Auth::user();
             $requestedWalletAmount = (float) ($validated['wallet_amount'] ?? 0);
-            $walletDeduction = min($requestedWalletAmount, (float) $user->main_balance, $totalAmount);
+            $maxApplicable = min((float) $user->main_balance, $totalAmount);
 
-            if ($walletDeduction > 0) {
-                $booking->update([
-                    'wallet_amount' => $walletDeduction,
-                ]);
+            $walletDeduction = $requestedWalletAmount > 0
+                ? min($requestedWalletAmount, $maxApplicable)
+                : $maxApplicable;
+
+            if ($walletDeduction <= 0) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('notify_error', 'Insufficient wallet balance.');
             }
+
+            $booking->update([
+                'wallet_amount' => $walletDeduction,
+            ]);
         }
 
-        $remainingAmount = $totalAmount - $walletDeduction;
+        $remainingAmount = round($totalAmount - $walletDeduction, 2);
 
         if ($remainingAmount <= 0) {
             $booking->update([
@@ -197,8 +205,21 @@ class FlightBookingController extends Controller
             return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
         }
 
+        $paymentMethod = $validated['payment_method'] ?? null;
+        if (!$paymentMethod) {
+            $booking->update([
+                'booking_status' => 'failed',
+                'payment_status' => 'failed',
+                'wallet_amount' => 0,
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('notify_error', 'Please select a payment method for the remaining balance.');
+        }
+
         try {
-            $redirectUrl = $flightService->getRedirectUrl($booking, $validated['payment_method']);
+            $redirectUrl = $flightService->getRedirectUrl($booking, $paymentMethod);
             return redirect($redirectUrl);
         } catch (\Exception $e) {
             $booking->update([
@@ -549,10 +570,17 @@ class FlightBookingController extends Controller
         if ($useWallet) {
             $user                = Auth::user();
             $requestedAmount     = (float) ($validated['wallet_amount'] ?? 0);
-            $walletDeduction     = min($requestedAmount, (float) $user->main_balance, $totalAmount);
+            $maxApplicable       = min((float) $user->main_balance, $totalAmount);
+            $walletDeduction     = $requestedAmount > 0
+                ? min($requestedAmount, $maxApplicable)
+                : $maxApplicable;
+
+            if ($walletDeduction <= 0) {
+                return back()->with('notify_error', 'Insufficient wallet balance.');
+            }
         }
 
-        $remainingAmount = $totalAmount - $walletDeduction;
+        $remainingAmount = round($totalAmount - $walletDeduction, 2);
 
         // Update booking: keep PNR, just update payment method + wallet amount
         $booking->update([

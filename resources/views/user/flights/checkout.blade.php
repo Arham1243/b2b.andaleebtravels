@@ -745,6 +745,7 @@
             const form = document.getElementById('flightCheckoutForm');
             if (form) {
                 form.addEventListener('submit', function() {
+                    recalc();
                     if (els.payBtn) {
                         els.payBtn.disabled = true;
                         els.payBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing…';

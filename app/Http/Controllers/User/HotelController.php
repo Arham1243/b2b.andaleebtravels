@@ -1167,16 +1167,25 @@ class HotelController extends Controller
             if ($useWallet) {
                 $user = Auth::user();
                 $requestedWalletAmount = (float) ($validated['wallet_amount'] ?? 0);
-                $walletDeduction = min($requestedWalletAmount, (float) $user->main_balance, $totalAmount);
+                $maxApplicable = min((float) $user->main_balance, $totalAmount);
 
-                if ($walletDeduction > 0) {
-                    $booking->update([
-                        'wallet_amount' => $walletDeduction,
-                    ]);
+                // When wallet is selected, derive amount server-side if the hidden field was not synced.
+                $walletDeduction = $requestedWalletAmount > 0
+                    ? min($requestedWalletAmount, $maxApplicable)
+                    : $maxApplicable;
+
+                if ($walletDeduction <= 0) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('notify_error', 'Insufficient wallet balance.');
                 }
+
+                $booking->update([
+                    'wallet_amount' => $walletDeduction,
+                ]);
             }
 
-            $remainingAmount = $totalAmount - $walletDeduction;
+            $remainingAmount = round($totalAmount - $walletDeduction, 2);
 
             // If wallet covers the full amount, redirect to success for processing
             if ($remainingAmount <= 0) {
@@ -1187,9 +1196,22 @@ class HotelController extends Controller
                 return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
             }
 
+            $paymentMethod = $validated['payment_method'] ?? null;
+            if (!$paymentMethod) {
+                $booking->update([
+                    'booking_status' => 'failed',
+                    'payment_status' => 'failed',
+                    'wallet_amount' => 0,
+                ]);
+
+                return redirect()->back()
+                    ->withInput()
+                    ->with('notify_error', 'Please select a payment method for the remaining balance.');
+            }
+
             // Get payment redirect URL for remaining amount
             try {
-                $redirectUrl = $hotelService->getRedirectUrl($booking, $validated['payment_method']);
+                $redirectUrl = $hotelService->getRedirectUrl($booking, $paymentMethod);
                 return redirect($redirectUrl);
             } catch (\Exception $e) {
                 $booking->update([
