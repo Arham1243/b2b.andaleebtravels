@@ -12,7 +12,7 @@
                 </div>
             </div>
             @if (!empty($supplierBookingDetails['status']))
-                <span class="bkp-badge bkp-badge--{{ $supplierBookingDetails['status']['tone'] }}">
+                <span class="bkp-badge bkp-badge--{{ $supplierBookingDetails['status']['class'] }}">
                     {{ $supplierBookingDetails['status']['label'] }}
                 </span>
             @endif
@@ -41,7 +41,15 @@
                                 @if (!empty($row['mono'])) style="font-family:monospace;font-size:.78rem;" @endif
                                 @if (!empty($row['multiline'])) style="text-align:right;max-width:68%;white-space:pre-line;" @endif>
                                 @if (!empty($row['badge']))
-                                    <span class="badge rounded-pill bg-secondary">{{ $row['value'] }}</span>
+                                    @php
+                                        $statusClass = match (strtolower((string) $row['value'])) {
+                                            'confirmed', 'vouchered', 'completed' => 'confirmed',
+                                            'pending', 'cancellationinprogress' => 'pending',
+                                            'cancelled', 'canceled', 'failed', 'rejected' => 'cancelled',
+                                            default => 'pending',
+                                        };
+                                    @endphp
+                                    <span class="bkp-badge bkp-badge--{{ $statusClass }}">{{ $row['value'] }}</span>
                                 @else
                                     {{ $row['value'] }}
                                 @endif

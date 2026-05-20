@@ -223,7 +223,7 @@ final class SupplierBookingDetailsPresenter
     }
 
     /**
-     * @return array{label: string, tone: string}|null
+     * @return array{label: string, class: string}|null
      */
     private static function resolveStatusBadge(mixed $supplierStatus, B2bHotelBooking $booking): ?array
     {
@@ -236,14 +236,14 @@ final class SupplierBookingDetailsPresenter
         $label = ucfirst(strtolower((string) $status));
         $normalized = strtolower((string) $status);
 
-        $tone = match (true) {
-            in_array($normalized, ['confirmed', 'vouchered', 'completed'], true) => 'success',
-            in_array($normalized, ['pending', 'cancellationinprogress'], true) => 'warning',
-            in_array($normalized, ['cancelled', 'canceled', 'failed', 'rejected'], true) => 'danger',
-            default => 'secondary',
+        $class = match (true) {
+            in_array($normalized, ['confirmed', 'vouchered', 'completed'], true) => 'confirmed',
+            in_array($normalized, ['pending', 'cancellationinprogress'], true) => 'pending',
+            in_array($normalized, ['cancelled', 'canceled', 'failed', 'rejected'], true) => 'cancelled',
+            default => 'pending',
         };
 
-        return compact('label', 'tone');
+        return compact('label', 'class');
     }
 
     /**
