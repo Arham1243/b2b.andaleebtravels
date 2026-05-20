@@ -341,7 +341,19 @@
                             </div>
                         </div>
 
-                        <form action="{{ route('admin.bookings.hotels.status', $booking->id) }}" method="POST" class="bkpd-card mb-3 admin-hotel-status">
+                        @php
+                            $vendorLabel = $booking->vendor
+                                ? ($booking->vendor->display_agency_name ?: $booking->vendor->name)
+                                : 'Vendor';
+                        @endphp
+                        <form action="{{ route('admin.bookings.hotels.status', $booking->id) }}" method="POST"
+                            class="bkpd-card mb-3 admin-hotel-status admin-booking-status-form"
+                            data-booking-number="{{ $booking->booking_number }}"
+                            data-total-amount="{{ number_format((float) $booking->total_amount, 2) }}"
+                            data-vendor-name="{{ e($vendorLabel) }}"
+                            data-current-payment-status="{{ $booking->payment_status }}"
+                            data-current-booking-status="{{ $booking->booking_status }}"
+                            data-booking-type="hotel">
                             @csrf
                             <div class="bkpd-card__section-head"><i class="bx bx-edit"></i> Update status</div>
                             <div class="bkpd-actions" style="padding:0 16px 16px;">
@@ -416,9 +428,16 @@
 @endsection
 
 @push('js')
+@include('admin.bookings.partials.status-form-confirm')
 <script>
 $(document).on('click', '.cancel-booking-btn', function() {
-    if (!confirm('Are you sure you want to cancel this booking?')) {
+    const amount = @json(number_format((float) $booking->total_amount, 2));
+    const vendor = @json($vendorLabel ?? 'the vendor');
+    const message =
+        'Cancel this hotel booking with the supplier?\n\n' +
+        'If payment was collected, ' + amount + ' AED will be credited to ' + vendor + '\'s wallet.\n\n' +
+        'Continue?';
+    if (!confirm(message)) {
         return;
     }
 

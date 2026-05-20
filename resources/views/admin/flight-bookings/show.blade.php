@@ -424,7 +424,7 @@
                             class="bkpd-card mb-3 admin-flight-status admin-booking-status-form"
                             data-booking-number="{{ $booking->booking_number }}"
                             data-total-amount="{{ number_format((float) $booking->total_amount, 2) }}"
-                            data-vendor-name="{{ $vendorLabel }}"
+                            data-vendor-name="{{ e($vendorLabel) }}"
                             data-current-payment-status="{{ $booking->payment_status }}"
                             data-current-booking-status="{{ $booking->booking_status }}"
                             data-current-ticket-status="{{ $booking->ticket_status }}"
@@ -524,9 +524,16 @@
 @endsection
 
 @push('js')
+@include('admin.bookings.partials.status-form-confirm')
 <script>
 $(document).on('click', '.cancel-booking-btn', function() {
-    if (!confirm('Are you sure you want to cancel this flight booking?')) {
+    const amount = @json(number_format((float) $booking->total_amount, 2));
+    const vendor = @json($vendorLabel ?? 'the vendor');
+    const message =
+        'Cancel this flight booking at the airline?\n\n' +
+        'If payment was collected, ' + amount + ' AED will be credited to ' + vendor + '\'s wallet.\n\n' +
+        'Continue?';
+    if (!confirm(message)) {
         return;
     }
 
