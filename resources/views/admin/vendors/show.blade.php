@@ -633,9 +633,8 @@
                                 value="{{ old('description') }}" required>
                         </div>
                         <div class="col-md-4">
-                            <label for="mw_attachment">Attachment <span class="text-muted fw-normal">(optional)</span></label>
+                            <label for="mw_attachment">Attachment</label>
                             <input type="file" name="attachment" id="mw_attachment" class="field" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                            <small class="text-muted d-block mt-1" style="font-size:.72rem;">PDF or image, max 5 MB — e.g. bank transfer proof</small>
                         </div>
                         <div class="col-12">
                             <button type="submit" class="themeBtn" style="font-size:.85rem;">
