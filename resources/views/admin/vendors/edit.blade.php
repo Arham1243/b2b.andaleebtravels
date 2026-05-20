@@ -50,7 +50,7 @@
                                             value="inactive" {{ old('status', $vendor->status) == 'inactive' ? 'checked' : '' }}>
                                         <label class="form-check-label" for="inactive">Inactive</label>
                                     </div>
-                                    @if (!$vendor->parent_vendor_id)
+                                    @if ($vendor->isPendingApproval() && $vendor->isAgencyAccount())
                                         <div class="form-check mt-2">
                                             <input class="form-check-input" type="radio" name="status" id="pending"
                                                 value="pending" {{ old('status', $vendor->status) == 'pending' ? 'checked' : '' }}>

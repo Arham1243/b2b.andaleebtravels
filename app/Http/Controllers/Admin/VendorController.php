@@ -164,6 +164,12 @@ class VendorController extends Controller
     {
         $validated = $this->validateVendor($request, $vendor->id, $vendor);
 
+        if (!$vendor->isPendingApproval() && ($validated['status'] ?? '') === 'pending') {
+            return redirect()->back()
+                ->withInput()
+                ->with('notify_error', 'Approved vendors cannot be set back to pending approval.');
+        }
+
         if ($vendor->parent_vendor_id) {
             $data = [
                 'name' => $validated['name'],
@@ -323,7 +329,8 @@ class VendorController extends Controller
             ]), B2bVendorValidation::messages());
         }
 
-        $statusRule = $vendorId
+        $canSetPending = $vendor && $vendor->isPendingApproval() && $vendor->isAgencyAccount();
+        $statusRule = $canSetPending
             ? 'required|in:active,inactive,pending'
             : 'required|in:active,inactive';
 
