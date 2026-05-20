@@ -1,6 +1,6 @@
 @php
     $siteLogo = \App\Models\Config::where('config_key', 'SITE_LOGO')->value('config_value');
-    $fallbackLogo = asset('frontend/assets/images/logo.webp');
+    $fallbackLogo = asset('frontend/assets/images/logo.png');
     $bannerLogoSrc = $emailLogoSrc ?? ($siteLogo ? asset($siteLogo) : $fallbackLogo);
     $bannerLogoAlt = trim((string) ($emailLogoAlt ?? (config('app.name') ?: '')));
     if ($bannerLogoAlt === '') {
