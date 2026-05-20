@@ -21,6 +21,10 @@ class BulkActionController extends Controller
         $isParent = false;
         switch ($resource) {
             case 'vendors':
+                if ($action === 'delete') {
+                    return $this->bulkDeleteVendors($selectedIds);
+                }
+
                 $modelClass = B2bVendor::class;
                 $column = 'id';
                 $redirectRoute = 'admin.vendors.index';
@@ -57,5 +61,41 @@ class BulkActionController extends Controller
         }
 
         return redirect()->route($redirectRoute)->with('notify_success', 'Bulk action performed successfully!');
+    }
+
+    protected function bulkDeleteVendors(array $selectedIds)
+    {
+        $blocked = [];
+        $deleted = 0;
+
+        foreach ($selectedIds as $id) {
+            $vendor = B2bVendor::find($id);
+            if (!$vendor) {
+                continue;
+            }
+
+            if ($vendor->hasAssociatedData()) {
+                $blocked[] = $vendor->name;
+                continue;
+            }
+
+            $vendor->delete();
+            $deleted++;
+        }
+
+        if (!empty($blocked)) {
+            $message = 'Cannot delete vendor(s) with existing bookings or related data: ' . implode(', ', $blocked);
+            if ($deleted > 0) {
+                $message .= '. ' . $deleted . ' vendor(s) without data were deleted.';
+            }
+
+            return redirect()->route('admin.vendors.index')->with('notify_error', $message);
+        }
+
+        if ($deleted === 0) {
+            return redirect()->route('admin.vendors.index')->with('notify_error', 'No vendors were deleted.');
+        }
+
+        return redirect()->route('admin.vendors.index')->with('notify_success', 'Selected vendor(s) deleted successfully!');
     }
 }

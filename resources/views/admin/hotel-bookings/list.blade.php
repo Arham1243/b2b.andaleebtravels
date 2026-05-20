@@ -38,7 +38,8 @@
                                         <th>Check Out</th>
                                         <th>Supplier</th>
                                         <th>Amount</th>
-                                        <th>Payment</th>
+                                        <th>Payment Method</th>
+                                        <th>Payment Status</th>
                                         <th>Booking Status</th>
                                         <th>Date</th>
                                         <th class="no-sort">Actions</th>
@@ -69,6 +70,19 @@
                                             <td>{{ $booking->check_out_date?->format('d M Y') ?? '—' }}</td>
                                             <td>{{ formatBookingSupplierLabel($booking->supplier) }}</td>
                                             <td>{!! formatPrice($booking->total_amount) !!}</td>
+                                            <td>
+                                                @php
+                                                    $payMethod = strtolower((string) ($booking->payment_method ?? ''));
+                                                    $payLabel = match ($payMethod) {
+                                                        'payby' => 'Card (PayBy)',
+                                                        'tabby' => 'Tabby',
+                                                        'tamara' => 'Tamara',
+                                                        'wallet' => 'Wallet',
+                                                        default => $payMethod !== '' ? ucfirst(str_replace('_', ' ', $payMethod)) : '—',
+                                                    };
+                                                @endphp
+                                                {{ $payLabel }}
+                                            </td>
                                             <td>
                                                 <span
                                                     class="badge rounded-pill bg-{{ $booking->payment_status === 'paid' ? 'success' : ($booking->payment_status === 'pending' ? 'warning' : ($booking->payment_status === 'refunded' ? 'info' : 'danger')) }}">

@@ -81,7 +81,15 @@ class VendorController extends Controller
 
     public function destroy(B2bVendor $vendor)
     {
+        if ($vendor->hasAssociatedData()) {
+            return redirect()->back()->with(
+                'notify_error',
+                'Cannot delete this vendor. This account has existing bookings or related data.'
+            );
+        }
+
         $vendor->delete();
+
         return redirect()->route('admin.vendors.index')->with('notify_success', 'Vendor deleted successfully!');
     }
 }

@@ -52,6 +52,16 @@ class B2bVendor extends Authenticatable
         return $this->hasMany(B2bSavedPassenger::class, 'b2b_vendor_id');
     }
 
+    public function hasAssociatedData(): bool
+    {
+        return $this->hotelBookings()->exists()
+            || $this->flightBookings()->exists()
+            || $this->walletLedger()->exists()
+            || $this->walletRecharges()->exists()
+            || $this->savedPassengers()->exists()
+            || $this->subAgents()->exists();
+    }
+
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new B2bVendorResetPassword($token));
