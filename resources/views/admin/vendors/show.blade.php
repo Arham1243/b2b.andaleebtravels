@@ -172,8 +172,6 @@
         text-decoration: none;
     }
 
-    @include('partials.wallet-ledger-styles')
-
     .vs-ledger-modal .modal-content {
         border: 1px solid #ebecf0;
         border-radius: 12px;
@@ -272,6 +270,7 @@
         .vs-tabs { overflow-x: auto; }
     }
 </style>
+@include('partials.wallet-ledger-styles')
 @endpush
 
 @section('content')

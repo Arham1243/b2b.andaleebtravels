@@ -6,8 +6,8 @@
     $required = $required ?? false;
     $currentUrl = $currentUrl ?? null;
     $btnClass = $btnClass ?? 'agency-logo-upload__btn';
-    $hint = $hint ?? 'JPG, PNG or GIF — max 2 MB';
-@endphp
+    $hint = $hint ?? null;
+@endphp 
 
 <div class="agency-logo-upload">
     @if ($currentUrl)

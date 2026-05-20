@@ -29,7 +29,7 @@
             'currentUrl' => $isEdit ? $vendor->agencyLogoUrl() : null,
             'chooseLabel' => 'Choose logo',
             'btnClass' => 'themeBtn agency-logo-upload__btn',
-            'hint' => 'JPG, PNG or GIF — max 2 MB. Shown in the agent site header.',
+            'hint' => null,
         ])
         @error('agency_logo')
             <div class="text-danger">{{ $message }}</div>
