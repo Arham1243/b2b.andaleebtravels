@@ -1108,9 +1108,8 @@
                         </div>
                         <div class="col-12" id="el_attachment_wrap">
                             <div class="vs-ledger-modal__field">
-                                <label for="el_attachment">Attachment <span class="text-muted fw-normal">(optional)</span></label>
+                                <label for="el_attachment">Attachment/label>
                                 <input type="file" name="attachment" id="el_attachment" class="field" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
-                                <small class="text-muted d-block mt-1" style="font-size:.72rem;">PDF or image, max 5 MB</small>
                                 <div id="el_attachment_current" class="mt-2" style="display:none;">
                                     <a href="#" id="el_attachment_link" class="vs-ledger-attachment-btn" target="_blank" rel="noopener">
                                         <i class="bx bx-paperclip"></i> Current attachment
