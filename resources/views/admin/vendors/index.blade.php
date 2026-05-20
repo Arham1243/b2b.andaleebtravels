@@ -1,4 +1,27 @@
 @extends('admin.layouts.main')
+@push('css')
+    <style>
+        .vendor-list__title {
+            font-weight: 600;
+            color: inherit;
+            text-decoration: none;
+        }
+        .vendor-list__title:hover {
+            text-decoration: underline;
+        }
+        .vendor-list__meta {
+            display: block;
+            font-size: 12px;
+            color: #6b6573;
+            line-height: 1.35;
+            margin-top: 2px;
+        }
+        .vendor-list__code {
+            font-size: 13px;
+            font-weight: 600;
+        }
+    </style>
+@endpush
 @section('content')
     <div class="col-md-12">
         <div class="dashboard-content">
@@ -40,19 +63,24 @@
                                                 <input type="checkbox" id="select-all">
                                             </div>
                                         </th>
-                                        <th>Travel Agency</th>
-                                        <th>Contact</th>
-                                        <th>Email</th>
-                                        <th>Username</th>
-                                        <th>Agent Code</th>
-                                        <th>Wallet Balance</th>
+                                        <th>Agency</th>
+                                        <th>Login</th>
+                                        <th>Balance</th>
                                         <th>Status</th>
-                                        <th>Registration Date</th>
-                                        <th>Actions</th>
+                                        <th>Registered</th>
+                                        <th class="no-sort">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($vendors as $vendor)
+                                        @php
+                                            $agencyName = $vendor->display_agency_name ?: $vendor->name;
+                                            $statusClass = match ($vendor->status) {
+                                                'active' => 'success',
+                                                'inactive' => 'secondary',
+                                                default => 'warning',
+                                            };
+                                        @endphp
                                         <tr>
                                             <td>
                                                 <div class="selection item-select-container">
@@ -60,19 +88,25 @@
                                                         value="{{ $vendor->id }}">
                                                 </div>
                                             </td>
-                                            <td>{{ $vendor->display_agency_name ?: $vendor->name }}</td>
-                                            <td>{{ $vendor->contact_name ?: '—' }}</td>
-                                            <td>{{ $vendor->email }}</td>
-                                            <td>{{ $vendor->username }}</td>
-                                            <td>{{ $vendor->agent_code }}</td>
+                                            <td>
+                                                <a href="{{ route('admin.vendors.show', $vendor) }}"
+                                                    class="vendor-list__title">{{ $agencyName }}</a>
+                                                @if ($vendor->contact_name)
+                                                    <span class="vendor-list__meta">{{ $vendor->contact_name }}</span>
+                                                @endif
+                                                <span class="vendor-list__meta">{{ $vendor->email }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="vendor-list__code">{{ $vendor->agent_code }}</span>
+                                                <span class="vendor-list__meta">{{ $vendor->username }}</span>
+                                            </td>
                                             <td>{!! formatPrice($vendor->main_balance ?? 0) !!}</td>
                                             <td>
-                                                <span
-                                                    class="badge rounded-pill bg-{{ $vendor->status === 'active' ? 'success' : 'danger' }}">
-                                                    {{ $vendor->status === 'active' ? 'Active' : 'Inactive' }}
+                                                <span class="badge rounded-pill bg-{{ $statusClass }}">
+                                                    {{ formatKey($vendor->status) }}
                                                 </span>
                                             </td>
-                                            <td>{{ formatDateTime($vendor->created_at) }}</td>
+                                            <td>{{ formatDate($vendor->created_at) }}</td>
                                             <td>
                                                 <div class="dropstart">
                                                     <button type="button" class="recent-act__icon dropdown-toggle"
