@@ -15,7 +15,7 @@ if (!$booking) {
     exit(1);
 }
 
-$report = app(TboBookingDetailTestService::class)->run($booking);
+$report = app(TboBookingDetailTestService::class)->runProbe($booking);
 
 echo "Booking #{$report['meta']['booking_id']} supplier={$report['meta']['supplier']}\n";
 echo "clientRef={$report['meta']['client_ref']} confirmation={$report['meta']['confirmation']} tboBookingId={$report['meta']['tbo_booking_id']}\n\n";

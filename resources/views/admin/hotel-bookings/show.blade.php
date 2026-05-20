@@ -407,7 +407,7 @@
             </div>
         </div>
 
-        @include('admin.hotel-bookings.partials.tbo-detail-debug')
+        @include('admin.hotel-bookings.partials.supplier-booking-details')
     </div>
 </div>
 @endsection

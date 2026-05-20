@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bHotelBooking;
 use App\Models\B2bVendor;
 use App\Services\TboBookingDetailTestService;
+use App\Support\SupplierBookingDetailsPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -35,22 +36,21 @@ class AdminHotelBookingController extends Controller
     {
         $booking = B2bHotelBooking::with('vendor')->findOrFail($id);
 
-        $tboBookingDetail = null;
+        $supplierBookingDetails = null;
         if (strtolower((string) ($booking->supplier ?? '')) === 'tbo') {
             $tboBookingDetail = $tboBookingDetailTestService->fetch($booking);
+            $supplierBookingDetails = SupplierBookingDetailsPresenter::present($booking, $tboBookingDetail);
 
-            Log::info('TBO BookingDetail (admin hotel booking show)', [
-                'booking_id' => $booking->id,
-                'booking_number' => $booking->booking_number,
-                'payload' => $tboBookingDetail['payload'] ?? null,
-                'http_status' => $tboBookingDetail['http_status'] ?? null,
-                'ok' => $tboBookingDetail['ok'] ?? false,
-                'error' => $tboBookingDetail['error'] ?? null,
-                'response' => $tboBookingDetail['response'] ?? null,
-            ]);
+            if (empty($tboBookingDetail['ok'])) {
+                Log::warning('Supplier booking detail lookup failed (admin hotel booking show)', [
+                    'booking_id' => $booking->id,
+                    'booking_number' => $booking->booking_number,
+                    'error' => $tboBookingDetail['error'] ?? null,
+                ]);
+            }
         }
 
-        return view('admin.hotel-bookings.show', compact('booking', 'tboBookingDetail'))
+        return view('admin.hotel-bookings.show', compact('booking', 'supplierBookingDetails'))
             ->with('title', 'Booking ' . $booking->booking_number);
     }
 }

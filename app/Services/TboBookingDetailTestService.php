@@ -42,10 +42,15 @@ class TboBookingDetailTestService
         }
 
         $reference = (string) $reference;
-        $attempts = [
+        $clientReference = data_get($booking->booking_request, 'ClientReferenceId')
+            ?? data_get($booking->booking_request, 'ClientReferenceNumber')
+            ?? $booking->booking_number;
+
+        $attempts = array_values(array_filter([
             ['ConfirmationNumber' => $reference],
             ['BookingReferenceId' => $reference],
-        ];
+            $clientReference !== '' ? ['ClientReferenceNumber' => $clientReference] : null,
+        ]));
 
         $last = null;
 
