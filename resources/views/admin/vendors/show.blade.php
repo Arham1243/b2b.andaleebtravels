@@ -404,6 +404,10 @@
                                                 'wallet'        => ['Wallet', 'pm-wallet'],
                                                 default         => [ucfirst(str_replace('_',' ',$pm??'')), 'pm-system'],
                                             };
+                                        } elseif ($entry->reference instanceof \App\Models\B2bFlightBooking
+                                            || $entry->reference instanceof \App\Models\B2bHotelBooking) {
+                                            $pmLabel = str_contains($entry->description ?? '', 'Refund') ? 'Booking refund' : 'Booking';
+                                            $pmClass = 'pm-wallet';
                                         } elseif ($entry->reference_type) {
                                             $pmLabel = 'System';
                                         }

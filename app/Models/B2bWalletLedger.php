@@ -37,6 +37,16 @@ class B2bWalletLedger extends Model
         return $this->morphTo('reference', 'reference_type', 'reference_id');
     }
 
+    public static function refundCreditExists(string $referenceType, int $referenceId): bool
+    {
+        return self::query()
+            ->where('reference_type', $referenceType)
+            ->where('reference_id', $referenceId)
+            ->where('type', 'credit')
+            ->where('description', 'like', 'Refund - %')
+            ->exists();
+    }
+
     public static function recordCredit(int $vendorId, float $amount, string $description, ?string $referenceType = null, ?int $referenceId = null): self
     {
         $vendor = B2bVendor::findOrFail($vendorId);

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bHotelBooking;
+use App\Models\B2bWalletLedger;
 use App\Services\BookingCancellationNotifier;
 use App\Services\BookingCancellationRecorder;
+use App\Services\BookingWalletRefundService;
 use App\Services\FlightService;
 use App\Services\HotelService;
 use Illuminate\Http\Request;
@@ -15,6 +17,10 @@ use Illuminate\Support\Facades\Log;
 
 class AdminBookingController extends Controller
 {
+    public function __construct(
+        private readonly BookingWalletRefundService $bookingWalletRefundService,
+    ) {}
+
     public function updateHotelStatus(Request $request, int $booking)
     {
         $validated = $request->validate([
@@ -23,9 +29,22 @@ class AdminBookingController extends Controller
         ]);
 
         $bookingModel = B2bHotelBooking::findOrFail($booking);
-        $bookingModel->update($validated);
+        $before = $bookingModel->only(['payment_status', 'booking_status']);
 
-        return redirect()->back()->with('notify_success', 'Hotel booking status updated.');
+        $ledger = DB::transaction(function () use ($bookingModel, $validated, $before) {
+            $bookingModel->update($validated);
+
+            return $this->bookingWalletRefundService->processAfterAdminStatusUpdate(
+                $bookingModel->fresh(),
+                $before,
+                $validated
+            );
+        });
+
+        return redirect()->back()->with(
+            'notify_success',
+            $this->statusUpdateMessage('Hotel booking status updated.', $ledger)
+        );
     }
 
     public function updateFlightStatus(Request $request, int $booking)
@@ -37,9 +56,31 @@ class AdminBookingController extends Controller
         ]);
 
         $bookingModel = B2bFlightBooking::findOrFail($booking);
-        $bookingModel->update($validated);
+        $before = $bookingModel->only(['payment_status', 'booking_status', 'ticket_status']);
 
-        return redirect()->back()->with('notify_success', 'Flight booking status updated.');
+        $ledger = DB::transaction(function () use ($bookingModel, $validated, $before) {
+            $bookingModel->update($validated);
+
+            return $this->bookingWalletRefundService->processAfterAdminStatusUpdate(
+                $bookingModel->fresh(),
+                $before,
+                $validated
+            );
+        });
+
+        return redirect()->back()->with(
+            'notify_success',
+            $this->statusUpdateMessage('Flight booking status updated.', $ledger)
+        );
+    }
+
+    private function statusUpdateMessage(string $base, ?B2bWalletLedger $ledger): string
+    {
+        if ($ledger === null) {
+            return $base;
+        }
+
+        return $base . ' Vendor wallet credited ' . number_format((float) $ledger->amount, 2) . ' AED.';
     }
 
     public function cancelHotelBooking(int $booking, HotelService $hotelService)

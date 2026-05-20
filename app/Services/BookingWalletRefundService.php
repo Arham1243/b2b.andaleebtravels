@@ -1,0 +1,105 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\B2bFlightBooking;
+use App\Models\B2bHotelBooking;
+use App\Models\B2bVendor;
+use App\Models\B2bWalletLedger;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class BookingWalletRefundService
+{
+    /**
+     * Credit vendor wallet when an admin marks a paid booking as refunded.
+     *
+     * @param  array<string, string>  $before  payment_status, booking_status, and ticket_status (flights only)
+     * @param  array<string, string>  $after   validated status fields from the admin form
+     */
+    public function processAfterAdminStatusUpdate(Model $booking, array $before, array $after): ?B2bWalletLedger
+    {
+        if (! $booking instanceof B2bHotelBooking && ! $booking instanceof B2bFlightBooking) {
+            return null;
+        }
+
+        if (($before['payment_status'] ?? '') !== 'paid') {
+            return null;
+        }
+
+        if (! $this->isNewlyRefunded($before, $after, $booking instanceof B2bFlightBooking)) {
+            return null;
+        }
+
+        return $this->creditBookingRefund($booking);
+    }
+
+    /**
+     * @param  array<string, string>  $before
+     * @param  array<string, string>  $after
+     */
+    private function isNewlyRefunded(array $before, array $after, bool $isFlight): bool
+    {
+        if (($after['payment_status'] ?? '') === 'refunded' && ($before['payment_status'] ?? '') !== 'refunded') {
+            return true;
+        }
+
+        if (($after['booking_status'] ?? '') === 'refunded' && ($before['booking_status'] ?? '') !== 'refunded') {
+            return true;
+        }
+
+        if ($isFlight
+            && ($after['ticket_status'] ?? '') === 'refunded'
+            && ($before['ticket_status'] ?? '') !== 'refunded') {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function creditBookingRefund(B2bHotelBooking|B2bFlightBooking $booking): ?B2bWalletLedger
+    {
+        $vendorId = (int) $booking->b2b_vendor_id;
+        if ($vendorId <= 0) {
+            return null;
+        }
+
+        $amount = round((float) $booking->total_amount, 2);
+        if ($amount <= 0.001) {
+            return null;
+        }
+
+        $referenceType = $booking::class;
+        $label = $booking instanceof B2bFlightBooking ? 'Flight' : 'Hotel';
+        $description = "Refund - {$label} Booking #{$booking->booking_number}";
+
+        try {
+            return DB::transaction(function () use ($vendorId, $amount, $description, $referenceType, $booking) {
+                B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
+
+                if (B2bWalletLedger::refundCreditExists($referenceType, $booking->id)) {
+                    return null;
+                }
+
+                return B2bWalletLedger::recordCredit(
+                    $vendorId,
+                    $amount,
+                    $description,
+                    $referenceType,
+                    $booking->id
+                );
+            });
+        } catch (\Throwable $e) {
+            Log::error('Booking wallet refund credit failed', [
+                'booking_type' => $referenceType,
+                'booking_id' => $booking->id,
+                'vendor_id' => $vendorId,
+                'amount' => $amount,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+}
