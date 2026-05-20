@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\B2bInquiry;
 use App\Models\B2bVendor;
-use App\Models\Inquiry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 
@@ -26,7 +26,7 @@ class BulkActionController extends Controller
                 $redirectRoute = 'admin.vendors.index';
                 break;
             case 'inquiries':
-                $modelClass = Inquiry::class;
+                $modelClass = B2bInquiry::class;
                 $column = 'id';
                 $redirectRoute = 'admin.inquiries.index';
                 break;

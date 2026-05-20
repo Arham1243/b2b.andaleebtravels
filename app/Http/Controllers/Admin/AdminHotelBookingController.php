@@ -18,35 +18,14 @@ class AdminHotelBookingController extends Controller
             $filterVendor = B2bVendor::find((int) $filterVendorId);
         }
 
-        $query = B2bHotelBooking::query()
+        $bookings = B2bHotelBooking::query()
             ->with('vendor')
             ->when($filterVendor !== null, fn ($q) => $q->where('b2b_vendor_id', $filterVendor->id))
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->paginate(25)
+            ->withQueryString();
 
-        $status = $request->query('status', 'all');
-        if ($status && $status !== 'all') {
-            if ($status === 'confirmed') {
-                $query->whereIn('booking_status', ['confirmed', 'completed']);
-            } else {
-                $query->where('booking_status', $status);
-            }
-        }
-
-        $search = trim((string) $request->query('search', ''));
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('booking_number', 'like', "%{$search}%")
-                    ->orWhere('hotel_name', 'like', "%{$search}%")
-                    ->orWhereHas('vendor', function ($vendorQuery) use ($search) {
-                        $vendorQuery->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        $bookings = $query->paginate(15)->withQueryString();
-
-        return view('admin.hotel-bookings.list', compact('bookings', 'filterVendor', 'status', 'search'))
+        return view('admin.hotel-bookings.list', compact('bookings', 'filterVendor'))
             ->with('title', 'Hotel Bookings');
     }
 
