@@ -25,13 +25,13 @@
 
     <div class="form-fields">
         <label class="title">Agency Logo @if($isEdit)<span class="text-muted">(leave empty to keep current)</span>@endif</label>
-        @if ($isEdit && $vendor->agency_logo)
+        @if ($isEdit && $vendor->agencyLogoUrl())
             <div class="mb-2">
-                <img src="{{ asset($vendor->agency_logo) }}" alt="Agency Logo" style="max-height:60px; border-radius:6px;">
+                <img src="{{ $vendor->agencyLogoUrl() }}" alt="Agency Logo" style="max-height:60px; border-radius:6px;">
             </div>
         @endif
         <input type="file" name="agency_logo" class="field" accept="image/*">
-        <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB</small>
+        <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB. Shown in the agent site header.</small>
         @error('agency_logo')
             <div class="text-danger">{{ $message }}</div>
         @enderror
@@ -147,18 +147,3 @@
     @endunless
 </div>
 
-@if ($isEdit)
-    <div class="form-fields">
-        <label class="title">Profile Picture <span class="text-muted">(leave empty to keep current)</span></label>
-        @if ($vendor->avatar)
-            <div class="mb-2">
-                <img src="{{ asset($vendor->avatar) }}" alt="Profile" style="max-height:60px; border-radius:50%;">
-            </div>
-        @endif
-        <input type="file" name="avatar" class="field" accept="image/*">
-        <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB</small>
-        @error('avatar')
-            <div class="text-danger">{{ $message }}</div>
-        @enderror
-    </div>
-@endif

@@ -34,10 +34,8 @@
                                 <span class="topbar-agency__code">{{ __('Agent Code') }}: {{ $vendor->loginAgentCode() ?? 'N/A' }}</span>
                             </div>
                             <div class="topbar-agency__avatar">
-                                @if ($vendor->agency_logo)
-                                    <img src="{{ asset($vendor->agency_logo) }}" alt="{{ $vendor->display_agency_name }}">
-                                @elseif ($vendor->avatar)
-                                    <img src="{{ asset($vendor->avatar) }}" alt="{{ $vendor->display_agency_name }}">
+                                @if ($vendor->agencyLogoUrl())
+                                    <img src="{{ $vendor->agencyLogoUrl() }}" alt="{{ $vendor->display_agency_name }}">
                                 @else
                                     <i class='bx bxs-user-circle'></i>
                                 @endif

@@ -369,8 +369,8 @@
                 <div class="vs-info-item">
                     <span class="vs-info-label">Agency Logo</span>
                     <span class="vs-info-value">
-                        @if ($vendor->agency_logo)
-                            <img src="{{ asset($vendor->agency_logo) }}" alt="Agency Logo"
+                        @if ($vendor->agencyLogoUrl())
+                            <img src="{{ $vendor->agencyLogoUrl() }}" alt="Agency Logo"
                                 style="max-height:48px; max-width:120px; object-fit:contain; border-radius:6px;">
                         @else
                             —

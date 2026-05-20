@@ -28,6 +28,14 @@ class B2bVendor extends Authenticatable
         return $this->travel_agency ?: $this->name ?: '';
     }
 
+    /** URL for agency logo shown in the site header (legacy avatar used as fallback). */
+    public function agencyLogoUrl(): ?string
+    {
+        $path = $this->agency_logo ?: $this->avatar;
+
+        return $path ? asset($path) : null;
+    }
+
     public function isPendingApproval(): bool
     {
         return $this->status === 'pending';

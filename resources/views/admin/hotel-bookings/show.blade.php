@@ -7,8 +7,8 @@
 .bkp--admin .bkp-main { min-width: 0; }
 .admin-hotel-status .form-check { margin-bottom: .35rem; }
 .admin-hotel-status .form-check-label { font-size: .82rem; color: #4a5568; }
-.admin-hotel-vendor .bkpd-info-row__val a { color: var(--c-brand, #cd1b4f); font-weight: 600; text-decoration: none; }
-.admin-hotel-vendor .bkpd-info-row__val a:hover { text-decoration: underline; }
+.admin-booking-vendor .bkpd-info-row__val a { color: var(--c-brand, #cd1b4f); font-weight: 600; text-decoration: none; }
+.admin-booking-vendor .bkpd-info-row__val a:hover { text-decoration: underline; }
 </style>
 @endpush
 
@@ -45,29 +45,7 @@
                     <div>
                         @include('admin.hotel-bookings.partials.supplier-booking-details')
 
-                        @if ($booking->vendor)
-                            <div class="bkpd-card mb-3 admin-hotel-vendor">
-                                <div class="bkpd-card__section-head bkpd-card__section-head--purple"><i class="bx bx-briefcase"></i> Vendor</div>
-                                <div class="bkpd-info-rows">
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">Name</span>
-                                        <span class="bkpd-info-row__val">
-                                            <a href="{{ route('admin.vendors.show', $booking->vendor) }}">{{ $booking->vendor->name }}</a>
-                                        </span>
-                                    </div>
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">Email</span>
-                                        <span class="bkpd-info-row__val" style="word-break:break-all;">{{ $booking->vendor->email }}</span>
-                                    </div>
-                                    @if ($booking->vendor->agent_code)
-                                        <div class="bkpd-info-row">
-                                            <span class="bkpd-info-row__label">Agent code</span>
-                                            <span class="bkpd-info-row__val">{{ $booking->vendor->agent_code }}</span>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
+                        @include('admin.partials.booking-vendor-detail-card', ['vendor' => $booking->vendor])
 
                         <div class="bkpd-card mb-3">
                             <div class="bkpd-card__head">

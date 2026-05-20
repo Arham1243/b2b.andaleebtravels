@@ -20,21 +20,16 @@ class ProfileSettingsController extends Controller
         return redirect()->route('user.profile.personalInfo');
     }
 
-    public function personalInfo(Request $request)
+    public function personalInfo()
     {
         $user = Auth::user();
         $config = Config::pluck('config_value', 'config_key')->toArray();
         $adminProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null, ['yalago', 'tbo', 'tripindeal']);
         $adminFlightProviders = $this->parseProviderConfig($config['FLIGHT_SEARCH_PROVIDERS'] ?? null, ['sabre']) ?? ['sabre'];
-        $ledgerData = WalletLedgerResolver::resolve($user, $request);
 
         return view('user.profile-settings.personal-info')
             ->with('title', 'Personal Information')
-            ->with(array_merge(compact('user', 'adminProviders', 'adminFlightProviders'), [
-                'walletLedger' => $ledgerData['walletLedger'],
-                'ledgerFilters' => $ledgerData['ledgerFilters'],
-                'ledgerTotalCount' => $ledgerData['ledgerTotalCount'],
-            ]));
+            ->with(compact('user', 'adminProviders', 'adminFlightProviders'));
     }
 
     public function walletLedger(Request $request)
@@ -65,7 +60,6 @@ class ProfileSettingsController extends Controller
             'trade_license_number' => 'required|string|max:255',
             'trade_license_expiry' => 'required|date|after_or_equal:today',
             'agency_logo' => 'nullable|image|max:2048',
-            'avatar' => 'nullable|image|max:2048',
             'hotel_search_providers' => 'nullable|array',
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
             'flight_search_providers' => 'nullable|array',
@@ -82,14 +76,6 @@ class ProfileSettingsController extends Controller
                 $request->file('agency_logo'),
                 'Vendors/AgencyLogo',
                 $vendor->agency_logo
-            );
-        }
-
-        if ($request->hasFile('avatar')) {
-            $data['avatar'] = $this->uploadImage(
-                $request->file('avatar'),
-                'Users/Avatar',
-                $vendor->avatar
             );
         }
 

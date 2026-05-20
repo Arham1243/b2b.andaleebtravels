@@ -354,14 +354,6 @@ class VendorController extends Controller
             }
         }
 
-        if ($request->hasFile('avatar')) {
-            $data['avatar'] = $this->uploadImage(
-                $request->file('avatar'),
-                'Users/Avatar',
-                $vendor->avatar
-            );
-        }
-
         if (!empty($validated['password'])) {
             $data['password'] = Hash::make($validated['password']);
         }
@@ -480,7 +472,6 @@ class VendorController extends Controller
             'email' => B2bVendorValidation::emailRule($vendorId),
             'username' => B2bVendorValidation::usernameRule($vendorId),
             'password' => 'nullable|string|min:8',
-            'avatar' => 'nullable|image|max:2048',
         ];
 
         if ($vendor && $vendor->parent_vendor_id) {

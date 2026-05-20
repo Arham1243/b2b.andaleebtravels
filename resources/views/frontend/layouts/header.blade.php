@@ -13,11 +13,15 @@
                     alt="Andaleeb Travel Agency" />
             </a>
 
-            <div class="mh-user-area mh-user-area--guest">
-                @if (!Auth::check())
+            <div class="mh-user-area {{ Auth::check() ? 'mh-user-area--logged' : 'mh-user-area--guest' }}">
+                @auth
+                    <a href="{{ route('user.dashboard') }}" class="themeBtn themeBtn--primary">
+                        <i class="bx bx-grid-alt"></i> Portal
+                    </a>
+                @else
                     <a href="{{ route('auth.signup') }}" class="themeBtn themeBtn--outline">Sign Up</a>
                     <a href="{{ route('auth.login') }}" class="themeBtn themeBtn--primary">Login</a>
-                @endif
+                @endauth
             </div>
         </div>
     </div>

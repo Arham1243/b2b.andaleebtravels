@@ -2,7 +2,6 @@
 
 @section('css')
     @include('user.profile-settings._styles')
-    @include('partials.wallet-ledger-styles')
 @endsection
 
 @section('content')
@@ -147,11 +146,11 @@
 
                             </div>
 
-                            {{-- Agency Logo --}}
+                            {{-- Agency Logo (shown in site header) --}}
                             <div style="margin-top:20px;">
                                 <div class="ps-field__label" style="margin-bottom:10px;">Agency Logo</div>
                                 <div class="ps-avatar-pick">
-                                    <img src="{{ $user->agency_logo ? asset($user->agency_logo) : asset('admin/assets/images/placeholder.png') }}"
+                                    <img src="{{ $user->agencyLogoUrl() ?? asset('admin/assets/images/placeholder.png') }}"
                                          alt="Agency Logo" class="ps-avatar-pick__preview"
                                          id="agency-logo-preview">
                                     <div>
@@ -162,33 +161,9 @@
                                                accept="image/*"
                                                onchange="showImage(this, 'agency-logo-preview', 'agency-logo-filename')">
                                         <div class="ps-avatar-pick__name" id="agency-logo-filename">
-                                            JPG, PNG or GIF - max 2 MB
+                                            JPG, PNG or GIF - max 2 MB. Shown in the site header.
                                         </div>
                                         @error('agency_logo')
-                                            <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Avatar --}}
-                            <div style="margin-top:20px;">
-                                <div class="ps-field__label" style="margin-bottom:10px;">Profile Picture</div>
-                                <div class="ps-avatar-pick">
-                                    <img src="{{ $user->avatar ? asset($user->avatar) : asset('admin/assets/images/placeholder.png') }}"
-                                         alt="Profile" class="ps-avatar-pick__preview"
-                                         id="profile-preview">
-                                    <div>
-                                        <label for="profile-img" class="ps-avatar-pick__btn">
-                                            <i class="bx bx-upload"></i> Upload Photo
-                                        </label>
-                                        <input type="file" name="avatar" id="profile-img" class="d-none"
-                                               accept="image/*"
-                                               onchange="showImage(this, 'profile-preview', 'avatar-filename')">
-                                        <div class="ps-avatar-pick__name" id="avatar-filename">
-                                            JPG, PNG or GIF - max 2 MB
-                                        </div>
-                                        @error('avatar')
                                             <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
                                         @enderror
                                     </div>
@@ -262,30 +237,6 @@
                     </div>
 
                 </form>
-
-                <div class="ps-card" style="margin-top:16px;">
-                    <div class="ps-card__head">
-                        <h2 class="ps-card__title">
-                            <i class="bx bx-wallet"></i> Wallet Ledger
-                        </h2>
-                        <span class="ps-field__hint" style="margin:0;">
-                            {{ $ledgerTotalCount ?? 0 }} {{ ($ledgerTotalCount ?? 0) === 1 ? 'transaction' : 'transactions' }} · view only
-                        </span>
-                    </div>
-                    <div class="ps-card__body">
-                        @include('partials.wallet-ledger-panel', [
-                            'vendor' => $user,
-                            'walletLedger' => $walletLedger,
-                            'ledgerFilters' => $ledgerFilters,
-                            'ledgerTotalCount' => $ledgerTotalCount,
-                            'filterFormAction' => route('user.profile.personalInfo'),
-                            'clearFiltersUrl' => route('user.profile.personalInfo'),
-                            'readOnly' => true,
-                            'ledgerContext' => 'user',
-                            'filterApplyClass' => 'ps-btn-save',
-                        ])
-                    </div>
-                </div>
             </main>
 
         </div>
