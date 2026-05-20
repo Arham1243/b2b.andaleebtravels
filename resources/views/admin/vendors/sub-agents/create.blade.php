@@ -1,0 +1,98 @@
+@extends('admin.layouts.main')
+@section('content')
+    <div class="col-md-12">
+        <div class="dashboard-content">
+            {{ Breadcrumbs::render('admin.vendors.sub-agents.create', $vendor) }}
+            <form action="{{ route('admin.vendors.sub-agents.store', $vendor) }}" method="POST" id="validation-form">
+                @csrf
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-wrapper">
+                            <div class="form-box">
+                                <div class="form-box__header">
+                                    <div class="title">Sub Agent Details</div>
+                                    <p class="text-muted mb-0" style="font-size:13px;">
+                                        Agency: <strong>{{ $vendor->display_agency_name ?: $vendor->name }}</strong>
+                                    </p>
+                                </div>
+                                <div class="form-box__body">
+                                    <div class="form-fields">
+                                        <label class="title">Full Name <span class="text-danger">*</span></label>
+                                        <input type="text" name="name" class="field" value="{{ old('name') }}"
+                                            placeholder="Enter full name" required>
+                                        @error('name')
+                                            <div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="form-fields">
+                                        <label class="title">Email Address <span class="text-danger">*</span></label>
+                                        <input type="email" name="email" class="field" value="{{ old('email') }}"
+                                            placeholder="Enter email address" required>
+                                        @error('email')
+                                            <div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="form-fields">
+                                        <label class="title">Username <span class="text-danger">*</span></label>
+                                        <input type="text" name="username" class="field" value="{{ old('username') }}"
+                                            placeholder="Enter username" required>
+                                        @error('username')
+                                            <div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="form-fields">
+                                        <small class="text-muted">Default password is 12345678. An agent code is generated automatically. The sub agent will receive a welcome email with portal login details and a password reset link.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="seo-wrapper">
+                            <div class="form-box">
+                                <div class="form-box__header">
+                                    <div class="title">Status</div>
+                                </div>
+                                <div class="form-box__body">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="status" id="active"
+                                            value="active" {{ old('status', 'active') == 'active' ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="active">Active</label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="radio" name="status" id="inactive"
+                                            value="inactive" {{ old('status') == 'inactive' ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="inactive">Inactive</label>
+                                    </div>
+
+                                    <div class="text-end mt-4">
+                                        <button class="themeBtn" type="submit">Create Sub Agent</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-box">
+                                <div class="form-box__header">
+                                    <div class="title">Info</div>
+                                </div>
+                                <div class="form-box__body">
+                                    <p class="text-muted mb-0" style="font-size: 13px;">
+                                        Upon creation, the sub agent will receive the same invite email as a new vendor,
+                                        containing their agent code, username, default password, and a password reset link.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="text-end mt-3">
+                                <a href="{{ route('admin.vendors.show', $vendor) }}" class="text-muted" style="font-size:13px;">← Back to agency</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection

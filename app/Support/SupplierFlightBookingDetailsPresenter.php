@@ -96,35 +96,35 @@ final class SupplierFlightBookingDetailsPresenter
 
     /**
      * @param  array<string, mixed>  $normalized
-     * @return array{confirmation: list<array<string, mixed>>, ticketing: list<array<string, mixed>>}
+     * @return array{confirmation: list<array<string, mixed>>, policy: list<array<string, mixed>>}
      */
     private static function buildRows(B2bFlightBooking $booking, array $normalized): array
     {
-        $confirmation = self::filterRows([
-            self::row('Supplier status', $normalized['bookingStatus'] ?? null, ['badge' => true]),
-            self::row('PNR / Record locator', $normalized['confirmationId'] ?? $booking->sabre_record_locator, ['mono' => true]),
-            self::row('Sabre booking ID', $normalized['bookingId'] ?? null, ['mono' => true]),
-            self::row('Our booking #', $booking->booking_number, ['mono' => true]),
-            self::row('Data source', $normalized['apiSource'] ?? null),
-        ]);
-
         $ticketLines = $normalized['tickets'] ?? [];
         $ticketValue = $ticketLines !== []
             ? implode(', ', $ticketLines)
             : null;
 
-        $ticketing = self::filterRows([
+        $confirmation = self::filterRows([
+            self::row('Supplier status', $normalized['bookingStatus'] ?? $booking->booking_status, ['badge' => true]),
+            self::row('PNR / Record locator', $normalized['confirmationId'] ?? $booking->sabre_record_locator, ['mono' => true]),
             self::row('Ticket status', $normalized['ticketStatus'] ?? $booking->ticket_status, ['badge' => true]),
             self::row('Ticket number(s)', $ticketValue, ['mono' => true]),
-            self::row('Travelers (live)', self::formatTravelers($normalized['travelers'] ?? []), ['multiline' => true]),
-            self::row('Segments (live)', self::formatFlights($normalized['flights'] ?? []), ['multiline' => true]),
         ]);
 
-        return compact('confirmation', 'ticketing');
+        $refundability = self::resolveRefundability($booking);
+
+        $policy = self::filterRows([
+            self::row('Refundability', $refundability),
+            self::row('Cancellation policy', self::cancellationPolicySummary($booking, $refundability), ['multiline' => true]),
+            self::row('Hold expires', self::formatHoldExpiry($booking)),
+        ]);
+
+        return compact('confirmation', 'policy');
     }
 
     /**
-     * @param  array{confirmation: list<array<string, mixed>>, ticketing: list<array<string, mixed>>}  $rows
+     * @param  array{confirmation: list<array<string, mixed>>, policy: list<array<string, mixed>>}  $rows
      * @return list<array<string, mixed>>
      */
     private static function buildSections(array $rows): array
@@ -140,42 +140,61 @@ final class SupplierFlightBookingDetailsPresenter
             ];
         }
 
-        if ($rows['ticketing'] !== []) {
+        if ($rows['policy'] !== []) {
             $sections[] = [
-                'title' => 'Ticketing',
-                'icon' => 'bx-receipt',
+                'title' => 'Cancellation & policy',
+                'icon' => 'bx-info-circle',
                 'tone' => 'slate',
-                'rows' => $rows['ticketing'],
+                'rows' => $rows['policy'],
             ];
         }
 
         return $sections;
     }
 
-    /**
-     * @param  list<string>  $travelers
-     */
-    private static function formatTravelers(array $travelers): ?string
+    private static function resolveRefundability(B2bFlightBooking $booking): ?string
     {
-        $lines = array_values(array_filter(array_map(
-            fn ($name) => is_string($name) && trim($name) !== '' ? trim($name) : null,
-            $travelers
-        )));
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
 
-        return $lines === [] ? null : implode("\n", $lines);
+        if (array_key_exists('non_refundable', $itinerary)) {
+            return ! empty($itinerary['non_refundable']) ? 'Non-refundable' : 'Refundable';
+        }
+
+        $passengerFare = data_get($booking->search_response, 'groupedItineraryResponse.itineraryGroups.0.itineraries.0.pricingInformation.0.fare.passengerInfoList.0.passengerInfo');
+        if (is_array($passengerFare) && array_key_exists('nonRefundable', $passengerFare)) {
+            return ! empty($passengerFare['nonRefundable']) ? 'Non-refundable' : 'Refundable';
+        }
+
+        return null;
     }
 
-    /**
-     * @param  list<string>  $flights
-     */
-    private static function formatFlights(array $flights): ?string
+    private static function cancellationPolicySummary(B2bFlightBooking $booking, ?string $refundability): ?string
     {
-        $lines = array_values(array_filter(array_map(
-            fn ($line) => is_string($line) && trim($line) !== '' ? trim($line) : null,
-            $flights
-        )));
+        if ($booking->booking_status === 'hold') {
+            return 'Unticketed hold — airline fare rules apply when ticketing.';
+        }
 
-        return $lines === [] ? null : implode("\n", $lines);
+        return match ($refundability) {
+            'Non-refundable' => 'Non-refundable fare. Cancellation may not return ticket value; airline penalties apply.',
+            'Refundable' => 'Refundable fare — airline cancellation penalties and rules apply.',
+            default => 'Airline fare rules govern cancellation and refund eligibility.',
+        };
+    }
+
+    private static function formatHoldExpiry(B2bFlightBooking $booking): ?string
+    {
+        if ($booking->booking_status !== 'hold') {
+            return null;
+        }
+
+        $expiry = $booking->hold_expires_at ?? $booking->created_at?->copy()->addHour();
+        if ($expiry === null) {
+            return null;
+        }
+
+        $label = $expiry->format('d M Y, h:i A');
+
+        return $expiry->isPast() ? "{$label} (expired)" : $label;
     }
 
     /**

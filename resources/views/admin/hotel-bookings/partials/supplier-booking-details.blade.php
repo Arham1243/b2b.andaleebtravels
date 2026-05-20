@@ -43,9 +43,9 @@
                                 @if (!empty($row['badge']))
                                     @php
                                         $statusClass = match (strtolower((string) $row['value'])) {
-                                            'confirmed', 'vouchered', 'completed', 'ticketed', 'issued' => 'confirmed',
+                                            'confirmed', 'vouchered', 'completed', 'ticketed', 'issued', 'refundable' => 'confirmed',
                                             'pending', 'cancellationinprogress', 'hold', 'on hold', 'on_hold' => 'pending',
-                                            'cancelled', 'canceled', 'failed', 'rejected' => 'cancelled',
+                                            'cancelled', 'canceled', 'failed', 'rejected', 'non-refundable' => 'cancelled',
                                             default => 'pending',
                                         };
                                     @endphp

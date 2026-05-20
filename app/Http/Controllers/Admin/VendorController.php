@@ -92,6 +92,52 @@ class VendorController extends Controller
         return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings', 'flightBookings', 'subAgents', 'stats'));
     }
 
+    public function createSubAgent(B2bVendor $vendor)
+    {
+        if ($vendor->parent_vendor_id) {
+            return redirect()->route('admin.vendors.show', $vendor->parent_vendor_id)
+                ->with('notify_error', 'Sub agents cannot be added under another sub agent.');
+        }
+
+        return view('admin.vendors.sub-agents.create', compact('vendor'));
+    }
+
+    public function storeSubAgent(Request $request, B2bVendor $vendor)
+    {
+        if ($vendor->parent_vendor_id) {
+            return redirect()->route('admin.vendors.show', $vendor->parent_vendor_id)
+                ->with('notify_error', 'Sub agents cannot be added under another sub agent.');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:b2b_vendors,email|max:255',
+            'username' => 'required|string|max:255|unique:b2b_vendors,username',
+            'status' => 'required|in:active,inactive',
+        ]);
+
+        $plainPassword = '12345678';
+
+        $subAgent = B2bVendor::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'username' => $validated['username'],
+            'agent_code' => $this->generateUniqueAgentCode(),
+            'password' => Hash::make($plainPassword),
+            'status' => $validated['status'],
+            'parent_vendor_id' => $vendor->id,
+        ]);
+
+        try {
+            Mail::to($subAgent->email)->send(new VendorInviteMail($subAgent, $plainPassword));
+        } catch (\Exception $e) {
+            Log::error('Failed to send sub-agent invite email: ' . $e->getMessage());
+        }
+
+        return redirect()->route('admin.vendors.show', $vendor)
+            ->with('notify_success', 'Sub agent created successfully! Invite email sent.');
+    }
+
     public function changeStatus(B2bVendor $vendor)
     {
         $vendor->update([

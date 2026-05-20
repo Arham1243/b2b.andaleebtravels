@@ -51,6 +51,17 @@
         }
     }
 
+    $nonRefundable = null;
+    $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+    if (array_key_exists('non_refundable', $itinerary)) {
+        $nonRefundable = (bool) ($itinerary['non_refundable'] ?? false);
+    } else {
+        $passengerFare = data_get($booking->search_response, 'groupedItineraryResponse.itineraryGroups.0.itineraries.0.pricingInformation.0.fare.passengerInfoList.0.passengerInfo');
+        if (is_array($passengerFare) && array_key_exists('nonRefundable', $passengerFare)) {
+            $nonRefundable = (bool) ($passengerFare['nonRefundable'] ?? false);
+        }
+    }
+
     $fmtMins = function (?int $m): string {
         if (!$m || $m < 1) {
             return '—';
@@ -350,6 +361,20 @@
                                     <div class="bkpd-info-row">
                                         <span class="bkpd-info-row__label">PNR</span>
                                         <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $booking->sabre_record_locator }}</span>
+                                    </div>
+                                @endif
+                                @if ($nonRefundable !== null)
+                                    <div class="bkpd-info-row bkpd-info-row--refund">
+                                        <span class="bkpd-info-row__label">Fare refund</span>
+                                        <div class="bkpd-info-row__val bkpd-info-row__val--refund">
+                                            @if ($nonRefundable)
+                                                <span class="bkpd-refund-pill bkpd-refund-pill--no"><i class="bx bx-x-circle"></i> Non-refundable fare</span>
+                                                <p class="bkpd-refund-note">Selected at booking from Sabre shop results. Airline change/cancel rules still apply.</p>
+                                            @else
+                                                <span class="bkpd-refund-pill bkpd-refund-pill--yes"><i class="bx bx-check-shield"></i> Refundable fare</span>
+                                                <p class="bkpd-refund-note">Selected at booking from Sabre shop results. Refund eligibility depends on airline fare rules and timing.</p>
+                                            @endif
+                                        </div>
                                     </div>
                                 @endif
                                 <div class="bkpd-info-row">

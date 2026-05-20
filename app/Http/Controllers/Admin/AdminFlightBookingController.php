@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bVendor;
-use App\Services\FlightService;
 use App\Support\SupplierFlightBookingDetailsPresenter;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class AdminFlightBookingController extends Controller
 {
@@ -32,24 +30,12 @@ class AdminFlightBookingController extends Controller
             ->with('title', 'Flight Bookings');
     }
 
-    public function show(int $id, FlightService $flightService)
+    public function show(int $id)
     {
         $booking = B2bFlightBooking::with('vendor')->findOrFail($id);
 
-        $liveFetch = null;
-        if (! empty($booking->sabre_record_locator)) {
-            $liveFetch = $flightService->fetchLiveSabreBookingDetails($booking);
-
-            if (empty($liveFetch['ok'])) {
-                Log::warning('Supplier booking detail lookup failed (admin flight booking show)', [
-                    'booking_id' => $booking->id,
-                    'booking_number' => $booking->booking_number,
-                    'error' => $liveFetch['error'] ?? null,
-                ]);
-            }
-        }
-
-        $supplierBookingDetails = SupplierFlightBookingDetailsPresenter::present($booking, $liveFetch);
+        // Admin uses saved Sabre responses only (no live GetReservation SOAP lookup).
+        $supplierBookingDetails = SupplierFlightBookingDetailsPresenter::present($booking, null);
 
         return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails'))
             ->with('title', 'Booking ' . $booking->booking_number);

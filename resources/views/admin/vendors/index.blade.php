@@ -86,6 +86,14 @@
                                                                 <i class="bx bx-show"></i> View Details
                                                             </a>
                                                         </li>
+                                                        @if (!$vendor->parent_vendor_id)
+                                                            <li>
+                                                                <a class="dropdown-item"
+                                                                    href="{{ route('admin.vendors.sub-agents.create', $vendor->id) }}">
+                                                                    <i class="bx bx-user-plus"></i> Add Sub Agent
+                                                                </a>
+                                                            </li>
+                                                        @endif
                                                         <li>
                                                             <a class="dropdown-item"
                                                                 href="{{ route('admin.vendors.change-status', $vendor->id) }}">

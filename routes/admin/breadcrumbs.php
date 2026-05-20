@@ -19,7 +19,12 @@ Breadcrumbs::for('admin.vendors.create', function (BreadcrumbTrail $trail) {
 
 Breadcrumbs::for('admin.vendors.show', function (BreadcrumbTrail $trail, $vendor) {
     $trail->parent('admin.vendors.index');
-    $trail->push($vendor->name, route('admin.vendors.show', $vendor));
+    $trail->push($vendor->display_agency_name ?: $vendor->name, route('admin.vendors.show', $vendor));
+});
+
+Breadcrumbs::for('admin.vendors.sub-agents.create', function (BreadcrumbTrail $trail, $vendor) {
+    $trail->parent('admin.vendors.show', $vendor);
+    $trail->push('Add Sub Agent', route('admin.vendors.sub-agents.create', $vendor));
 });
 
 Breadcrumbs::for('admin.wallet.bank-transfers.index', function (BreadcrumbTrail $trail) {

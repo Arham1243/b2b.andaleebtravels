@@ -597,6 +597,14 @@
 
             {{-- Sub Agents --}}
             <div class="vs-tab-panel" id="panel-sub-agents">
+                @if (!$vendor->parent_vendor_id)
+                    <div class="d-flex justify-content-end mb-3">
+                        <a href="{{ route('admin.vendors.sub-agents.create', $vendor) }}" class="themeBtn" style="font-size:.82rem; padding:.4rem 1rem;">
+                            <i class="bx bx-plus"></i> Add Sub Agent
+                        </a>
+                    </div>
+                @endif
+
                 @if ($subAgents->isNotEmpty())
                     <div class="table-responsive">
                         <table class="data-table">
@@ -639,7 +647,12 @@
                 @else
                     <div class="text-center py-5" style="color:#6b6573;">
                         <i class="bx bx-group" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
-                        No sub agents for this agency yet.
+                        <p class="mb-3">No sub agents for this agency yet.</p>
+                        @if (!$vendor->parent_vendor_id)
+                            <a href="{{ route('admin.vendors.sub-agents.create', $vendor) }}" class="themeBtn" style="font-size:.82rem;">
+                                <i class="bx bx-plus"></i> Add Sub Agent
+                            </a>
+                        @endif
                     </div>
                 @endif
             </div>
