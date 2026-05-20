@@ -83,7 +83,7 @@ class HotelService
             'total_amount' => $data['total_amount'],
             'currency' => $data['currency'] ?? 'AED',
             'supplier' => $data['supplier'] ?? 'yalago',
-            'payment_method' => $data['payment_method'],
+            'payment_method' => $data['payment_method'] ?? null,
             'payment_status' => 'pending',
             'booking_status' => 'pending',
             'source_market' => $data['source_market'] ?? 'AE',
