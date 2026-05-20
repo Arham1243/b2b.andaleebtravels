@@ -149,25 +149,17 @@
                             {{-- Agency Logo (shown in site header) --}}
                             <div style="margin-top:20px;">
                                 <div class="ps-field__label" style="margin-bottom:10px;">Agency Logo</div>
-                                <div class="ps-avatar-pick">
-                                    <img src="{{ $user->agencyLogoUrl() ?? asset('admin/assets/images/placeholder.png') }}"
-                                         alt="Agency Logo" class="ps-avatar-pick__preview"
-                                         id="agency-logo-preview">
-                                    <div>
-                                        <label for="agency-logo-img" class="ps-avatar-pick__btn">
-                                            <i class="bx bx-upload"></i> Upload Agency Logo
-                                        </label>
-                                        <input type="file" name="agency_logo" id="agency-logo-img" class="d-none"
-                                               accept="image/*"
-                                               onchange="showImage(this, 'agency-logo-preview', 'agency-logo-filename')">
-                                        <div class="ps-avatar-pick__name" id="agency-logo-filename">
-                                            JPG, PNG or GIF - max 2 MB. Shown in the site header.
-                                        </div>
-                                        @error('agency_logo')
-                                            <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
-                                        @enderror
-                                    </div>
-                                </div>
+                                @include('partials.agency-logo-upload', [
+                                    'inputId' => 'agency-logo-img',
+                                    'currentUrl' => $user->agencyLogoUrl() ?? asset('admin/assets/images/placeholder.png'),
+                                    'chooseLabel' => 'Upload Agency Logo',
+                                    'btnClass' => 'ps-avatar-pick__btn agency-logo-upload__btn',
+                                    'filenameText' => 'JPG, PNG or GIF - max 2 MB',
+                                    'hint' => 'Shown in the site header.',
+                                ])
+                                @error('agency_logo')
+                                    <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                @enderror
                             </div>
                         </div>
                     </div>

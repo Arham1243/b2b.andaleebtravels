@@ -249,6 +249,46 @@
 
 .ps-pwd-wrap__toggle:hover { color: var(--c-brand, #cd1b4f); }
 
+.agency-logo-upload__preview {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    border-radius: 50%;
+    border: 2px solid #e4e9f0;
+    margin-bottom: 10px;
+    display: block;
+}
+.agency-logo-upload__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+}
+.agency-logo-upload__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.agency-logo-upload__btn.ps-avatar-pick__btn {
+    margin: 0;
+}
+.agency-logo-upload__name {
+    font-size: 0.68rem;
+    color: #8492a6;
+}
+.agency-logo-upload__hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.68rem;
+    color: #b0bac8;
+}
+
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 900px) {
     .ps-shell { grid-template-columns: 1fr; }

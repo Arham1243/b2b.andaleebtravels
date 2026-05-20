@@ -14,18 +14,6 @@ use Illuminate\Support\Facades\Mail;
 
 class SubAgentController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            $user = Auth::user();
-            if ($user && $user->isSubAgentAccount()) {
-                abort(403, 'Only the agency owner can manage sub agents.');
-            }
-
-            return $next($request);
-        });
-    }
-
     public function index()
     {
         $subAgents = B2bVendor::where('parent_vendor_id', Auth::id())->latest()->get();

@@ -556,10 +556,67 @@ i.bx {
     transition: all 0.2s ease;
     font-family: inherit;
 }
-.custom-input:read-only {
+.custom-input:read-only:not([type="file"]) {
     background: #e5e5e5;
     opacity: 0.7;
     pointer-events: none;
+}
+
+/* Agency logo file picker */
+.agency-logo-upload__preview {
+    max-height: 64px;
+    max-width: 120px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid var(--input-border, #e4e9f0);
+    margin-bottom: 10px;
+    display: block;
+}
+.agency-logo-upload__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+}
+.agency-logo-upload__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.agency-logo-upload__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 8px 14px;
+    border: 1px dashed #c9d2df;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #4a5568;
+    cursor: pointer;
+    background: #f8faff;
+    transition: border-color 0.15s, color 0.15s;
+    margin: 0;
+}
+.agency-logo-upload__btn:hover {
+    border-color: var(--color-primary, #cd1b4f);
+    color: var(--color-primary, #cd1b4f);
+}
+.agency-logo-upload__name {
+    font-size: 0.78rem;
+    color: #8492a6;
+}
+.agency-logo-upload__hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: #8492a6;
 }
 .custom-input:focus,
 .custom-select:focus,

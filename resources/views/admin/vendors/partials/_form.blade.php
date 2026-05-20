@@ -25,12 +25,12 @@
 
     <div class="form-fields">
         <label class="title">Agency Logo @if($isEdit)<span class="text-muted">(leave empty to keep current)</span>@endif</label>
-        @if ($isEdit && $vendor->agencyLogoUrl())
-            <div class="mb-2">
-                <img src="{{ $vendor->agencyLogoUrl() }}" alt="Agency Logo" style="max-height:60px; border-radius:6px;">
-            </div>
-        @endif
-        <input type="file" name="agency_logo" class="field" accept="image/*">
+        @include('partials.agency-logo-upload', [
+            'currentUrl' => $isEdit ? $vendor->agencyLogoUrl() : null,
+            'chooseLabel' => 'Choose logo',
+            'btnClass' => 'themeBtn agency-logo-upload__btn',
+            'hint' => 'JPG, PNG or GIF — max 2 MB. Shown in the agent site header.',
+        ])
         @error('agency_logo')
             <div class="text-danger">{{ $message }}</div>
         @enderror

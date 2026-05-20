@@ -152,8 +152,21 @@ function showImage(input, previewImgId, filenamePreviewId) {
     if (file && allowedTypes.includes(file.type)) {
         var reader = new FileReader();
         reader.onload = function (e) {
-            $("#" + previewImgId).attr("src", e.target.result);
-            $("#" + filenamePreviewId).text(file.name);
+            var preview = document.getElementById(previewImgId);
+            if (preview) {
+                preview.src = e.target.result;
+                preview.style.display = "";
+            }
+            var nameEl = document.getElementById(filenamePreviewId);
+            if (nameEl) {
+                nameEl.textContent = file.name;
+            }
+            if (typeof $ !== "undefined") {
+                $("#" + previewImgId).attr("src", e.target.result).show();
+                if (filenamePreviewId) {
+                    $("#" + filenamePreviewId).text(file.name);
+                }
+            }
         };
         reader.readAsDataURL(file);
     } else if (file) {

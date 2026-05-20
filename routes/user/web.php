@@ -41,7 +41,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     Route::get('profile/change/password', [ProfileSettingsController::class, 'changePassword'])->name('profile.changePassword');
     Route::post('profile/change/password/update', [ProfileSettingsController::class, 'updatePassword'])->name('profile.updatePassword');
 
-    Route::prefix('sub-agents')->name('sub-agents.')->group(function () {
+    Route::middleware('agency_owner')->prefix('sub-agents')->name('sub-agents.')->group(function () {
         Route::get('/', [SubAgentController::class, 'index'])->name('index');
         Route::get('/create', [SubAgentController::class, 'create'])->name('create');
         Route::post('/', [SubAgentController::class, 'store'])->name('store');

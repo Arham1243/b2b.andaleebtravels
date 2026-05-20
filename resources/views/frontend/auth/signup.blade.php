@@ -25,8 +25,11 @@
 
                             <div class="form-group">
                                 <label class="form-label">Agency Logo <span class="text-danger">*</span></label>
-                                <input type="file" name="agency_logo" id="agency-logo" class="custom-input" accept="image/*" required>
-                                <img id="agency-logo-preview" src="" alt="" class="mt-2 rounded" style="max-height:80px; display:none;">
+                                @include('partials.agency-logo-upload', [
+                                    'required' => true,
+                                    'chooseLabel' => 'Choose logo',
+                                    'hint' => null,
+                                ])
                                 @error('agency_logo')
                                     <span class="text-danger validation-error">{{ $message }}</span>
                                 @enderror
@@ -141,6 +144,7 @@
 
 @push('js')
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="{{ asset('frontend/assets/js/agency-logo-upload.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const toggleIcons = document.querySelectorAll('.password-toggle');
@@ -159,21 +163,6 @@
                     }
                 });
             });
-
-            const logoInput = document.getElementById('agency-logo');
-            const logoPreview = document.getElementById('agency-logo-preview');
-            if (logoInput && logoPreview) {
-                logoInput.addEventListener('change', function() {
-                    const file = this.files && this.files[0];
-                    if (!file) {
-                        logoPreview.style.display = 'none';
-                        logoPreview.src = '';
-                        return;
-                    }
-                    logoPreview.src = URL.createObjectURL(file);
-                    logoPreview.style.display = 'block';
-                });
-            }
 
             const form = document.querySelector('form');
             form.addEventListener('submit', function(e) {
