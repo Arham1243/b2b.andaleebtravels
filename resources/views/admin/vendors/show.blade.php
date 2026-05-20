@@ -467,7 +467,6 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>#</th>
                                     <th>Date</th>
                                     <th>Type</th>
                                     <th>Reason</th>
@@ -478,12 +477,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($walletLedger as $i => $entry)
+                                @foreach ($walletLedger as $entry)
                                     @php
                                         $refLink = $entry->adminReferenceLink();
                                     @endphp
                                     <tr>
-                                        <td>{{ $i + 1 }}</td>
                                         <td data-order="{{ $entry->created_at->timestamp }}" style="white-space:nowrap; font-size:12px;">
                                             {{ $entry->created_at->format('d M Y') }}<br>
                                             <small class="text-muted">{{ $entry->created_at->format('h:i A') }}</small>
