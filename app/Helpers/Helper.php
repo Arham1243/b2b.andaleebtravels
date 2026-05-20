@@ -26,6 +26,14 @@ if (! function_exists('walletBankProofUrl')) {
     }
 }
 
+if (! function_exists('companyCurrency')) {
+    /** ISO code for amounts in emails and plain-text contexts (no HTML symbol). */
+    function companyCurrency(): string
+    {
+        return (string) config('app.company_currency', 'AED');
+    }
+}
+
 if (! function_exists('currencySymbol')) {
     function currencySymbol(): HtmlString
     {

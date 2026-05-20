@@ -2,8 +2,8 @@
     $brand = config('app.name', 'Travel');
     $vendorEmail = optional($booking->vendor)->email ?? $booking->lead_email;
     $footerExtra = '<strong>' . e($brand) . '</strong> - internal notification.';
+    $companyCurrency = $companyCurrency ?? companyCurrency();
 @endphp
-@include('user.emails.partials.company-currency')
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
