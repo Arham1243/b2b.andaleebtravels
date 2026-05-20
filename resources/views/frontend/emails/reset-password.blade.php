@@ -106,7 +106,7 @@
         style="border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; width: 100%;" class="background">
         <tr>
             <td align="center" valign="top"
-                style="border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0;" bgcolor="#F0F0F0">
+                style="border-collapse: collapse; border-spacing: 0; margin: 0; padding: 32px 0;" bgcolor="#F0F0F0">
                 <table border="0" cellpadding="0" cellspacing="0" align="center" bgcolor="#FFFFFF" width="560"
                     style="border-collapse: collapse; border-spacing: 0; padding: 0; width: inherit;
 	max-width: 560px;"
@@ -114,7 +114,8 @@
                     <tr>
                         <td align="center" valign="top"
                             style="border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; padding-left: 6.25%; padding-right: 6.25%; width: 87.5%; font-size: 24px; font-weight: bold; line-height: 130%;
-			padding-top: 25px;
+			padding-top: 36px;
+			padding-bottom: 8px;
 			color: #000000;
 			font-family: sans-serif;"
                             class="header">
@@ -147,8 +148,8 @@
                     <tr>
                         <td align="center" valign="top"
                             style="border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; padding-left: 6.25%; padding-right: 6.25%; width: 87.5%;
-			padding-top: 25px;
-			padding-bottom: 5px;"
+			padding-top: 28px;
+			padding-bottom: 28px;"
                             class="button">
                             <table border="0" cellpadding="0" cellspacing="0" align="center"
                                 style="max-width: 240px; min-width: 120px; border-collapse: collapse; border-spacing: 0; padding: 0;">
@@ -180,8 +181,8 @@
                     <tr>
                         <td align="center" valign="top"
                             style="border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; padding-left: 6.25%; padding-right: 6.25%; width: 87.5%; font-size: 17px; font-weight: 400; line-height: 160%;
-			padding-top: 20px;
-			padding-bottom: 25px;
+			padding-top: 24px;
+			padding-bottom: 36px;
 			color: #000000;
 			font-family: sans-serif;"
                             class="paragraph">

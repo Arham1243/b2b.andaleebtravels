@@ -85,6 +85,7 @@ if (! function_exists('formatBookingCancelledByLabel')) {
         return match ($by) {
             'vendor' => 'Agent',
             'vendor_release' => 'Hold released (agent)',
+            'admin_release' => 'Hold released (admin)',
             'admin' => 'Administrator',
             default => $by ? ucfirst(str_replace('_', ' ', $by)) : '—',
         };

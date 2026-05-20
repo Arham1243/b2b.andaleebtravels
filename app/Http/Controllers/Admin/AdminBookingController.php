@@ -86,6 +86,62 @@ class AdminBookingController extends Controller
         }
     }
 
+    public function releaseFlightHold(int $booking, FlightService $flightService)
+    {
+        $bookingModel = B2bFlightBooking::findOrFail($booking);
+
+        if ($bookingModel->booking_status === 'cancelled') {
+            return redirect()->back()->with('notify_error', 'Booking is already cancelled.');
+        }
+
+        if ($bookingModel->booking_status !== 'hold') {
+            return redirect()->back()->with('notify_error', 'This action is only available for held bookings.');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $cancelResponse = [];
+            $cancellationType = 'flight_hold_release_local';
+
+            if (! empty($bookingModel->sabre_record_locator)) {
+                $cancelResponse = $flightService->cancelSabreBooking($bookingModel);
+                $cancellationType = 'flight_hold_release_sabre';
+            } else {
+                $cancelResponse = [
+                    'note' => 'No Sabre PNR on record; hold cleared locally only.',
+                ];
+            }
+
+            $bookingModel->update([
+                'booking_status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => 'admin_release',
+                'cancel_response' => BookingCancellationRecorder::envelope($cancellationType, $cancelResponse, 'admin_release'),
+            ]);
+
+            DB::commit();
+
+            app(BookingCancellationNotifier::class)->notifyFlightHoldReleased($bookingModel->fresh());
+
+            $pnr = trim((string) ($bookingModel->sabre_record_locator ?? ''));
+            $successMsg = $pnr !== ''
+                ? 'Hold released for booking #' . $bookingModel->booking_number . '. PNR ' . $pnr . ' was cancelled on Sabre.'
+                : 'Hold released for booking #' . $bookingModel->booking_number . '.';
+
+            return redirect()->back()->with('notify_success', $successMsg);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Admin flight hold release failed', [
+                'booking_id' => $bookingModel->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('notify_error', 'Unable to release hold: ' . $e->getMessage());
+        }
+    }
+
     public function cancelFlightBooking(int $booking, FlightService $flightService)
     {
         $bookingModel = B2bFlightBooking::findOrFail($booking);

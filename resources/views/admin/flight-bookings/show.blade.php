@@ -452,10 +452,24 @@
                             <div class="bkpd-actions">
                                 @if ($status === 'cancelled')
                                     <p class="bkpd-no-action"><i class="bx bx-x-circle"></i> Booking has been cancelled.</p>
+                                @elseif ($isHold)
+                                    <form action="{{ route('admin.bookings.flights.release-hold', $booking->id) }}" method="POST"
+                                        onsubmit="return confirm('Release hold on PNR {{ $booking->sabre_record_locator }}? The booking will be cancelled at the airline end.');">
+                                        @csrf
+                                        <button type="submit" class="bkp-btn bkp-btn--warning w-100">
+                                            <i class="bx bx-x-circle"></i> Release Hold
+                                        </button>
+                                    </form>
+                                    <p style="font-size:.7rem;color:#8492a6;margin-top:10px;text-align:center;line-height:1.4;">
+                                        Releases the PNR at Sabre — no charges since no payment was made.
+                                    </p>
                                 @elseif ($status === 'confirmed' && $booking->payment_status === 'paid')
                                     <button type="button" class="bkp-btn bkp-btn--danger w-100 cancel-booking-btn">
                                         <i class="bx bx-x"></i> Cancel Booking
                                     </button>
+                                    <p style="font-size:.7rem;color:#8492a6;margin-top:10px;text-align:center;line-height:1.4;">
+                                        Cancellation is sent to the airline via our GDS. If the carrier does not allow cancel for this fare, you will see an error and the booking will stay active.
+                                    </p>
                                 @else
                                     <p class="bkpd-no-action"><i class="bx bx-info-circle"></i> No supplier cancel action available for this state.</p>
                                 @endif
