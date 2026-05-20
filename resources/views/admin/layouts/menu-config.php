@@ -25,11 +25,6 @@ return [
                 'route' => route('admin.vendors.pending.index'),
                 'badge_count' => $vendorPendingCount,
             ],
-            [
-                'title' => 'Add Vendor',
-                'icon' => 'bx bx-plus-circle',
-                'route' => route('admin.vendors.create'),
-            ],
         ],
     ],
     [

@@ -62,6 +62,11 @@
         color: var(--color-primary, #cd1b4f);
         font-size: 1.05rem; flex-shrink: 0;
     }
+    .vs-stat__icon i {
+        font-family: 'boxicons' !important;
+        font-style: normal;
+        line-height: 1;
+    }
     .vs-stat__value {
         font-size: 1.6rem;
         font-weight: 700;
@@ -225,13 +230,15 @@
                     <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3" style="border-radius:8px; font-size:.82rem;">
                         <i class="bx bx-edit"></i> Edit
                     </a>
-                    <a href="{{ route('admin.vendors.change-status', $vendor->id) }}"
-                        class="btn btn-sm {{ $vendor->status === 'active' ? 'btn-outline-danger' : 'btn-outline-success' }} fw-semibold px-3"
-                        style="border-radius:8px; font-size:.82rem;"
-                        onclick="return confirm('Are you sure you want to {{ $vendor->status === 'active' ? 'deactivate' : 'activate' }} {{ addslashes($vendor->display_agency_name ?: $vendor->name) }}?')">
-                        <i class="bx {{ $vendor->status === 'active' ? 'bx-pause-circle' : 'bx-play-circle' }}"></i>
-                        {{ $vendor->status === 'active' ? 'Deactivate' : 'Activate' }}
-                    </a>
+                    @if ($vendor->status !== 'pending')
+                        <a href="{{ route('admin.vendors.change-status', $vendor->id) }}"
+                            class="btn btn-sm {{ $vendor->status === 'active' ? 'btn-outline-danger' : 'btn-outline-success' }} fw-semibold px-3"
+                            style="border-radius:8px; font-size:.82rem;"
+                            onclick="return confirm('Are you sure you want to {{ $vendor->status === 'active' ? 'deactivate' : 'activate' }} {{ addslashes($vendor->display_agency_name ?: $vendor->name) }}?')">
+                            <i class="bx {{ $vendor->status === 'active' ? 'bx-pause-circle' : 'bx-play-circle' }}"></i>
+                            {{ $vendor->status === 'active' ? 'Deactivate' : 'Activate' }}
+                        </a>
+                    @endif
                 </div>
             </div>
         </header>
@@ -260,7 +267,7 @@
                 <div class="vs-stat">
                     <div class="vs-stat__head">
                         <span class="vs-stat__label">Flight Bookings</span>
-                        <span class="vs-stat__icon"><i class="bx bx-plane"></i></span>
+                        <span class="vs-stat__icon"><i class="bx bxs-plane"></i></span>
                     </div>
                     <div class="vs-stat__value">{{ $stats['flight_bookings'] }}</div>
                 </div>
@@ -358,7 +365,7 @@
                     <span class="vs-tabs__count">{{ $stats['hotel_bookings'] }}</span>
                 </button>
                 <button class="vs-tabs__btn" onclick="vsTab(event,'panel-flights')" type="button">
-                    <i class="bx bx-plane"></i> Flight Bookings
+                    <i class="bx bxs-plane"></i> Flight Bookings
                     <span class="vs-tabs__count">{{ $stats['flight_bookings'] }}</span>
                 </button>
                 <button class="vs-tabs__btn" onclick="vsTab(event,'panel-sub-agents')" type="button">
@@ -592,7 +599,7 @@
                     </div>
                 @else
                     <div class="text-center py-5" style="color:#6b6573;">
-                        <i class="bx bx-plane" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
+                        <i class="bx bxs-plane" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
                         No flight bookings yet.
                     </div>
                 @endif
@@ -650,12 +657,7 @@
                 @else
                     <div class="text-center py-5" style="color:#6b6573;">
                         <i class="bx bx-group" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
-                        <p class="mb-3">No sub agents for this agency yet.</p>
-                        @if (!$vendor->parent_vendor_id)
-                            <a href="{{ route('admin.vendors.sub-agents.create', $vendor) }}" class="themeBtn" style="font-size:.82rem;">
-                                <i class="bx bx-plus"></i> Add Sub Agent
-                            </a>
-                        @endif
+                        <p class="mb-0">No sub agents for this agency yet.</p>
                     </div>
                 @endif
             </div>

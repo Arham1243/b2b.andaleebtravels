@@ -25,7 +25,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($vendors as $vendor)
+                                @foreach ($vendors as $vendor)
                                     <tr>
                                         <td>{{ $vendor->display_agency_name }}</td>
                                         <td>{{ $vendor->contact_name ?: '—' }}</td>
@@ -39,11 +39,7 @@
                                             </a>
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="text-center py-4 text-muted">No pending signup requests.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

@@ -48,7 +48,7 @@
                         <a href="{{ route('admin.flight-bookings.index') }}" class="admin-stat w-100">
                             <span class="admin-stat__head">
                                 <span class="admin-stat__label">Flight bookings</span>
-                                <span class="admin-stat__icon"><i class='bx bx-plane'></i></span>
+                                <span class="admin-stat__icon"><i class='bx bxs-plane'></i></span>
                             </span>
                             <span class="admin-stat__value">{{ number_format($flightBookingsPaid) }}</span>
                             <span class="admin-stat__meta">
