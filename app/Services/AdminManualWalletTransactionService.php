@@ -34,13 +34,16 @@ class AdminManualWalletTransactionService
             $data['transaction_time'] ?? null
         );
 
+        $attachmentPath = $type === 'credit' ? ($data['attachment_path'] ?? null) : null;
+
         return B2bWalletLedger::recordManual(
             $vendor->id,
             $type,
             $amount,
             (string) $data['description'],
             $transactionAt,
-            $adminId
+            $adminId,
+            $attachmentPath
         );
     }
 

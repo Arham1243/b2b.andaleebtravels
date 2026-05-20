@@ -20,6 +20,7 @@ class B2bWalletLedger extends Model
         'balance_before',
         'balance_after',
         'description',
+        'attachment_path',
         'is_manual',
         'recorded_by_b2b_admin_id',
         'voided_at',
@@ -79,8 +80,9 @@ class B2bWalletLedger extends Model
         string $description,
         Carbon $transactionAt,
         int $adminId,
+        ?string $attachmentPath = null,
     ): self {
-        return DB::transaction(function () use ($vendorId, $type, $amount, $description, $transactionAt, $adminId) {
+        return DB::transaction(function () use ($vendorId, $type, $amount, $description, $transactionAt, $adminId, $attachmentPath) {
             $vendor = B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
             $balanceBefore = (float) $vendor->main_balance;
             $balanceAfter = $type === 'credit'
@@ -96,6 +98,7 @@ class B2bWalletLedger extends Model
                 'balance_before' => round($balanceBefore, 2),
                 'balance_after' => round($balanceAfter, 2),
                 'description' => WalletLedgerDescription::manualAdjustment($description),
+                'attachment_path' => $attachmentPath,
                 'is_manual' => true,
                 'recorded_by_b2b_admin_id' => $adminId,
             ]);
@@ -185,5 +188,19 @@ class B2bWalletLedger extends Model
     public function isDebit(): bool
     {
         return $this->type === 'debit';
+    }
+
+    public function attachmentUrl(): ?string
+    {
+        if (empty($this->attachment_path)) {
+            return null;
+        }
+
+        return asset($this->attachment_path);
+    }
+
+    public function showsManualCreditAttachment(): bool
+    {
+        return $this->is_manual && $this->isCredit() && ! empty($this->attachment_path);
     }
 }

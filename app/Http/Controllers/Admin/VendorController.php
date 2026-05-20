@@ -15,7 +15,9 @@ use App\Support\WalletLedgerDescription;
 use Carbon\Carbon;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -234,9 +236,14 @@ class VendorController extends Controller
             'transaction_date' => 'required|date|before_or_equal:today',
             'transaction_time' => 'nullable|date_format:H:i',
             'description' => 'required|string|min:3|max:500',
+            'attachment' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,pdf|max:5120',
         ]);
 
         $adminId = (int) auth('admin')->id();
+
+        if ($validated['type'] === 'credit' && $request->hasFile('attachment')) {
+            $validated['attachment_path'] = $this->uploadWalletLedgerAttachment($request->file('attachment'));
+        }
 
         try {
             $entry = $this->manualWalletTransactionService->store($vendor, $validated, $adminId);
@@ -268,9 +275,21 @@ class VendorController extends Controller
             'transaction_date' => 'required|date|before_or_equal:today',
             'transaction_time' => 'nullable|date_format:H:i',
             'description' => 'required|string|min:3|max:500',
+            'attachment' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,pdf|max:5120',
+            'remove_attachment' => 'nullable|boolean',
         ]);
 
         $adminId = (int) auth('admin')->id();
+
+        if ($ledger->is_manual) {
+            if ($request->boolean('remove_attachment')) {
+                $this->deleteWalletLedgerAttachment($ledger->attachment_path);
+                $validated['attachment_path'] = null;
+            } elseif ($request->hasFile('attachment')) {
+                $this->deleteWalletLedgerAttachment($ledger->attachment_path);
+                $validated['attachment_path'] = $this->uploadWalletLedgerAttachment($request->file('attachment'));
+            }
+        }
 
         try {
             $entry = $this->walletLedgerAdjustmentService->update($ledger, $validated, $adminId);
@@ -311,6 +330,20 @@ class VendorController extends Controller
     {
         if ((int) $ledger->b2b_vendor_id !== (int) $vendor->id) {
             abort(404);
+        }
+    }
+
+    private function uploadWalletLedgerAttachment(UploadedFile $file): string
+    {
+        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+
+        return $file->storeAs('uploads/wallet-ledger', $filename, 'public');
+    }
+
+    private function deleteWalletLedgerAttachment(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
         }
     }
 

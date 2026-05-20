@@ -219,6 +219,19 @@
     .vs-ledger-actions .btn-ledger--void { border-color: #fecaca; color: #b91c1c; }
     .vs-ledger-actions .btn-ledger--void:hover { background: #fef2f2; }
 
+    .vs-ledger-attachment {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-top: 0.35rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--color-primary, #cd1b4f);
+        text-decoration: none;
+    }
+    .vs-ledger-attachment:hover { text-decoration: underline; }
+    #mw_attachment_wrap.d-none { display: none !important; }
+
     .vs-wallet-form {
         border: 1px solid #ebecf0;
         border-radius: 10px;
@@ -592,12 +605,12 @@
                         Current balance: <strong>{!! formatPrice($vendor->main_balance ?? 0) !!}</strong>
                     </p>
                     <form action="{{ route('admin.vendors.wallet-transactions.store', $vendor) }}" method="POST"
-                        id="manual-wallet-form" class="row g-3 align-items-end">
+                        id="manual-wallet-form" class="row g-3 align-items-end" enctype="multipart/form-data">
                         @csrf
                         <div class="col-md-2">
                             <label for="mw_type">Type</label>
                             <select name="type" id="mw_type" class="field" required>
-                                <option value="credit" {{ old('type') === 'credit' ? 'selected' : '' }}>Credit</option>
+                                <option value="credit" {{ old('type', 'credit') === 'credit' ? 'selected' : '' }}>Credit</option>
                                 <option value="debit" {{ old('type') === 'debit' ? 'selected' : '' }}>Debit</option>
                             </select>
                         </div>
@@ -620,6 +633,11 @@
                             <label for="mw_description">Description <span class="text-danger">*</span></label>
                             <input type="text" name="description" id="mw_description" class="field" maxlength="500"
                                 value="{{ old('description') }}" required>
+                        </div>
+                        <div class="col-md-4 {{ old('type', 'credit') === 'debit' ? 'd-none' : '' }}" id="mw_attachment_wrap">
+                            <label for="mw_attachment">Attachment <span class="text-muted fw-normal">(manual credit)</span></label>
+                            <input type="file" name="attachment" id="mw_attachment" class="field" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+                            <small class="text-muted d-block mt-1" style="font-size:.72rem;">PDF or image, max 5 MB — e.g. bank transfer proof</small>
                         </div>
                         <div class="col-12">
                             <button type="submit" class="themeBtn" style="font-size:.85rem;">
@@ -736,6 +754,11 @@
                                         <td class="fw-semibold">{!! formatPrice($entry->balance_after) !!}</td>
                                         <td style="font-size:13px; max-width:320px;">
                                             <div>{{ $entry->description }}</div>
+                                            @if ($entry->showsManualCreditAttachment())
+                                                <a href="{{ $entry->attachmentUrl() }}" class="vs-ledger-attachment" target="_blank" rel="noopener">
+                                                    <i class="bx bx-paperclip"></i> View attachment
+                                                </a>
+                                            @endif
                                             @if (!empty($refLink['label']))
                                                 @if (!empty($refLink['url']))
                                                     <a href="{{ $refLink['url'] }}" class="small" style="color:var(--color-primary,#cd1b4f);">{{ $refLink['label'] }}</a>
@@ -756,6 +779,9 @@
                                                         data-description="{{ e($entry->description) }}"
                                                         data-date="{{ $entry->created_at->format('Y-m-d') }}"
                                                         data-time="{{ $entry->created_at->format('H:i') }}"
+                                                        data-is-manual="{{ $entry->is_manual ? '1' : '0' }}"
+                                                        data-has-attachment="{{ $entry->showsManualCreditAttachment() ? '1' : '0' }}"
+                                                        data-attachment-url="{{ $entry->attachmentUrl() ?? '' }}"
                                                         data-update-url="{{ route('admin.vendors.wallet-transactions.update', [$vendor, $entry]) }}">
                                                         <i class="bx bx-edit-alt"></i> Edit
                                                     </button>
@@ -1020,7 +1046,7 @@
 <div class="modal fade vs-ledger-modal" id="editLedgerModal" tabindex="-1" aria-labelledby="editLedgerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <form method="POST" id="edit-ledger-form" action="">
+            <form method="POST" id="edit-ledger-form" action="" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 <div class="modal-header">
@@ -1063,6 +1089,22 @@
                                 <input type="text" name="description" id="el_description" class="field" maxlength="500" required placeholder="Transaction description">
                             </div>
                         </div>
+                        <div class="col-12 d-none" id="el_attachment_wrap">
+                            <div class="vs-ledger-modal__field">
+                                <label for="el_attachment">Attachment <span class="text-muted fw-normal">(manual credit)</span></label>
+                                <input type="file" name="attachment" id="el_attachment" class="field" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+                                <small class="text-muted d-block mt-1" style="font-size:.72rem;">PDF or image, max 5 MB</small>
+                                <div id="el_attachment_current" class="mt-2" style="display:none;">
+                                    <a href="#" id="el_attachment_link" class="vs-ledger-attachment" target="_blank" rel="noopener">
+                                        <i class="bx bx-paperclip"></i> Current attachment
+                                    </a>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" name="remove_attachment" value="1" id="el_remove_attachment">
+                                        <label class="form-check-label small" for="el_remove_attachment">Remove attachment</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1077,15 +1119,51 @@
 
 @push('js')
 <script>
+function toggleManualCreditAttachmentFields() {
+    const type = document.getElementById('mw_type')?.value || 'credit';
+    const wrap = document.getElementById('mw_attachment_wrap');
+    if (wrap) {
+        wrap.classList.toggle('d-none', type !== 'credit');
+    }
+}
+
+function toggleEditLedgerAttachmentFields() {
+    const type = document.getElementById('el_type')?.value || 'credit';
+    const isManual = document.getElementById('edit-ledger-form')?.dataset.isManual === '1';
+    const wrap = document.getElementById('el_attachment_wrap');
+    if (wrap) {
+        wrap.classList.toggle('d-none', !isManual || type !== 'credit');
+    }
+}
+
+document.getElementById('mw_type')?.addEventListener('change', toggleManualCreditAttachmentFields);
+document.getElementById('el_type')?.addEventListener('change', toggleEditLedgerAttachmentFields);
+toggleManualCreditAttachmentFields();
+
 document.querySelectorAll('.btn-edit-ledger').forEach(function(btn) {
     btn.addEventListener('click', function() {
         const form = document.getElementById('edit-ledger-form');
         form.action = btn.dataset.updateUrl || '';
+        form.dataset.isManual = btn.dataset.isManual || '0';
         document.getElementById('el_type').value = btn.dataset.type || 'credit';
         document.getElementById('el_amount').value = btn.dataset.amount || '';
         document.getElementById('el_description').value = btn.dataset.description || '';
         document.getElementById('el_date').value = btn.dataset.date || '';
         document.getElementById('el_time').value = btn.dataset.time || '';
+        const attCurrent = document.getElementById('el_attachment_current');
+        const attLink = document.getElementById('el_attachment_link');
+        const removeAtt = document.getElementById('el_remove_attachment');
+        const attUrl = btn.dataset.attachmentUrl || '';
+        if (attCurrent && attLink && removeAtt) {
+            const show = btn.dataset.hasAttachment === '1' && attUrl !== '';
+            attCurrent.style.display = show ? 'block' : 'none';
+            if (show) {
+                attLink.href = attUrl;
+            }
+            removeAtt.checked = false;
+        }
+        document.getElementById('el_attachment').value = '';
+        toggleEditLedgerAttachmentFields();
         bootstrap.Modal.getOrCreateInstance(document.getElementById('editLedgerModal')).show();
     });
 });
