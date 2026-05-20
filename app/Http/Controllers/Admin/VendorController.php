@@ -7,8 +7,12 @@ use App\Mail\VendorApprovedMail;
 use App\Mail\VendorInviteMail;
 use App\Models\B2bVendor;
 use App\Models\Config;
+use App\Models\B2bWalletLedger;
 use App\Services\AdminManualWalletTransactionService;
+use App\Services\AdminWalletLedgerAdjustmentService;
 use App\Support\B2bVendorValidation;
+use App\Support\WalletLedgerDescription;
+use Carbon\Carbon;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +27,7 @@ class VendorController extends Controller
 
     public function __construct(
         private readonly AdminManualWalletTransactionService $manualWalletTransactionService,
+        private readonly AdminWalletLedgerAdjustmentService $walletLedgerAdjustmentService,
     ) {}
 
     public function index()
@@ -126,7 +131,7 @@ class VendorController extends Controller
             ->with('notify_success', 'Vendor created successfully! Invite email sent.');
     }
 
-    public function show(B2bVendor $vendor)
+    public function show(Request $request, B2bVendor $vendor)
     {
         if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
             return redirect()->route('admin.vendors.pending.show', $vendor);
@@ -134,7 +139,28 @@ class VendorController extends Controller
 
         $vendor->load('parentVendor');
 
-        $walletLedger = $vendor->walletLedger()->with('reference')->latest()->get();
+        $ledgerFilters = $this->resolveLedgerFilters($request);
+
+        $ledgerQuery = $vendor->walletLedger()->with('reference')->latest();
+
+        if ($ledgerFilters['from'] !== null) {
+            $ledgerQuery->whereDate('created_at', '>=', $ledgerFilters['from']);
+        }
+
+        if ($ledgerFilters['till'] !== null) {
+            $ledgerQuery->whereDate('created_at', '<=', $ledgerFilters['till']);
+        }
+
+        $walletLedger = $ledgerQuery->get();
+
+        if ($ledgerFilters['category'] !== null) {
+            $walletLedger = $walletLedger
+                ->filter(fn (B2bWalletLedger $entry) => WalletLedgerDescription::adminFilterCategory($entry) === $ledgerFilters['category'])
+                ->values();
+        }
+
+        $ledgerTotalCount = $vendor->walletLedger()->count();
+
         $hotelBookings = $vendor->hotelBookings()->latest()->get();
         $flightBookings = $vendor->flightBookings()->latest()->get();
         $subAgents = $vendor->subAgents()->latest()->get();
@@ -143,11 +169,56 @@ class VendorController extends Controller
             'hotel_bookings'  => $hotelBookings->count(),
             'flight_bookings' => $flightBookings->count(),
             'total_spent'     => $hotelBookings->sum('total_amount') + $flightBookings->sum('total_amount'),
-            'ledger_entries'  => $walletLedger->count(),
+            'ledger_entries'  => $ledgerTotalCount,
             'sub_agents'      => $subAgents->count(),
         ];
 
-        return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings', 'flightBookings', 'subAgents', 'stats'));
+        return view('admin.vendors.show', compact(
+            'vendor',
+            'walletLedger',
+            'hotelBookings',
+            'flightBookings',
+            'subAgents',
+            'stats',
+            'ledgerFilters',
+            'ledgerTotalCount'
+        ));
+    }
+
+    /**
+     * @return array{category: string|null, from: string|null, till: string|null, has_filters: bool}
+     */
+    private function resolveLedgerFilters(Request $request): array
+    {
+        $category = $request->input('ledger_category');
+        $category = in_array($category, ['hotel', 'flight', 'recharge', 'other'], true) ? $category : null;
+
+        $from = $this->parseLedgerFilterDate($request->input('ledger_from'));
+        $till = $this->parseLedgerFilterDate($request->input('ledger_till'));
+
+        if ($from !== null && $till !== null && Carbon::parse($from)->gt(Carbon::parse($till))) {
+            [$from, $till] = [$till, $from];
+        }
+
+        return [
+            'category' => $category,
+            'from' => $from,
+            'till' => $till,
+            'has_filters' => $category !== null || $from !== null || $till !== null,
+        ];
+    }
+
+    private function parseLedgerFilterDate(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function storeWalletTransaction(Request $request, B2bVendor $vendor)
@@ -180,6 +251,67 @@ class VendorController extends Controller
 
         return redirect()->back()
             ->with('notify_success', 'Wallet ' . $verb . ' ' . number_format((float) $entry->amount, 2) . ' AED. New balance: ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED.');
+    }
+
+    public function updateWalletTransaction(Request $request, B2bVendor $vendor, B2bWalletLedger $ledger)
+    {
+        $this->ensureLedgerBelongsToVendor($vendor, $ledger);
+
+        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.show', $vendor)
+                ->with('notify_error', 'Approve the vendor before adjusting wallet.');
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|in:credit,debit',
+            'amount' => 'required|numeric|min:0.01|max:99999999.99',
+            'transaction_date' => 'required|date|before_or_equal:today',
+            'transaction_time' => 'nullable|date_format:H:i',
+            'description' => 'required|string|min:3|max:500',
+        ]);
+
+        $adminId = (int) auth('admin')->id();
+
+        try {
+            $entry = $this->walletLedgerAdjustmentService->update($ledger, $validated, $adminId);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('notify_error', collect($e->errors())->flatten()->first());
+        }
+
+        return redirect()->back()
+            ->with('notify_success', 'Transaction updated. Wallet balance is now ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED.');
+    }
+
+    public function voidWalletTransaction(Request $request, B2bVendor $vendor, B2bWalletLedger $ledger)
+    {
+        $this->ensureLedgerBelongsToVendor($vendor, $ledger);
+
+        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.show', $vendor)
+                ->with('notify_error', 'Approve the vendor before adjusting wallet.');
+        }
+
+        $adminId = (int) auth('admin')->id();
+
+        try {
+            $this->walletLedgerAdjustmentService->void($ledger, $adminId);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->with('notify_error', collect($e->errors())->flatten()->first());
+        }
+
+        return redirect()->back()
+            ->with('notify_success', 'Transaction voided. Wallet balance is now ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED.');
+    }
+
+    private function ensureLedgerBelongsToVendor(B2bVendor $vendor, B2bWalletLedger $ledger): void
+    {
+        if ((int) $ledger->b2b_vendor_id !== (int) $vendor->id) {
+            abort(404);
+        }
     }
 
     public function edit(B2bVendor $vendor)

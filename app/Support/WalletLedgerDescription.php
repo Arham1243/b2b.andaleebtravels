@@ -65,8 +65,46 @@ final class WalletLedgerDescription
         };
     }
 
+    /** @return 'hotel'|'flight'|'recharge'|'other' */
+    public static function adminFilterCategory(B2bWalletLedger $entry): string
+    {
+        $reference = $entry->reference;
+
+        if ($reference instanceof B2bHotelBooking) {
+            return 'hotel';
+        }
+
+        if ($reference instanceof B2bFlightBooking) {
+            return 'flight';
+        }
+
+        if ($reference instanceof B2bWalletRecharge) {
+            return 'recharge';
+        }
+
+        $desc = strtolower((string) $entry->description);
+
+        if (str_contains($desc, 'hotel')) {
+            return 'hotel';
+        }
+
+        if (str_contains($desc, 'flight')) {
+            return 'flight';
+        }
+
+        if (str_contains($desc, 'recharge')) {
+            return 'recharge';
+        }
+
+        return 'other';
+    }
+
     public static function adminReasonLabel(B2bWalletLedger $entry): string
     {
+        if ($entry->isVoided()) {
+            return 'Voided';
+        }
+
         if ($entry->is_manual || str_contains(strtolower((string) $entry->description), 'manual adjustment')) {
             return $entry->isCredit() ? 'Manual credit' : 'Manual debit';
         }
@@ -150,6 +188,7 @@ final class WalletLedgerDescription
         $label = self::adminReasonLabel($entry);
 
         return match ($label) {
+            'Voided' => 'pm-void',
             'Hotel booking payment', 'Flight booking payment', 'Wallet debit' => 'pm-debit-booking',
             'Hotel booking refund', 'Flight booking refund', 'Booking refund' => 'pm-refund',
             'Wallet recharge', 'Wallet credit' => 'pm-recharge',

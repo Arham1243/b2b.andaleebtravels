@@ -22,6 +22,9 @@ class B2bWalletLedger extends Model
         'description',
         'is_manual',
         'recorded_by_b2b_admin_id',
+        'voided_at',
+        'voided_by_b2b_admin_id',
+        'modified_by_b2b_admin_id',
         'reference_type',
         'reference_id',
     ];
@@ -31,6 +34,7 @@ class B2bWalletLedger extends Model
         'balance_before' => 'decimal:2',
         'balance_after' => 'decimal:2',
         'is_manual' => 'boolean',
+        'voided_at' => 'datetime',
     ];
 
     public function vendor(): BelongsTo
@@ -46,6 +50,26 @@ class B2bWalletLedger extends Model
     public function recordedByAdmin(): BelongsTo
     {
         return $this->belongsTo(B2bAdmin::class, 'recorded_by_b2b_admin_id');
+    }
+
+    public function voidedByAdmin(): BelongsTo
+    {
+        return $this->belongsTo(B2bAdmin::class, 'voided_by_b2b_admin_id');
+    }
+
+    public function modifiedByAdmin(): BelongsTo
+    {
+        return $this->belongsTo(B2bAdmin::class, 'modified_by_b2b_admin_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereNull('voided_at');
+    }
+
+    public function isVoided(): bool
+    {
+        return $this->voided_at !== null;
     }
 
     public static function recordManual(

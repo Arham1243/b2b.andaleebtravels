@@ -10,7 +10,7 @@ class RedirectUserIfAuthenticated
     public function handle($request, Closure $next)
     {
         if (Auth::check()) {
-            return redirect()->route('user.dashboard')->with('notify_success', 'You are already logged in.');
+            return redirect()->route('frontend.index');
         }
 
         return $next($request);

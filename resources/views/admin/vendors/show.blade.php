@@ -187,6 +187,24 @@
     .pm-refund { background:#e3f2fd; color:#1565c0; }
     .pm-recharge { background:#e8f5e9; color:#2e7d32; }
     .pm-manual { background:#fff8e1; color:#f57f17; }
+    .pm-void { background:#f3f4f6; color:#6b7280; text-decoration: line-through; }
+
+    .vs-ledger-row--voided td { opacity: .72; }
+    .vs-ledger-row--voided .vs-ledger-amount { text-decoration: line-through; }
+    .vs-ledger-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .vs-ledger-actions .btn-ledger {
+        font-size: 0.72rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid #d8dbe2;
+        background: #fff;
+        color: #4b4753;
+        cursor: pointer;
+        line-height: 1.2;
+    }
+    .vs-ledger-actions .btn-ledger:hover { border-color: var(--color-primary, #cd1b4f); color: var(--color-primary, #cd1b4f); }
+    .vs-ledger-actions .btn-ledger--void { border-color: #fecaca; color: #b91c1c; }
+    .vs-ledger-actions .btn-ledger--void:hover { background: #fef2f2; }
 
     .vs-wallet-form {
         border: 1px solid #ebecf0;
@@ -225,6 +243,57 @@
         margin-bottom: 0.25rem;
         display: block;
     }
+
+    .vs-ledger-filters {
+        border: 1px solid #ebecf0;
+        border-radius: 10px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1.25rem;
+        background: #fff;
+    }
+    .vs-ledger-filters__title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #18181b;
+        margin: 0 0 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .vs-ledger-filters__meta {
+        font-size: 0.78rem;
+        color: #6b6573;
+        margin: 0.65rem 0 0;
+    }
+    .vs-ledger-filters .field {
+        width: 100%;
+        border: 1px solid #d8dbe2;
+        border-radius: 8px;
+        padding: 0.45rem 0.65rem;
+        font-size: 0.88rem;
+    }
+    .vs-ledger-filters label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #6b6573;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+    .vs-ledger-filters__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    .vs-ledger-filters__clear {
+        font-size: 0.82rem;
+        color: var(--color-primary, #cd1b4f);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .vs-ledger-filters__clear:hover { text-decoration: underline; }
     .pm-card   { background:#e3f2fd; color:#1565c0; }
     .pm-tabby  { background:#fff3e0; color:#e65100; }
     .pm-wallet { background:#e8f5e9; color:#2e7d32; }
@@ -421,7 +490,7 @@
                 <div class="vs-wallet-form">
                     <div class="vs-wallet-form__title"><i class="bx bx-plus-circle"></i> Add manual transaction</div>
                     <p class="vs-wallet-form__hint">
-                        Record an admin credit or debit (e.g. hotel payment taken from wallet offline). Balance updates immediately.
+                        Record an admin credit or debit (e.g. hotel payment taken from wallet offline). Use <strong>Edit</strong> or <strong>Void</strong> on any row below to correct mistakes — the wallet balance is recalculated automatically.
                         Current balance: <strong>{!! formatPrice($vendor->main_balance ?? 0) !!}</strong>
                     </p>
                     <form action="{{ route('admin.vendors.wallet-transactions.store', $vendor) }}" method="POST"
@@ -462,9 +531,64 @@
                     </form>
                 </div>
 
+                @if (($ledgerTotalCount ?? 0) > 0)
+                    <div class="vs-ledger-filters">
+                        <div class="vs-ledger-filters__title"><i class="bx bx-filter-alt"></i> Filter ledger</div>
+                        <form method="GET" action="{{ route('admin.vendors.show', $vendor) }}" class="row g-3 align-items-end" id="ledger-filter-form">
+                            <input type="hidden" name="tab" value="wallet">
+                            <div class="col-md-3">
+                                <label for="ledger_category">Category</label>
+                                <select name="ledger_category" id="ledger_category" class="field">
+                                    <option value="">All categories</option>
+                                    <option value="hotel" {{ ($ledgerFilters['category'] ?? '') === 'hotel' ? 'selected' : '' }}>Hotel</option>
+                                    <option value="flight" {{ ($ledgerFilters['category'] ?? '') === 'flight' ? 'selected' : '' }}>Flight</option>
+                                    <option value="recharge" {{ ($ledgerFilters['category'] ?? '') === 'recharge' ? 'selected' : '' }}>Recharge</option>
+                                    <option value="other" {{ ($ledgerFilters['category'] ?? '') === 'other' ? 'selected' : '' }}>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="ledger_from">From date</label>
+                                <input type="date" name="ledger_from" id="ledger_from" class="field"
+                                    value="{{ $ledgerFilters['from'] ?? '' }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="ledger_till">Till date</label>
+                                <input type="date" name="ledger_till" id="ledger_till" class="field"
+                                    value="{{ $ledgerFilters['till'] ?? '' }}">
+                            </div>
+                            <div class="col-md-3">
+                                <div class="vs-ledger-filters__actions">
+                                    <button type="submit" class="themeBtn" style="font-size:.85rem;">
+                                        <i class="bx bx-search"></i> Apply
+                                    </button>
+                                    @if (!empty($ledgerFilters['has_filters']))
+                                        <a href="{{ route('admin.vendors.show', $vendor) }}?tab=wallet" class="vs-ledger-filters__clear">Clear</a>
+                                    @endif
+                                </div>
+                            </div>
+                        </form>
+                        @if (!empty($ledgerFilters['has_filters']))
+                            <p class="vs-ledger-filters__meta mb-0">
+                                Showing <strong>{{ $walletLedger->count() }}</strong> of <strong>{{ $ledgerTotalCount }}</strong> transactions
+                                @if (!empty($ledgerFilters['category']))
+                                    · Category: <strong>{{ ucfirst($ledgerFilters['category']) }}</strong>
+                                @endif
+                                @if (!empty($ledgerFilters['from']) || !empty($ledgerFilters['till']))
+                                    · Date:
+                                    <strong>
+                                        {{ $ledgerFilters['from'] ? \Carbon\Carbon::parse($ledgerFilters['from'])->format('d M Y') : '…' }}
+                                        –
+                                        {{ $ledgerFilters['till'] ? \Carbon\Carbon::parse($ledgerFilters['till'])->format('d M Y') : '…' }}
+                                    </strong>
+                                @endif
+                            </p>
+                        @endif
+                    </div>
+                @endif
+
                 @if ($walletLedger->isNotEmpty())
                     <div class="table-responsive">
-                        <table class="data-table">
+                        <table class="data-table" id="wallet-ledger-table">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -474,25 +598,31 @@
                                     <th>Balance Before</th>
                                     <th>Balance After</th>
                                     <th>Description</th>
+                                    <th class="no-sort">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($walletLedger as $entry)
                                     @php
                                         $refLink = $entry->adminReferenceLink();
+                                        $isVoided = $entry->isVoided();
                                     @endphp
-                                    <tr>
+                                    <tr class="{{ $isVoided ? 'vs-ledger-row--voided' : '' }}"
+                                        data-ledger-category="{{ \App\Support\WalletLedgerDescription::adminFilterCategory($entry) }}">
                                         <td data-order="{{ $entry->created_at->timestamp }}" style="white-space:nowrap; font-size:12px;">
                                             {{ $entry->created_at->format('d M Y') }}<br>
                                             <small class="text-muted">{{ $entry->created_at->format('h:i A') }}</small>
+                                            @if ($isVoided && $entry->voided_at)
+                                                <br><small class="text-danger">Voided {{ $entry->voided_at->format('d M Y') }}</small>
+                                            @endif
                                         </td>
                                         <td>
-                                            <span class="badge rounded-pill bg-{{ $entry->isCredit() ? 'success' : 'danger' }}">
+                                            <span class="badge rounded-pill bg-{{ $isVoided ? 'secondary' : ($entry->isCredit() ? 'success' : 'danger') }}">
                                                 {{ ucfirst($entry->type) }}
                                             </span>
                                         </td>
                                         <td><span class="pm-pill {{ $entry->adminReasonClass() }}">{{ $entry->adminReasonLabel() }}</span></td>
-                                        <td class="fw-bold {{ $entry->isCredit() ? 'text-success' : 'text-danger' }}">
+                                        <td class="fw-bold vs-ledger-amount {{ $isVoided ? 'text-muted' : ($entry->isCredit() ? 'text-success' : 'text-danger') }}">
                                             {{ $entry->isCredit() ? '+' : '-' }}{!! formatPrice($entry->amount) !!}
                                         </td>
                                         <td>{!! formatPrice($entry->balance_before) !!}</td>
@@ -507,10 +637,43 @@
                                                 @endif
                                             @endif
                                         </td>
+                                        <td>
+                                            @if ($isVoided)
+                                                <span class="small text-muted">—</span>
+                                            @else
+                                                <div class="vs-ledger-actions">
+                                                    <button type="button" class="btn-ledger btn-edit-ledger"
+                                                        data-entry-id="{{ $entry->id }}"
+                                                        data-type="{{ $entry->type }}"
+                                                        data-amount="{{ $entry->amount }}"
+                                                        data-description="{{ e($entry->description) }}"
+                                                        data-date="{{ $entry->created_at->format('Y-m-d') }}"
+                                                        data-time="{{ $entry->created_at->format('H:i') }}"
+                                                        data-update-url="{{ route('admin.vendors.wallet-transactions.update', [$vendor, $entry]) }}">
+                                                        <i class="bx bx-edit-alt"></i> Edit
+                                                    </button>
+                                                    <form action="{{ route('admin.vendors.wallet-transactions.void', [$vendor, $entry]) }}" method="POST"
+                                                        class="d-inline ledger-void-form"
+                                                        data-amount="{{ number_format((float) $entry->amount, 2) }}"
+                                                        data-type="{{ $entry->type }}">
+                                                        @csrf
+                                                        <button type="submit" class="btn-ledger btn-ledger--void">
+                                                            <i class="bx bx-block"></i> Void
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
+                    </div>
+                @elseif (($ledgerTotalCount ?? 0) > 0 && !empty($ledgerFilters['has_filters']))
+                    <div class="text-center py-5" style="color:#6b6573;">
+                        <i class="bx bx-filter-alt" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
+                        <p class="mb-2">No transactions match your filters.</p>
+                        <a href="{{ route('admin.vendors.show', $vendor) }}?tab=wallet" class="vs-ledger-filters__clear">Clear filters</a>
                     </div>
                 @else
                     <div class="text-center py-5" style="color:#6b6573;">
@@ -746,10 +909,96 @@
         </div>{{-- /vs-card --}}
     </div>
 </div>
+
+<div class="modal fade" id="editLedgerModal" tabindex="-1" aria-labelledby="editLedgerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" id="edit-ledger-form" action="">
+                @csrf
+                @method('PUT')
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editLedgerModalLabel">Edit wallet transaction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Changes recalculate this vendor&apos;s wallet balance from all active (non-voided) transactions.</p>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label for="el_type">Type</label>
+                            <select name="type" id="el_type" class="field" required>
+                                <option value="credit">Credit</option>
+                                <option value="debit">Debit</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label for="el_amount">Amount (AED)</label>
+                            <input type="number" name="amount" id="el_amount" class="field" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-6">
+                            <label for="el_date">Date</label>
+                            <input type="date" name="transaction_date" id="el_date" class="field" max="{{ now()->format('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-6">
+                            <label for="el_time">Time</label>
+                            <input type="time" name="transaction_time" id="el_time" class="field">
+                        </div>
+                        <div class="col-12">
+                            <label for="el_description">Description</label>
+                            <input type="text" name="description" id="el_description" class="field" maxlength="500" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="themeBtn">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('js')
 <script>
+document.querySelectorAll('.btn-edit-ledger').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const form = document.getElementById('edit-ledger-form');
+        form.action = btn.dataset.updateUrl || '';
+        document.getElementById('el_type').value = btn.dataset.type || 'credit';
+        document.getElementById('el_amount').value = btn.dataset.amount || '';
+        document.getElementById('el_description').value = btn.dataset.description || '';
+        document.getElementById('el_date').value = btn.dataset.date || '';
+        document.getElementById('el_time').value = btn.dataset.time || '';
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('editLedgerModal')).show();
+    });
+});
+
+document.getElementById('edit-ledger-form')?.addEventListener('submit', function(e) {
+    const type = document.getElementById('el_type')?.value || 'credit';
+    const amount = document.getElementById('el_amount')?.value || '0';
+    const message =
+        'Update this wallet transaction?\n\n' +
+        'Type: ' + type + '\n' +
+        'Amount: ' + amount + ' AED\n\n' +
+        'The vendor wallet balance will be recalculated.';
+    if (!confirm(message)) {
+        e.preventDefault();
+    }
+});
+
+document.querySelectorAll('.ledger-void-form').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+        const type = form.dataset.type || 'transaction';
+        const amount = form.dataset.amount || '0';
+        const message =
+            'Void this ' + type + ' of ' + amount + ' AED?\n\n' +
+            'It will be excluded from the wallet balance and cannot be edited afterward.';
+        if (!confirm(message)) {
+            e.preventDefault();
+        }
+    });
+});
+
 document.getElementById('manual-wallet-form')?.addEventListener('submit', function(e) {
     const type = document.getElementById('mw_type')?.value || 'credit';
     const amount = document.getElementById('mw_amount')?.value || '0';
@@ -776,5 +1025,29 @@ document.getElementById('manual-wallet-form')?.addEventListener('submit', functi
         e.currentTarget.classList.add('active');
         document.getElementById(panelId).classList.add('active');
     }
+
+    (function activateWalletTabFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('tab') !== 'wallet' && !params.has('ledger_category') && !params.has('ledger_from') && !params.has('ledger_till')) {
+            return;
+        }
+        const walletBtn = document.querySelector('.vs-tabs__btn[onclick*="panel-wallet"]');
+        if (walletBtn) {
+            vsTab({ currentTarget: walletBtn }, 'panel-wallet');
+        }
+    })();
+
+    document.getElementById('ledger-filter-form')?.addEventListener('submit', function(e) {
+        const from = document.getElementById('ledger_from')?.value || '';
+        const till = document.getElementById('ledger_till')?.value || '';
+        if (from && till && from > till) {
+            if (!confirm('From date is after till date. Swap dates and apply filter?')) {
+                e.preventDefault();
+                return;
+            }
+            document.getElementById('ledger_from').value = till;
+            document.getElementById('ledger_till').value = from;
+        }
+    });
 </script>
 @endpush
