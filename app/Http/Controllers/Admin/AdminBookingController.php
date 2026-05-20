@@ -103,6 +103,8 @@ class AdminBookingController extends Controller
                 $type = 'hotel_yalago_cancel';
             }
 
+            $before = $bookingModel->only(['payment_status', 'booking_status']);
+
             $bookingModel->update([
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
@@ -110,11 +112,19 @@ class AdminBookingController extends Controller
                 'cancel_response' => BookingCancellationRecorder::envelope($type, $cancelResponse, 'admin'),
             ]);
 
+            $ledger = $this->bookingWalletRefundService->processAfterAdminCancellation(
+                $bookingModel->fresh(),
+                $before
+            );
+
             DB::commit();
 
             app(BookingCancellationNotifier::class)->notifyHotelCancelled($bookingModel->fresh());
 
-            return redirect()->back()->with('notify_success', 'Hotel booking cancelled successfully.');
+            return redirect()->back()->with(
+                'notify_success',
+                $this->statusUpdateMessage('Hotel booking cancelled successfully.', $ledger)
+            );
         } catch (\Throwable $e) {
             DB::rollBack();
 

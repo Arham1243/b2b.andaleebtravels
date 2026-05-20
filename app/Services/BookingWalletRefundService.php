@@ -24,7 +24,7 @@ class BookingWalletRefundService
             return null;
         }
 
-        if (($before['payment_status'] ?? '') !== 'paid') {
+        if (! $this->hadPaymentCollected($booking, $before)) {
             return null;
         }
 
@@ -33,6 +33,58 @@ class BookingWalletRefundService
         }
 
         return $this->creditBookingRefund($booking);
+    }
+
+    /**
+     * Credit wallet when admin cancels a booking that had payment collected (hotel/flight cancel action).
+     *
+     * @param  array<string, string>  $before
+     */
+    public function processAfterAdminCancellation(Model $booking, array $before): ?B2bWalletLedger
+    {
+        if (! $booking instanceof B2bHotelBooking && ! $booking instanceof B2bFlightBooking) {
+            return null;
+        }
+
+        if (($before['booking_status'] ?? '') === 'cancelled') {
+            return null;
+        }
+
+        if (! $this->hadPaymentCollected($booking, $before)) {
+            return null;
+        }
+
+        return $this->creditBookingRefund($booking);
+    }
+
+    /**
+     * @param  array<string, string>  $before
+     */
+    private function hadPaymentCollected(Model $booking, array $before): bool
+    {
+        $paymentStatus = (string) ($before['payment_status'] ?? '');
+
+        if ($paymentStatus === 'paid') {
+            return true;
+        }
+
+        if ($paymentStatus === 'refunded') {
+            return false;
+        }
+
+        if (B2bWalletLedger::query()
+            ->where('reference_type', $booking::class)
+            ->where('reference_id', $booking->id)
+            ->where('type', 'debit')
+            ->exists()) {
+            return true;
+        }
+
+        $bookingStatus = (string) ($before['booking_status'] ?? '');
+
+        return in_array($bookingStatus, ['confirmed', 'completed', 'hold'], true)
+            && ! in_array($paymentStatus, ['pending', 'failed', ''], true)
+            && (float) $booking->total_amount > 0.001;
     }
 
     /**

@@ -347,7 +347,10 @@
                             <div class="bkpd-actions" style="padding:0 16px 16px;">
                                 <div class="mb-3">
                                     <div class="small fw-semibold text-muted mb-2">Payment status</div>
-                                    @if ($booking->booking_status !== 'cancelled')
+                                    @if ($booking->booking_status === 'cancelled' && $booking->payment_status !== 'refunded')
+                                        <input type="hidden" name="payment_status" value="{{ $booking->payment_status }}">
+                                        <p class="small text-muted mb-2">Current: <strong>{{ ucfirst($booking->payment_status) }}</strong> (select Refunded below to credit wallet)</p>
+                                    @else
                                         @foreach (['paid' => 'Paid', 'pending' => 'Pending', 'failed' => 'Failed'] as $val => $label)
                                             <div class="form-check">
                                                 <input class="form-check-input" type="radio" name="payment_status" id="payment_{{ $val }}" value="{{ $val }}"

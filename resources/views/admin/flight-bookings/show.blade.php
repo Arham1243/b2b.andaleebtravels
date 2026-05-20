@@ -415,7 +415,20 @@
                             </div>
                         </div>
 
-                        <form action="{{ route('admin.bookings.flights.status', $booking->id) }}" method="POST" class="bkpd-card mb-3 admin-flight-status">
+                        @php
+                            $vendorLabel = $booking->vendor
+                                ? ($booking->vendor->display_agency_name ?: $booking->vendor->name)
+                                : 'Vendor';
+                        @endphp
+                        <form action="{{ route('admin.bookings.flights.status', $booking->id) }}" method="POST"
+                            class="bkpd-card mb-3 admin-flight-status admin-booking-status-form"
+                            data-booking-number="{{ $booking->booking_number }}"
+                            data-total-amount="{{ number_format((float) $booking->total_amount, 2) }}"
+                            data-vendor-name="{{ $vendorLabel }}"
+                            data-current-payment-status="{{ $booking->payment_status }}"
+                            data-current-booking-status="{{ $booking->booking_status }}"
+                            data-current-ticket-status="{{ $booking->ticket_status }}"
+                            data-booking-type="flight">
                             @csrf
                             <div class="bkpd-card__section-head"><i class="bx bx-edit"></i> Update status</div>
                             <div class="bkpd-actions" style="padding:0 16px 16px;">
