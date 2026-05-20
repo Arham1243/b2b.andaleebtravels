@@ -102,7 +102,7 @@ final class WalletLedgerDescription
     public static function adminReasonLabel(B2bWalletLedger $entry): string
     {
         if ($entry->isVoided()) {
-            return 'Voided';
+            return 'VOIDED';
         }
 
         if ($entry->is_manual || str_contains(strtolower((string) $entry->description), 'manual adjustment')) {
@@ -188,7 +188,7 @@ final class WalletLedgerDescription
         $label = self::adminReasonLabel($entry);
 
         return match ($label) {
-            'Voided' => 'pm-void',
+            'VOIDED' => 'pm-void',
             'Hotel booking payment', 'Flight booking payment', 'Wallet debit' => 'pm-debit-booking',
             'Hotel booking refund', 'Flight booking refund', 'Booking refund' => 'pm-refund',
             'Wallet recharge', 'Wallet credit' => 'pm-recharge',

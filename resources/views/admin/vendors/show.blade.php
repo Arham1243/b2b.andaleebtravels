@@ -187,7 +187,20 @@
     .pm-refund { background:#e3f2fd; color:#1565c0; }
     .pm-recharge { background:#e8f5e9; color:#2e7d32; }
     .pm-manual { background:#fff8e1; color:#f57f17; }
-    .pm-void { background:#f3f4f6; color:#6b7280; text-decoration: line-through; }
+    .pm-void {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        font-weight: 700;
+        letter-spacing: .06em;
+    }
+    .badge-voided {
+        background: #dc2626 !important;
+        color: #fff !important;
+        font-weight: 700;
+        letter-spacing: .04em;
+        font-size: 0.68rem;
+    }
 
     .vs-ledger-row--voided td { opacity: .72; }
     .vs-ledger-row--voided .vs-ledger-amount { text-decoration: line-through; }
@@ -294,6 +307,91 @@
         font-weight: 600;
     }
     .vs-ledger-filters__clear:hover { text-decoration: underline; }
+
+    .vs-ledger-modal .modal-content {
+        border: 1px solid #ebecf0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(20, 20, 30, 0.12);
+    }
+    .vs-ledger-modal .modal-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #ebecf0;
+        background: #fafbfc;
+    }
+    .vs-ledger-modal .modal-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #18181b;
+    }
+    .vs-ledger-modal .modal-body {
+        padding: 1.15rem 1.25rem 1.25rem;
+    }
+    .vs-ledger-modal .modal-body__hint {
+        font-size: 0.8rem;
+        color: #6b6573;
+        margin: 0 0 1rem;
+        line-height: 1.45;
+    }
+    .vs-ledger-modal .modal-footer {
+        padding: 0.85rem 1.25rem 1.15rem;
+        border-top: 1px solid #ebecf0;
+        background: #fafbfc;
+        gap: 0.5rem;
+    }
+    .vs-ledger-modal .vs-ledger-modal__field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        min-width: 0;
+    }
+    .vs-ledger-modal .vs-ledger-modal__field label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #6b6573;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin: 0;
+        display: block;
+    }
+    .vs-ledger-modal .vs-ledger-modal__field .field,
+    .vs-ledger-modal .vs-ledger-modal__field select.field {
+        width: 100%;
+        max-width: 100%;
+        border: 1px solid #d8dbe2;
+        border-radius: 8px;
+        padding: 0.5rem 0.7rem;
+        font-size: 0.88rem;
+        color: #18181b;
+        background: #fff;
+        line-height: 1.35;
+        box-sizing: border-box;
+    }
+    .vs-ledger-modal .vs-ledger-modal__field .field:focus,
+    .vs-ledger-modal .vs-ledger-modal__field select.field:focus {
+        outline: none;
+        border-color: var(--color-primary, #cd1b4f);
+        box-shadow: 0 0 0 3px rgba(205, 27, 79, 0.12);
+    }
+    .vs-ledger-modal .btn-modal-cancel {
+        font-size: 0.85rem;
+        padding: 0.45rem 1rem;
+        border-radius: 8px;
+        border: 1px solid #d8dbe2;
+        background: #fff;
+        color: #4b4753;
+        font-weight: 600;
+    }
+    .vs-ledger-modal .btn-modal-cancel:hover {
+        background: #f4f5f7;
+        border-color: #c5c9d2;
+    }
+    .vs-ledger-modal .modal-footer .themeBtn {
+        font-size: 0.85rem;
+        padding: 0.45rem 1.1rem;
+        margin: 0;
+    }
+
     .pm-card   { background:#e3f2fd; color:#1565c0; }
     .pm-tabby  { background:#fff3e0; color:#e65100; }
     .pm-wallet { background:#e8f5e9; color:#2e7d32; }
@@ -620,8 +718,17 @@
                                             <span class="badge rounded-pill bg-{{ $isVoided ? 'secondary' : ($entry->isCredit() ? 'success' : 'danger') }}">
                                                 {{ ucfirst($entry->type) }}
                                             </span>
+                                            @if ($isVoided)
+                                                <span class="badge rounded-pill badge-voided ms-1">VOIDED</span>
+                                            @endif
                                         </td>
-                                        <td><span class="pm-pill {{ $entry->adminReasonClass() }}">{{ $entry->adminReasonLabel() }}</span></td>
+                                        <td>
+                                            @if ($isVoided)
+                                                <span class="pm-pill pm-void">VOIDED</span>
+                                            @else
+                                                <span class="pm-pill {{ $entry->adminReasonClass() }}">{{ $entry->adminReasonLabel() }}</span>
+                                            @endif
+                                        </td>
                                         <td class="fw-bold vs-ledger-amount {{ $isVoided ? 'text-muted' : ($entry->isCredit() ? 'text-success' : 'text-danger') }}">
                                             {{ $entry->isCredit() ? '+' : '-' }}{!! formatPrice($entry->amount) !!}
                                         </td>
@@ -910,8 +1017,8 @@
     </div>
 </div>
 
-<div class="modal fade" id="editLedgerModal" tabindex="-1" aria-labelledby="editLedgerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+<div class="modal fade vs-ledger-modal" id="editLedgerModal" tabindex="-1" aria-labelledby="editLedgerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <form method="POST" id="edit-ledger-form" action="">
                 @csrf
@@ -921,36 +1028,46 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted mb-3">Changes recalculate this vendor&apos;s wallet balance from all active (non-voided) transactions.</p>
+                    <p class="modal-body__hint">Changes recalculate this vendor&apos;s wallet balance from all active (non-voided) transactions.</p>
                     <div class="row g-3">
-                        <div class="col-6">
-                            <label for="el_type">Type</label>
-                            <select name="type" id="el_type" class="field" required>
-                                <option value="credit">Credit</option>
-                                <option value="debit">Debit</option>
-                            </select>
+                        <div class="col-sm-6">
+                            <div class="vs-ledger-modal__field">
+                                <label for="el_type">Type</label>
+                                <select name="type" id="el_type" class="field" required>
+                                    <option value="credit">Credit</option>
+                                    <option value="debit">Debit</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <label for="el_amount">Amount (AED)</label>
-                            <input type="number" name="amount" id="el_amount" class="field" step="0.01" min="0.01" required>
+                        <div class="col-sm-6">
+                            <div class="vs-ledger-modal__field">
+                                <label for="el_amount">Amount (AED)</label>
+                                <input type="number" name="amount" id="el_amount" class="field" step="0.01" min="0.01" required placeholder="0.00">
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <label for="el_date">Date</label>
-                            <input type="date" name="transaction_date" id="el_date" class="field" max="{{ now()->format('Y-m-d') }}" required>
+                        <div class="col-sm-6">
+                            <div class="vs-ledger-modal__field">
+                                <label for="el_date">Date</label>
+                                <input type="date" name="transaction_date" id="el_date" class="field" max="{{ now()->format('Y-m-d') }}" required>
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <label for="el_time">Time</label>
-                            <input type="time" name="transaction_time" id="el_time" class="field">
+                        <div class="col-sm-6">
+                            <div class="vs-ledger-modal__field">
+                                <label for="el_time">Time</label>
+                                <input type="time" name="transaction_time" id="el_time" class="field">
+                            </div>
                         </div>
                         <div class="col-12">
-                            <label for="el_description">Description</label>
-                            <input type="text" name="description" id="el_description" class="field" maxlength="500" required>
+                            <div class="vs-ledger-modal__field">
+                                <label for="el_description">Description</label>
+                                <input type="text" name="description" id="el_description" class="field" maxlength="500" required placeholder="Transaction description">
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="themeBtn">Save changes</button>
+                    <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="themeBtn"><i class="bx bx-check"></i> Save changes</button>
                 </div>
             </form>
         </div>
