@@ -42,9 +42,7 @@ final class WalletLedgerDescription
 
     public static function manualAdjustment(string $description): string
     {
-        $description = trim($description);
-
-        return 'Manual adjustment - ' . $description;
+        return trim($description);
     }
 
     public static function isRefundDescription(?string $description): bool
@@ -69,7 +67,7 @@ final class WalletLedgerDescription
 
     public static function adminReasonLabel(B2bWalletLedger $entry): string
     {
-        if ($entry->is_manual || str_starts_with((string) $entry->description, 'Manual adjustment')) {
+        if ($entry->is_manual || str_contains(strtolower((string) $entry->description), 'manual adjustment')) {
             return $entry->isCredit() ? 'Manual credit' : 'Manual debit';
         }
 
