@@ -19,9 +19,17 @@ class BookingWalletRefundService
      * @param  array<string, string>  $before  payment_status, booking_status, and ticket_status (flights only)
      * @param  array<string, string>  $after   validated status fields from the admin form
      */
-    public function processAfterAdminStatusUpdate(Model $booking, array $before, array $after): ?B2bWalletLedger
-    {
+    public function processAfterAdminStatusUpdate(
+        Model $booking,
+        array $before,
+        array $after,
+        bool $skipWalletRefund = false
+    ): ?B2bWalletLedger {
         if (! $booking instanceof B2bHotelBooking && ! $booking instanceof B2bFlightBooking) {
+            return null;
+        }
+
+        if ($skipWalletRefund) {
             return null;
         }
 
@@ -37,13 +45,16 @@ class BookingWalletRefundService
     }
 
     /**
-     * Credit wallet when admin cancels a booking that had payment collected (hotel/flight cancel action).
+     * Credit wallet when a refundable booking is cancelled and payment was collected.
      *
      * @param  array<string, string>  $before
      */
-    public function processAfterAdminCancellation(Model $booking, array $before): ?B2bWalletLedger
-    {
-        if (! $booking instanceof B2bHotelBooking && ! $booking instanceof B2bFlightBooking) {
+    public function processAfterCancellation(
+        B2bHotelBooking|B2bFlightBooking $booking,
+        array $before,
+        bool $isRefundable
+    ): ?B2bWalletLedger {
+        if (! $isRefundable) {
             return null;
         }
 
@@ -56,6 +67,27 @@ class BookingWalletRefundService
         }
 
         return $this->creditBookingRefund($booking);
+    }
+
+    /**
+     * @param  array<string, string>  $before
+     */
+    public function paymentStatusAfterCancellationRefund(array $before, bool $isRefundable): ?string
+    {
+        if (! $isRefundable) {
+            return null;
+        }
+
+        if (($before['payment_status'] ?? '') === 'paid') {
+            return 'refunded';
+        }
+
+        return null;
+    }
+
+    public function walletRefundAlreadyCredited(B2bHotelBooking|B2bFlightBooking $booking): bool
+    {
+        return B2bWalletLedger::refundCreditExists($booking::class, $booking->id);
     }
 
     /**

@@ -27,18 +27,21 @@ class AdminBookingController extends Controller
         $validated = $request->validate([
             'booking_status' => 'required|in:pending,confirmed,cancelled,completed,refunded,failed',
             'payment_status' => 'required|in:pending,paid,failed,refunded',
+            'skip_wallet_refund' => 'sometimes|boolean',
         ]);
 
         $bookingModel = B2bHotelBooking::findOrFail($booking);
         $before = $bookingModel->only(['payment_status', 'booking_status']);
+        $skipWalletRefund = $request->boolean('skip_wallet_refund');
 
-        $ledger = DB::transaction(function () use ($bookingModel, $validated, $before) {
-            $bookingModel->update($validated);
+        $ledger = DB::transaction(function () use ($bookingModel, $validated, $before, $skipWalletRefund) {
+            $bookingModel->update(collect($validated)->except('skip_wallet_refund')->all());
 
             return $this->bookingWalletRefundService->processAfterAdminStatusUpdate(
                 $bookingModel->fresh(),
                 $before,
-                $validated
+                $validated,
+                $skipWalletRefund
             );
         });
 
@@ -54,18 +57,21 @@ class AdminBookingController extends Controller
             'booking_status' => 'required|in:pending,confirmed,hold,cancelled,completed,refunded,failed',
             'payment_status' => 'required|in:pending,paid,failed,refunded',
             'ticket_status' => 'required|in:pending,issued,failed,refunded',
+            'skip_wallet_refund' => 'sometimes|boolean',
         ]);
 
         $bookingModel = B2bFlightBooking::findOrFail($booking);
         $before = $bookingModel->only(['payment_status', 'booking_status', 'ticket_status']);
+        $skipWalletRefund = $request->boolean('skip_wallet_refund');
 
-        $ledger = DB::transaction(function () use ($bookingModel, $validated, $before) {
-            $bookingModel->update($validated);
+        $ledger = DB::transaction(function () use ($bookingModel, $validated, $before, $skipWalletRefund) {
+            $bookingModel->update(collect($validated)->except('skip_wallet_refund')->all());
 
             return $this->bookingWalletRefundService->processAfterAdminStatusUpdate(
                 $bookingModel->fresh(),
                 $before,
-                $validated
+                $validated,
+                $skipWalletRefund
             );
         });
 
@@ -99,25 +105,34 @@ class AdminBookingController extends Controller
                 BookingCancellationEligibility::assertTboCanCancel($bookingModel);
                 $cancelResponse = $hotelService->cancelTboBooking($bookingModel);
                 $type = 'hotel_tbo_cancel';
+                $isRefundable = BookingCancellationEligibility::hotelIsRefundableForWalletRefund($bookingModel);
             } else {
                 $charges = $hotelService->getCancellationCharges($bookingModel);
                 BookingCancellationEligibility::assertYalagoCanCancel($bookingModel, $charges);
                 $cancelResponse = $hotelService->cancelYalagoBooking($bookingModel, $charges);
                 $type = 'hotel_yalago_cancel';
+                $isRefundable = BookingCancellationEligibility::hotelIsRefundableForWalletRefund($bookingModel, $charges);
             }
 
             $before = $bookingModel->only(['payment_status', 'booking_status']);
 
-            $bookingModel->update([
+            $update = [
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'admin',
                 'cancel_response' => BookingCancellationRecorder::envelope($type, $cancelResponse, 'admin'),
-            ]);
+            ];
 
-            $ledger = $this->bookingWalletRefundService->processAfterAdminCancellation(
+            if ($refundedPayment = $this->bookingWalletRefundService->paymentStatusAfterCancellationRefund($before, $isRefundable)) {
+                $update['payment_status'] = $refundedPayment;
+            }
+
+            $bookingModel->update($update);
+
+            $ledger = $this->bookingWalletRefundService->processAfterCancellation(
                 $bookingModel->fresh(),
-                $before
+                $before,
+                $isRefundable
             );
 
             DB::commit();
@@ -210,18 +225,36 @@ class AdminBookingController extends Controller
             BookingCancellationEligibility::assertFlightCanCancel($bookingModel);
             $cancelResponse = $flightService->cancelSabreBooking($bookingModel);
 
-            $bookingModel->update([
+            $before = $bookingModel->only(['payment_status', 'booking_status']);
+            $isRefundable = BookingCancellationEligibility::flightIsRefundableForWalletRefund($bookingModel);
+
+            $update = [
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'admin',
                 'cancel_response' => BookingCancellationRecorder::envelope('flight_sabre_cancel', $cancelResponse, 'admin'),
-            ]);
+            ];
+
+            if ($refundedPayment = $this->bookingWalletRefundService->paymentStatusAfterCancellationRefund($before, $isRefundable)) {
+                $update['payment_status'] = $refundedPayment;
+            }
+
+            $bookingModel->update($update);
+
+            $ledger = $this->bookingWalletRefundService->processAfterCancellation(
+                $bookingModel->fresh(),
+                $before,
+                $isRefundable
+            );
 
             DB::commit();
 
             app(BookingCancellationNotifier::class)->notifyFlightCancelled($bookingModel->fresh());
 
-            return redirect()->back()->with('notify_success', 'Flight booking cancelled successfully.');
+            return redirect()->back()->with(
+                'notify_success',
+                $this->statusUpdateMessage('Flight booking cancelled successfully.', $ledger)
+            );
         } catch (\Throwable $e) {
             DB::rollBack();
 

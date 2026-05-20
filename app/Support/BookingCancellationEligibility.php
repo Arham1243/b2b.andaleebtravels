@@ -172,6 +172,19 @@ final class BookingCancellationEligibility
         }
     }
 
+    public static function hotelIsRefundableForWalletRefund(
+        B2bHotelBooking $booking,
+        ?array $yalagoCharges = null,
+        ?array $tboDetail = null
+    ): bool {
+        return self::forHotel($booking, $yalagoCharges, $tboDetail)['is_refundable'] === true;
+    }
+
+    public static function flightIsRefundableForWalletRefund(B2bFlightBooking $booking): bool
+    {
+        return self::forFlight($booking)['is_refundable'] === true;
+    }
+
     /**
      * @return array<string, mixed>
      */

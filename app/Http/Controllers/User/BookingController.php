@@ -7,6 +7,7 @@ use App\Models\B2bFlightBooking;
 use App\Models\B2bHotelBooking;
 use App\Services\BookingCancellationNotifier;
 use App\Services\BookingCancellationRecorder;
+use App\Services\BookingWalletRefundService;
 use App\Services\FlightService;
 use App\Services\HotelService;
 use App\Support\BookingCancellationEligibility;
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
+    public function __construct(
+        private readonly BookingWalletRefundService $bookingWalletRefundService,
+    ) {}
+
     public function index()
     {
         return redirect()->route('user.bookings.flights');
@@ -143,20 +148,36 @@ class BookingController extends Controller
             BookingCancellationEligibility::assertYalagoCanCancel($booking, $charges);
             $cancelResponse = $hotelService->cancelYalagoBooking($booking, $charges);
 
-            $booking->update([
+            $before = $booking->only(['payment_status', 'booking_status']);
+            $isRefundable = BookingCancellationEligibility::hotelIsRefundableForWalletRefund($booking, $charges);
+
+            $update = [
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'vendor',
                 'cancel_response' => BookingCancellationRecorder::envelope('hotel_yalago_cancel', $cancelResponse, 'vendor'),
-            ]);
+            ];
+
+            if ($refundedPayment = $this->bookingWalletRefundService->paymentStatusAfterCancellationRefund($before, $isRefundable)) {
+                $update['payment_status'] = $refundedPayment;
+            }
+
+            $booking->update($update);
+
+            $ledger = $this->bookingWalletRefundService->processAfterCancellation($booking->fresh(), $before, $isRefundable);
 
             DB::commit();
 
             app(BookingCancellationNotifier::class)->notifyHotelCancelled($booking->fresh());
 
+            $message = 'Booking #' . $booking->booking_number . ' cancelled successfully.';
+            if ($ledger !== null) {
+                $message .= ' ' . number_format((float) $ledger->amount, 2) . ' AED credited to your wallet.';
+            }
+
             return redirect()
                 ->route('user.bookings.hotels')
-                ->with('notify_success', 'Booking #' . $booking->booking_number . ' cancelled successfully.');
+                ->with('notify_success', $message);
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -196,20 +217,36 @@ class BookingController extends Controller
             BookingCancellationEligibility::assertTboCanCancel($booking);
             $cancelResponse = $hotelService->cancelTboBooking($booking);
 
-            $booking->update([
+            $before = $booking->only(['payment_status', 'booking_status']);
+            $isRefundable = BookingCancellationEligibility::hotelIsRefundableForWalletRefund($booking);
+
+            $update = [
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'vendor',
                 'cancel_response' => BookingCancellationRecorder::envelope('hotel_tbo_cancel', $cancelResponse, 'vendor'),
-            ]);
+            ];
+
+            if ($refundedPayment = $this->bookingWalletRefundService->paymentStatusAfterCancellationRefund($before, $isRefundable)) {
+                $update['payment_status'] = $refundedPayment;
+            }
+
+            $booking->update($update);
+
+            $ledger = $this->bookingWalletRefundService->processAfterCancellation($booking->fresh(), $before, $isRefundable);
 
             DB::commit();
 
             app(BookingCancellationNotifier::class)->notifyHotelCancelled($booking->fresh());
 
+            $message = 'Booking #' . $booking->booking_number . ' cancelled successfully.';
+            if ($ledger !== null) {
+                $message .= ' ' . number_format((float) $ledger->amount, 2) . ' AED credited to your wallet.';
+            }
+
             return redirect()
                 ->route('user.bookings.hotels')
-                ->with('notify_success', 'Booking #' . $booking->booking_number . ' cancelled successfully.');
+                ->with('notify_success', $message);
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -300,20 +337,36 @@ class BookingController extends Controller
             BookingCancellationEligibility::assertFlightCanCancel($booking);
             $cancelResponse = $flightService->cancelSabreBooking($booking);
 
-            $booking->update([
+            $before = $booking->only(['payment_status', 'booking_status']);
+            $isRefundable = BookingCancellationEligibility::flightIsRefundableForWalletRefund($booking);
+
+            $update = [
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'vendor',
                 'cancel_response' => BookingCancellationRecorder::envelope('flight_sabre_cancel', $cancelResponse, 'vendor'),
-            ]);
+            ];
+
+            if ($refundedPayment = $this->bookingWalletRefundService->paymentStatusAfterCancellationRefund($before, $isRefundable)) {
+                $update['payment_status'] = $refundedPayment;
+            }
+
+            $booking->update($update);
+
+            $ledger = $this->bookingWalletRefundService->processAfterCancellation($booking->fresh(), $before, $isRefundable);
 
             DB::commit();
 
             app(BookingCancellationNotifier::class)->notifyFlightCancelled($booking->fresh());
 
+            $message = 'Booking #' . $booking->booking_number . ' cancelled successfully.';
+            if ($ledger !== null) {
+                $message .= ' ' . number_format((float) $ledger->amount, 2) . ' AED credited to your wallet.';
+            }
+
             return redirect()
                 ->route('user.bookings.flights')
-                ->with('notify_success', 'Booking #' . $booking->booking_number . ' cancelled successfully.');
+                ->with('notify_success', $message);
         } catch (\Throwable $e) {
             DB::rollBack();
 

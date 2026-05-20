@@ -323,6 +323,10 @@
                             $vendorLabel = $booking->vendor
                                 ? ($booking->vendor->display_agency_name ?: $booking->vendor->name)
                                 : 'Vendor';
+                            $walletRefundAlreadyCredited = \App\Models\B2bWalletLedger::refundCreditExists(
+                                \App\Models\B2bHotelBooking::class,
+                                $booking->id
+                            );
                         @endphp
                         <form action="{{ route('admin.bookings.hotels.status', $booking->id) }}" method="POST"
                             class="bkpd-card mb-3 admin-hotel-status admin-booking-status-form"
@@ -331,8 +335,10 @@
                             data-vendor-name="{{ e($vendorLabel) }}"
                             data-current-payment-status="{{ $booking->payment_status }}"
                             data-current-booking-status="{{ $booking->booking_status }}"
+                            data-wallet-refunded="{{ $walletRefundAlreadyCredited ? '1' : '0' }}"
                             data-booking-type="hotel">
                             @csrf
+                            <input type="hidden" name="skip_wallet_refund" value="0" class="js-skip-wallet-refund">
                             <div class="bkpd-card__section-head"><i class="bx bx-edit"></i> Update status</div>
                             <div class="bkpd-actions" style="padding:0 16px 16px;">
                                 <div class="mb-3">
