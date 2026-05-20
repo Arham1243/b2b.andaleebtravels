@@ -1,0 +1,3 @@
+@php
+    $companyCurrency = 'AED';
+@endphp

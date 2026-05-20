@@ -18,6 +18,7 @@
     $supplierLabel = strtoupper((string) ($booking->supplier ?? 'YALAGO'));
     $footerExtra = 'Booking <strong>' . e($booking->booking_number) . '</strong>.';
 @endphp
+@include('user.emails.partials.company-currency')
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
@@ -133,13 +134,13 @@
                     <tr>
                         <td valign="top" width="50%" class="mob-full" style="padding:8px 8px 8px 0;">
                             <div class="label">Total</div>
-                            <div class="data-text grand-total-text">{{ $booking->currency }}
+                            <div class="data-text grand-total-text">{{ $companyCurrency }}
                                 {{ number_format((float) $booking->total_amount, 2) }}</div>
                         </td>
                         @if ((float) ($booking->wallet_amount ?? 0) > 0.001)
                             <td valign="top" width="50%" class="mob-full" style="padding:8px 0;">
                                 <div class="label">Wallet applied</div>
-                                <div class="data-text">{{ $booking->currency }}
+                                <div class="data-text">{{ $companyCurrency }}
                                     {{ number_format((float) $booking->wallet_amount, 2) }}</div>
                             </td>
                         @endif

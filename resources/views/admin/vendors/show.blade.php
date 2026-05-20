@@ -1,6 +1,6 @@
 @extends('admin.layouts.main')
 
-@push('styles')
+@push('css')
 <style>
     .vendor-profile-card {
         background: linear-gradient(135deg, var(--color-primary) 0%, #1a237e 100%);
@@ -92,6 +92,7 @@
 @endpush
 
 @section('content')
+
 <div class="col-md-12">
     <div class="dashboard-content">
         {{ Breadcrumbs::render('admin.vendors.show', $vendor) }}
@@ -113,7 +114,8 @@
                 <div class="d-flex gap-2 flex-wrap">
                     <a href="{{ route('admin.vendors.change-status', $vendor->id) }}"
                         class="btn btn-sm {{ $vendor->status === 'active' ? 'btn-danger' : 'btn-success' }} fw-semibold px-3"
-                        style="border-radius:8px;">
+                        style="border-radius:8px;"
+                        onclick="return confirm('Are you sure you want to {{ $vendor->status === 'active' ? 'deactivate' : 'activate' }} {{ addslashes($vendor->name) }}?')">
                         <i class="bx {{ $vendor->status === 'active' ? 'bx-pause' : 'bx-play' }}"></i>
                         {{ $vendor->status === 'active' ? 'Deactivate' : 'Activate' }}
                     </a>

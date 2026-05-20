@@ -41,11 +41,6 @@
 
         <div class="bkp bkp--admin">
             <div class="bkp-main">
-                <nav class="bkp-crumb">
-                    <a href="{{ route('admin.hotel-bookings.index') }}"><i class="bx bx-chevron-left"></i> Hotel Bookings</a>
-                    <span>{{ $booking->booking_number }}</span>
-                </nav>
-
                 <div class="bkpd-grid">
                     <div>
                         @if ($booking->vendor)

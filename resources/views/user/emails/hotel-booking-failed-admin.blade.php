@@ -3,6 +3,7 @@
     $vendorEmail = optional($booking->vendor)->email ?? $booking->lead_email;
     $footerExtra = '<strong>' . e($brand) . '</strong> - internal notification.';
 @endphp
+@include('user.emails.partials.company-currency')
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 
@@ -73,7 +74,7 @@
                         <td style="padding:6px 0;">
                             <div class="label">Payment</div>
                             <div class="data-text">{{ $booking->payment_method }} - {{ $booking->payment_status }} -
-                                {{ $booking->currency }} {{ number_format((float) $booking->total_amount, 2) }}</div>
+                                {{ $companyCurrency }} {{ number_format((float) $booking->total_amount, 2) }}</div>
                         </td>
                     </tr>
                     <tr>
