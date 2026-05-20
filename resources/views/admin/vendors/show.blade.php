@@ -452,8 +452,7 @@
                         <div class="col-md-4">
                             <label for="mw_description">Description <span class="text-danger">*</span></label>
                             <input type="text" name="description" id="mw_description" class="field" maxlength="500"
-                                value="{{ old('description') }}" required
-                                placeholder="e.g. Hotel booking payment — Marriott DXB">
+                                value="{{ old('description') }}" required>
                         </div>
                         <div class="col-12">
                             <button type="submit" class="themeBtn" style="font-size:.85rem;">
