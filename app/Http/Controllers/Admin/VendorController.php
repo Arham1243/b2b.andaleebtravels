@@ -56,11 +56,18 @@ class VendorController extends Controller
 
     public function show(B2bVendor $vendor)
     {
-        $walletLedger = $vendor->walletLedger()->latest()->get();
+        $walletLedger = $vendor->walletLedger()->with('reference')->latest()->get();
         $hotelBookings = $vendor->hotelBookings()->latest()->get();
         $flightBookings = $vendor->flightBookings()->latest()->get();
 
-        return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings', 'flightBookings'));
+        $stats = [
+            'hotel_bookings'  => $hotelBookings->count(),
+            'flight_bookings' => $flightBookings->count(),
+            'total_spent'     => $hotelBookings->sum('total_amount') + $flightBookings->sum('total_amount'),
+            'ledger_entries'  => $walletLedger->count(),
+        ];
+
+        return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings', 'flightBookings', 'stats'));
     }
 
     public function changeStatus(B2bVendor $vendor)
