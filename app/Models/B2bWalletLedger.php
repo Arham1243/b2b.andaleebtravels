@@ -199,8 +199,8 @@ class B2bWalletLedger extends Model
         return asset($this->attachment_path);
     }
 
-    public function showsManualCreditAttachment(): bool
+    public function hasAttachment(): bool
     {
-        return $this->is_manual && $this->isCredit() && ! empty($this->attachment_path);
+        return ! empty($this->attachment_path);
     }
 }

@@ -50,12 +50,8 @@ class AdminWalletLedgerAdjustmentService
                 'modified_by_b2b_admin_id' => $adminId,
             ];
 
-            if ($entry->is_manual) {
-                if ($type !== 'credit') {
-                    $updateData['attachment_path'] = null;
-                } elseif (array_key_exists('attachment_path', $data)) {
-                    $updateData['attachment_path'] = $data['attachment_path'];
-                }
+            if (array_key_exists('attachment_path', $data)) {
+                $updateData['attachment_path'] = $data['attachment_path'];
             }
 
             $entry->update($updateData);

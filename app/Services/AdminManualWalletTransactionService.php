@@ -34,7 +34,7 @@ class AdminManualWalletTransactionService
             $data['transaction_time'] ?? null
         );
 
-        $attachmentPath = $type === 'credit' ? ($data['attachment_path'] ?? null) : null;
+        $attachmentPath = $data['attachment_path'] ?? null;
 
         return B2bWalletLedger::recordManual(
             $vendor->id,

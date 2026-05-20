@@ -244,7 +244,7 @@ class VendorController extends Controller
 
         $adminId = (int) auth('admin')->id();
 
-        if ($validated['type'] === 'credit' && $request->hasFile('attachment')) {
+        if ($request->hasFile('attachment')) {
             $validated['attachment_path'] = $this->uploadWalletLedgerAttachment($request->file('attachment'));
         }
 
@@ -284,14 +284,12 @@ class VendorController extends Controller
 
         $adminId = (int) auth('admin')->id();
 
-        if ($ledger->is_manual) {
-            if ($request->boolean('remove_attachment')) {
-                $this->deleteWalletLedgerAttachment($ledger->attachment_path);
-                $validated['attachment_path'] = null;
-            } elseif ($request->hasFile('attachment')) {
-                $this->deleteWalletLedgerAttachment($ledger->attachment_path);
-                $validated['attachment_path'] = $this->uploadWalletLedgerAttachment($request->file('attachment'));
-            }
+        if ($request->boolean('remove_attachment')) {
+            $this->deleteWalletLedgerAttachment($ledger->attachment_path);
+            $validated['attachment_path'] = null;
+        } elseif ($request->hasFile('attachment')) {
+            $this->deleteWalletLedgerAttachment($ledger->attachment_path);
+            $validated['attachment_path'] = $this->uploadWalletLedgerAttachment($request->file('attachment'));
         }
 
         try {
