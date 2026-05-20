@@ -219,17 +219,29 @@
     .vs-ledger-actions .btn-ledger--void { border-color: #fecaca; color: #b91c1c; }
     .vs-ledger-actions .btn-ledger--void:hover { background: #fef2f2; }
 
-    .vs-ledger-attachment {
+    .vs-ledger-attachment-btn {
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
-        margin-top: 0.35rem;
-        font-size: 0.78rem;
+        font-size: 0.72rem;
         font-weight: 600;
+        padding: 0.28rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid #d8dbe2;
+        background: #fff;
         color: var(--color-primary, #cd1b4f);
         text-decoration: none;
+        white-space: nowrap;
     }
-    .vs-ledger-attachment:hover { text-decoration: underline; }
+    .vs-ledger-attachment-btn:hover {
+        border-color: var(--color-primary, #cd1b4f);
+        background: rgba(205, 27, 79, 0.06);
+        color: var(--color-primary, #cd1b4f);
+    }
+    .vs-ledger-attachment-empty {
+        color: #9ca3af;
+        font-size: 0.85rem;
+    }
     .vs-wallet-form {
         border: 1px solid #ebecf0;
         border-radius: 10px;
@@ -715,6 +727,7 @@
                                     <th>Balance Before</th>
                                     <th>Balance After</th>
                                     <th>Description</th>
+                                    <th class="no-sort">Attachment</th>
                                     <th class="no-sort">Actions</th>
                                 </tr>
                             </thead>
@@ -755,11 +768,6 @@
                                         <td class="fw-semibold">{!! formatPrice($entry->balance_after) !!}</td>
                                         <td style="font-size:13px; max-width:320px;">
                                             <div>{{ $entry->description }}</div>
-                                            @if ($entry->hasAttachment())
-                                                <a href="{{ $entry->attachmentUrl() }}" class="vs-ledger-attachment" target="_blank" rel="noopener">
-                                                    <i class="bx bx-paperclip"></i> View attachment
-                                                </a>
-                                            @endif
                                             @if (!empty($refLink['label']))
                                                 @if (!empty($refLink['url']))
                                                     <a href="{{ $refLink['url'] }}" class="small" style="color:var(--color-primary,#cd1b4f);">{{ $refLink['label'] }}</a>
@@ -768,9 +776,18 @@
                                                 @endif
                                             @endif
                                         </td>
+                                        <td class="text-center" style="white-space:nowrap;">
+                                            @if ($entry->hasAttachment())
+                                                <a href="{{ $entry->attachmentUrl() }}" class="vs-ledger-attachment-btn" target="_blank" rel="noopener" title="View attachment">
+                                                    <i class="bx bx-show"></i> View
+                                                </a>
+                                            @else
+                                                <span class="vs-ledger-attachment-empty">-</span>
+                                            @endif
+                                        </td>
                                         <td>
                                             @if ($isVoided)
-                                                <span class="small text-muted">—</span>
+                                                <span class="small text-muted">-</span>
                                             @else
                                                 <div class="vs-ledger-actions">
                                                     <button type="button" class="btn-ledger btn-edit-ledger"
@@ -1095,7 +1112,7 @@
                                 <input type="file" name="attachment" id="el_attachment" class="field" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
                                 <small class="text-muted d-block mt-1" style="font-size:.72rem;">PDF or image, max 5 MB</small>
                                 <div id="el_attachment_current" class="mt-2" style="display:none;">
-                                    <a href="#" id="el_attachment_link" class="vs-ledger-attachment" target="_blank" rel="noopener">
+                                    <a href="#" id="el_attachment_link" class="vs-ledger-attachment-btn" target="_blank" rel="noopener">
                                         <i class="bx bx-paperclip"></i> Current attachment
                                     </a>
                                     <div class="form-check mt-2">
