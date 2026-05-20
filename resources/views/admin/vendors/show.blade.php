@@ -121,6 +121,8 @@
                             <h3 class="heading">Hotel Bookings</h3>
                         </div>
                         <span class="badge bg-primary rounded-pill">{{ $hotelBookings->count() }} bookings</span>
+                        <a href="{{ route('admin.hotel-bookings.index', ['vendor_id' => $vendor->id]) }}"
+                            class="themeBtn">View all</a>
                     </div>
                     @if ($hotelBookings->isNotEmpty())
                         <div class="table-responsive">
@@ -144,9 +146,10 @@
                                     @foreach ($hotelBookings as $booking)
                                         <tr>
                                             <td>
-                                                <span class="fw-semibold" style="color: var(--color-primary);">
+                                                <a href="{{ route('admin.hotel-bookings.show', $booking->id) }}"
+                                                    class="fw-semibold link" style="color: var(--color-primary);">
                                                     {{ $booking->booking_number }}
-                                                </span>
+                                                </a>
                                             </td>
                                             <td>
                                                 <span title="{{ $booking->hotel_name }}"

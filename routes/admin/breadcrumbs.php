@@ -36,3 +36,13 @@ Breadcrumbs::for('admin.inquiries.show', function (BreadcrumbTrail $trail, $inqu
     $trail->parent('admin.inquiries.index');
     $trail->push('Inquiry Details', route('admin.inquiries.show', $inquiry));
 });
+
+Breadcrumbs::for('admin.hotel-bookings.index', function (BreadcrumbTrail $trail) {
+    $trail->parent('admin.dashboard');
+    $trail->push('Hotel Bookings', route('admin.hotel-bookings.index'));
+});
+
+Breadcrumbs::for('admin.hotel-bookings.show', function (BreadcrumbTrail $trail, $booking) {
+    $trail->parent('admin.hotel-bookings.index');
+    $trail->push($booking->booking_number, route('admin.hotel-bookings.show', $booking));
+});
