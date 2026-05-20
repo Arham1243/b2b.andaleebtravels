@@ -316,14 +316,6 @@
                                             @endif
                                         </div>
                                     </div>
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">TBO tools</span>
-                                        <span class="bkpd-info-row__val">
-                                            <a href="{{ route('admin.hotel-bookings.tbo-detail-test', $booking->id) }}" class="themeBtn" style="font-size:.78rem; padding:.35rem .75rem;">
-                                                <i class="bx bx-test-tube"></i> Run detail test
-                                            </a>
-                                        </span>
-                                    </div>
                                 @endif
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Payment</span>
@@ -414,6 +406,8 @@
                 </div>
             </div>
         </div>
+
+        @include('admin.hotel-bookings.partials.tbo-detail-debug')
     </div>
 </div>
 @endsection

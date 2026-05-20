@@ -7,6 +7,7 @@ use App\Models\B2bHotelBooking;
 use App\Models\B2bVendor;
 use App\Services\TboBookingDetailTestService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AdminHotelBookingController extends Controller
 {
@@ -30,20 +31,26 @@ class AdminHotelBookingController extends Controller
             ->with('title', 'Hotel Bookings');
     }
 
-    public function show(int $id)
+    public function show(int $id, TboBookingDetailTestService $tboBookingDetailTestService)
     {
         $booking = B2bHotelBooking::with('vendor')->findOrFail($id);
 
-        return view('admin.hotel-bookings.show', compact('booking'))
+        $tboBookingDetail = null;
+        if (strtolower((string) ($booking->supplier ?? '')) === 'tbo') {
+            $tboBookingDetail = $tboBookingDetailTestService->fetch($booking);
+
+            Log::info('TBO BookingDetail (admin hotel booking show)', [
+                'booking_id' => $booking->id,
+                'booking_number' => $booking->booking_number,
+                'payload' => $tboBookingDetail['payload'] ?? null,
+                'http_status' => $tboBookingDetail['http_status'] ?? null,
+                'ok' => $tboBookingDetail['ok'] ?? false,
+                'error' => $tboBookingDetail['error'] ?? null,
+                'response' => $tboBookingDetail['response'] ?? null,
+            ]);
+        }
+
+        return view('admin.hotel-bookings.show', compact('booking', 'tboBookingDetail'))
             ->with('title', 'Booking ' . $booking->booking_number);
-    }
-
-    public function tboDetailTest(int $id, TboBookingDetailTestService $testService)
-    {
-        $booking = B2bHotelBooking::with('vendor')->findOrFail($id);
-        $report = $testService->run($booking);
-
-        return view('admin.hotel-bookings.tbo-detail-test', compact('booking', 'report'))
-            ->with('title', 'TBO Detail Test — ' . $booking->booking_number);
     }
 }

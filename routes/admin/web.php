@@ -53,8 +53,6 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('vendors/change-status/{vendor}', [VendorController::class, 'changeStatus'])->name('vendors.change-status');
 
     Route::resource('hotel-bookings', AdminHotelBookingController::class)->only(['index', 'show']);
-    Route::get('hotel-bookings/{id}/tbo-detail-test', [AdminHotelBookingController::class, 'tboDetailTest'])
-        ->name('hotel-bookings.tbo-detail-test');
 
     Route::post('bookings/hotels/{booking}/status', [AdminBookingController::class, 'updateHotelStatus'])->name('bookings.hotels.status');
     Route::post('bookings/hotels/{booking}/cancel', [AdminBookingController::class, 'cancelHotelBooking'])->name('bookings.hotels.cancel');
