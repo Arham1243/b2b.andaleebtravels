@@ -1,5 +1,5 @@
 @if (!empty($supplierBookingDetails))
-    <div class="bkpd-card mt-3">
+    <div class="bkpd-card mb-4">
         <div class="bkpd-card__head" style="padding:16px 16px 0;">
             <div>
                 <div class="bkpd-card__title">Supplier Booking Details</div>

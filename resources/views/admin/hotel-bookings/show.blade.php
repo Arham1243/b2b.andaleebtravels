@@ -39,6 +39,8 @@
     <div class="dashboard-content">
         {{ Breadcrumbs::render('admin.hotel-bookings.show', $booking) }}
 
+        @include('admin.hotel-bookings.partials.supplier-booking-details')
+
         <div class="bkp bkp--admin">
             <div class="bkp-main">
                 <div class="bkpd-grid">
@@ -406,8 +408,6 @@
                 </div>
             </div>
         </div>
-
-        @include('admin.hotel-bookings.partials.supplier-booking-details')
     </div>
 </div>
 @endsection
