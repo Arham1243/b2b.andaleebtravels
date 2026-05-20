@@ -39,12 +39,12 @@
     <div class="dashboard-content">
         {{ Breadcrumbs::render('admin.hotel-bookings.show', $booking) }}
 
-        @include('admin.hotel-bookings.partials.supplier-booking-details')
-
         <div class="bkp bkp--admin">
             <div class="bkp-main">
                 <div class="bkpd-grid">
                     <div>
+                        @include('admin.hotel-bookings.partials.supplier-booking-details')
+
                         @if ($booking->vendor)
                             <div class="bkpd-card mb-3 admin-hotel-vendor">
                                 <div class="bkpd-card__section-head bkpd-card__section-head--purple"><i class="bx bx-briefcase"></i> Vendor</div>

@@ -275,12 +275,6 @@
                                     <span class="bkpd-info-row__val" style="font-family:monospace;font-size:.78rem;">{{ $confirmRef }}</span>
                                 </div>
                                 @endif
-                                @if($booking->yalago_hotel_id)
-                                <div class="bkpd-info-row">
-                                    <span class="bkpd-info-row__label">Hotel code</span>
-                                    <span class="bkpd-info-row__val" style="font-family:monospace;font-size:.78rem;">{{ $booking->yalago_hotel_id }}</span>
-                                </div>
-                                @endif
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Supplier</span>
                                     <span class="bkpd-info-row__val">{{ formatBookingSupplierLabel($booking->supplier, 'Yalago') }}</span>
