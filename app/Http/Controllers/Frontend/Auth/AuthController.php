@@ -76,11 +76,13 @@ class AuthController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (Auth::attempt(
-            ['agent_code' => $request->agent_code, 'password' => $request->password],
-            $remember
-        )) {
-            $user = Auth::user();
+        $user = B2bVendor::query()
+            ->where('agent_code', $request->agent_code)
+            ->where('username', $request->username)
+            ->first();
+
+        if ($user && Hash::check($request->password, $user->password)) {
+            Auth::login($user, $remember);
 
             if ($user->status === 'pending') {
                 Auth::logout();

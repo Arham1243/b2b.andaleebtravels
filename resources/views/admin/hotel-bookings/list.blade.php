@@ -32,7 +32,8 @@
                                 <thead>
                                     <tr>
                                         <th>Booking Number</th>
-                                        <th>Vendor</th>
+                                        <th>Agency</th>
+                                        <th>Booked by</th>
                                         <th>Hotel</th>
                                         <th>Check In</th>
                                         <th>Check Out</th>
@@ -53,12 +54,10 @@
                                                     class="link">{{ $booking->booking_number }}</a>
                                             </td>
                                             <td>
-                                                @if ($booking->vendor)
-                                                    <a href="{{ route('admin.vendors.show', $booking->vendor) }}"
-                                                        class="link">{{ $booking->vendor->name }}</a>
-                                                @else
-                                                    —
-                                                @endif
+                                                @include('admin.partials.booking-vendor-agency', ['vendor' => $booking->vendor])
+                                            </td>
+                                            <td>
+                                                @include('admin.partials.booking-vendor-booker', ['vendor' => $booking->vendor])
                                             </td>
                                             <td>
                                                 <span title="{{ $booking->hotel_name ?? '' }}"

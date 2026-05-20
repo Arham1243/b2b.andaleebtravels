@@ -2,6 +2,7 @@
 
 @section('css')
     @include('user.profile-settings._styles')
+    @include('partials.wallet-ledger-styles')
 @endsection
 
 @section('content')
@@ -109,9 +110,15 @@
 
                                 <div class="ps-field">
                                     <label class="ps-field__label">Agent Code</label>
-                                    <input type="text" class="ps-field__input" readonly
-                                           value="{{ $user->agent_code }}">
-                                    <span class="ps-field__hint">Used for login. Contact admin if you need it changed.</span>
+                                    <input type="text" class="ps-field__input" disabled readonly
+                                           value="{{ $user->loginAgentCode() }}">
+                                    <span class="ps-field__hint">
+                                        @if ($user->isSubAgentAccount())
+                                            Shared with your agency. Cannot be changed.
+                                        @else
+                                            Used for login. Cannot be changed after it is assigned.
+                                        @endif
+                                    </span>
                                 </div>
 
                                 <div class="ps-field">
@@ -255,6 +262,30 @@
                     </div>
 
                 </form>
+
+                <div class="ps-card" style="margin-top:16px;">
+                    <div class="ps-card__head">
+                        <h2 class="ps-card__title">
+                            <i class="bx bx-wallet"></i> Wallet Ledger
+                        </h2>
+                        <span class="ps-field__hint" style="margin:0;">
+                            {{ $ledgerTotalCount ?? 0 }} {{ ($ledgerTotalCount ?? 0) === 1 ? 'transaction' : 'transactions' }} · view only
+                        </span>
+                    </div>
+                    <div class="ps-card__body">
+                        @include('partials.wallet-ledger-panel', [
+                            'vendor' => $user,
+                            'walletLedger' => $walletLedger,
+                            'ledgerFilters' => $ledgerFilters,
+                            'ledgerTotalCount' => $ledgerTotalCount,
+                            'filterFormAction' => route('user.profile.personalInfo'),
+                            'clearFiltersUrl' => route('user.profile.personalInfo'),
+                            'readOnly' => true,
+                            'ledgerContext' => 'user',
+                            'filterApplyClass' => 'ps-btn-save',
+                        ])
+                    </div>
+                </div>
             </main>
 
         </div>

@@ -31,6 +31,8 @@
                                         @enderror
                                     </div>
 
+                                    @include('admin.vendors.partials._sub-agent-agent-code', ['agencyAgentCode' => $agencyAgentCode ?? ''])
+
                                     <div class="form-fields">
                                         <label class="title">Username <span class="text-danger">*</span></label>
                                         <input type="text" name="username" class="field" value="{{ old('username') }}"
@@ -51,7 +53,7 @@
                                     </div>
 
                                     <div class="form-fields">
-                                        <small class="text-muted">An agent code is generated automatically. The sub agent will receive a welcome email with portal login details.</small>
+                                        <small class="text-muted">The sub agent will receive a welcome email with your agency agent code and login details.</small>
                                     </div>
                                 </div>
                             </div>
@@ -87,8 +89,7 @@
                                 </div>
                                 <div class="form-box__body">
                                     <p class="text-muted mb-0" style="font-size: 13px;">
-                                        Upon creation, the sub agent will receive an invite email containing their agent code,
-                                        username, default password, and a password reset link.
+                                        Sub agents share your agency agent code. They log in with that code plus their own username and password.
                                     </p>
                                 </div>
                             </div>

@@ -66,6 +66,8 @@
                             <div class="text-end mt-3">
                                 @if ($vendor->isPendingApproval() && $vendor->isAgencyAccount())
                                     <a href="{{ route('admin.vendors.pending.show', $vendor) }}" class="text-muted" style="font-size:13px;">← Back to signup request</a>
+                                @elseif ($vendor->parent_vendor_id)
+                                    <a href="{{ route('admin.vendors.show', $vendor->parent_vendor_id) }}" class="text-muted" style="font-size:13px;">← Back to agency</a>
                                 @else
                                     <a href="{{ route('admin.vendors.show', $vendor) }}" class="text-muted" style="font-size:13px;">← Back to vendor</a>
                                 @endif

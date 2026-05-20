@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bVendor;
 use App\Models\Config;
 use App\Support\B2bVendorValidation;
+use App\Support\WalletLedgerResolver;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,16 +20,36 @@ class ProfileSettingsController extends Controller
         return redirect()->route('user.profile.personalInfo');
     }
 
-    public function personalInfo()
+    public function personalInfo(Request $request)
     {
         $user = Auth::user();
         $config = Config::pluck('config_value', 'config_key')->toArray();
         $adminProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null, ['yalago', 'tbo', 'tripindeal']);
         $adminFlightProviders = $this->parseProviderConfig($config['FLIGHT_SEARCH_PROVIDERS'] ?? null, ['sabre']) ?? ['sabre'];
+        $ledgerData = WalletLedgerResolver::resolve($user, $request);
 
         return view('user.profile-settings.personal-info')
             ->with('title', 'Personal Information')
-            ->with(compact('user', 'adminProviders', 'adminFlightProviders'));
+            ->with(array_merge(compact('user', 'adminProviders', 'adminFlightProviders'), [
+                'walletLedger' => $ledgerData['walletLedger'],
+                'ledgerFilters' => $ledgerData['ledgerFilters'],
+                'ledgerTotalCount' => $ledgerData['ledgerTotalCount'],
+            ]));
+    }
+
+    public function walletLedger(Request $request)
+    {
+        $user = Auth::user();
+        $ledgerData = WalletLedgerResolver::resolve($user, $request);
+
+        return view('user.profile-settings.wallet-ledger')
+            ->with('title', 'Wallet Ledger')
+            ->with([
+                'user' => $user,
+                'walletLedger' => $ledgerData['walletLedger'],
+                'ledgerFilters' => $ledgerData['ledgerFilters'],
+                'ledgerTotalCount' => $ledgerData['ledgerTotalCount'],
+            ]);
     }
 
     public function updatePersonalInfo(Request $request)

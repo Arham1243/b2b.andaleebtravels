@@ -28,8 +28,14 @@ Breadcrumbs::for('admin.vendors.sub-agents.create', function (BreadcrumbTrail $t
 });
 
 Breadcrumbs::for('admin.vendors.edit', function (BreadcrumbTrail $trail, $vendor) {
-    $trail->parent('admin.vendors.show', $vendor);
-    $trail->push('Edit Vendor', route('admin.vendors.edit', $vendor));
+    if ($vendor->parent_vendor_id) {
+        $vendor->loadMissing('parentVendor');
+        $trail->parent('admin.vendors.show', $vendor->parentVendor);
+        $trail->push('Edit Sub Agent', route('admin.vendors.edit', $vendor));
+    } else {
+        $trail->parent('admin.vendors.show', $vendor);
+        $trail->push('Edit Vendor', route('admin.vendors.edit', $vendor));
+    }
 });
 
 Breadcrumbs::for('admin.vendors.pending.index', function (BreadcrumbTrail $trail) {

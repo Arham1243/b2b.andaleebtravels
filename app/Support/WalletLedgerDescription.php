@@ -240,19 +240,35 @@ final class WalletLedgerDescription
     /** @return array{label: string, url: string|null} */
     public static function adminReferenceLink(B2bWalletLedger $entry): array
     {
+        return self::referenceLink($entry, 'admin');
+    }
+
+    /** @return array{label: string, url: string|null} */
+    public static function userReferenceLink(B2bWalletLedger $entry): array
+    {
+        return self::referenceLink($entry, 'user');
+    }
+
+    /** @return array{label: string, url: string|null} */
+    private static function referenceLink(B2bWalletLedger $entry, string $context): array
+    {
         $reference = $entry->reference;
 
         if ($reference instanceof B2bHotelBooking) {
             return [
                 'label' => $reference->booking_number,
-                'url' => route('admin.hotel-bookings.show', $reference->id),
+                'url' => $context === 'admin'
+                    ? route('admin.hotel-bookings.show', $reference->id)
+                    : route('user.bookings.hotels.detail', $reference->id),
             ];
         }
 
         if ($reference instanceof B2bFlightBooking) {
             return [
                 'label' => $reference->booking_number,
-                'url' => route('admin.flight-bookings.show', $reference->id),
+                'url' => $context === 'admin'
+                    ? route('admin.flight-bookings.show', $reference->id)
+                    : route('user.bookings.flights.detail', $reference->id),
             ];
         }
 

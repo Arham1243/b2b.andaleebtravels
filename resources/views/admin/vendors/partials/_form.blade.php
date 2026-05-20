@@ -118,13 +118,21 @@
 </div>
 
 @if ($isEdit)
+    @php
+        $displayAgentCode = $isSubAgent
+            ? ($vendor->loginAgentCode() ?? $vendor->agent_code)
+            : $vendor->agent_code;
+    @endphp
     <div class="form-fields">
-        <label class="title">Agent Code <span class="text-danger">*</span></label>
-        <input type="text" name="agent_code" class="field"
-            value="{{ old('agent_code', $vendor->agent_code) }}" required>
-        @error('agent_code')
-            <div class="text-danger">{{ $message }}</div>
-        @enderror
+        <label class="title">Agent Code</label>
+        <input type="text" class="field" value="{{ $displayAgentCode }}" disabled readonly>
+        <small class="text-muted d-block mt-1">
+            @if ($isSubAgent)
+                Same as the parent agency. Cannot be changed.
+            @else
+                Assigned at registration. Cannot be changed.
+            @endif
+        </small>
     </div>
 @endif
 

@@ -38,6 +38,23 @@ class B2bVendor extends Authenticatable
         return $this->parent_vendor_id === null;
     }
 
+    public function isSubAgentAccount(): bool
+    {
+        return $this->parent_vendor_id !== null;
+    }
+
+    /** Agent code used at login (sub-agents share the parent agency code). */
+    public function loginAgentCode(): ?string
+    {
+        if ($this->isSubAgentAccount()) {
+            $this->loadMissing('parentVendor');
+
+            return $this->parentVendor?->agent_code;
+        }
+
+        return $this->agent_code;
+    }
+
     public function scopeApprovedAgencies($query)
     {
         return $query->whereNull('parent_vendor_id')->whereIn('status', ['active', 'inactive']);

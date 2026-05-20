@@ -36,6 +36,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     Route::get('profile', [ProfileSettingsController::class, 'index'])->name('profile.index');
     Route::get('profile/personal-info', [ProfileSettingsController::class, 'personalInfo'])->name('profile.personalInfo');
     Route::post('profile/personal-info/update', [ProfileSettingsController::class, 'updatePersonalInfo'])->name('profile.updatePersonalInfo');
+    Route::get('profile/wallet-ledger', [ProfileSettingsController::class, 'walletLedger'])->name('profile.walletLedger');
 
     Route::get('profile/change/password', [ProfileSettingsController::class, 'changePassword'])->name('profile.changePassword');
     Route::post('profile/change/password/update', [ProfileSettingsController::class, 'updatePassword'])->name('profile.updatePassword');
@@ -44,6 +45,9 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::get('/', [SubAgentController::class, 'index'])->name('index');
         Route::get('/create', [SubAgentController::class, 'create'])->name('create');
         Route::post('/', [SubAgentController::class, 'store'])->name('store');
+        Route::get('/{subAgent}/edit', [SubAgentController::class, 'edit'])->name('edit');
+        Route::put('/{subAgent}', [SubAgentController::class, 'update'])->name('update');
+        Route::delete('/{subAgent}', [SubAgentController::class, 'destroy'])->name('destroy');
     });
 
 

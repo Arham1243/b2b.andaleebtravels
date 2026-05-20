@@ -1,0 +1,249 @@
+@php
+    $showManualForm = $showManualForm ?? false;
+    $readOnly = $readOnly ?? true;
+    $ledgerContext = $ledgerContext ?? 'admin';
+    $filterApplyClass = $filterApplyClass ?? 'themeBtn';
+    $referenceLink = $ledgerContext === 'user'
+        ? fn ($entry) => $entry->userReferenceLink()
+        : fn ($entry) => $entry->adminReferenceLink();
+@endphp
+
+@if ($showManualForm)
+    <div class="vs-wallet-form">
+        <div class="vs-wallet-form__title"><i class="bx bx-plus-circle"></i> Add manual transaction</div>
+        <p class="vs-wallet-form__hint">
+            Record an admin credit or debit (e.g. hotel payment taken from wallet offline). Use <strong>Edit</strong> or <strong>Void</strong> on any row below to correct mistakes — the wallet balance is recalculated automatically.
+            Current balance: <strong>{!! formatPrice($vendor->main_balance ?? 0) !!}</strong>
+        </p>
+        <form action="{{ route('admin.vendors.wallet-transactions.store', $vendor) }}" method="POST"
+            id="manual-wallet-form" class="row g-3 align-items-end" enctype="multipart/form-data">
+            @csrf
+            <div class="col-md-2">
+                <label for="mw_type">Type</label>
+                <select name="type" id="mw_type" class="field" required>
+                    <option value="credit" {{ old('type', 'credit') === 'credit' ? 'selected' : '' }}>Credit</option>
+                    <option value="debit" {{ old('type') === 'debit' ? 'selected' : '' }}>Debit</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="mw_amount">Amount (AED)</label>
+                <input type="number" name="amount" id="mw_amount" class="field" step="0.01" min="0.01"
+                    value="{{ old('amount') }}" required placeholder="0.00">
+            </div>
+            <div class="col-md-2">
+                <label for="mw_date">Date</label>
+                <input type="date" name="transaction_date" id="mw_date" class="field"
+                    value="{{ old('transaction_date', now()->format('Y-m-d')) }}" max="{{ now()->format('Y-m-d') }}" required>
+            </div>
+            <div class="col-md-2">
+                <label for="mw_time">Time</label>
+                <input type="time" name="transaction_time" id="mw_time" class="field"
+                    value="{{ old('transaction_time', now()->format('H:i')) }}">
+            </div>
+            <div class="col-md-4">
+                <label for="mw_description">Description <span class="text-danger">*</span></label>
+                <input type="text" name="description" id="mw_description" class="field" maxlength="500"
+                    value="{{ old('description') }}" required>
+            </div>
+            <div class="col-md-4">
+                <label for="mw_attachment">Attachment</label>
+                <input type="file" name="attachment" id="mw_attachment" class="field" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="themeBtn" style="font-size:.85rem;">
+                    <i class="bx bx-check"></i> Add to ledger
+                </button>
+            </div>
+        </form>
+    </div>
+@elseif ($readOnly)
+    <p class="vs-ledger-balance">
+        <i class="bx bx-wallet"></i>
+        Current wallet balance: <strong>{!! formatPrice($vendor->main_balance ?? 0) !!}</strong>
+        <span class="text-muted">— view only; contact support to dispute a transaction.</span>
+    </p>
+@endif
+
+@if (($ledgerTotalCount ?? 0) > 0)
+    <div class="vs-ledger-filters">
+        <div class="vs-ledger-filters__title"><i class="bx bx-filter-alt"></i> Filter ledger</div>
+        <form method="GET" action="{{ $filterFormAction }}" class="row g-3 align-items-end" id="ledger-filter-form">
+            @if (!empty($filterHiddenInputs))
+                @foreach ($filterHiddenInputs as $name => $value)
+                    <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                @endforeach
+            @endif
+            <div class="col-md-3">
+                <label for="ledger_category">Category</label>
+                <select name="ledger_category" id="ledger_category" class="field">
+                    <option value="">All categories</option>
+                    @foreach (\App\Support\WalletLedgerDescription::ledgerFilterOptions() as $slug => $label)
+                        <option value="{{ $slug }}" {{ ($ledgerFilters['category'] ?? '') === $slug ? 'selected' : '' }}>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="ledger_from">From date</label>
+                <input type="date" name="ledger_from" id="ledger_from" class="field"
+                    value="{{ $ledgerFilters['from'] ?? '' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="ledger_till">Till date</label>
+                <input type="date" name="ledger_till" id="ledger_till" class="field"
+                    value="{{ $ledgerFilters['till'] ?? '' }}">
+            </div>
+            <div class="col-md-3">
+                <div class="vs-ledger-filters__actions">
+                    <button type="submit" class="{{ $filterApplyClass }}" style="font-size:.85rem;">
+                        <i class="bx bx-search"></i> Apply
+                    </button>
+                    @if (!empty($ledgerFilters['has_filters']))
+                        <a href="{{ $clearFiltersUrl }}" class="vs-ledger-filters__clear">Clear</a>
+                    @endif
+                </div>
+            </div>
+        </form>
+        @if (!empty($ledgerFilters['has_filters']))
+            <p class="vs-ledger-filters__meta mb-0">
+                Showing <strong>{{ $walletLedger->count() }}</strong> of <strong>{{ $ledgerTotalCount }}</strong> transactions
+                @if (!empty($ledgerFilters['category']))
+                    · Category: <strong>{{ \App\Support\WalletLedgerDescription::ledgerFilterLabel($ledgerFilters['category']) }}</strong>
+                    @if (!in_array($ledgerFilters['category'], \App\Support\WalletLedgerDescription::ledgerFilterActiveSlugs(), true))
+                        <span class="text-muted">(no transactions for this product yet)</span>
+                    @endif
+                @endif
+                @if (!empty($ledgerFilters['from']) || !empty($ledgerFilters['till']))
+                    · Date:
+                    <strong>
+                        {{ $ledgerFilters['from'] ? \Carbon\Carbon::parse($ledgerFilters['from'])->format('d M Y') : '…' }}
+                        –
+                        {{ $ledgerFilters['till'] ? \Carbon\Carbon::parse($ledgerFilters['till'])->format('d M Y') : '…' }}
+                    </strong>
+                @endif
+            </p>
+        @endif
+    </div>
+@endif
+
+@if ($walletLedger->isNotEmpty())
+    <div class="table-responsive">
+        <table class="data-table" id="wallet-ledger-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Amount</th>
+                    <th>Balance Before</th>
+                    <th>Balance After</th>
+                    <th>Description</th>
+                    <th class="no-sort">Attachment</th>
+                    @unless ($readOnly)
+                        <th class="no-sort">Actions</th>
+                    @endunless
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($walletLedger as $entry)
+                    @php
+                        $refLink = $referenceLink($entry);
+                        $isVoided = $entry->isVoided();
+                    @endphp
+                    <tr class="{{ $isVoided ? 'vs-ledger-row--voided' : '' }}"
+                        data-ledger-category="{{ \App\Support\WalletLedgerDescription::adminFilterCategory($entry) }}">
+                        <td data-order="{{ $entry->created_at->timestamp }}" style="white-space:nowrap; font-size:12px;">
+                            {{ $entry->created_at->format('d M Y') }}<br>
+                            <small class="text-muted">{{ $entry->created_at->format('h:i A') }}</small>
+                            @if ($isVoided && $entry->voided_at)
+                                <br><small class="text-danger">Voided {{ $entry->voided_at->format('d M Y') }}</small>
+                            @endif
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill bg-{{ $isVoided ? 'secondary' : ($entry->isCredit() ? 'success' : 'danger') }}">
+                                {{ ucfirst($entry->type) }}
+                            </span>
+                            @if ($isVoided)
+                                <span class="badge rounded-pill badge-voided ms-1">VOIDED</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if ($isVoided)
+                                <span class="pm-pill pm-void">VOIDED</span>
+                            @else
+                                <span class="pm-pill {{ $entry->adminReasonClass() }}">{{ $entry->adminReasonLabel() }}</span>
+                            @endif
+                        </td>
+                        <td class="fw-bold vs-ledger-amount {{ $isVoided ? 'text-muted' : ($entry->isCredit() ? 'text-success' : 'text-danger') }}">
+                            {{ $entry->isCredit() ? '+' : '-' }}{!! formatPrice($entry->amount) !!}
+                        </td>
+                        <td>{!! formatPrice($entry->balance_before) !!}</td>
+                        <td class="fw-semibold">{!! formatPrice($entry->balance_after) !!}</td>
+                        <td style="font-size:13px; max-width:320px;">
+                            <div>{{ $entry->description }}</div>
+                            @if (!empty($refLink['label']))
+                                @if (!empty($refLink['url']))
+                                    <a href="{{ $refLink['url'] }}" class="small" style="color:var(--color-primary,#cd1b4f);">{{ $refLink['label'] }}</a>
+                                @else
+                                    <span class="small text-muted">{{ $refLink['label'] }}</span>
+                                @endif
+                            @endif
+                        </td>
+                        <td class="text-center" style="white-space:nowrap;">
+                            @if ($entry->hasAttachment())
+                                <a href="{{ $entry->attachmentUrl() }}" class="vs-ledger-attachment-btn" target="_blank" rel="noopener" title="View attachment">
+                                    <i class="bx bx-show"></i> View
+                                </a>
+                            @else
+                                <span class="vs-ledger-attachment-empty">-</span>
+                            @endif
+                        </td>
+                        @unless ($readOnly)
+                            <td>
+                                @if ($isVoided)
+                                    <span class="small text-muted">-</span>
+                                @else
+                                    <div class="vs-ledger-actions">
+                                        <button type="button" class="btn-ledger btn-edit-ledger"
+                                            data-entry-id="{{ $entry->id }}"
+                                            data-type="{{ $entry->type }}"
+                                            data-amount="{{ $entry->amount }}"
+                                            data-description="{{ e($entry->description) }}"
+                                            data-date="{{ $entry->created_at->format('Y-m-d') }}"
+                                            data-time="{{ $entry->created_at->format('H:i') }}"
+                                            data-has-attachment="{{ $entry->hasAttachment() ? '1' : '0' }}"
+                                            data-attachment-url="{{ $entry->attachmentUrl() ?? '' }}"
+                                            data-update-url="{{ route('admin.vendors.wallet-transactions.update', [$vendor, $entry]) }}">
+                                            <i class="bx bx-edit-alt"></i> Edit
+                                        </button>
+                                        <form action="{{ route('admin.vendors.wallet-transactions.void', [$vendor, $entry]) }}" method="POST"
+                                            class="d-inline ledger-void-form"
+                                            data-amount="{{ number_format((float) $entry->amount, 2) }}"
+                                            data-type="{{ $entry->type }}">
+                                            @csrf
+                                            <button type="submit" class="btn-ledger btn-ledger--void">
+                                                <i class="bx bx-block"></i> Void
+                                            </button>
+                                        </form>
+                                    </div>
+                                @endif
+                            </td>
+                        @endunless
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+@elseif (($ledgerTotalCount ?? 0) > 0 && !empty($ledgerFilters['has_filters']))
+    <div class="text-center py-5" style="color:#6b6573;">
+        <i class="bx bx-filter-alt" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
+        <p class="mb-2">No transactions match your filters.</p>
+        <a href="{{ $clearFiltersUrl }}" class="vs-ledger-filters__clear">Clear filters</a>
+    </div>
+@else
+    <div class="text-center py-5" style="color:#6b6573;">
+        <i class="bx bx-wallet" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
+        No wallet transactions yet.
+    </div>
+@endif

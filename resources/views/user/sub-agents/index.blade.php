@@ -40,6 +40,7 @@
                                         <th>Agent Code</th>
                                         <th>Status</th>
                                         <th>Created</th>
+                                        <th class="no-sort">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -48,13 +49,26 @@
                                             <td>{{ $agent->name }}</td>
                                             <td>{{ $agent->email }}</td>
                                             <td>{{ $agent->username }}</td>
-                                            <td>{{ $agent->agent_code }}</td>
+                                            <td><code>{{ $agencyAgentCode ?? $agent->loginAgentCode() }}</code></td>
                                             <td>
                                                 <span class="badge rounded-pill bg-{{ $agent->status === 'active' ? 'success' : 'danger' }}">
                                                     {{ $agent->status === 'active' ? 'Active' : 'Inactive' }}
                                                 </span>
                                             </td>
                                             <td>{{ formatDateTime($agent->created_at) }}</td>
+                                            <td>
+                                                <a href="{{ route('user.sub-agents.edit', $agent) }}" class="ps-btn-save" style="font-size:.78rem; padding:.3rem .65rem;">
+                                                    <i class="bx bx-edit-alt"></i> Edit
+                                                </a>
+                                                <form action="{{ route('user.sub-agents.destroy', $agent) }}" method="POST" class="d-inline"
+                                                    onsubmit="return confirm('Delete this sub agent? This cannot be undone.');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="ps-btn-save" style="font-size:.78rem; padding:.3rem .65rem; background:#fef2f2; color:#b91c1c; border-color:#fecaca;">
+                                                        <i class="bx bx-trash"></i> Delete
+                                                    </button>
+                                                </form>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>

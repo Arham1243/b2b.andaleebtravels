@@ -11,8 +11,7 @@ use App\Models\B2bWalletLedger;
 use App\Services\AdminManualWalletTransactionService;
 use App\Services\AdminWalletLedgerAdjustmentService;
 use App\Support\B2bVendorValidation;
-use App\Support\WalletLedgerDescription;
-use Carbon\Carbon;
+use App\Support\WalletLedgerResolver;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -141,27 +140,10 @@ class VendorController extends Controller
 
         $vendor->load('parentVendor');
 
-        $ledgerFilters = $this->resolveLedgerFilters($request);
-
-        $ledgerQuery = $vendor->walletLedger()->with('reference')->latest();
-
-        if ($ledgerFilters['from'] !== null) {
-            $ledgerQuery->whereDate('created_at', '>=', $ledgerFilters['from']);
-        }
-
-        if ($ledgerFilters['till'] !== null) {
-            $ledgerQuery->whereDate('created_at', '<=', $ledgerFilters['till']);
-        }
-
-        $walletLedger = $ledgerQuery->get();
-
-        if ($ledgerFilters['category'] !== null) {
-            $walletLedger = $walletLedger
-                ->filter(fn (B2bWalletLedger $entry) => WalletLedgerDescription::adminFilterCategory($entry) === $ledgerFilters['category'])
-                ->values();
-        }
-
-        $ledgerTotalCount = $vendor->walletLedger()->count();
+        $ledgerData = WalletLedgerResolver::resolve($vendor, $request);
+        $walletLedger = $ledgerData['walletLedger'];
+        $ledgerFilters = $ledgerData['ledgerFilters'];
+        $ledgerTotalCount = $ledgerData['ledgerTotalCount'];
 
         $hotelBookings = $vendor->hotelBookings()->latest()->get();
         $flightBookings = $vendor->flightBookings()->latest()->get();
@@ -185,45 +167,6 @@ class VendorController extends Controller
             'ledgerFilters',
             'ledgerTotalCount'
         ));
-    }
-
-    /**
-     * @return array{category: string|null, from: string|null, till: string|null, has_filters: bool}
-     */
-    private function resolveLedgerFilters(Request $request): array
-    {
-        $category = $request->input('ledger_category');
-        if ($category === 'recharge') {
-            $category = 'other';
-        }
-        $category = in_array($category, WalletLedgerDescription::ledgerFilterSlugs(), true) ? $category : null;
-
-        $from = $this->parseLedgerFilterDate($request->input('ledger_from'));
-        $till = $this->parseLedgerFilterDate($request->input('ledger_till'));
-
-        if ($from !== null && $till !== null && Carbon::parse($from)->gt(Carbon::parse($till))) {
-            [$from, $till] = [$till, $from];
-        }
-
-        return [
-            'category' => $category,
-            'from' => $from,
-            'till' => $till,
-            'has_filters' => $category !== null || $from !== null || $till !== null,
-        ];
-    }
-
-    private function parseLedgerFilterDate(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        try {
-            return Carbon::parse((string) $value)->toDateString();
-        } catch (\Throwable) {
-            return null;
-        }
     }
 
     public function storeWalletTransaction(Request $request, B2bVendor $vendor)
@@ -378,7 +321,6 @@ class VendorController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'username' => $validated['username'],
-                'agent_code' => $validated['agent_code'],
                 'status' => $validated['status'],
             ];
         } else {
@@ -390,7 +332,6 @@ class VendorController extends Controller
                 'email' => $validated['email'],
                 'designation' => $validated['designation'],
                 'username' => $validated['username'],
-                'agent_code' => $validated['agent_code'],
                 'trade_license_number' => $validated['trade_license_number'],
                 'trade_license_expiry' => $validated['trade_license_expiry'],
                 'status' => $validated['status'],
@@ -433,6 +374,11 @@ class VendorController extends Controller
                 ->with('notify_success', 'Vendor updated successfully.');
         }
 
+        if ($vendor->parent_vendor_id) {
+            return redirect()->route('admin.vendors.show', $vendor->parent_vendor_id)
+                ->with('notify_success', 'Sub agent updated successfully.');
+        }
+
         return redirect()->route('admin.vendors.show', $vendor)
             ->with('notify_success', 'Vendor updated successfully.');
     }
@@ -462,13 +408,20 @@ class VendorController extends Controller
             'status' => 'required|in:active,inactive',
         ], B2bVendorValidation::messages());
 
+        $agencyAgentCode = trim((string) $vendor->agent_code);
+        if ($agencyAgentCode === '') {
+            return redirect()->back()
+                ->withInput()
+                ->with('notify_error', 'Parent agency must have an agent code before adding sub agents.');
+        }
+
         $plainPassword = $validated['password'] ?? '12345678';
 
         $subAgent = B2bVendor::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'username' => $validated['username'],
-            'agent_code' => $this->generateUniqueAgentCode(),
+            'agent_code' => $agencyAgentCode,
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
             'parent_vendor_id' => $vendor->id,
@@ -510,7 +463,13 @@ class VendorController extends Controller
             Storage::disk('public')->delete($vendor->agency_logo);
         }
 
+        $parentId = $vendor->parent_vendor_id;
         $vendor->delete();
+
+        if ($parentId) {
+            return redirect()->route('admin.vendors.show', $parentId)
+                ->with('notify_success', 'Sub agent deleted successfully.');
+        }
 
         return redirect()->route('admin.vendors.index')->with('notify_success', 'Vendor deleted successfully!');
     }
@@ -527,7 +486,6 @@ class VendorController extends Controller
         if ($vendor && $vendor->parent_vendor_id) {
             return $request->validate(array_merge($common, [
                 'name' => 'required|string|max:255',
-                'agent_code' => B2bVendorValidation::agentCodeRule($vendorId),
                 'status' => 'required|in:active,inactive',
             ]), B2bVendorValidation::messages());
         }
@@ -551,10 +509,6 @@ class VendorController extends Controller
             'flight_search_providers' => 'nullable|array',
             'flight_search_providers.*' => 'in:sabre',
         ]);
-
-        if ($vendorId) {
-            $rules['agent_code'] = B2bVendorValidation::agentCodeRule($vendorId);
-        }
 
         return $request->validate($rules, B2bVendorValidation::messages());
     }

@@ -20,7 +20,7 @@ class AdminFlightBookingController extends Controller
         }
 
         $bookings = B2bFlightBooking::query()
-            ->with('vendor')
+            ->with(['vendor.parentVendor'])
             ->when($filterVendor !== null, fn ($q) => $q->where('b2b_vendor_id', $filterVendor->id))
             ->orderByDesc('created_at')
             ->paginate(25)
@@ -32,7 +32,7 @@ class AdminFlightBookingController extends Controller
 
     public function show(int $id)
     {
-        $booking = B2bFlightBooking::with('vendor')->findOrFail($id);
+        $booking = B2bFlightBooking::with(['vendor.parentVendor'])->findOrFail($id);
 
         // Admin uses saved Sabre responses only (no live GetReservation SOAP lookup).
         $supplierBookingDetails = SupplierFlightBookingDetailsPresenter::present($booking, null);

@@ -22,7 +22,7 @@ class AdminHotelBookingController extends Controller
         }
 
         $bookings = B2bHotelBooking::query()
-            ->with('vendor')
+            ->with(['vendor.parentVendor'])
             ->when($filterVendor !== null, fn ($q) => $q->where('b2b_vendor_id', $filterVendor->id))
             ->orderByDesc('created_at')
             ->paginate(25)
@@ -34,7 +34,7 @@ class AdminHotelBookingController extends Controller
 
     public function show(int $id, TboBookingDetailTestService $tboBookingDetailTestService)
     {
-        $booking = B2bHotelBooking::with('vendor')->findOrFail($id);
+        $booking = B2bHotelBooking::with(['vendor.parentVendor'])->findOrFail($id);
 
         $liveFetch = null;
         if (strtolower((string) ($booking->supplier ?? '')) === 'tbo') {

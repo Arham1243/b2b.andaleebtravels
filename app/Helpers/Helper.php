@@ -183,3 +183,28 @@ function yalagoFinalPrice(array $board, float $commissionPercent): float
 
     return round($net + $commission, 2);
 }
+
+if (! function_exists('bookingVendorAgency')) {
+    /** Agency account for a booking (parent agency when booked by a sub-agent). */
+    function bookingVendorAgency(?\App\Models\B2bVendor $booker): ?\App\Models\B2bVendor
+    {
+        if ($booker === null) {
+            return null;
+        }
+
+        if ($booker->parent_vendor_id) {
+            $booker->loadMissing('parentVendor');
+
+            return $booker->parentVendor;
+        }
+
+        return $booker;
+    }
+}
+
+if (! function_exists('bookingVendorIsSubAgent')) {
+    function bookingVendorIsSubAgent(?\App\Models\B2bVendor $booker): bool
+    {
+        return $booker !== null && $booker->parent_vendor_id !== null;
+    }
+}

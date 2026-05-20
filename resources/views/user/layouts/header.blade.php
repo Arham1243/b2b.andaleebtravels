@@ -31,7 +31,7 @@
                         <div class="topbar-agency__info topbar-agency__info--compact dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" role="button">
                             <div class="topbar-agency__details">
                                 <span class="topbar-agency__name">{{ $vendor->display_agency_name }}</span>
-                                <span class="topbar-agency__code">{{ __('Agent Code') }}: {{ $vendor->agent_code ?? 'N/A' }}</span>
+                                <span class="topbar-agency__code">{{ __('Agent Code') }}: {{ $vendor->loginAgentCode() ?? 'N/A' }}</span>
                             </div>
                             <div class="topbar-agency__avatar">
                                 @if ($vendor->agency_logo)

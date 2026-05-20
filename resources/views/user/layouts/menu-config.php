@@ -28,6 +28,7 @@ return [
                 'title' => 'Sub Agents',
                 'icon' => 'bx bx-user-plus',
                 'route' => route('user.sub-agents.index'),
+                'agency_only' => true,
             ],
         ],
     ],

@@ -140,6 +140,12 @@ class B2bWalletLedger extends Model
         return WalletLedgerDescription::adminReferenceLink($this);
     }
 
+    /** @return array{label: string, url: string|null} */
+    public function userReferenceLink(): array
+    {
+        return WalletLedgerDescription::userReferenceLink($this);
+    }
+
     public static function recordCredit(int $vendorId, float $amount, string $description, ?string $referenceType = null, ?int $referenceId = null): self
     {
         $vendor = B2bVendor::findOrFail($vendorId);

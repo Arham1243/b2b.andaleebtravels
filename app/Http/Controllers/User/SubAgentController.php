@@ -14,16 +14,31 @@ use Illuminate\Support\Facades\Mail;
 
 class SubAgentController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            $user = Auth::user();
+            if ($user && $user->isSubAgentAccount()) {
+                abort(403, 'Only the agency owner can manage sub agents.');
+            }
+
+            return $next($request);
+        });
+    }
+
     public function index()
     {
         $subAgents = B2bVendor::where('parent_vendor_id', Auth::id())->latest()->get();
+        $agencyAgentCode = Auth::user()->agent_code;
 
-        return view('user.sub-agents.index', compact('subAgents'));
+        return view('user.sub-agents.index', compact('subAgents', 'agencyAgentCode'));
     }
 
     public function create()
     {
-        return view('user.sub-agents.create');
+        $agencyAgentCode = Auth::user()->agent_code;
+
+        return view('user.sub-agents.create', compact('agencyAgentCode'));
     }
 
     public function store(Request $request)
@@ -36,13 +51,20 @@ class SubAgentController extends Controller
             'status' => 'required|in:active,inactive',
         ], B2bVendorValidation::messages());
 
+        $agencyAgentCode = trim((string) Auth::user()->agent_code);
+        if ($agencyAgentCode === '') {
+            return redirect()->back()
+                ->withInput()
+                ->with('notify_error', 'Your agency must have an agent code before adding sub agents.');
+        }
+
         $plainPassword = $validated['password'] ?? '12345678';
 
         $vendor = B2bVendor::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'username' => $validated['username'],
-            'agent_code' => $this->generateUniqueAgentCode(),
+            'agent_code' => $agencyAgentCode,
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
             'parent_vendor_id' => Auth::id(),
@@ -58,12 +80,65 @@ class SubAgentController extends Controller
             ->with('notify_success', 'Sub agent created successfully! Invite email sent.');
     }
 
-    private function generateUniqueAgentCode(): string
+    public function edit(B2bVendor $subAgent)
     {
-        do {
-            $code = 'AT' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
-        } while (B2bVendor::where('agent_code', $code)->exists());
+        $this->ensureOwnSubAgent($subAgent);
+        $subAgent->load('parentVendor');
+        $agencyAgentCode = $subAgent->loginAgentCode();
 
-        return $code;
+        return view('user.sub-agents.edit', compact('subAgent', 'agencyAgentCode'));
+    }
+
+    public function update(Request $request, B2bVendor $subAgent)
+    {
+        $this->ensureOwnSubAgent($subAgent);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => B2bVendorValidation::emailRule($subAgent->id),
+            'username' => B2bVendorValidation::usernameRule($subAgent->id),
+            'password' => 'nullable|string|min:8',
+            'status' => 'required|in:active,inactive',
+        ], B2bVendorValidation::messages());
+
+        $data = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'username' => $validated['username'],
+            'status' => $validated['status'],
+        ];
+
+        if (! empty($validated['password'])) {
+            $data['password'] = Hash::make($validated['password']);
+        }
+
+        $subAgent->update($data);
+
+        return redirect()->route('user.sub-agents.index')
+            ->with('notify_success', 'Sub agent updated successfully.');
+    }
+
+    public function destroy(B2bVendor $subAgent)
+    {
+        $this->ensureOwnSubAgent($subAgent);
+
+        if ($subAgent->hasAssociatedData()) {
+            return redirect()->back()->with(
+                'notify_error',
+                'Cannot delete this sub agent. This account has existing bookings or related data.'
+            );
+        }
+
+        $subAgent->delete();
+
+        return redirect()->route('user.sub-agents.index')
+            ->with('notify_success', 'Sub agent deleted successfully.');
+    }
+
+    private function ensureOwnSubAgent(B2bVendor $subAgent): void
+    {
+        if ((int) $subAgent->parent_vendor_id !== (int) Auth::id()) {
+            abort(404);
+        }
     }
 }

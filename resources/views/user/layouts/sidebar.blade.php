@@ -49,6 +49,9 @@
                     <div class="custom-dropdown__values {{ $isOpen ? 'open' : '' }}">
                         <ul class="values-wrapper">
                             @foreach ($item['submenu'] as $submenu)
+                                @if (!empty($submenu['agency_only']) && Auth::user()->isSubAgentAccount())
+                                    @continue
+                                @endif
                                 @php
                                     $isSubmenuActive = Request::url() === ($submenu['route'] ?? '');
                                     $isSubOpen =
