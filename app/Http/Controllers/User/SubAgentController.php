@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Mail\VendorInviteMail;
 use App\Models\B2bVendor;
+use App\Support\B2bVendorValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -29,11 +30,11 @@ class SubAgentController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:b2b_vendors,email|max:255',
-            'username' => 'required|string|max:255|unique:b2b_vendors,username',
+            'email' => B2bVendorValidation::emailRule(),
+            'username' => B2bVendorValidation::usernameRule(),
             'password' => 'nullable|string|min:8',
             'status' => 'required|in:active,inactive',
-        ]);
+        ], B2bVendorValidation::messages());
 
         $plainPassword = $validated['password'] ?? '12345678';
 

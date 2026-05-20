@@ -1,53 +1,102 @@
 @php
     $isEdit = isset($vendor);
+    $isSubAgent = $isEdit && $vendor->parent_vendor_id;
 @endphp
 
-<div class="form-fields">
-    <label class="title">Travel Agency <span class="text-danger">*</span></label>
-    <input type="text" name="travel_agency" class="field"
-        value="{{ old('travel_agency', $isEdit ? ($vendor->travel_agency ?: $vendor->name) : '') }}"
-        placeholder="Enter travel agency name" required>
-    @error('travel_agency')
-        <div class="text-danger">{{ $message }}</div>
-    @enderror
-</div>
+@if ($isSubAgent)
+    <div class="form-fields">
+        <label class="title">Full Name <span class="text-danger">*</span></label>
+        <input type="text" name="name" class="field"
+            value="{{ old('name', $vendor->name) }}" required>
+        @error('name')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
+    </div>
+@else
+    <div class="form-fields">
+        <label class="title">Travel Agency <span class="text-danger">*</span></label>
+        <input type="text" name="travel_agency" class="field"
+            value="{{ old('travel_agency', $isEdit ? ($vendor->travel_agency ?: $vendor->name) : '') }}"
+            placeholder="Enter travel agency name" required>
+        @error('travel_agency')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
+    </div>
 
-<div class="form-fields">
-    <label class="title">Agency Logo @if(!$isEdit)@else<span class="text-muted">(leave empty to keep current)</span>@endif</label>
-    @if ($isEdit && $vendor->agency_logo)
-        <div class="mb-2">
-            <img src="{{ asset($vendor->agency_logo) }}" alt="Agency Logo" style="max-height:60px; border-radius:6px;">
+    <div class="form-fields">
+        <label class="title">Agency Logo @if($isEdit)<span class="text-muted">(leave empty to keep current)</span>@endif</label>
+        @if ($isEdit && $vendor->agency_logo)
+            <div class="mb-2">
+                <img src="{{ asset($vendor->agency_logo) }}" alt="Agency Logo" style="max-height:60px; border-radius:6px;">
+            </div>
+        @endif
+        <input type="file" name="agency_logo" class="field" accept="image/*">
+        <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB</small>
+        @error('agency_logo')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-fields">
+                <label class="title">First Name <span class="text-danger">*</span></label>
+                <input type="text" name="first_name" class="field"
+                    value="{{ old('first_name', $isEdit ? $vendor->first_name : '') }}" required>
+                @error('first_name')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
         </div>
-    @endif
-    <input type="file" name="agency_logo" class="field" accept="image/*" {{ $isEdit ? '' : '' }}>
-    <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB</small>
-    @error('agency_logo')
-        <div class="text-danger">{{ $message }}</div>
-    @enderror
-</div>
-
-<div class="row">
-    <div class="col-md-6">
-        <div class="form-fields">
-            <label class="title">First Name <span class="text-danger">*</span></label>
-            <input type="text" name="first_name" class="field"
-                value="{{ old('first_name', $isEdit ? $vendor->first_name : '') }}" required>
-            @error('first_name')
-                <div class="text-danger">{{ $message }}</div>
-            @enderror
+        <div class="col-md-6">
+            <div class="form-fields">
+                <label class="title">Last Name <span class="text-danger">*</span></label>
+                <input type="text" name="last_name" class="field"
+                    value="{{ old('last_name', $isEdit ? $vendor->last_name : '') }}" required>
+                @error('last_name')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="form-fields">
-            <label class="title">Last Name <span class="text-danger">*</span></label>
-            <input type="text" name="last_name" class="field"
-                value="{{ old('last_name', $isEdit ? $vendor->last_name : '') }}" required>
-            @error('last_name')
-                <div class="text-danger">{{ $message }}</div>
-            @enderror
+
+    <div class="form-fields">
+        <label class="title">Designation <span class="text-danger">*</span></label>
+        <input type="text" name="designation" class="field"
+            value="{{ old('designation', $isEdit ? $vendor->designation : '') }}" required>
+        @error('designation')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-fields">
+                <label class="title">Trade License Number <span class="text-danger">*</span></label>
+                <input type="text" name="trade_license_number" class="field"
+                    value="{{ old('trade_license_number', $isEdit ? $vendor->trade_license_number : '') }}" required>
+                @error('trade_license_number')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-fields">
+                <label class="title">Trade License Expiry <span class="text-danger">*</span></label>
+                <input type="date" name="trade_license_expiry" class="field"
+                    value="{{ old('trade_license_expiry', $isEdit && $vendor->trade_license_expiry ? $vendor->trade_license_expiry->format('Y-m-d') : '') }}"
+                    @unless($isEdit) min="{{ date('Y-m-d') }}" @endunless
+                    required>
+                @unless($isEdit)
+                    <small class="text-muted d-block mt-1">Must be today or a future date.</small>
+                @endunless
+                @error('trade_license_expiry')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
         </div>
     </div>
-</div>
+@endif
 
 <div class="form-fields">
     <label class="title">Email Address <span class="text-danger">*</span></label>
@@ -59,18 +108,10 @@
 </div>
 
 <div class="form-fields">
-    <label class="title">Designation <span class="text-danger">*</span></label>
-    <input type="text" name="designation" class="field"
-        value="{{ old('designation', $isEdit ? $vendor->designation : '') }}" required>
-    @error('designation')
-        <div class="text-danger">{{ $message }}</div>
-    @enderror
-</div>
-
-<div class="form-fields">
     <label class="title">Username <span class="text-danger">*</span></label>
     <input type="text" name="username" class="field"
         value="{{ old('username', $isEdit ? $vendor->username : '') }}" required>
+    <small class="text-muted d-block mt-1">Must be unique across all accounts.</small>
     @error('username')
         <div class="text-danger">{{ $message }}</div>
     @enderror
@@ -78,35 +119,14 @@
 
 @if ($isEdit)
     <div class="form-fields">
-        <label class="title">Agent Code</label>
-        <input type="text" class="field" value="{{ $vendor->agent_code }}" readonly>
+        <label class="title">Agent Code <span class="text-danger">*</span></label>
+        <input type="text" name="agent_code" class="field"
+            value="{{ old('agent_code', $vendor->agent_code) }}" required>
+        @error('agent_code')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
     </div>
 @endif
-
-<div class="row">
-    <div class="col-md-6">
-        <div class="form-fields">
-            <label class="title">Trade License Number <span class="text-danger">*</span></label>
-            <input type="text" name="trade_license_number" class="field"
-                value="{{ old('trade_license_number', $isEdit ? $vendor->trade_license_number : '') }}" required>
-            @error('trade_license_number')
-                <div class="text-danger">{{ $message }}</div>
-            @enderror
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="form-fields">
-            <label class="title">Trade License Expiry <span class="text-danger">*</span></label>
-            <input type="date" name="trade_license_expiry" class="field"
-                value="{{ old('trade_license_expiry', $isEdit && $vendor->trade_license_expiry ? $vendor->trade_license_expiry->format('Y-m-d') : '') }}"
-                min="{{ date('Y-m-d') }}" required>
-            <small class="text-muted d-block mt-1">Must be today or a future date.</small>
-            @error('trade_license_expiry')
-                <div class="text-danger">{{ $message }}</div>
-            @enderror
-        </div>
-    </div>
-</div>
 
 <div class="form-fields">
     <label class="title">Password @if($isEdit)<span class="text-muted">(leave empty to keep current)</span>@endif</label>
@@ -118,3 +138,19 @@
         <small class="text-muted d-block mt-1">Default password is 12345678 if left empty.</small>
     @endunless
 </div>
+
+@if ($isEdit)
+    <div class="form-fields">
+        <label class="title">Profile Picture <span class="text-muted">(leave empty to keep current)</span></label>
+        @if ($vendor->avatar)
+            <div class="mb-2">
+                <img src="{{ asset($vendor->avatar) }}" alt="Profile" style="max-height:60px; border-radius:50%;">
+            </div>
+        @endif
+        <input type="file" name="avatar" class="field" accept="image/*">
+        <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB</small>
+        @error('avatar')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
+    </div>
+@endif

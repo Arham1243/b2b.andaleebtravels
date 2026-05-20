@@ -62,6 +62,11 @@
                             <!-- Submit -->
                             <button type="submit" class="btn-primary-custom">Login</button>
                         </form>
+
+                        <div class="auth-footer">
+                            Don't have an account?
+                            <a href="{{ route('auth.signup', request()->query()) }}">Sign up</a>
+                        </div>
                     </div>
                 </div>
             </div>

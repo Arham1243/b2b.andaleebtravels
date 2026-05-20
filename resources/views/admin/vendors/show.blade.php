@@ -227,13 +227,13 @@
                     </p>
                 </div>
                 <div class="flex-shrink-0 d-flex gap-2">
-                    <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3" style="border-radius:8px; font-size:.82rem;">
+                    <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3" style="border-radius:8px; font-size:.82rem;align-self: center;">
                         <i class="bx bx-edit"></i> Edit
                     </a>
                     @if ($vendor->status !== 'pending')
                         <a href="{{ route('admin.vendors.change-status', $vendor->id) }}"
                             class="btn btn-sm {{ $vendor->status === 'active' ? 'btn-outline-danger' : 'btn-outline-success' }} fw-semibold px-3"
-                            style="border-radius:8px; font-size:.82rem;"
+                            style="border-radius:8px; font-size:.82rem;align-self: center;"
                             onclick="return confirm('Are you sure you want to {{ $vendor->status === 'active' ? 'deactivate' : 'activate' }} {{ addslashes($vendor->display_agency_name ?: $vendor->name) }}?')">
                             <i class="bx {{ $vendor->status === 'active' ? 'bx-pause-circle' : 'bx-play-circle' }}"></i>
                             {{ $vendor->status === 'active' ? 'Deactivate' : 'Activate' }}

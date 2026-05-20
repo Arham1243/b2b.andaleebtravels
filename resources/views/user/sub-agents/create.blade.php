@@ -35,6 +35,7 @@
                                         <label class="title">Username <span class="text-danger">*</span></label>
                                         <input type="text" name="username" class="field" value="{{ old('username') }}"
                                             placeholder="Enter username" required>
+                                        <small class="text-muted d-block mt-1">Must be unique across all accounts.</small>
                                         @error('username')
                                             <div class="text-danger">{{ $message }}</div>
                                         @enderror

@@ -5,10 +5,10 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\B2bVendor;
 use App\Models\Config;
+use App\Support\B2bVendorValidation;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 
 class ProfileSettingsController extends Controller
 {
@@ -40,12 +40,7 @@ class ProfileSettingsController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'designation' => 'required|string|max:255',
-            'username' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('b2b_vendors', 'username')->ignore($vendorId),
-            ],
+            'username' => B2bVendorValidation::usernameRule($vendorId),
             'trade_license_number' => 'required|string|max:255',
             'trade_license_expiry' => 'required|date|after_or_equal:today',
             'agency_logo' => 'nullable|image|max:2048',
@@ -54,7 +49,7 @@ class ProfileSettingsController extends Controller
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
             'flight_search_providers' => 'nullable|array',
             'flight_search_providers.*' => 'in:sabre',
-        ]);
+        ], B2bVendorValidation::messages());
 
         $data = $validatedData;
         $data['name'] = $validatedData['travel_agency'];

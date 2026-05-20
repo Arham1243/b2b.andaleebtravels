@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Mail\VendorApprovedMail;
 use App\Mail\VendorInviteMail;
 use App\Models\B2bVendor;
+use App\Models\Config;
+use App\Support\B2bVendorValidation;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -145,40 +147,68 @@ class VendorController extends Controller
 
     public function edit(B2bVendor $vendor)
     {
-        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
-            return redirect()->route('admin.vendors.pending.show', $vendor);
-        }
+        $config = Config::pluck('config_value', 'config_key')->toArray();
+        $adminProviders = $this->parseProviderConfig(
+            $config['HOTEL_SEARCH_PROVIDERS'] ?? null,
+            ['yalago', 'tbo', 'tripindeal']
+        ) ?? ['yalago', 'tbo', 'tripindeal'];
+        $adminFlightProviders = $this->parseProviderConfig(
+            $config['FLIGHT_SEARCH_PROVIDERS'] ?? null,
+            ['sabre']
+        ) ?? ['sabre'];
 
-        return view('admin.vendors.edit', compact('vendor'));
+        return view('admin.vendors.edit', compact('vendor', 'adminProviders', 'adminFlightProviders'));
     }
 
     public function update(Request $request, B2bVendor $vendor)
     {
-        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
-            return redirect()->route('admin.vendors.pending.show', $vendor)
-                ->with('notify_error', 'Approve or reject this signup request before editing.');
+        $validated = $this->validateVendor($request, $vendor->id, $vendor);
+
+        if ($vendor->parent_vendor_id) {
+            $data = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'username' => $validated['username'],
+                'agent_code' => $validated['agent_code'],
+                'status' => $validated['status'],
+            ];
+        } else {
+            $data = [
+                'name' => $validated['travel_agency'],
+                'travel_agency' => $validated['travel_agency'],
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'designation' => $validated['designation'],
+                'username' => $validated['username'],
+                'agent_code' => $validated['agent_code'],
+                'trade_license_number' => $validated['trade_license_number'],
+                'trade_license_expiry' => $validated['trade_license_expiry'],
+                'status' => $validated['status'],
+                'hotel_search_providers' => $this->parseProviderConfig(
+                    $request->input('hotel_search_providers'),
+                    ['yalago', 'tbo', 'tripindeal']
+                ),
+                'flight_search_providers' => $this->parseProviderConfig(
+                    $request->input('flight_search_providers'),
+                    ['sabre']
+                ),
+            ];
+
+            if ($request->hasFile('agency_logo')) {
+                $data['agency_logo'] = $this->uploadImage(
+                    $request->file('agency_logo'),
+                    'Vendors/AgencyLogo',
+                    $vendor->agency_logo
+                );
+            }
         }
 
-        $validated = $this->validateVendor($request, $vendor->id);
-
-        $data = [
-            'name' => $validated['travel_agency'],
-            'travel_agency' => $validated['travel_agency'],
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'email' => $validated['email'],
-            'designation' => $validated['designation'],
-            'username' => $validated['username'],
-            'trade_license_number' => $validated['trade_license_number'],
-            'trade_license_expiry' => $validated['trade_license_expiry'],
-            'status' => $validated['status'],
-        ];
-
-        if ($request->hasFile('agency_logo')) {
-            $data['agency_logo'] = $this->uploadImage(
-                $request->file('agency_logo'),
-                'Vendors/AgencyLogo',
-                $vendor->agency_logo
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = $this->uploadImage(
+                $request->file('avatar'),
+                'Users/Avatar',
+                $vendor->avatar
             );
         }
 
@@ -187,6 +217,12 @@ class VendorController extends Controller
         }
 
         $vendor->update($data);
+        $vendor->refresh();
+
+        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.show', $vendor)
+                ->with('notify_success', 'Vendor updated successfully.');
+        }
 
         return redirect()->route('admin.vendors.show', $vendor)
             ->with('notify_success', 'Vendor updated successfully.');
@@ -212,10 +248,10 @@ class VendorController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:b2b_vendors,email|max:255',
-            'username' => 'required|string|max:255|unique:b2b_vendors,username',
+            'username' => B2bVendorValidation::usernameRule(),
             'password' => 'nullable|string|min:8',
             'status' => 'required|in:active,inactive',
-        ]);
+        ], B2bVendorValidation::messages());
 
         $plainPassword = $validated['password'] ?? '12345678';
 
@@ -270,31 +306,75 @@ class VendorController extends Controller
         return redirect()->route('admin.vendors.index')->with('notify_success', 'Vendor deleted successfully!');
     }
 
-    private function validateVendor(Request $request, ?int $vendorId = null): array
+    private function validateVendor(Request $request, ?int $vendorId = null, ?B2bVendor $vendor = null): array
     {
-        return $request->validate([
+        $common = [
+            'email' => B2bVendorValidation::emailRule($vendorId),
+            'username' => B2bVendorValidation::usernameRule($vendorId),
+            'password' => 'nullable|string|min:8',
+            'avatar' => 'nullable|image|max:2048',
+        ];
+
+        if ($vendor && $vendor->parent_vendor_id) {
+            return $request->validate(array_merge($common, [
+                'name' => 'required|string|max:255',
+                'agent_code' => B2bVendorValidation::agentCodeRule($vendorId),
+                'status' => 'required|in:active,inactive',
+            ]), B2bVendorValidation::messages());
+        }
+
+        $statusRule = $vendorId
+            ? 'required|in:active,inactive,pending'
+            : 'required|in:active,inactive';
+
+        $rules = array_merge($common, [
             'travel_agency' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('b2b_vendors', 'email')->ignore($vendorId),
-            ],
             'designation' => 'required|string|max:255',
-            'username' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('b2b_vendors', 'username')->ignore($vendorId),
-            ],
             'trade_license_number' => 'required|string|max:255',
-            'trade_license_expiry' => 'required|date|after_or_equal:today',
+            'trade_license_expiry' => $vendorId ? 'required|date' : 'required|date|after_or_equal:today',
             'agency_logo' => 'nullable|image|max:2048',
-            'password' => $vendorId ? 'nullable|string|min:8' : 'nullable|string|min:8',
-            'status' => 'required|in:active,inactive',
+            'status' => $statusRule,
+            'hotel_search_providers' => 'nullable|array',
+            'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
+            'flight_search_providers' => 'nullable|array',
+            'flight_search_providers.*' => 'in:sabre',
         ]);
+
+        if ($vendorId) {
+            $rules['agent_code'] = B2bVendorValidation::agentCodeRule($vendorId);
+        }
+
+        return $request->validate($rules, B2bVendorValidation::messages());
+    }
+
+    private function parseProviderConfig($raw, array $allowed): ?array
+    {
+        if (empty($raw)) {
+            return null;
+        }
+
+        $providers = [];
+
+        if (is_array($raw)) {
+            $providers = $raw;
+        } elseif (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $providers = $decoded;
+            } else {
+                $providers = array_map('trim', explode(',', $raw));
+            }
+        }
+
+        $providers = array_values(array_unique(array_filter(array_map(function ($value) {
+            return strtolower(trim((string) $value));
+        }, $providers))));
+
+        $providers = array_values(array_intersect($providers, $allowed));
+
+        return empty($providers) ? null : $providers;
     }
 
     private function generateUniqueAgentCode(): string

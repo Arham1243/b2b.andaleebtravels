@@ -134,6 +134,21 @@ i.bx {
     color: #fff;
     background-color: var(--color-primary);
 }
+.themeBtn--outline {
+    color: var(--color-primary);
+    background-color: transparent;
+    border: 2px solid var(--color-primary);
+}
+.themeBtn--outline:hover {
+    background-color: var(--color-primary);
+    color: #fff;
+}
+.mh-user-area--guest {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
 .themeBtn--full {
     width: 100%;
 }
@@ -837,5 +852,14 @@ i.bx {
     text-align: center;
     margin-top: 25px;
     font-size: 14px;
-    color: var(--heading-color);
+    color: var(--text-muted, #6b7280);
+}
+.auth-footer a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 0.25rem;
+}
+.auth-footer a:hover {
+    text-decoration: underline;
 }

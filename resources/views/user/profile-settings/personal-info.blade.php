@@ -101,6 +101,7 @@
                                     </label>
                                     <input type="text" name="username" class="ps-field__input"
                                            value="{{ old('username', $user->username) }}" required>
+                                    <span class="ps-field__hint">Must be unique across all accounts.</span>
                                     @error('username')
                                         <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
                                     @enderror

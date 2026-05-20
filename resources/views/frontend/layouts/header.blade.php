@@ -13,8 +13,9 @@
                     alt="Andaleeb Travel Agency" />
             </a>
 
-            <div class="mh-user-area">
+            <div class="mh-user-area mh-user-area--guest">
                 @if (!Auth::check())
+                    <a href="{{ route('auth.signup') }}" class="themeBtn themeBtn--outline">Sign Up</a>
                     <a href="{{ route('auth.login') }}" class="themeBtn themeBtn--primary">Login</a>
                 @endif
             </div>

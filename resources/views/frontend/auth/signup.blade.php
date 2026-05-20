@@ -80,6 +80,7 @@
                                         <label class="form-label">Username <span class="text-danger">*</span></label>
                                         <input type="text" value="{{ old('username') }}" name="username"
                                             class="custom-input" required>
+                                        <small class="text-muted d-block mt-1">Must be unique. You will use this to log in.</small>
                                         @error('username')
                                             <span class="text-danger validation-error">{{ $message }}</span>
                                         @enderror
@@ -123,15 +124,16 @@
                             </div>
 
                             <div class="form-group">
-                                <small class="text-muted">After you submit, an administrator will review your application. You will receive an email when your account is approved and you can log in.</small>
-                            </div>
-
-                            <div class="form-group">
                                 <div class="g-recaptcha" data-sitekey="{{ env('RE_CAPTCHA_SITE_KEY') }}"> </div>
                             </div>
 
                             <button type="submit" class="btn-primary-custom">Sign Up</button>
                         </form>
+
+                        <div class="auth-footer">
+                            Already have an account?
+                            <a href="{{ route('auth.login', request()->query()) }}">Login</a>
+                        </div>
                     </div>
                 </div>
             </div>

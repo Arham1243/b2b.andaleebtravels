@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Frontend\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\B2bVendor;
 use App\Services\TradeLicenseExpiryNotifier;
+use App\Support\B2bVendorValidation;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -31,14 +32,14 @@ class AuthController extends Controller
             'travel_agency' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:b2b_vendors,email|max:255',
+            'email' => B2bVendorValidation::emailRule(),
             'designation' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:b2b_vendors,username',
+            'username' => B2bVendorValidation::usernameRule(),
             'trade_license_number' => 'required|string|max:255',
             'trade_license_expiry' => 'required|date|after_or_equal:today',
             'agency_logo' => 'required|image|max:2048',
             'password' => 'required|string|min:8',
-        ]);
+        ], B2bVendorValidation::messages());
 
         $agencyLogo = $this->uploadImage($request->file('agency_logo'), 'Vendors/AgencyLogo');
 

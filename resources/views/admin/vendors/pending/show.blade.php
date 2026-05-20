@@ -15,6 +15,9 @@
                     <span class="badge rounded-pill bg-warning mt-2">Pending Approval</span>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-outline-secondary btn-sm fw-semibold px-3">
+                        <i class="bx bx-edit"></i> Edit
+                    </a>
                     <form action="{{ route('admin.vendors.pending.approve', $vendor) }}" method="POST"
                           onsubmit="return confirm('Approve this agency? The user will receive an email and can log in to the portal.');">
                         @csrf
