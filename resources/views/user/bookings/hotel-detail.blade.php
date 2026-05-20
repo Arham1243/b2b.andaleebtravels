@@ -315,21 +315,11 @@
                         <div class="bkpd-card">
                             <div class="bkpd-card__section-head"><i class="bx bx-cog"></i> Actions</div>
                             <div class="bkpd-actions">
-                                @if($status === 'cancelled')
-                                    <p class="bkpd-no-action"><i class="bx bx-x-circle"></i> Booking has been cancelled.</p>
-                                @elseif($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
-                                    @if(($booking->supplier ?? 'yalago') === 'tbo')
-                                        <button type="button" class="bkp-btn bkp-btn--danger w-100 cancel-booking-btn-tbo" data-booking-id="{{ $booking->id }}">
-                                            <i class="bx bx-x"></i> Cancel Booking
-                                        </button>
-                                    @else
-                                        <button type="button" class="bkp-btn bkp-btn--danger w-100 cancel-booking-btn" data-booking-id="{{ $booking->id }}">
-                                            <i class="bx bx-x"></i> Cancel Booking
-                                        </button>
-                                    @endif
-                                @else
-                                    <p class="bkpd-no-action"><i class="bx bx-info-circle"></i> No actions available.</p>
-                                @endif
+                                @include('partials.hotel-booking-cancel-actions', [
+                                    'booking' => $booking,
+                                    'cancellation' => $cancellation ?? [],
+                                    'status' => $status,
+                                ])
                             </div>
                         </div>
 

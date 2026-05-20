@@ -9,6 +9,7 @@ use App\Services\BookingCancellationNotifier;
 use App\Services\BookingCancellationRecorder;
 use App\Services\FlightService;
 use App\Services\HotelService;
+use App\Support\BookingCancellationEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -55,8 +56,9 @@ class BookingController extends Controller
     {
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($id);
         $counts  = $this->bookingCounts();
+        $cancellation = BookingCancellationEligibility::forFlight($booking);
 
-        return view('user.bookings.flight-detail', compact('booking', 'counts'));
+        return view('user.bookings.flight-detail', compact('booking', 'counts', 'cancellation'));
     }
 
     public function hotels(Request $request)
@@ -87,12 +89,13 @@ class BookingController extends Controller
         return view('user.bookings.hotels', compact('hotelBookings', 'counts', 'status', 'search'));
     }
 
-    public function hotelDetail(int $id)
+    public function hotelDetail(int $id, HotelService $hotelService)
     {
         $booking = B2bHotelBooking::where('b2b_vendor_id', Auth::id())->findOrFail($id);
         $counts  = $this->bookingCounts();
+        $cancellation = BookingCancellationEligibility::resolveForHotelPage($booking, $hotelService);
 
-        return view('user.bookings.hotel-detail', compact('booking', 'counts'));
+        return view('user.bookings.hotel-detail', compact('booking', 'counts', 'cancellation'));
     }
 
     private function bookingCounts(): array
@@ -137,6 +140,7 @@ class BookingController extends Controller
 
         try {
             $charges = $hotelService->getCancellationCharges($booking);
+            BookingCancellationEligibility::assertYalagoCanCancel($booking, $charges);
             $cancelResponse = $hotelService->cancelYalagoBooking($booking, $charges);
 
             $booking->update([
@@ -189,6 +193,7 @@ class BookingController extends Controller
         DB::beginTransaction();
 
         try {
+            BookingCancellationEligibility::assertTboCanCancel($booking);
             $cancelResponse = $hotelService->cancelTboBooking($booking);
 
             $booking->update([
@@ -292,6 +297,7 @@ class BookingController extends Controller
         DB::beginTransaction();
 
         try {
+            BookingCancellationEligibility::assertFlightCanCancel($booking);
             $cancelResponse = $flightService->cancelSabreBooking($booking);
 
             $booking->update([

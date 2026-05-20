@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\B2bHotelBooking;
 use App\Models\B2bVendor;
+use App\Services\HotelService;
 use App\Services\TboBookingDetailTestService;
+use App\Support\BookingCancellationEligibility;
 use App\Support\SupplierBookingDetailsPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -32,7 +34,7 @@ class AdminHotelBookingController extends Controller
             ->with('title', 'Hotel Bookings');
     }
 
-    public function show(int $id, TboBookingDetailTestService $tboBookingDetailTestService)
+    public function show(int $id, TboBookingDetailTestService $tboBookingDetailTestService, HotelService $hotelService)
     {
         $booking = B2bHotelBooking::with(['vendor.parentVendor'])->findOrFail($id);
 
@@ -50,8 +52,13 @@ class AdminHotelBookingController extends Controller
         }
 
         $supplierBookingDetails = SupplierBookingDetailsPresenter::present($booking, $liveFetch);
+        $cancellation = BookingCancellationEligibility::resolveForHotelPage(
+            $booking,
+            $hotelService,
+            $liveFetch
+        );
 
-        return view('admin.hotel-bookings.show', compact('booking', 'supplierBookingDetails'))
+        return view('admin.hotel-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation'))
             ->with('title', 'Booking ' . $booking->booking_number);
     }
 }

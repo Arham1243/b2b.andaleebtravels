@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bVendor;
+use App\Support\BookingCancellationEligibility;
 use App\Support\SupplierFlightBookingDetailsPresenter;
 use Illuminate\Http\Request;
 
@@ -36,8 +37,9 @@ class AdminFlightBookingController extends Controller
 
         // Admin uses saved Sabre responses only (no live GetReservation SOAP lookup).
         $supplierBookingDetails = SupplierFlightBookingDetailsPresenter::present($booking, null);
+        $cancellation = BookingCancellationEligibility::forFlight($booking);
 
-        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails'))
+        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation'))
             ->with('title', 'Booking ' . $booking->booking_number);
     }
 }

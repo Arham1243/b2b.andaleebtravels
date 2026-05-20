@@ -482,12 +482,19 @@
                                         Releases the PNR at Sabre — no charges since no payment was made.
                                     </p>
                                 @elseif ($status === 'confirmed' && $booking->payment_status === 'paid')
-                                    <button type="button" class="bkp-btn bkp-btn--danger w-100 cancel-booking-btn">
-                                        <i class="bx bx-x"></i> Cancel Booking
-                                    </button>
-                                    <p style="font-size:.7rem;color:#8492a6;margin-top:10px;text-align:center;line-height:1.4;">
-                                        Cancellation is sent to the airline via our GDS. If the carrier does not allow cancel for this fare, you will see an error and the booking will stay active.
-                                    </p>
+                                    @if (!($cancellation['can_cancel'] ?? false))
+                                        <p class="bkpd-no-action">
+                                            <i class="bx bx-x-circle"></i>
+                                            {{ $cancellation['reason'] ?? 'Cancellation is not available for this booking.' }}
+                                        </p>
+                                    @else
+                                        <button type="button" class="bkp-btn bkp-btn--danger w-100 cancel-booking-btn">
+                                            <i class="bx bx-x"></i> Cancel Booking
+                                        </button>
+                                        <p style="font-size:.7rem;color:#8492a6;margin-top:10px;text-align:center;line-height:1.4;">
+                                            Cancellation is sent to the airline via our GDS. Airline penalties may apply based on fare rules.
+                                        </p>
+                                    @endif
                                 @else
                                     <p class="bkpd-no-action"><i class="bx bx-info-circle"></i> No supplier cancel action available for this state.</p>
                                 @endif

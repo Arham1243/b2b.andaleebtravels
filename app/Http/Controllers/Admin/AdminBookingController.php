@@ -11,6 +11,7 @@ use App\Services\BookingCancellationRecorder;
 use App\Services\BookingWalletRefundService;
 use App\Services\FlightService;
 use App\Services\HotelService;
+use App\Support\BookingCancellationEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -95,10 +96,12 @@ class AdminBookingController extends Controller
 
         try {
             if (($bookingModel->supplier ?? '') === 'tbo') {
+                BookingCancellationEligibility::assertTboCanCancel($bookingModel);
                 $cancelResponse = $hotelService->cancelTboBooking($bookingModel);
                 $type = 'hotel_tbo_cancel';
             } else {
                 $charges = $hotelService->getCancellationCharges($bookingModel);
+                BookingCancellationEligibility::assertYalagoCanCancel($bookingModel, $charges);
                 $cancelResponse = $hotelService->cancelYalagoBooking($bookingModel, $charges);
                 $type = 'hotel_yalago_cancel';
             }
@@ -204,6 +207,7 @@ class AdminBookingController extends Controller
         DB::beginTransaction();
 
         try {
+            BookingCancellationEligibility::assertFlightCanCancel($bookingModel);
             $cancelResponse = $flightService->cancelSabreBooking($bookingModel);
 
             $bookingModel->update([
