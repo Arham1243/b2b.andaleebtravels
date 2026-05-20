@@ -65,7 +65,50 @@ final class WalletLedgerDescription
         };
     }
 
-    /** @return 'hotel'|'flight'|'recharge'|'other' */
+    /**
+     * Admin ledger filter dropdown (value => label).
+     * Only slugs in ledgerFilterActiveSlugs() can match rows today; others are ready for future products.
+     *
+     * @return array<string, string>
+     */
+    public static function ledgerFilterOptions(): array
+    {
+        return [
+            'hotel' => 'Hotel',
+            'flight' => 'Flight',
+            'visa' => 'Visa',
+            'travel_insurance' => 'Travel insurance',
+            'holiday_package' => 'Holiday package',
+            'car_rental' => 'Car rental',
+            'global_visa' => 'Global visa',
+            'umrah_package' => 'Umrah package',
+            'tours' => 'Tours',
+            'other' => 'Others',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function ledgerFilterSlugs(): array
+    {
+        return array_keys(self::ledgerFilterOptions());
+    }
+
+    /** Categories that can return ledger rows with the current portal features. */
+    public static function ledgerFilterActiveSlugs(): array
+    {
+        return ['hotel', 'flight', 'other'];
+    }
+
+    public static function ledgerFilterLabel(?string $slug): string
+    {
+        if ($slug === null || $slug === '') {
+            return '';
+        }
+
+        return self::ledgerFilterOptions()[$slug] ?? ucfirst(str_replace('_', ' ', $slug));
+    }
+
+    /** @return 'hotel'|'flight'|'visa'|'travel_insurance'|'holiday_package'|'car_rental'|'global_visa'|'umrah_package'|'tours'|'other' */
     public static function adminFilterCategory(B2bWalletLedger $entry): string
     {
         $reference = $entry->reference;
@@ -79,7 +122,7 @@ final class WalletLedgerDescription
         }
 
         if ($reference instanceof B2bWalletRecharge) {
-            return 'recharge';
+            return 'other';
         }
 
         $desc = strtolower((string) $entry->description);
@@ -92,10 +135,7 @@ final class WalletLedgerDescription
             return 'flight';
         }
 
-        if (str_contains($desc, 'recharge')) {
-            return 'recharge';
-        }
-
+        // Wallet recharges, manual adjustments, and future products → Others until dedicated ledger refs exist.
         return 'other';
     }
 

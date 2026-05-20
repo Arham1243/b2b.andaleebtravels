@@ -656,10 +656,11 @@
                                 <label for="ledger_category">Category</label>
                                 <select name="ledger_category" id="ledger_category" class="field">
                                     <option value="">All categories</option>
-                                    <option value="hotel" {{ ($ledgerFilters['category'] ?? '') === 'hotel' ? 'selected' : '' }}>Hotel</option>
-                                    <option value="flight" {{ ($ledgerFilters['category'] ?? '') === 'flight' ? 'selected' : '' }}>Flight</option>
-                                    <option value="recharge" {{ ($ledgerFilters['category'] ?? '') === 'recharge' ? 'selected' : '' }}>Recharge</option>
-                                    <option value="other" {{ ($ledgerFilters['category'] ?? '') === 'other' ? 'selected' : '' }}>Other</option>
+                                    @foreach (\App\Support\WalletLedgerDescription::ledgerFilterOptions() as $slug => $label)
+                                        <option value="{{ $slug }}" {{ ($ledgerFilters['category'] ?? '') === $slug ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -687,7 +688,10 @@
                             <p class="vs-ledger-filters__meta mb-0">
                                 Showing <strong>{{ $walletLedger->count() }}</strong> of <strong>{{ $ledgerTotalCount }}</strong> transactions
                                 @if (!empty($ledgerFilters['category']))
-                                    · Category: <strong>{{ ucfirst($ledgerFilters['category']) }}</strong>
+                                    · Category: <strong>{{ \App\Support\WalletLedgerDescription::ledgerFilterLabel($ledgerFilters['category']) }}</strong>
+                                    @if (!in_array($ledgerFilters['category'], \App\Support\WalletLedgerDescription::ledgerFilterActiveSlugs(), true))
+                                        <span class="text-muted">(no transactions for this product yet)</span>
+                                    @endif
                                 @endif
                                 @if (!empty($ledgerFilters['from']) || !empty($ledgerFilters['till']))
                                     · Date:

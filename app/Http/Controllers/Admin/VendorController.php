@@ -193,7 +193,10 @@ class VendorController extends Controller
     private function resolveLedgerFilters(Request $request): array
     {
         $category = $request->input('ledger_category');
-        $category = in_array($category, ['hotel', 'flight', 'recharge', 'other'], true) ? $category : null;
+        if ($category === 'recharge') {
+            $category = 'other';
+        }
+        $category = in_array($category, WalletLedgerDescription::ledgerFilterSlugs(), true) ? $category : null;
 
         $from = $this->parseLedgerFilterDate($request->input('ledger_from'));
         $till = $this->parseLedgerFilterDate($request->input('ledger_till'));
