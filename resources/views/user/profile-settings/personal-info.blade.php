@@ -129,7 +129,9 @@
                                         Trade License Expiry <span class="req">*</span>
                                     </label>
                                     <input type="date" name="trade_license_expiry" class="ps-field__input"
-                                           value="{{ old('trade_license_expiry', $user->trade_license_expiry?->format('Y-m-d')) }}" required>
+                                           value="{{ old('trade_license_expiry', $user->trade_license_expiry?->format('Y-m-d')) }}"
+                                           min="{{ date('Y-m-d') }}" required>
+                                    <span class="ps-field__hint">Must be today or a future date.</span>
                                     @error('trade_license_expiry')
                                         <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
                                     @enderror

@@ -47,7 +47,7 @@ class ProfileSettingsController extends Controller
                 Rule::unique('b2b_vendors', 'username')->ignore($vendorId),
             ],
             'trade_license_number' => 'required|string|max:255',
-            'trade_license_expiry' => 'required|date',
+            'trade_license_expiry' => 'required|date|after_or_equal:today',
             'agency_logo' => 'nullable|image|max:2048',
             'avatar' => 'nullable|image|max:2048',
             'hotel_search_providers' => 'nullable|array',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bVendor;
+use App\Services\TradeLicenseExpiryNotifier;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,14 +35,14 @@ class AuthController extends Controller
             'designation' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:b2b_vendors,username',
             'trade_license_number' => 'required|string|max:255',
-            'trade_license_expiry' => 'required|date',
+            'trade_license_expiry' => 'required|date|after_or_equal:today',
             'agency_logo' => 'required|image|max:2048',
             'password' => 'required|string|min:8',
         ]);
 
         $agencyLogo = $this->uploadImage($request->file('agency_logo'), 'Vendors/AgencyLogo');
 
-        $user = B2bVendor::create([
+        B2bVendor::create([
             'name' => $validatedData['travel_agency'],
             'travel_agency' => $validatedData['travel_agency'],
             'first_name' => $validatedData['first_name'],
@@ -55,15 +56,11 @@ class AuthController extends Controller
             'agent_code' => $this->generateUniqueAgentCode(),
             'auth_provider' => 'local',
             'password' => Hash::make($validatedData['password']),
+            'status' => 'pending',
         ]);
 
-        Auth::login($user);
-
-        if ($redirectTo) {
-            return redirect()->to($redirectTo)->with('notify_success', 'Account Created Successfully');
-        }
-
-        return redirect()->route('frontend.index')->with('notify_success', 'Account Created Successfully');
+        return redirect()->route('auth.login')
+            ->with('notify_success', 'Your registration has been submitted. You will receive an email once an administrator approves your account.');
     }
 
     public function performLogin(Request $request)
@@ -84,12 +81,30 @@ class AuthController extends Controller
         )) {
             $user = Auth::user();
 
+            if ($user->status === 'pending') {
+                Auth::logout();
+
+                return redirect()->route('auth.login')
+                    ->withErrors(['agent_code' => 'Your account is awaiting admin approval.'])
+                    ->with('notify_error', 'Your account is awaiting admin approval. You will be notified by email once approved.');
+            }
+
             if ($user->status === 'inactive') {
                 Auth::logout();
 
                 return redirect()->route('auth.login')
                     ->withErrors(['agent_code' => 'Your account is suspended. Please contact the admin.'])
                     ->with('notify_error', 'Your account is suspended. Please contact the admin.');
+            }
+
+            $user->loadMissing('parentVendor');
+            if ($user->hasExpiredTradeLicense()) {
+                Auth::logout();
+                app(TradeLicenseExpiryNotifier::class)->notifyExpiredLoginAttempt($user);
+
+                return redirect()->route('auth.login')
+                    ->withErrors(['agent_code' => 'Your trade license has expired.'])
+                    ->with('notify_error', 'Your trade license has expired. Portal access is disabled until it is renewed. An email has been sent to you and the administrator.');
             }
 
             if ($redirectTo) {

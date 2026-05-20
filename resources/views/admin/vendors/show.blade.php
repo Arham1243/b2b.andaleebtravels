@@ -221,7 +221,10 @@
                         </span>
                     </p>
                 </div>
-                <div class="flex-shrink-0">
+                <div class="flex-shrink-0 d-flex gap-2">
+                    <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3" style="border-radius:8px; font-size:.82rem;">
+                        <i class="bx bx-edit"></i> Edit
+                    </a>
                     <a href="{{ route('admin.vendors.change-status', $vendor->id) }}"
                         class="btn btn-sm {{ $vendor->status === 'active' ? 'btn-outline-danger' : 'btn-outline-success' }} fw-semibold px-3"
                         style="border-radius:8px; font-size:.82rem;"

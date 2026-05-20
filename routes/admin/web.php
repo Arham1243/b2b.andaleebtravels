@@ -50,6 +50,10 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
 
     Route::post('bulk-actions/{resource}', [BulkActionController::class, 'handle'])->name('bulk-actions');
 
+    Route::get('vendors/pending', [VendorController::class, 'pendingIndex'])->name('vendors.pending.index');
+    Route::get('vendors/pending/{vendor}', [VendorController::class, 'pendingShow'])->name('vendors.pending.show');
+    Route::post('vendors/pending/{vendor}/approve', [VendorController::class, 'approve'])->name('vendors.pending.approve');
+    Route::post('vendors/pending/{vendor}/reject', [VendorController::class, 'reject'])->name('vendors.pending.reject');
     Route::get('vendors/{vendor}/sub-agents/create', [VendorController::class, 'createSubAgent'])->name('vendors.sub-agents.create');
     Route::post('vendors/{vendor}/sub-agents', [VendorController::class, 'storeSubAgent'])->name('vendors.sub-agents.store');
     Route::resource('vendors', VendorController::class);

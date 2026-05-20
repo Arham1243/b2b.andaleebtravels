@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\VendorApprovedMail;
 use App\Mail\VendorInviteMail;
 use App\Models\B2bVendor;
 use App\Traits\UploadImageTrait;
@@ -10,14 +11,71 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class VendorController extends Controller
 {
     use UploadImageTrait;
+
     public function index()
     {
-        $vendors = B2bVendor::latest()->get();
+        $vendors = B2bVendor::approvedAgencies()->latest()->get();
+
         return view('admin.vendors.index', compact('vendors'));
+    }
+
+    public function pendingIndex()
+    {
+        $vendors = B2bVendor::pendingSignups()->latest()->get();
+
+        return view('admin.vendors.pending.index', compact('vendors'));
+    }
+
+    public function pendingShow(B2bVendor $vendor)
+    {
+        if (!$vendor->isPendingApproval() || !$vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.index')
+                ->with('notify_error', 'This signup request is no longer pending.');
+        }
+
+        return view('admin.vendors.pending.show', compact('vendor'));
+    }
+
+    public function approve(Request $request, B2bVendor $vendor)
+    {
+        if (!$vendor->isPendingApproval() || !$vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.index')
+                ->with('notify_error', 'This signup request is no longer pending.');
+        }
+
+        $vendor->update(['status' => 'active']);
+
+        try {
+            Mail::to($vendor->email)->send(new VendorApprovedMail($vendor));
+        } catch (\Exception $e) {
+            Log::error('Failed to send vendor approval email: ' . $e->getMessage());
+        }
+
+        return redirect()->route('admin.vendors.pending.index')
+            ->with('notify_success', 'Agency approved successfully. Login notification email sent.');
+    }
+
+    public function reject(Request $request, B2bVendor $vendor)
+    {
+        if (!$vendor->isPendingApproval() || !$vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.index')
+                ->with('notify_error', 'This signup request is no longer pending.');
+        }
+
+        if ($vendor->agency_logo) {
+            Storage::disk('public')->delete($vendor->agency_logo);
+        }
+
+        $vendor->delete();
+
+        return redirect()->route('admin.vendors.pending.index')
+            ->with('notify_success', 'Signup request rejected and removed.');
     }
 
     public function create()
@@ -27,20 +85,9 @@ class VendorController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'travel_agency' => 'required|string|max:255',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:b2b_vendors,email|max:255',
-            'designation' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:b2b_vendors,username',
-            'trade_license_number' => 'required|string|max:255',
-            'trade_license_expiry' => 'required|date',
-            'agency_logo' => 'nullable|image|max:2048',
-            'status' => 'required|in:active,inactive',
-        ]);
+        $validated = $this->validateVendor($request);
 
-        $plainPassword = '12345678';
+        $plainPassword = $validated['password'] ?? '12345678';
 
         $agencyLogo = $request->hasFile('agency_logo')
             ? $this->uploadImage($request->file('agency_logo'), 'Vendors/AgencyLogo')
@@ -74,6 +121,10 @@ class VendorController extends Controller
 
     public function show(B2bVendor $vendor)
     {
+        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.show', $vendor);
+        }
+
         $vendor->load('parentVendor');
 
         $walletLedger = $vendor->walletLedger()->with('reference')->latest()->get();
@@ -90,6 +141,55 @@ class VendorController extends Controller
         ];
 
         return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings', 'flightBookings', 'subAgents', 'stats'));
+    }
+
+    public function edit(B2bVendor $vendor)
+    {
+        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.show', $vendor);
+        }
+
+        return view('admin.vendors.edit', compact('vendor'));
+    }
+
+    public function update(Request $request, B2bVendor $vendor)
+    {
+        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.show', $vendor)
+                ->with('notify_error', 'Approve or reject this signup request before editing.');
+        }
+
+        $validated = $this->validateVendor($request, $vendor->id);
+
+        $data = [
+            'name' => $validated['travel_agency'],
+            'travel_agency' => $validated['travel_agency'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+            'designation' => $validated['designation'],
+            'username' => $validated['username'],
+            'trade_license_number' => $validated['trade_license_number'],
+            'trade_license_expiry' => $validated['trade_license_expiry'],
+            'status' => $validated['status'],
+        ];
+
+        if ($request->hasFile('agency_logo')) {
+            $data['agency_logo'] = $this->uploadImage(
+                $request->file('agency_logo'),
+                'Vendors/AgencyLogo',
+                $vendor->agency_logo
+            );
+        }
+
+        if (!empty($validated['password'])) {
+            $data['password'] = Hash::make($validated['password']);
+        }
+
+        $vendor->update($data);
+
+        return redirect()->route('admin.vendors.show', $vendor)
+            ->with('notify_success', 'Vendor updated successfully.');
     }
 
     public function createSubAgent(B2bVendor $vendor)
@@ -113,10 +213,11 @@ class VendorController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:b2b_vendors,email|max:255',
             'username' => 'required|string|max:255|unique:b2b_vendors,username',
+            'password' => 'nullable|string|min:8',
             'status' => 'required|in:active,inactive',
         ]);
 
-        $plainPassword = '12345678';
+        $plainPassword = $validated['password'] ?? '12345678';
 
         $subAgent = B2bVendor::create([
             'name' => $validated['name'],
@@ -140,6 +241,10 @@ class VendorController extends Controller
 
     public function changeStatus(B2bVendor $vendor)
     {
+        if ($vendor->status === 'pending') {
+            return redirect()->back()->with('notify_error', 'Pending signup requests must be approved or rejected from Signup Requests.');
+        }
+
         $vendor->update([
             'status' => $vendor->status === 'active' ? 'inactive' : 'active',
         ]);
@@ -156,9 +261,40 @@ class VendorController extends Controller
             );
         }
 
+        if ($vendor->agency_logo) {
+            Storage::disk('public')->delete($vendor->agency_logo);
+        }
+
         $vendor->delete();
 
         return redirect()->route('admin.vendors.index')->with('notify_success', 'Vendor deleted successfully!');
+    }
+
+    private function validateVendor(Request $request, ?int $vendorId = null): array
+    {
+        return $request->validate([
+            'travel_agency' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('b2b_vendors', 'email')->ignore($vendorId),
+            ],
+            'designation' => 'required|string|max:255',
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('b2b_vendors', 'username')->ignore($vendorId),
+            ],
+            'trade_license_number' => 'required|string|max:255',
+            'trade_license_expiry' => 'required|date|after_or_equal:today',
+            'agency_logo' => 'nullable|image|max:2048',
+            'password' => $vendorId ? 'nullable|string|min:8' : 'nullable|string|min:8',
+            'status' => 'required|in:active,inactive',
+        ]);
     }
 
     private function generateUniqueAgentCode(): string

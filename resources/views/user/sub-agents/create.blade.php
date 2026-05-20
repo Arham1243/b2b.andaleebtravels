@@ -41,16 +41,16 @@
                                     </div>
 
                                     <div class="form-fields">
-                                        <label class="title">Agent Code <span class="text-danger">*</span></label>
-                                        <input type="text" name="agent_code" class="field"
-                                            value="{{ old('agent_code') }}" placeholder="Enter agent code" required>
-                                        @error('agent_code')
+                                        <label class="title">Password</label>
+                                        <input type="password" name="password" class="field"
+                                            placeholder="Leave empty for default 12345678" autocomplete="new-password">
+                                        @error('password')
                                             <div class="text-danger">{{ $message }}</div>
                                         @enderror
                                     </div>
 
                                     <div class="form-fields">
-                                        <small class="text-muted">Default password is 12345678. The sub agent will receive a welcome email with a password reset link.</small>
+                                        <small class="text-muted">An agent code is generated automatically. The sub agent will receive a welcome email with portal login details.</small>
                                     </div>
                                 </div>
                             </div>

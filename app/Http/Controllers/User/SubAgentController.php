@@ -31,17 +31,17 @@ class SubAgentController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:b2b_vendors,email|max:255',
             'username' => 'required|string|max:255|unique:b2b_vendors,username',
-            'agent_code' => 'required|string|max:255|unique:b2b_vendors,agent_code',
+            'password' => 'nullable|string|min:8',
             'status' => 'required|in:active,inactive',
         ]);
 
-        $plainPassword = '12345678';
+        $plainPassword = $validated['password'] ?? '12345678';
 
         $vendor = B2bVendor::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'username' => $validated['username'],
-            'agent_code' => $validated['agent_code'],
+            'agent_code' => $this->generateUniqueAgentCode(),
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
             'parent_vendor_id' => Auth::id(),
@@ -55,5 +55,14 @@ class SubAgentController extends Controller
 
         return redirect()->route('user.sub-agents.index')
             ->with('notify_success', 'Sub agent created successfully! Invite email sent.');
+    }
+
+    private function generateUniqueAgentCode(): string
+    {
+        do {
+            $code = 'AT' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+        } while (B2bVendor::where('agent_code', $code)->exists());
+
+        return $code;
     }
 }

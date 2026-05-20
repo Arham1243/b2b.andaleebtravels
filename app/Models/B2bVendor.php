@@ -28,6 +28,52 @@ class B2bVendor extends Authenticatable
         return $this->travel_agency ?: $this->name ?: '';
     }
 
+    public function isPendingApproval(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isAgencyAccount(): bool
+    {
+        return $this->parent_vendor_id === null;
+    }
+
+    public function scopeApprovedAgencies($query)
+    {
+        return $query->whereNull('parent_vendor_id')->whereIn('status', ['active', 'inactive']);
+    }
+
+    public function scopePendingSignups($query)
+    {
+        return $query->whereNull('parent_vendor_id')->where('status', 'pending');
+    }
+
+    public function getEffectiveTradeLicenseExpiryAttribute(): ?\Illuminate\Support\Carbon
+    {
+        if ($this->trade_license_expiry) {
+            return $this->trade_license_expiry;
+        }
+
+        if ($this->parent_vendor_id) {
+            $this->loadMissing('parentVendor');
+
+            return $this->parentVendor?->trade_license_expiry;
+        }
+
+        return null;
+    }
+
+    public function hasExpiredTradeLicense(): bool
+    {
+        $expiry = $this->effective_trade_license_expiry;
+
+        if (!$expiry) {
+            return false;
+        }
+
+        return $expiry->startOfDay()->lt(now()->startOfDay());
+    }
+
     public function hotelBookings(): HasMany
     {
         return $this->hasMany(B2bHotelBooking::class, 'b2b_vendor_id');

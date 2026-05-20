@@ -102,7 +102,8 @@
                                     <div class="form-group">
                                         <label class="form-label">Trade License Expiry <span class="text-danger">*</span></label>
                                         <input type="date" value="{{ old('trade_license_expiry') }}" name="trade_license_expiry"
-                                            class="custom-input" required>
+                                            class="custom-input" min="{{ date('Y-m-d') }}" required>
+                                        <small class="text-muted d-block mt-1">Must be today or a future date.</small>
                                         @error('trade_license_expiry')
                                             <span class="text-danger validation-error">{{ $message }}</span>
                                         @enderror
@@ -122,7 +123,7 @@
                             </div>
 
                             <div class="form-group">
-                                <small class="text-muted">Your agent code will be generated automatically after registration and shown in your profile.</small>
+                                <small class="text-muted">After you submit, an administrator will review your application. You will receive an email when your account is approved and you can log in.</small>
                             </div>
 
                             <div class="form-group">

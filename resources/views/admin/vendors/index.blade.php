@@ -86,6 +86,12 @@
                                                                 <i class="bx bx-show"></i> View Details
                                                             </a>
                                                         </li>
+                                                        <li>
+                                                            <a class="dropdown-item"
+                                                                href="{{ route('admin.vendors.edit', $vendor->id) }}">
+                                                                <i class="bx bx-edit"></i> Edit Vendor
+                                                            </a>
+                                                        </li>
                                                         @if (!$vendor->parent_vendor_id)
                                                             <li>
                                                                 <a class="dropdown-item"

@@ -27,6 +27,21 @@ Breadcrumbs::for('admin.vendors.sub-agents.create', function (BreadcrumbTrail $t
     $trail->push('Add Sub Agent', route('admin.vendors.sub-agents.create', $vendor));
 });
 
+Breadcrumbs::for('admin.vendors.edit', function (BreadcrumbTrail $trail, $vendor) {
+    $trail->parent('admin.vendors.show', $vendor);
+    $trail->push('Edit Vendor', route('admin.vendors.edit', $vendor));
+});
+
+Breadcrumbs::for('admin.vendors.pending.index', function (BreadcrumbTrail $trail) {
+    $trail->parent('admin.vendors.index');
+    $trail->push('Signup Requests', route('admin.vendors.pending.index'));
+});
+
+Breadcrumbs::for('admin.vendors.pending.show', function (BreadcrumbTrail $trail, $vendor) {
+    $trail->parent('admin.vendors.pending.index');
+    $trail->push($vendor->display_agency_name ?: $vendor->name, route('admin.vendors.pending.show', $vendor));
+});
+
 Breadcrumbs::for('admin.wallet.bank-transfers.index', function (BreadcrumbTrail $trail) {
     $trail->parent('admin.dashboard');
     $trail->push('Wallet Bank Transfers', route('admin.wallet.bank-transfers.index'));

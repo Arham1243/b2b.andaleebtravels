@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\B2bVendor;
+
+$vendorPendingCount = B2bVendor::pendingSignups()->count();
+
 return [
     [
         'title' => 'Dashboard',
@@ -9,7 +13,24 @@ return [
     [
         'title' => 'Vendors',
         'icon' => 'bx bxs-briefcase',
-        'route' => route('admin.vendors.index'),
+        'submenu' => [
+            [
+                'title' => 'Manage Vendors',
+                'icon' => 'bx bxs-user-detail',
+                'route' => route('admin.vendors.index'),
+            ],
+            [
+                'title' => 'Signup Requests',
+                'icon' => 'bx bxs-time-five',
+                'route' => route('admin.vendors.pending.index'),
+                'badge_count' => $vendorPendingCount,
+            ],
+            [
+                'title' => 'Add Vendor',
+                'icon' => 'bx bx-plus-circle',
+                'route' => route('admin.vendors.create'),
+            ],
+        ],
     ],
     [
         'title' => 'Hotel Bookings',
