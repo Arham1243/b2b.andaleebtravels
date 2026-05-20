@@ -119,7 +119,7 @@
 			color: #000000;
 			font-family: sans-serif;"
                             class="header">
-                            <img border="0" vspace="0" hspace="0" src="{{ $data['logo'] }}" width="200"
+                            <img border="0" vspace="0" hspace="0" src="{{ asset('frontend/assets/images/logo.png') }}" width="200"
                                 height="58" alt="{{ config('app.name') }}" title="{{ config('app.name') }}" />
                         </td>
                     </tr>
