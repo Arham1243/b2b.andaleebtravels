@@ -17,9 +17,9 @@ return [
         'route' => route('admin.hotel-bookings.index'),
     ],
     [
-        'title' => 'Flight Booking',
+        'title' => 'Flight Bookings',
         'icon' => 'bx bxs-plane',
-        'route' => route('admin.flights.start'),
+        'route' => route('admin.flight-bookings.index'),
     ],
     [
         'title' => 'Inquiries',

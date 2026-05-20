@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\AdminHotelController;
 use App\Http\Controllers\Admin\AdminFlightController;
 use App\Http\Controllers\Admin\AdminBookingController;
 use App\Http\Controllers\Admin\AdminHotelBookingController;
+use App\Http\Controllers\Admin\AdminFlightBookingController;
 use App\Http\Controllers\Admin\WalletBankTransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +54,7 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('vendors/change-status/{vendor}', [VendorController::class, 'changeStatus'])->name('vendors.change-status');
 
     Route::resource('hotel-bookings', AdminHotelBookingController::class)->only(['index', 'show']);
+    Route::resource('flight-bookings', AdminFlightBookingController::class)->only(['index', 'show']);
 
     Route::post('bookings/hotels/{booking}/status', [AdminBookingController::class, 'updateHotelStatus'])->name('bookings.hotels.status');
     Route::post('bookings/hotels/{booking}/cancel', [AdminBookingController::class, 'cancelHotelBooking'])->name('bookings.hotels.cancel');

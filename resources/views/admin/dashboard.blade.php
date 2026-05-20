@@ -45,7 +45,7 @@
                         </a>
                     </div>
                     <div class="col-sm-6 col-xl-4 d-flex">
-                        <a href="{{ route('admin.vendors.index') }}" class="admin-stat w-100">
+                        <a href="{{ route('admin.flight-bookings.index') }}" class="admin-stat w-100">
                             <span class="admin-stat__head">
                                 <span class="admin-stat__label">Flight bookings</span>
                                 <span class="admin-stat__icon"><i class='bx bx-plane'></i></span>
@@ -140,7 +140,7 @@
                                 @endif
                                 @if ($flightBookingsPending > 0)
                                     <li>
-                                        <a href="{{ route('admin.vendors.index') }}">
+                                        <a href="{{ route('admin.flight-bookings.index') }}">
                                             <span class="admin-actions__icon"><i class='bx bx-plane'></i></span>
                                             <span class="admin-actions__label">Flight bookings pending payment</span>
                                             <span class="admin-actions__hint">{{ $flightBookingsPending }}</span>
@@ -160,7 +160,7 @@
                                 @endif
                                 @if ($flightBookingsFailed > 0)
                                     <li>
-                                        <a href="{{ route('admin.vendors.index') }}">
+                                        <a href="{{ route('admin.flight-bookings.index') }}">
                                             <span class="admin-actions__icon admin-actions__icon--danger"><i class='bx bx-error-circle'></i></span>
                                             <span class="admin-actions__label">Failed flight payments</span>
                                             <span class="admin-actions__hint">{{ $flightBookingsFailed }}</span>
@@ -172,6 +172,13 @@
                                     <a href="{{ route('admin.hotel-bookings.index') }}">
                                         <span class="admin-actions__icon admin-actions__icon--neutral"><i class='bx bx-hotel'></i></span>
                                         <span class="admin-actions__label">All hotel bookings</span>
+                                        <i class='bx bx-chevron-right admin-actions__arrow'></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('admin.flight-bookings.index') }}">
+                                        <span class="admin-actions__icon admin-actions__icon--neutral"><i class='bx bx-plane'></i></span>
+                                        <span class="admin-actions__label">All flight bookings</span>
                                         <i class='bx bx-chevron-right admin-actions__arrow'></i>
                                     </a>
                                 </li>

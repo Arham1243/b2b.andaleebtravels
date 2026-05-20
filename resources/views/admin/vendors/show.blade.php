@@ -534,9 +534,9 @@
                                         </td>
                                         <td style="white-space:nowrap; font-size:12px;">{{ $booking->created_at->format('d M Y') }}</td>
                                         <td>
-                                            <span class="vs-view-btn" style="cursor:default; opacity:.45;">
+                                            <a href="{{ route('admin.flight-bookings.show', $booking->id) }}" class="vs-view-btn">
                                                 <i class="bx bx-show"></i> View
-                                            </span>
+                                            </a>
                                         </td>
                                     </tr>
                                 @endforeach
