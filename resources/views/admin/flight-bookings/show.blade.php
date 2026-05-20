@@ -91,6 +91,8 @@
 
                 <div class="bkpd-grid">
                     <div>
+                        @include('admin.hotel-bookings.partials.supplier-booking-details')
+
                         @if ($booking->vendor)
                             <div class="bkpd-card mb-3 admin-flight-vendor">
                                 <div class="bkpd-card__section-head bkpd-card__section-head--purple"><i class="bx bx-briefcase"></i> Vendor</div>

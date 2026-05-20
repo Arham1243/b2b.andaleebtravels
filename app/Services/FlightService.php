@@ -674,6 +674,289 @@ class FlightService
         }
     }
 
+    /**
+     * @return array{ok: bool, source: string|null, response: array<string, mixed>|null, error: string|null}
+     */
+    public function fetchLiveSabreBookingDetails(B2bFlightBooking $booking): array
+    {
+        $locator = trim((string) ($booking->sabre_record_locator ?? ''));
+        if ($locator === '') {
+            return [
+                'ok' => false,
+                'source' => null,
+                'response' => null,
+                'error' => 'Missing Sabre PNR on this booking.',
+            ];
+        }
+
+        $surname = trim((string) (
+            data_get($booking->passengers_data, 'lead.last_name')
+            ?? data_get($booking->passengers_data, 'passengers.0.last_name')
+            ?? ''
+        ));
+
+        try {
+            $token = $this->getSabreToken();
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'source' => null,
+                'response' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+
+        $rest = $this->fetchSabreGetBooking($token, $locator, $surname !== '' ? $surname : null);
+        if ($rest['ok']) {
+            return $rest;
+        }
+
+        $soap = $this->fetchSabreGetReservationDetails($token, $locator);
+        if ($soap['ok']) {
+            return $soap;
+        }
+
+        return [
+            'ok' => false,
+            'source' => null,
+            'response' => null,
+            'error' => $soap['error'] ?? $rest['error'] ?? 'Unable to fetch Sabre booking details.',
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, source: string, response: array<string, mixed>|null, error: string|null}
+     */
+    private function fetchSabreGetBooking(string $token, string $locator, ?string $surname): array
+    {
+        $payloads = [];
+
+        if ($surname !== null && $surname !== '') {
+            $payloads[] = [
+                'confirmationId' => $locator,
+                'bookingSource' => 'SABRE',
+                'surname' => $surname,
+            ];
+        }
+
+        $payloads[] = [
+            'confirmationId' => $locator,
+            'bookingSource' => 'SABRE',
+        ];
+
+        $lastError = 'Sabre Get Booking request failed.';
+
+        foreach ($payloads as $payload) {
+            try {
+                $response = $this->sabreHttp()->withToken($token)
+                    ->withHeaders(['Accept' => 'application/json'])
+                    ->post('https://api.cert.platform.sabre.com/v1/trip/orders/getBooking', $payload);
+
+                $body = $response->json() ?? [];
+
+                if ($response->successful() && empty(data_get($body, 'errors'))) {
+                    $normalized = $this->normalizeGetBookingResponse($body);
+                    if (! empty($normalized['confirmationId'])) {
+                        return [
+                            'ok' => true,
+                            'source' => 'live',
+                            'response' => $normalized,
+                            'error' => null,
+                        ];
+                    }
+                }
+
+                $lastError = (string) (
+                    data_get($body, 'errors.0.description')
+                    ?? data_get($body, 'message')
+                    ?? ('Get Booking failed: HTTP ' . $response->status())
+                );
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
+            }
+        }
+
+        return [
+            'ok' => false,
+            'source' => 'rest',
+            'response' => null,
+            'error' => $lastError,
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, source: string, response: array<string, mixed>|null, error: string|null}
+     */
+    private function fetchSabreGetReservationDetails(string $bearerToken, string $locator): array
+    {
+        try {
+            $session = $this->createSoapSession($bearerToken);
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'source' => 'soap',
+                'response' => null,
+                'error' => 'Sabre session: ' . $e->getMessage(),
+            ];
+        }
+
+        $binaryToken = $session['token'] ?? null;
+        if (! $binaryToken) {
+            return [
+                'ok' => false,
+                'source' => 'soap',
+                'response' => null,
+                'error' => 'Sabre session returned empty token.',
+            ];
+        }
+
+        try {
+            $reservation = $this->getReservation($binaryToken, $locator, $bearerToken);
+            if (! ($reservation['success'] ?? false)) {
+                return [
+                    'ok' => false,
+                    'source' => 'soap',
+                    'response' => null,
+                    'error' => $reservation['error'] ?? 'GetReservation failed.',
+                ];
+            }
+
+            $parsed = $this->parseGetReservationXml($reservation['response']);
+            $parsed['confirmationId'] = $parsed['confirmationId'] ?: $locator;
+
+            return [
+                'ok' => true,
+                'source' => 'live',
+                'response' => $parsed,
+                'error' => null,
+            ];
+        } finally {
+            try {
+                $this->closeSession($binaryToken, $bearerToken);
+            } catch (\Throwable) {
+                // Read-only lookup; ignore session close failures.
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     */
+    private function normalizeGetBookingResponse(array $body): array
+    {
+        $booking = data_get($body, 'booking') ?? $body;
+
+        $travelers = [];
+        foreach ((array) data_get($booking, 'travelers', []) as $traveler) {
+            $name = trim(implode(' ', array_filter([
+                data_get($traveler, 'givenName'),
+                data_get($traveler, 'surname'),
+            ])));
+
+            if ($name !== '') {
+                $travelers[] = $name;
+            }
+        }
+
+        $flights = [];
+        foreach ((array) data_get($booking, 'flights', data_get($booking, 'flightDetails', [])) as $flight) {
+            $from = data_get($flight, 'fromAirportCode') ?? data_get($flight, 'fromAirport');
+            $to = data_get($flight, 'toAirportCode') ?? data_get($flight, 'toAirport');
+            $departure = data_get($flight, 'departureDate') ?? data_get($flight, 'departureDateTime');
+            $flightNumber = data_get($flight, 'flightNumber');
+
+            $parts = array_filter([
+                $departure,
+                $from && $to ? "{$from} → {$to}" : null,
+                $flightNumber ? 'Flt ' . $flightNumber : null,
+            ]);
+
+            if ($parts !== []) {
+                $flights[] = implode(' · ', $parts);
+            }
+        }
+
+        $tickets = [];
+        foreach ((array) data_get($booking, 'tickets', data_get($booking, 'ticketDetails', [])) as $ticket) {
+            $number = data_get($ticket, 'number') ?? data_get($ticket, 'ticketNumber');
+            if (is_string($number) && $number !== '') {
+                $tickets[] = $number;
+            }
+        }
+
+        return [
+            'confirmationId' => data_get($booking, 'confirmationId') ?? data_get($body, 'confirmationId'),
+            'bookingStatus' => data_get($booking, 'bookingStatus') ?? data_get($booking, 'status'),
+            'ticketStatus' => data_get($booking, 'ticketStatus') ?? ($tickets !== [] ? 'issued' : null),
+            'bookingId' => data_get($booking, 'bookingId') ?? data_get($booking, 'id'),
+            'travelers' => $travelers,
+            'flights' => $flights,
+            'tickets' => array_values(array_unique($tickets)),
+            'apiSource' => 'Get Booking (REST)',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parseGetReservationXml(string $xml): array
+    {
+        $data = [
+            'confirmationId' => null,
+            'bookingStatus' => null,
+            'ticketStatus' => null,
+            'bookingId' => null,
+            'travelers' => [],
+            'flights' => [],
+            'tickets' => [],
+            'apiSource' => 'GetReservation (SOAP)',
+        ];
+
+        if (preg_match('/<(?:[\w-]+:)?RecordLocator[^>]*>([^<]+)</i', $xml, $match)) {
+            $data['confirmationId'] = trim($match[1]);
+        }
+
+        if (preg_match('/<(?:[\w-]+:)?BookingDetails[^>]*Status="([^"]+)"/i', $xml, $match)) {
+            $data['bookingStatus'] = trim($match[1]);
+        } elseif (preg_match('/<(?:[\w-]+:)?Reservation[^>]*Status="([^"]+)"/i', $xml, $match)) {
+            $data['bookingStatus'] = trim($match[1]);
+        }
+
+        if (preg_match_all('/<(?:[\w-]+:)?GivenName[^>]*>([^<]+)</i', $xml, $givenNames)
+            && preg_match_all('/<(?:[\w-]+:)?Surname[^>]*>([^<]+)</i', $xml, $surnames)) {
+            $count = min(count($givenNames[1]), count($surnames[1]));
+            for ($i = 0; $i < $count; $i++) {
+                $data['travelers'][] = trim($givenNames[1][$i]) . ' ' . trim($surnames[1][$i]);
+            }
+        }
+
+        if (preg_match_all('/<(?:[\w-]+:)?FlightSegment[^>]*FlightNumber="([^"]*)"[^>]*DepartureDateTime="([^"]*)"[^>]*>/i', $xml, $segments, PREG_SET_ORDER)) {
+            foreach ($segments as $segment) {
+                $data['flights'][] = trim($segment[2]) . ' · Flt ' . trim($segment[1]);
+            }
+        } elseif (preg_match_all('/<(?:[\w-]+:)?FlightSegment[^>]*DepartureDateTime="([^"]*)"[^>]*FlightNumber="([^"]*)"[^>]*>/i', $xml, $segments, PREG_SET_ORDER)) {
+            foreach ($segments as $segment) {
+                $data['flights'][] = trim($segment[1]) . ' · Flt ' . trim($segment[2]);
+            }
+        }
+
+        if (preg_match_all('/<(?:[\w-]+:)?TicketNumber[^>]*>([^<]+)</i', $xml, $ticketNumbers)) {
+            foreach ($ticketNumbers[1] as $ticketNumber) {
+                $ticketNumber = trim($ticketNumber);
+                if ($ticketNumber !== '') {
+                    $data['tickets'][] = $ticketNumber;
+                }
+            }
+        }
+
+        if ($data['tickets'] !== []) {
+            $data['ticketStatus'] = 'issued';
+        }
+
+        return $data;
+    }
+
     public function cancelSabreBooking(B2bFlightBooking $booking): array
     {
         $locator = $booking->sabre_record_locator;
