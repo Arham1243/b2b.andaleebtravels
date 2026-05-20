@@ -1,6 +1,6 @@
 @php
     $vendor = Auth::user();
-    $agencyTitle = $vendor->name ?: config('app.name');
+    $agencyTitle = $vendor->display_agency_name ?: config('app.name');
 @endphp
 <nav class="topbar" id="userTopbar">
     {{-- Tier 1: agency + balance + account --}}
@@ -30,12 +30,14 @@
                     <div class="topbar-agency dropdown">
                         <div class="topbar-agency__info topbar-agency__info--compact dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" role="button">
                             <div class="topbar-agency__details">
-                                <span class="topbar-agency__name">{{ $vendor->name }}</span>
+                                <span class="topbar-agency__name">{{ $vendor->display_agency_name }}</span>
                                 <span class="topbar-agency__code">{{ __('Agent Code') }}: {{ $vendor->agent_code ?? 'N/A' }}</span>
                             </div>
                             <div class="topbar-agency__avatar">
-                                @if ($vendor->avatar)
-                                    <img src="{{ asset($vendor->avatar) }}" alt="{{ $vendor->name }}">
+                                @if ($vendor->agency_logo)
+                                    <img src="{{ asset($vendor->agency_logo) }}" alt="{{ $vendor->display_agency_name }}">
+                                @elseif ($vendor->avatar)
+                                    <img src="{{ asset($vendor->avatar) }}" alt="{{ $vendor->display_agency_name }}">
                                 @else
                                     <i class='bx bxs-user-circle'></i>
                                 @endif

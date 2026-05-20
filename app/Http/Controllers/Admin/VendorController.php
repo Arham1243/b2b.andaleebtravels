@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\VendorInviteMail;
 use App\Models\B2bVendor;
+use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 
 class VendorController extends Controller
 {
+    use UploadImageTrait;
     public function index()
     {
         $vendors = B2bVendor::latest()->get();
@@ -34,10 +36,15 @@ class VendorController extends Controller
             'username' => 'required|string|max:255|unique:b2b_vendors,username',
             'trade_license_number' => 'required|string|max:255',
             'trade_license_expiry' => 'required|date',
+            'agency_logo' => 'nullable|image|max:2048',
             'status' => 'required|in:active,inactive',
         ]);
 
         $plainPassword = '12345678';
+
+        $agencyLogo = $request->hasFile('agency_logo')
+            ? $this->uploadImage($request->file('agency_logo'), 'Vendors/AgencyLogo')
+            : null;
 
         $vendor = B2bVendor::create([
             'name' => $validated['travel_agency'],
@@ -49,6 +56,7 @@ class VendorController extends Controller
             'username' => $validated['username'],
             'trade_license_number' => $validated['trade_license_number'],
             'trade_license_expiry' => $validated['trade_license_expiry'],
+            'agency_logo' => $agencyLogo,
             'agent_code' => $this->generateUniqueAgentCode(),
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
@@ -66,18 +74,22 @@ class VendorController extends Controller
 
     public function show(B2bVendor $vendor)
     {
+        $vendor->load('parentVendor');
+
         $walletLedger = $vendor->walletLedger()->with('reference')->latest()->get();
         $hotelBookings = $vendor->hotelBookings()->latest()->get();
         $flightBookings = $vendor->flightBookings()->latest()->get();
+        $subAgents = $vendor->subAgents()->latest()->get();
 
         $stats = [
             'hotel_bookings'  => $hotelBookings->count(),
             'flight_bookings' => $flightBookings->count(),
             'total_spent'     => $hotelBookings->sum('total_amount') + $flightBookings->sum('total_amount'),
             'ledger_entries'  => $walletLedger->count(),
+            'sub_agents'      => $subAgents->count(),
         ];
 
-        return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings', 'flightBookings', 'stats'));
+        return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings', 'flightBookings', 'subAgents', 'stats'));
     }
 
     public function changeStatus(B2bVendor $vendor)

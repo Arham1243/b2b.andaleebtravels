@@ -36,19 +36,19 @@ class ProfileSettingsController extends Controller
         $vendorId = Auth::user()->id;
 
         $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
+            'travel_agency' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'designation' => 'required|string|max:255',
             'username' => [
                 'required',
                 'string',
                 'max:255',
                 Rule::unique('b2b_vendors', 'username')->ignore($vendorId),
             ],
-            'agent_code' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('b2b_vendors', 'agent_code')->ignore($vendorId),
-            ],
+            'trade_license_number' => 'required|string|max:255',
+            'trade_license_expiry' => 'required|date',
+            'agency_logo' => 'nullable|image|max:2048',
             'avatar' => 'nullable|image|max:2048',
             'hotel_search_providers' => 'nullable|array',
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
@@ -57,10 +57,24 @@ class ProfileSettingsController extends Controller
         ]);
 
         $data = $validatedData;
+        $data['name'] = $validatedData['travel_agency'];
+
+        $vendor = B2bVendor::findOrFail($vendorId);
+
+        if ($request->hasFile('agency_logo')) {
+            $data['agency_logo'] = $this->uploadImage(
+                $request->file('agency_logo'),
+                'Vendors/AgencyLogo',
+                $vendor->agency_logo
+            );
+        }
 
         if ($request->hasFile('avatar')) {
-            $avatar = $this->uploadImage($request->file('avatar'), 'Users/Avatar');
-            $data['avatar'] = $avatar;
+            $data['avatar'] = $this->uploadImage(
+                $request->file('avatar'),
+                'Users/Avatar',
+                $vendor->avatar
+            );
         }
 
         $data['hotel_search_providers'] = $this->parseProviderConfig($request->input('hotel_search_providers'), ['yalago', 'tbo', 'tripindeal']);

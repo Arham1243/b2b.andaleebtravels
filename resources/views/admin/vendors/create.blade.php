@@ -3,7 +3,7 @@
     <div class="col-md-12">
         <div class="dashboard-content">
             {{ Breadcrumbs::render('admin.vendors.create') }}
-            <form action="{{ route('admin.vendors.store') }}" method="POST" id="validation-form">
+            <form action="{{ route('admin.vendors.store') }}" method="POST" enctype="multipart/form-data" id="validation-form">
                 @csrf
                 <div class="row">
                     <div class="col-md-8">
@@ -18,6 +18,15 @@
                                         <input type="text" name="travel_agency" class="field"
                                             value="{{ old('travel_agency') }}" placeholder="Enter travel agency name" required>
                                         @error('travel_agency')
+                                            <div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="form-fields">
+                                        <label class="title">Agency Logo</label>
+                                        <input type="file" name="agency_logo" class="field" accept="image/*">
+                                        <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB</small>
+                                        @error('agency_logo')
                                             <div class="text-danger">{{ $message }}</div>
                                         @enderror
                                     </div>

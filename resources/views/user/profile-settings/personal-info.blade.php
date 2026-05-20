@@ -44,13 +44,53 @@
                         <div class="ps-card__body">
                             <div class="ps-form-grid">
 
+                                <div class="ps-field" style="grid-column: 1 / -1;">
+                                    <label class="ps-field__label">
+                                        Travel Agency <span class="req">*</span>
+                                    </label>
+                                    <input type="text" name="travel_agency" class="ps-field__input"
+                                           value="{{ old('travel_agency', $user->travel_agency ?: $user->name) }}" required>
+                                    @error('travel_agency')
+                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
                                 <div class="ps-field">
                                     <label class="ps-field__label">
-                                        Name <span class="req">*</span>
+                                        First Name <span class="req">*</span>
                                     </label>
-                                    <input type="text" name="name" class="ps-field__input"
-                                           value="{{ old('name', $user->name) }}" required>
-                                    @error('name')
+                                    <input type="text" name="first_name" class="ps-field__input"
+                                           value="{{ old('first_name', $user->first_name) }}" required>
+                                    @error('first_name')
+                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="ps-field">
+                                    <label class="ps-field__label">
+                                        Last Name <span class="req">*</span>
+                                    </label>
+                                    <input type="text" name="last_name" class="ps-field__input"
+                                           value="{{ old('last_name', $user->last_name) }}" required>
+                                    @error('last_name')
+                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="ps-field">
+                                    <label class="ps-field__label">Email Address</label>
+                                    <input type="email" class="ps-field__input" readonly
+                                           value="{{ old('email', $user->email) }}">
+                                    <span class="ps-field__hint">Email address cannot be changed.</span>
+                                </div>
+
+                                <div class="ps-field">
+                                    <label class="ps-field__label">
+                                        Designation <span class="req">*</span>
+                                    </label>
+                                    <input type="text" name="designation" class="ps-field__input"
+                                           value="{{ old('designation', $user->designation) }}" required>
+                                    @error('designation')
                                         <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
                                     @enderror
                                 </div>
@@ -67,23 +107,58 @@
                                 </div>
 
                                 <div class="ps-field">
-                                    <label class="ps-field__label">Email</label>
-                                    <input type="email" class="ps-field__input" readonly
-                                           value="{{ old('email', $user->email) }}">
-                                    <span class="ps-field__hint">Email address cannot be changed.</span>
+                                    <label class="ps-field__label">Agent Code</label>
+                                    <input type="text" class="ps-field__input" readonly
+                                           value="{{ $user->agent_code }}">
+                                    <span class="ps-field__hint">Used for login. Contact admin if you need it changed.</span>
                                 </div>
 
                                 <div class="ps-field">
                                     <label class="ps-field__label">
-                                        Agent Code <span class="req">*</span>
+                                        Trade License Number <span class="req">*</span>
                                     </label>
-                                    <input type="text" name="agent_code" class="ps-field__input"
-                                           value="{{ old('agent_code', $user->agent_code) }}" required>
-                                    @error('agent_code')
+                                    <input type="text" name="trade_license_number" class="ps-field__input"
+                                           value="{{ old('trade_license_number', $user->trade_license_number) }}" required>
+                                    @error('trade_license_number')
                                         <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
                                     @enderror
                                 </div>
 
+                                <div class="ps-field">
+                                    <label class="ps-field__label">
+                                        Trade License Expiry <span class="req">*</span>
+                                    </label>
+                                    <input type="date" name="trade_license_expiry" class="ps-field__input"
+                                           value="{{ old('trade_license_expiry', $user->trade_license_expiry?->format('Y-m-d')) }}" required>
+                                    @error('trade_license_expiry')
+                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                            </div>
+
+                            {{-- Agency Logo --}}
+                            <div style="margin-top:20px;">
+                                <div class="ps-field__label" style="margin-bottom:10px;">Agency Logo</div>
+                                <div class="ps-avatar-pick">
+                                    <img src="{{ $user->agency_logo ? asset($user->agency_logo) : asset('admin/assets/images/placeholder.png') }}"
+                                         alt="Agency Logo" class="ps-avatar-pick__preview"
+                                         id="agency-logo-preview">
+                                    <div>
+                                        <label for="agency-logo-img" class="ps-avatar-pick__btn">
+                                            <i class="bx bx-upload"></i> Upload Agency Logo
+                                        </label>
+                                        <input type="file" name="agency_logo" id="agency-logo-img" class="d-none"
+                                               accept="image/*"
+                                               onchange="showImage(this, 'agency-logo-preview', 'agency-logo-filename')">
+                                        <div class="ps-avatar-pick__name" id="agency-logo-filename">
+                                            JPG, PNG or GIF - max 2 MB
+                                        </div>
+                                        @error('agency_logo')
+                                            <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                </div>
                             </div>
 
                             {{-- Avatar --}}

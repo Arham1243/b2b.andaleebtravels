@@ -282,6 +282,17 @@
                     <span class="vs-info-value">{{ $vendor->display_agency_name ?: '—' }}</span>
                 </div>
                 <div class="vs-info-item">
+                    <span class="vs-info-label">Agency Logo</span>
+                    <span class="vs-info-value">
+                        @if ($vendor->agency_logo)
+                            <img src="{{ asset($vendor->agency_logo) }}" alt="Agency Logo"
+                                style="max-height:48px; max-width:120px; object-fit:contain; border-radius:6px;">
+                        @else
+                            —
+                        @endif
+                    </span>
+                </div>
+                <div class="vs-info-item">
                     <span class="vs-info-label">Contact Name</span>
                     <span class="vs-info-value">{{ $vendor->contact_name ?: $vendor->name ?: '—' }}</span>
                 </div>
@@ -317,6 +328,16 @@
                     <span class="vs-info-label">Registered</span>
                     <span class="vs-info-value">{{ formatDateTime($vendor->created_at) }}</span>
                 </div>
+                @if ($vendor->parentVendor)
+                    <div class="vs-info-item">
+                        <span class="vs-info-label">Parent Agency</span>
+                        <span class="vs-info-value">
+                            <a href="{{ route('admin.vendors.show', $vendor->parentVendor) }}">
+                                {{ $vendor->parentVendor->display_agency_name ?: $vendor->parentVendor->name }}
+                            </a>
+                        </span>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -336,6 +357,10 @@
                 <button class="vs-tabs__btn" onclick="vsTab(event,'panel-flights')" type="button">
                     <i class="bx bx-plane"></i> Flight Bookings
                     <span class="vs-tabs__count">{{ $stats['flight_bookings'] }}</span>
+                </button>
+                <button class="vs-tabs__btn" onclick="vsTab(event,'panel-sub-agents')" type="button">
+                    <i class="bx bx-group"></i> Sub Agents
+                    <span class="vs-tabs__count">{{ $stats['sub_agents'] }}</span>
                 </button>
             </div>
 
@@ -566,6 +591,55 @@
                     <div class="text-center py-5" style="color:#6b6573;">
                         <i class="bx bx-plane" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
                         No flight bookings yet.
+                    </div>
+                @endif
+            </div>
+
+            {{-- Sub Agents --}}
+            <div class="vs-tab-panel" id="panel-sub-agents">
+                @if ($subAgents->isNotEmpty())
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Username</th>
+                                    <th>Agent Code</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($subAgents as $i => $agent)
+                                    <tr>
+                                        <td>{{ $i + 1 }}</td>
+                                        <td>{{ $agent->contact_name ?: $agent->name ?: '—' }}</td>
+                                        <td>{{ $agent->email }}</td>
+                                        <td>{{ $agent->username }}</td>
+                                        <td><code style="font-size:.85em; color:var(--color-primary);">{{ $agent->agent_code }}</code></td>
+                                        <td>
+                                            <span class="badge rounded-pill bg-{{ $agent->status === 'active' ? 'success' : 'danger' }}">
+                                                {{ ucfirst($agent->status) }}
+                                            </span>
+                                        </td>
+                                        <td style="white-space:nowrap; font-size:12px;">{{ formatDateTime($agent->created_at) }}</td>
+                                        <td>
+                                            <a href="{{ route('admin.vendors.show', $agent->id) }}" class="vs-view-btn">
+                                                <i class="bx bx-show"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center py-5" style="color:#6b6573;">
+                        <i class="bx bx-group" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
+                        No sub agents for this agency yet.
                     </div>
                 @endif
             </div>
