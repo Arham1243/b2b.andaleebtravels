@@ -36,19 +36,20 @@ class AdminHotelBookingController extends Controller
     {
         $booking = B2bHotelBooking::with('vendor')->findOrFail($id);
 
-        $supplierBookingDetails = null;
+        $liveFetch = null;
         if (strtolower((string) ($booking->supplier ?? '')) === 'tbo') {
-            $tboBookingDetail = $tboBookingDetailTestService->fetch($booking);
-            $supplierBookingDetails = SupplierBookingDetailsPresenter::present($booking, $tboBookingDetail);
+            $liveFetch = $tboBookingDetailTestService->fetch($booking);
 
-            if (empty($tboBookingDetail['ok'])) {
+            if (empty($liveFetch['ok'])) {
                 Log::warning('Supplier booking detail lookup failed (admin hotel booking show)', [
                     'booking_id' => $booking->id,
                     'booking_number' => $booking->booking_number,
-                    'error' => $tboBookingDetail['error'] ?? null,
+                    'error' => $liveFetch['error'] ?? null,
                 ]);
             }
         }
+
+        $supplierBookingDetails = SupplierBookingDetailsPresenter::present($booking, $liveFetch);
 
         return view('admin.hotel-bookings.show', compact('booking', 'supplierBookingDetails'))
             ->with('title', 'Booking ' . $booking->booking_number);

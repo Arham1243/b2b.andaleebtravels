@@ -4,11 +4,10 @@
             <div>
                 <div class="bkpd-card__title">Supplier Booking Details</div>
                 <div class="bkpd-card__sub">
-                    Live data from {{ $supplierBookingDetails['supplier_label'] ?? 'supplier' }}
                     @if (($supplierBookingDetails['source'] ?? '') === 'live')
-                        · synced now
-                    @elseif (($supplierBookingDetails['source'] ?? '') === 'saved')
-                        · saved confirmation
+                        Live confirmation from {{ $supplierBookingDetails['supplier_label'] ?? 'supplier' }}
+                    @else
+                        Saved confirmation from {{ $supplierBookingDetails['supplier_label'] ?? 'supplier' }}
                     @endif
                 </div>
             </div>
@@ -19,7 +18,7 @@
             @endif
         </div>
 
-        @if (!empty($supplierBookingDetails['error']))
+        @if (!empty($supplierBookingDetails['error']) && ($supplierBookingDetails['source'] ?? '') !== 'saved')
             <div style="padding:0 16px 12px;">
                 <p class="small mb-0" style="color:#b35900;">
                     <i class="bx bx-info-circle"></i>
