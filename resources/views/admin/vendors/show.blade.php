@@ -183,6 +183,48 @@
         letter-spacing: .04em;
     }
     .pm-bank   { background:#f3e5f5; color:#6a1b9a; }
+    .pm-debit-booking { background:#ffebee; color:#b71c1c; }
+    .pm-refund { background:#e3f2fd; color:#1565c0; }
+    .pm-recharge { background:#e8f5e9; color:#2e7d32; }
+    .pm-manual { background:#fff8e1; color:#f57f17; }
+
+    .vs-wallet-form {
+        border: 1px solid #ebecf0;
+        border-radius: 10px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1.25rem;
+        background: #fafbfc;
+    }
+    .vs-wallet-form__title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #18181b;
+        margin: 0 0 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .vs-wallet-form__hint {
+        font-size: 0.78rem;
+        color: #6b6573;
+        margin: 0 0 0.85rem;
+    }
+    .vs-wallet-form .field {
+        width: 100%;
+        border: 1px solid #d8dbe2;
+        border-radius: 8px;
+        padding: 0.45rem 0.65rem;
+        font-size: 0.88rem;
+    }
+    .vs-wallet-form label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #6b6573;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
     .pm-card   { background:#e3f2fd; color:#1565c0; }
     .pm-tabby  { background:#fff3e0; color:#e65100; }
     .pm-wallet { background:#e8f5e9; color:#2e7d32; }
@@ -376,6 +418,51 @@
 
             {{-- Wallet Ledger --}}
             <div class="vs-tab-panel active" id="panel-wallet">
+                <div class="vs-wallet-form">
+                    <div class="vs-wallet-form__title"><i class="bx bx-plus-circle"></i> Add manual transaction</div>
+                    <p class="vs-wallet-form__hint">
+                        Record an admin credit or debit (e.g. hotel payment taken from wallet offline). Balance updates immediately.
+                        Current balance: <strong>{!! formatPrice($vendor->main_balance ?? 0) !!}</strong>
+                    </p>
+                    <form action="{{ route('admin.vendors.wallet-transactions.store', $vendor) }}" method="POST"
+                        id="manual-wallet-form" class="row g-3 align-items-end">
+                        @csrf
+                        <div class="col-md-2">
+                            <label for="mw_type">Type</label>
+                            <select name="type" id="mw_type" class="field" required>
+                                <option value="credit" {{ old('type') === 'credit' ? 'selected' : '' }}>Credit</option>
+                                <option value="debit" {{ old('type') === 'debit' ? 'selected' : '' }}>Debit</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="mw_amount">Amount (AED)</label>
+                            <input type="number" name="amount" id="mw_amount" class="field" step="0.01" min="0.01"
+                                value="{{ old('amount') }}" required placeholder="0.00">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="mw_date">Date</label>
+                            <input type="date" name="transaction_date" id="mw_date" class="field"
+                                value="{{ old('transaction_date', now()->format('Y-m-d')) }}" max="{{ now()->format('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="mw_time">Time</label>
+                            <input type="time" name="transaction_time" id="mw_time" class="field"
+                                value="{{ old('transaction_time', now()->format('H:i')) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="mw_description">Description <span class="text-danger">*</span></label>
+                            <input type="text" name="description" id="mw_description" class="field" maxlength="500"
+                                value="{{ old('description') }}" required
+                                placeholder="e.g. Hotel booking payment — Marriott DXB">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="themeBtn" style="font-size:.85rem;">
+                                <i class="bx bx-check"></i> Add to ledger
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
                 @if ($walletLedger->isNotEmpty())
                     <div class="table-responsive">
                         <table class="data-table">
@@ -384,7 +471,7 @@
                                     <th>#</th>
                                     <th>Date</th>
                                     <th>Type</th>
-                                    <th>Payment Method</th>
+                                    <th>Reason</th>
                                     <th>Amount</th>
                                     <th>Balance Before</th>
                                     <th>Balance After</th>
@@ -394,23 +481,7 @@
                             <tbody>
                                 @foreach ($walletLedger as $i => $entry)
                                     @php
-                                        $pm = null; $pmClass = 'pm-system'; $pmLabel = '—';
-                                        if ($entry->reference instanceof \App\Models\B2bWalletRecharge) {
-                                            $pm = $entry->reference->payment_method;
-                                            [$pmLabel, $pmClass] = match($pm) {
-                                                'bank_transfer' => ['Bank Transfer', 'pm-bank'],
-                                                'card'          => ['Card', 'pm-card'],
-                                                'tabby'         => ['Tabby', 'pm-tabby'],
-                                                'wallet'        => ['Wallet', 'pm-wallet'],
-                                                default         => [ucfirst(str_replace('_',' ',$pm??'')), 'pm-system'],
-                                            };
-                                        } elseif ($entry->reference instanceof \App\Models\B2bFlightBooking
-                                            || $entry->reference instanceof \App\Models\B2bHotelBooking) {
-                                            $pmLabel = str_contains($entry->description ?? '', 'Refund') ? 'Booking refund' : 'Booking';
-                                            $pmClass = 'pm-wallet';
-                                        } elseif ($entry->reference_type) {
-                                            $pmLabel = 'System';
-                                        }
+                                        $refLink = $entry->adminReferenceLink();
                                     @endphp
                                     <tr>
                                         <td>{{ $i + 1 }}</td>
@@ -423,13 +494,22 @@
                                                 {{ ucfirst($entry->type) }}
                                             </span>
                                         </td>
-                                        <td><span class="pm-pill {{ $pmClass }}">{{ $pmLabel }}</span></td>
+                                        <td><span class="pm-pill {{ $entry->adminReasonClass() }}">{{ $entry->adminReasonLabel() }}</span></td>
                                         <td class="fw-bold {{ $entry->isCredit() ? 'text-success' : 'text-danger' }}">
                                             {{ $entry->isCredit() ? '+' : '-' }}{!! formatPrice($entry->amount) !!}
                                         </td>
                                         <td>{!! formatPrice($entry->balance_before) !!}</td>
                                         <td class="fw-semibold">{!! formatPrice($entry->balance_after) !!}</td>
-                                        <td style="font-size:13px;">{{ $entry->description }}</td>
+                                        <td style="font-size:13px; max-width:320px;">
+                                            <div>{{ $entry->description }}</div>
+                                            @if (!empty($refLink['label']))
+                                                @if (!empty($refLink['url']))
+                                                    <a href="{{ $refLink['url'] }}" class="small" style="color:var(--color-primary,#cd1b4f);">{{ $refLink['label'] }}</a>
+                                                @else
+                                                    <span class="small text-muted">{{ $refLink['label'] }}</span>
+                                                @endif
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -673,6 +753,26 @@
 
 @push('js')
 <script>
+document.getElementById('manual-wallet-form')?.addEventListener('submit', function(e) {
+    const type = document.getElementById('mw_type')?.value || 'credit';
+    const amount = document.getElementById('mw_amount')?.value || '0';
+    const description = document.getElementById('mw_description')?.value || '';
+    const vendor = @json($vendor->display_agency_name ?: $vendor->name);
+    const action = type === 'debit' ? 'debit' : 'credit';
+    const message =
+        'Add manual wallet ' + action + '?\n\n' +
+        'Vendor: ' + vendor + '\n' +
+        'Amount: ' + amount + ' AED\n' +
+        'Description: ' + description + '\n\n' +
+        (type === 'debit'
+            ? 'This will reduce the vendor wallet balance.'
+            : 'This will increase the vendor wallet balance.') +
+        '\n\nContinue?';
+    if (!confirm(message)) {
+        e.preventDefault();
+    }
+});
+
     function vsTab(e, panelId) {
         document.querySelectorAll('.vs-tabs__btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.vs-tab-panel').forEach(p => p.classList.remove('active'));

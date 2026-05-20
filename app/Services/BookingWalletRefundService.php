@@ -6,6 +6,7 @@ use App\Models\B2bFlightBooking;
 use App\Models\B2bHotelBooking;
 use App\Models\B2bVendor;
 use App\Models\B2bWalletLedger;
+use App\Support\WalletLedgerDescription;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -123,8 +124,9 @@ class BookingWalletRefundService
         }
 
         $referenceType = $booking::class;
-        $label = $booking instanceof B2bFlightBooking ? 'Flight' : 'Hotel';
-        $description = "Refund - {$label} Booking #{$booking->booking_number}";
+        $description = $booking instanceof B2bFlightBooking
+            ? WalletLedgerDescription::creditFlightRefund($booking)
+            : WalletLedgerDescription::creditHotelRefund($booking);
 
         try {
             return DB::transaction(function () use ($vendorId, $amount, $description, $referenceType, $booking) {

@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\WalletLedgerDescription;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -17,6 +20,8 @@ class B2bWalletLedger extends Model
         'balance_before',
         'balance_after',
         'description',
+        'is_manual',
+        'recorded_by_b2b_admin_id',
         'reference_type',
         'reference_id',
     ];
@@ -25,6 +30,7 @@ class B2bWalletLedger extends Model
         'amount' => 'decimal:2',
         'balance_before' => 'decimal:2',
         'balance_after' => 'decimal:2',
+        'is_manual' => 'boolean',
     ];
 
     public function vendor(): BelongsTo
@@ -37,14 +43,74 @@ class B2bWalletLedger extends Model
         return $this->morphTo('reference', 'reference_type', 'reference_id');
     }
 
+    public function recordedByAdmin(): BelongsTo
+    {
+        return $this->belongsTo(B2bAdmin::class, 'recorded_by_b2b_admin_id');
+    }
+
+    public static function recordManual(
+        int $vendorId,
+        string $type,
+        float $amount,
+        string $description,
+        Carbon $transactionAt,
+        int $adminId,
+    ): self {
+        return DB::transaction(function () use ($vendorId, $type, $amount, $description, $transactionAt, $adminId) {
+            $vendor = B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
+            $balanceBefore = (float) $vendor->main_balance;
+            $balanceAfter = $type === 'credit'
+                ? $balanceBefore + $amount
+                : $balanceBefore - $amount;
+
+            $vendor->update(['main_balance' => round($balanceAfter, 2)]);
+
+            $entry = self::create([
+                'b2b_vendor_id' => $vendorId,
+                'type' => $type,
+                'amount' => $amount,
+                'balance_before' => round($balanceBefore, 2),
+                'balance_after' => round($balanceAfter, 2),
+                'description' => WalletLedgerDescription::manualAdjustment($description),
+                'is_manual' => true,
+                'recorded_by_b2b_admin_id' => $adminId,
+            ]);
+
+            $entry->created_at = $transactionAt;
+            $entry->updated_at = $transactionAt;
+            $entry->saveQuietly();
+
+            return $entry;
+        });
+    }
+
     public static function refundCreditExists(string $referenceType, int $referenceId): bool
     {
         return self::query()
             ->where('reference_type', $referenceType)
             ->where('reference_id', $referenceId)
             ->where('type', 'credit')
-            ->where('description', 'like', 'Refund - %')
+            ->where(function ($query) {
+                $query->where('description', 'like', 'Refund — %')
+                    ->orWhere('description', 'like', 'Refund - %');
+            })
             ->exists();
+    }
+
+    public function adminReasonLabel(): string
+    {
+        return WalletLedgerDescription::adminReasonLabel($this);
+    }
+
+    public function adminReasonClass(): string
+    {
+        return WalletLedgerDescription::adminReasonClass($this);
+    }
+
+    /** @return array{label: string, url: string|null} */
+    public function adminReferenceLink(): array
+    {
+        return WalletLedgerDescription::adminReferenceLink($this);
     }
 
     public static function recordCredit(int $vendorId, float $amount, string $description, ?string $referenceType = null, ?int $referenceId = null): self

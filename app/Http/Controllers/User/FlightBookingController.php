@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bWalletLedger;
+use App\Support\WalletLedgerDescription;
 use App\Models\Config;
 use App\Services\FlightService;
 use Carbon\Carbon;
@@ -283,7 +284,7 @@ class FlightBookingController extends Controller
                     B2bWalletLedger::recordDebit(
                         $booking->b2b_vendor_id,
                         (float) $booking->wallet_amount,
-                        'Flight Booking #' . $booking->booking_number,
+                        WalletLedgerDescription::debitFlightPayment($booking),
                         B2bFlightBooking::class,
                         $booking->id
                     );

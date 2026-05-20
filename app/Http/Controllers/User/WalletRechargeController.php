@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bWalletLedger;
+use App\Support\WalletLedgerDescription;
 use App\Models\B2bWalletRecharge;
 use App\Models\Config;
 use App\Traits\UploadImageTrait;
@@ -215,7 +216,7 @@ class WalletRechargeController extends Controller
                 B2bWalletLedger::recordCredit(
                     Auth::id(),
                     (float) $recharge->amount,
-                    'Wallet Recharge #' . $recharge->transaction_number,
+                    WalletLedgerDescription::creditRecharge($recharge),
                     B2bWalletRecharge::class,
                     $recharge->id
                 );

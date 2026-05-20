@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\B2bHotelBooking;
 use App\Models\B2bWalletLedger;
+use App\Support\WalletLedgerDescription;
 use App\Models\Hotel;
 use App\Models\Config;
 use App\Models\Country;
@@ -1292,7 +1293,7 @@ class HotelController extends Controller
                 B2bWalletLedger::recordDebit(
                     $booking->b2b_vendor_id,
                     (float) $booking->wallet_amount,
-                    'Hotel Booking #' . $booking->booking_number,
+                    WalletLedgerDescription::debitHotelPayment($booking),
                     B2bHotelBooking::class,
                     $booking->id
                 );

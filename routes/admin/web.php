@@ -56,6 +56,7 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::post('vendors/pending/{vendor}/reject', [VendorController::class, 'reject'])->name('vendors.pending.reject');
     Route::get('vendors/{vendor}/sub-agents/create', [VendorController::class, 'createSubAgent'])->name('vendors.sub-agents.create');
     Route::post('vendors/{vendor}/sub-agents', [VendorController::class, 'storeSubAgent'])->name('vendors.sub-agents.store');
+    Route::post('vendors/{vendor}/wallet-transactions', [VendorController::class, 'storeWalletTransaction'])->name('vendors.wallet-transactions.store');
     Route::resource('vendors', VendorController::class);
     Route::get('vendors/change-status/{vendor}', [VendorController::class, 'changeStatus'])->name('vendors.change-status');
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bWalletLedger;
+use App\Support\WalletLedgerDescription;
 use App\Models\B2bWalletRecharge;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,7 +52,7 @@ class WalletBankTransferController extends Controller
                 B2bWalletLedger::recordCredit(
                     $locked->b2b_vendor_id,
                     (float) $locked->amount,
-                    'Wallet Recharge #' . $locked->transaction_number,
+                    WalletLedgerDescription::creditRecharge($locked),
                     B2bWalletRecharge::class,
                     $locked->id
                 );

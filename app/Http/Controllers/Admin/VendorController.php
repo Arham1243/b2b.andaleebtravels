@@ -7,6 +7,7 @@ use App\Mail\VendorApprovedMail;
 use App\Mail\VendorInviteMail;
 use App\Models\B2bVendor;
 use App\Models\Config;
+use App\Services\AdminManualWalletTransactionService;
 use App\Support\B2bVendorValidation;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
@@ -19,6 +20,10 @@ use Illuminate\Validation\Rule;
 class VendorController extends Controller
 {
     use UploadImageTrait;
+
+    public function __construct(
+        private readonly AdminManualWalletTransactionService $manualWalletTransactionService,
+    ) {}
 
     public function index()
     {
@@ -143,6 +148,38 @@ class VendorController extends Controller
         ];
 
         return view('admin.vendors.show', compact('vendor', 'walletLedger', 'hotelBookings', 'flightBookings', 'subAgents', 'stats'));
+    }
+
+    public function storeWalletTransaction(Request $request, B2bVendor $vendor)
+    {
+        if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
+            return redirect()->route('admin.vendors.pending.show', $vendor)
+                ->with('notify_error', 'Approve the vendor before adjusting wallet.');
+        }
+
+        $validated = $request->validate([
+            'type' => 'required|in:credit,debit',
+            'amount' => 'required|numeric|min:0.01|max:99999999.99',
+            'transaction_date' => 'required|date|before_or_equal:today',
+            'transaction_time' => 'nullable|date_format:H:i',
+            'description' => 'required|string|min:3|max:500',
+        ]);
+
+        $adminId = (int) auth('admin')->id();
+
+        try {
+            $entry = $this->manualWalletTransactionService->store($vendor, $validated, $adminId);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('notify_error', collect($e->errors())->flatten()->first());
+        }
+
+        $verb = $entry->isCredit() ? 'credited' : 'debited';
+
+        return redirect()->back()
+            ->with('notify_success', 'Wallet ' . $verb . ' ' . number_format((float) $entry->amount, 2) . ' AED. New balance: ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED.');
     }
 
     public function edit(B2bVendor $vendor)
