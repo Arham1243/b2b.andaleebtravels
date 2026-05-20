@@ -26,7 +26,6 @@
                             <div class="form-group">
                                 <label class="form-label">Agency Logo <span class="text-danger">*</span></label>
                                 <input type="file" name="agency_logo" id="agency-logo" class="custom-input" accept="image/*" required>
-                                <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB</small>
                                 <img id="agency-logo-preview" src="" alt="" class="mt-2 rounded" style="max-height:80px; display:none;">
                                 @error('agency_logo')
                                     <span class="text-danger validation-error">{{ $message }}</span>

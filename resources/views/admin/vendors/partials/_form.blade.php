@@ -31,7 +31,6 @@
             </div>
         @endif
         <input type="file" name="agency_logo" class="field" accept="image/*">
-        <small class="text-muted d-block mt-1">JPG, PNG or GIF — max 2 MB. Shown in the agent site header.</small>
         @error('agency_logo')
             <div class="text-danger">{{ $message }}</div>
         @enderror
