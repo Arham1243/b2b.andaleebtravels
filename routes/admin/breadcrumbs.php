@@ -46,3 +46,8 @@ Breadcrumbs::for('admin.hotel-bookings.show', function (BreadcrumbTrail $trail, 
     $trail->parent('admin.hotel-bookings.index');
     $trail->push($booking->booking_number, route('admin.hotel-bookings.show', $booking));
 });
+
+Breadcrumbs::for('admin.hotel-bookings.tbo-detail-test', function (BreadcrumbTrail $trail, $booking) {
+    $trail->parent('admin.hotel-bookings.show', $booking);
+    $trail->push('TBO Detail Test', route('admin.hotel-bookings.tbo-detail-test', $booking));
+});
