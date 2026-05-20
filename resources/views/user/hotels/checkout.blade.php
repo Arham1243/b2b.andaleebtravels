@@ -332,13 +332,15 @@
                                 </div>
                                 @endif
 
+                                <input type="hidden" name="payment_method" id="payment-method-input" value="payby">
+
                                 {{-- Remaining Payment Method --}}
                                 <div class="hc-payment-remaining" id="remaining-payment-section">
                                     <div class="hc-payment-remaining__title" id="remaining-payment-title">Select Payment Method</div>
                                     <div class="hc-payment-options">
                                         {{-- Card --}}
                                         <label class="hc-payment-option">
-                                            <input type="radio" name="payment_method" value="payby" checked required>
+                                            <input type="radio" class="js-payment-method-option" value="payby" checked>
                                             <div class="hc-payment-option__body">
                                                 <div class="hc-payment-option__icon"><i class="bx bxs-credit-card"></i></div>
                                                 <div class="hc-payment-option__info">
@@ -351,7 +353,7 @@
 
                                         {{-- Tabby --}}
                                         <label class="hc-payment-option">
-                                            <input type="radio" name="payment_method" value="tabby" required>
+                                            <input type="radio" class="js-payment-method-option" value="tabby">
                                             <div class="hc-payment-option__body">
                                                 <div class="hc-payment-option__icon"><i class="bx bx-calendar-check"></i></div>
                                                 <div class="hc-payment-option__info">
@@ -364,7 +366,7 @@
 
                                         {{-- Tamara --}}
                                         <label class="hc-payment-option">
-                                            <input type="radio" name="payment_method" value="tamara" required>
+                                            <input type="radio" class="js-payment-method-option" value="tamara">
                                             <div class="hc-payment-option__body">
                                                 <div class="hc-payment-option__icon"><i class="bx bx-wallet-alt"></i></div>
                                                 <div class="hc-payment-option__info">
@@ -502,7 +504,8 @@
                 walletAmountInput: document.getElementById('wallet-amount-input'),
                 remainingPaymentSection: document.getElementById('remaining-payment-section'),
                 remainingPaymentTitle: document.getElementById('remaining-payment-title'),
-                useWallet: document.getElementById('use-wallet')
+                useWallet: document.getElementById('use-wallet'),
+                paymentMethodInput: document.getElementById('payment-method-input')
             };
 
             const extrasHidden = document.getElementById('selected-extras-hidden-fields');
@@ -510,6 +513,23 @@
 
             function getNetTotal() {
                 return roomsTotal + currentExtrasTotal;
+            }
+
+            function syncPaymentMethodInput() {
+                if (!els.paymentMethodInput) return;
+
+                const netTotal = getNetTotal();
+                const useWallet = els.useWallet && els.useWallet.checked;
+                const walletDeduction = useWallet ? Math.min(walletBalance, netTotal) : 0;
+                const walletCoversAll = useWallet && walletDeduction >= (netTotal - 0.001);
+
+                if (walletCoversAll) {
+                    els.paymentMethodInput.value = 'wallet';
+                    return;
+                }
+
+                const checked = document.querySelector('.js-payment-method-option:checked');
+                els.paymentMethodInput.value = checked ? checked.value : 'payby';
             }
 
             function recalcWallet() {
@@ -538,15 +558,13 @@
                 if (els.remainingPaymentSection) {
                     if (walletCoversAll && useWallet) {
                         els.remainingPaymentSection.style.display = 'none';
-                        // Set payment method to wallet only
-                        const radios = document.querySelectorAll('input[name="payment_method"]');
-                        radios.forEach(r => { r.required = false; r.checked = false; });
+                        document.querySelectorAll('.js-payment-method-option').forEach(r => {
+                            r.checked = false;
+                        });
                     } else {
                         els.remainingPaymentSection.style.display = 'block';
-                        const radios = document.querySelectorAll('input[name="payment_method"]');
-                        radios.forEach(r => r.required = true);
-                        if (!document.querySelector('input[name="payment_method"]:checked')) {
-                            const firstRadio = document.querySelector('input[name="payment_method"][value="payby"]');
+                        if (!document.querySelector('.js-payment-method-option:checked')) {
+                            const firstRadio = document.querySelector('.js-payment-method-option[value="payby"]');
                             if (firstRadio) firstRadio.checked = true;
                         }
                     }
@@ -568,6 +586,7 @@
                         payBtn.innerHTML = '<i class="bx bx-lock-alt"></i> Pay Now';
                     }
                 }
+                syncPaymentMethodInput();
             }
 
             function recalcTotals() {
@@ -622,7 +641,7 @@
                 els.useWallet.addEventListener('change', recalcWallet);
             }
 
-            document.querySelectorAll('input[name="payment_method"]').forEach(function(radio) {
+            document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
                 radio.addEventListener('change', recalcWallet);
             });
 

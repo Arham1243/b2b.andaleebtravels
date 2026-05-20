@@ -71,7 +71,7 @@ class FlightBookingController extends Controller
             'passengers.*.passport_exp' => 'nullable|date',
             'passengers.*.save_profile' => 'nullable|in:1',
 
-            'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
+            'payment_method' => 'required|in:payby,tabby,tamara,wallet',
             'use_wallet' => 'nullable|in:1',
             'wallet_amount' => 'nullable|numeric|min:0',
         ]);
@@ -197,7 +197,13 @@ class FlightBookingController extends Controller
 
         $remainingAmount = round($totalAmount - $walletDeduction, 2);
 
-        if ($remainingAmount <= 0) {
+        if (($validated['payment_method'] ?? null) === 'wallet' || $remainingAmount <= 0) {
+            if (!$useWallet) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('notify_error', 'Please enable wallet to pay with wallet balance.');
+            }
+
             $booking->update([
                 'payment_method' => 'wallet',
             ]);
@@ -205,21 +211,8 @@ class FlightBookingController extends Controller
             return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
         }
 
-        $paymentMethod = $validated['payment_method'] ?? null;
-        if (!$paymentMethod) {
-            $booking->update([
-                'booking_status' => 'failed',
-                'payment_status' => 'failed',
-                'wallet_amount' => 0,
-            ]);
-
-            return redirect()->back()
-                ->withInput()
-                ->with('notify_error', 'Please select a payment method for the remaining balance.');
-        }
-
         try {
-            $redirectUrl = $flightService->getRedirectUrl($booking, $paymentMethod);
+            $redirectUrl = $flightService->getRedirectUrl($booking, $validated['payment_method']);
             return redirect($redirectUrl);
         } catch (\Exception $e) {
             $booking->update([
@@ -558,7 +551,7 @@ class FlightBookingController extends Controller
         }
 
         $validated = $request->validate([
-            'payment_method' => 'required_without:use_wallet|nullable|in:payby,tabby,tamara',
+            'payment_method' => 'required|in:payby,tabby,tamara,wallet',
             'use_wallet'     => 'nullable|in:1',
             'wallet_amount'  => 'nullable|numeric|min:0',
         ]);
@@ -582,23 +575,20 @@ class FlightBookingController extends Controller
 
         $remainingAmount = round($totalAmount - $walletDeduction, 2);
 
-        // Update booking: keep PNR, just update payment method + wallet amount
         $booking->update([
             'wallet_amount'  => $walletDeduction > 0 ? $walletDeduction : 0,
         ]);
 
-        // Full wallet payment
-        if ($remainingAmount <= 0) {
+        if (($validated['payment_method'] ?? null) === 'wallet' || $remainingAmount <= 0) {
+            if (!$useWallet) {
+                return back()->with('notify_error', 'Please enable wallet to pay with wallet balance.');
+            }
+
             $booking->update(['payment_method' => 'wallet']);
             return redirect()->route('user.flights.payment.success', ['booking' => $booking->id]);
         }
 
-        // External gateway
-        $method = $validated['payment_method'] ?? null;
-        if (!$method) {
-            return back()->with('notify_error', 'Please select a payment method.');
-        }
-
+        $method = $validated['payment_method'];
         $booking->update(['payment_method' => $method]);
 
         try {

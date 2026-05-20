@@ -288,12 +288,14 @@
                         </div>
                         @endif
 
+                        <input type="hidden" name="payment_method" id="payment-method-input" value="payby">
+
                         {{-- Gateway options --}}
                         <div class="hcf-payment-remaining" id="remaining-payment-section">
                             <div class="hcf-payment-remaining__title" id="remaining-payment-title">Select Payment Method</div>
                             <div class="hcf-payment-options">
                                 <label class="hcf-payment-option">
-                                    <input type="radio" name="payment_method" value="payby" checked>
+                                    <input type="radio" class="js-payment-method-option" value="payby" checked>
                                     <div class="hcf-payment-option__body">
                                         <div class="hcf-pay-icon"><i class="bx bxs-credit-card"></i></div>
                                         <div class="hcf-pay-info">
@@ -304,7 +306,7 @@
                                     </div>
                                 </label>
                                 <label class="hcf-payment-option">
-                                    <input type="radio" name="payment_method" value="tabby">
+                                    <input type="radio" class="js-payment-method-option" value="tabby">
                                     <div class="hcf-payment-option__body">
                                         <div class="hcf-pay-icon"><i class="bx bx-calendar-check"></i></div>
                                         <div class="hcf-pay-info">
@@ -315,7 +317,7 @@
                                     </div>
                                 </label>
                                 <label class="hcf-payment-option">
-                                    <input type="radio" name="payment_method" value="tamara">
+                                    <input type="radio" class="js-payment-method-option" value="tamara">
                                     <div class="hcf-payment-option__body">
                                         <div class="hcf-pay-icon"><i class="bx bx-wallet-alt"></i></div>
                                         <div class="hcf-pay-info">
@@ -648,7 +650,24 @@ document.addEventListener('DOMContentLoaded', function () {
         remainingTitle:       document.getElementById('remaining-payment-title'),
         payBtn:               document.getElementById('pay-btn'),
         payBtnText:           document.getElementById('pay-btn-text'),
+        paymentMethodInput:   document.getElementById('payment-method-input'),
     };
+
+    function syncPaymentMethodInput() {
+        if (!els.paymentMethodInput) return;
+
+        const useWallet = els.useWallet && els.useWallet.checked;
+        const deduction = useWallet ? Math.min(walletBalance, total) : 0;
+        const walletAll = useWallet && deduction >= (total - 0.001);
+
+        if (walletAll) {
+            els.paymentMethodInput.value = 'wallet';
+            return;
+        }
+
+        const checked = document.querySelector('.js-payment-method-option:checked');
+        els.paymentMethodInput.value = checked ? checked.value : 'payby';
+    }
 
     function recalc() {
         const useWallet    = els.useWallet && els.useWallet.checked;
@@ -669,12 +688,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (els.remainingSection) {
             if (walletAll && useWallet) {
                 els.remainingSection.style.display = 'none';
-                document.querySelectorAll('input[name="payment_method"]').forEach(r => { r.required = false; r.checked = false; });
+                document.querySelectorAll('.js-payment-method-option').forEach(r => { r.checked = false; });
             } else {
                 els.remainingSection.style.display = 'block';
-                document.querySelectorAll('input[name="payment_method"]').forEach(r => r.required = true);
-                if (!document.querySelector('input[name="payment_method"]:checked')) {
-                    const first = document.querySelector('input[name="payment_method"][value="payby"]');
+                if (!document.querySelector('.js-payment-method-option:checked')) {
+                    const first = document.querySelector('.js-payment-method-option[value="payby"]');
                     if (first) first.checked = true;
                 }
             }
@@ -692,16 +710,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 els.payBtnText.innerHTML = 'Pay <span class="dirham">AED</span> ' + fmt(remaining) + ' &amp; Issue Ticket';
             }
         }
+
+        syncPaymentMethodInput();
     }
 
     if (els.useWallet) {
         els.useWallet.addEventListener('change', recalc);
     }
 
+    document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
+        radio.addEventListener('change', recalc);
+    });
+
     recalc();
 
     /* Disable button on submit */
     document.getElementById('confirmPayForm').addEventListener('submit', function () {
+        recalc();
         if (els.payBtn) {
             els.payBtn.disabled = true;
             els.payBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing…';

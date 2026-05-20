@@ -1001,7 +1001,7 @@ class HotelController extends Controller
 
                     'booking.guests' => 'nullable|array',
 
-                    'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
+                    'payment_method' => 'required|in:payby,tabby,tamara,wallet',
                     'use_wallet' => 'nullable|in:1',
                     'wallet_amount' => 'nullable|numeric|min:0',
                 ]);
@@ -1033,7 +1033,7 @@ class HotelController extends Controller
                     'booking.guests' => 'nullable|array',
                     'booking.extras' => 'nullable|array',
 
-                    'payment_method' => 'required_without:use_wallet|in:payby,tabby,tamara',
+                    'payment_method' => 'required|in:payby,tabby,tamara,wallet',
                     'use_wallet' => 'nullable|in:1',
                     'wallet_amount' => 'nullable|numeric|min:0',
                     'flight_details' => 'nullable|array',
@@ -1187,8 +1187,13 @@ class HotelController extends Controller
 
             $remainingAmount = round($totalAmount - $walletDeduction, 2);
 
-            // If wallet covers the full amount, redirect to success for processing
-            if ($remainingAmount <= 0) {
+            if (($validated['payment_method'] ?? null) === 'wallet' || $remainingAmount <= 0) {
+                if (!$useWallet) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('notify_error', 'Please enable wallet to pay with wallet balance.');
+                }
+
                 $booking->update([
                     'payment_method' => 'wallet',
                 ]);
@@ -1196,20 +1201,8 @@ class HotelController extends Controller
                 return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
             }
 
-            $paymentMethod = $validated['payment_method'] ?? null;
-            if (!$paymentMethod) {
-                $booking->update([
-                    'booking_status' => 'failed',
-                    'payment_status' => 'failed',
-                    'wallet_amount' => 0,
-                ]);
+            $paymentMethod = $validated['payment_method'];
 
-                return redirect()->back()
-                    ->withInput()
-                    ->with('notify_error', 'Please select a payment method for the remaining balance.');
-            }
-
-            // Get payment redirect URL for remaining amount
             try {
                 $redirectUrl = $hotelService->getRedirectUrl($booking, $paymentMethod);
                 return redirect($redirectUrl);
