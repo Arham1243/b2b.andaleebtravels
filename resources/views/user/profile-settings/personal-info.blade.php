@@ -45,14 +45,10 @@
                             <div class="ps-form-grid">
 
                                 <div class="ps-field" style="grid-column: 1 / -1;">
-                                    <label class="ps-field__label">
-                                        Travel Agency <span class="req">*</span>
-                                    </label>
-                                    <input type="text" name="travel_agency" class="ps-field__input"
-                                           value="{{ old('travel_agency', $user->travel_agency ?: $user->name) }}" required>
-                                    @error('travel_agency')
-                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
-                                    @enderror
+                                    <label class="ps-field__label">Travel Agency</label>
+                                    <input type="text" class="ps-field__input" readonly
+                                           value="{{ $user->travel_agency ?: $user->name }}">
+                                    <span class="ps-field__hint">Managed by Andaleeb admin. Contact support to request a change.</span>
                                 </div>
 
                                 <div class="ps-field">
@@ -121,27 +117,17 @@
                                 </div>
 
                                 <div class="ps-field">
-                                    <label class="ps-field__label">
-                                        Trade License Number <span class="req">*</span>
-                                    </label>
-                                    <input type="text" name="trade_license_number" class="ps-field__input"
-                                           value="{{ old('trade_license_number', $user->trade_license_number) }}" required>
-                                    @error('trade_license_number')
-                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
-                                    @enderror
+                                    <label class="ps-field__label">Trade License Number</label>
+                                    <input type="text" class="ps-field__input" readonly
+                                           value="{{ $user->trade_license_number ?: '—' }}">
+                                    <span class="ps-field__hint">Managed by Andaleeb admin. Contact support to request a change.</span>
                                 </div>
 
                                 <div class="ps-field">
-                                    <label class="ps-field__label">
-                                        Trade License Expiry <span class="req">*</span>
-                                    </label>
-                                    <input type="date" name="trade_license_expiry" class="ps-field__input"
-                                           value="{{ old('trade_license_expiry', $user->trade_license_expiry?->format('Y-m-d')) }}"
-                                           min="{{ date('Y-m-d') }}" required>
-                                    <span class="ps-field__hint">Must be today or a future date.</span>
-                                    @error('trade_license_expiry')
-                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
-                                    @enderror
+                                    <label class="ps-field__label">Trade License Expiry</label>
+                                    <input type="text" class="ps-field__input" readonly
+                                           value="{{ $user->trade_license_expiry?->format('d M Y') ?: '—' }}">
+                                    <span class="ps-field__hint">Managed by Andaleeb admin. Contact support to request a change.</span>
                                 </div>
 
                             </div>
@@ -154,8 +140,8 @@
                                     'currentUrl' => $user->agencyLogoUrl() ?? asset('admin/assets/images/placeholder.png'),
                                     'chooseLabel' => 'Upload Agency Logo',
                                     'btnClass' => 'ps-avatar-pick__btn agency-logo-upload__btn',
-                                    'filenameText' => 'JPG, PNG or GIF - max 2 MB',
-                                    'hint' => 'Shown in the site header.',
+                                    'filenameText' => null,
+                                    'hint' => null,
                                 ])
                                 @error('agency_logo')
                                     <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>

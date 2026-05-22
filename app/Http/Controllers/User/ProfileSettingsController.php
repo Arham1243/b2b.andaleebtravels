@@ -5,7 +5,6 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\B2bVendor;
 use App\Models\Config;
-use App\Support\B2bVendorValidation;
 use App\Support\WalletLedgerResolver;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
@@ -52,22 +51,18 @@ class ProfileSettingsController extends Controller
         $vendorId = Auth::user()->id;
 
         $validatedData = $request->validate([
-            'travel_agency' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'designation' => 'required|string|max:255',
-            'username' => B2bVendorValidation::usernameRule($vendorId),
-            'trade_license_number' => 'required|string|max:255',
-            'trade_license_expiry' => 'required|date|after_or_equal:today',
             'agency_logo' => 'nullable|image|max:2048',
             'hotel_search_providers' => 'nullable|array',
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
             'flight_search_providers' => 'nullable|array',
             'flight_search_providers.*' => 'in:sabre',
-        ], B2bVendorValidation::messages());
+        ]);
 
+        // Travel agency name, username, and trade license fields are admin-managed only.
         $data = $validatedData;
-        $data['name'] = $validatedData['travel_agency'];
 
         $vendor = B2bVendor::findOrFail($vendorId);
 
