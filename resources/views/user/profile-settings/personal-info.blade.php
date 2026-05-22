@@ -46,9 +46,8 @@
 
                                 <div class="ps-field" style="grid-column: 1 / -1;">
                                     <label class="ps-field__label">Travel Agency</label>
-                                    <input type="text" class="ps-field__input" readonly
+                                    <input type="text" class="ps-field__input" disabled readonly
                                            value="{{ $user->travel_agency ?: $user->name }}">
-                                    <span class="ps-field__hint">Managed by Andaleeb admin. Contact support to request a change.</span>
                                 </div>
 
                                 <div class="ps-field">
@@ -75,9 +74,8 @@
 
                                 <div class="ps-field">
                                     <label class="ps-field__label">Email Address</label>
-                                    <input type="email" class="ps-field__input" readonly
-                                           value="{{ old('email', $user->email) }}">
-                                    <span class="ps-field__hint">Email address cannot be changed.</span>
+                                    <input type="email" class="ps-field__input" disabled readonly
+                                           value="{{ $user->email }}">
                                 </div>
 
                                 <div class="ps-field">
@@ -92,42 +90,27 @@
                                 </div>
 
                                 <div class="ps-field">
-                                    <label class="ps-field__label">
-                                        Username <span class="req">*</span>
-                                    </label>
-                                    <input type="text" name="username" class="ps-field__input"
-                                           value="{{ old('username', $user->username) }}" required>
-                                    <span class="ps-field__hint">Must be unique across all accounts.</span>
-                                    @error('username')
-                                        <span class="text-danger" style="font-size:.75rem;">{{ $message }}</span>
-                                    @enderror
+                                    <label class="ps-field__label">Username</label>
+                                    <input type="text" class="ps-field__input" disabled readonly
+                                           value="{{ $user->username }}">
                                 </div>
 
                                 <div class="ps-field">
                                     <label class="ps-field__label">Agent Code</label>
                                     <input type="text" class="ps-field__input" disabled readonly
                                            value="{{ $user->loginAgentCode() }}">
-                                    <span class="ps-field__hint">
-                                        @if ($user->isSubAgentAccount())
-                                            Shared with your agency. Cannot be changed.
-                                        @else
-                                            Used for login. Cannot be changed after it is assigned.
-                                        @endif
-                                    </span>
                                 </div>
 
                                 <div class="ps-field">
                                     <label class="ps-field__label">Trade License Number</label>
-                                    <input type="text" class="ps-field__input" readonly
+                                    <input type="text" class="ps-field__input" disabled readonly
                                            value="{{ $user->trade_license_number ?: '—' }}">
-                                    <span class="ps-field__hint">Managed by Andaleeb admin. Contact support to request a change.</span>
                                 </div>
 
                                 <div class="ps-field">
                                     <label class="ps-field__label">Trade License Expiry</label>
-                                    <input type="text" class="ps-field__input" readonly
+                                    <input type="text" class="ps-field__input" disabled readonly
                                            value="{{ $user->trade_license_expiry?->format('d M Y') ?: '—' }}">
-                                    <span class="ps-field__hint">Managed by Andaleeb admin. Contact support to request a change.</span>
                                 </div>
 
                             </div>
