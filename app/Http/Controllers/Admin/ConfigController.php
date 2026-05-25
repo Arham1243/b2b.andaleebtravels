@@ -14,7 +14,7 @@ class ConfigController extends Controller
     public function logoManagement()
     {
         $title = 'Logo Management';
-        $logo = Config::where('config_key', 'SITE_LOGO')->first();
+        $logo = Config::where('config_key', Config::SITE_LOGO_KEY)->first();
         return view('admin.site-settings.logo', compact('title', 'logo'));
     }
 
@@ -24,14 +24,14 @@ class ConfigController extends Controller
             'logo' => 'required|image|mimes:jpeg,png,jpg,gif,webp,svg|max:2048',
         ]);
 
-        $config = Config::where('config_key', 'SITE_LOGO')->first();
+        $config = Config::where('config_key', Config::SITE_LOGO_KEY)->first();
 
         if ($request->hasFile('logo')) {
             $previousImage = $config->config_value ?? null;
             $imagePath = $this->uploadImage($request->file('logo'), 'logo', $previousImage);
 
             Config::updateOrCreate(
-                ['config_key' => 'SITE_LOGO'],
+                ['config_key' => Config::SITE_LOGO_KEY],
                 ['config_value' => $imagePath]
             );
         }

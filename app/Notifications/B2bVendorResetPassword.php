@@ -28,7 +28,7 @@ class B2bVendorResetPassword extends Notification
             'email' => $email,
         ], false));
 
-        $siteLogo = Config::where('config_key', 'SITE_LOGO')->value('config_value');
+        $siteLogo = Config::where('config_key', Config::SITE_LOGO_KEY)->value('config_value');
         $logo = $siteLogo ? asset($siteLogo) : asset('frontend/assets/images/logo.webp');
 
         $fullName = trim((string) (($notifiable->name ?? '') ?: ($notifiable->username ?? '')));

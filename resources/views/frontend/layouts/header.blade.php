@@ -9,7 +9,7 @@
     <div class="container">
         <div class="mh-row">
             <a href="{{ route('frontend.index') }}" class="mh-logo">
-                <img src="{{ isset($config['SITE_LOGO']) ? asset($config['SITE_LOGO']) : asset('frontend/assets/images/logo.webp') }}"
+                <img src="{{ isset($config[\App\Models\Config::SITE_LOGO_KEY]) ? asset($config[\App\Models\Config::SITE_LOGO_KEY]) : asset('frontend/assets/images/logo.webp') }}"
                     alt="Andaleeb Travel Agency" />
             </a>
 

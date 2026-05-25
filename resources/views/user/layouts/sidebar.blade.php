@@ -5,7 +5,7 @@
 <div class="sidebar">
     <a href="{{ route('user.dashboard') }}" class="sidebar-header">
         <div class="sidebar-header__icon">
-            <img src='{{ isset($config['SITE_LOGO']) ? asset($config['SITE_LOGO']) : asset('frontend/assets/images/logo.webp') }}' alt='logo' class="imgFluid">
+            <img src='{{ isset($config[\App\Models\Config::SITE_LOGO_KEY]) ? asset($config[\App\Models\Config::SITE_LOGO_KEY]) : asset('frontend/assets/images/logo.webp') }}' alt='logo' class="imgFluid">
         </div>
     </a>
     <ul class="sidebar-nav">
