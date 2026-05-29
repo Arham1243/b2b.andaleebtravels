@@ -110,13 +110,30 @@ final class VendorWalletCredit
         return round($prepaid - $creditUsed, 2);
     }
 
+    /**
+     * Spendable balance for checkout / display.
+     *
+     * Credit limit caps prepaid recharge — it is NOT added on top of an existing prepaid balance.
+     * The credit line only increases spendable when prepaid is below the limit, or when credit is already drawn.
+     */
     public static function totalSpendable(float $prepaid, float $creditUsed, float $creditLimit): float
     {
         if ($creditLimit <= 0) {
+            return round(max(0, $prepaid), 2);
+        }
+
+        $prepaid = max(0, round($prepaid, 2));
+        $creditUsed = max(0, round($creditUsed, 2));
+
+        if ($creditUsed > 0) {
+            return round($prepaid + max(0, $creditLimit - $creditUsed), 2);
+        }
+
+        if ($prepaid >= $creditLimit) {
             return round($prepaid, 2);
         }
 
-        return round($prepaid + max(0, $creditLimit - $creditUsed), 2);
+        return round($creditLimit, 2);
     }
 
     public static function syncVendorPools(B2bVendor $vendor): array

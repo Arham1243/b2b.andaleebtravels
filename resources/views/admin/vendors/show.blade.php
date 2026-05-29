@@ -356,15 +356,6 @@
                     <div class="vs-stat__value">{{ $stats['flight_bookings'] }}</div>
                 </div>
             </div>
-            <div class="col-6 col-xl-3">
-                <div class="vs-stat">
-                    <div class="vs-stat__head">
-                        <span class="vs-stat__label">Total Spent</span>
-                        <span class="vs-stat__icon"><i class="bx bx-money-withdraw"></i></span>
-                    </div>
-                    <div class="vs-stat__value is-currency">{!! formatPrice($stats['total_spent']) !!}</div>
-                </div>
-            </div>
         </div>
 
         {{-- ── Vendor details ─────────────────────────────────────── --}}
@@ -422,6 +413,10 @@
                     <div class="vs-info-item">
                         <span class="vs-info-label">Used Balance</span>
                         <span class="vs-info-value">{!! formatPrice($vendor->usedBalanceAmount()) !!}</span>
+                    </div>
+                    <div class="vs-info-item">
+                        <span class="vs-info-label">Credit Limit</span>
+                        <span class="vs-info-value">{!! formatCreditLimitDisplay($vendor) !!}</span>
                     </div>
                 @endif
                 <div class="vs-info-item">

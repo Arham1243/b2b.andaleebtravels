@@ -158,7 +158,6 @@ class VendorController extends Controller
         $stats = [
             'hotel_bookings'  => $hotelBookings->count(),
             'flight_bookings' => $flightBookings->count(),
-            'total_spent'     => $hotelBookings->sum('total_amount') + $flightBookings->sum('total_amount'),
             'ledger_entries'  => $ledgerTotalCount,
             'sub_agents'      => $subAgents->count(),
         ];
@@ -392,16 +391,16 @@ class VendorController extends Controller
         $vendor->refresh();
 
         if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
-            return redirect()->route('admin.vendors.pending.show', $vendor)
+            return redirect()->route('admin.vendors.edit', $vendor)
                 ->with('notify_success', 'Vendor updated successfully.');
         }
 
         if ($vendor->parent_vendor_id) {
-            return redirect()->route('admin.vendors.show', $vendor->parent_vendor_id)
+            return redirect()->route('admin.vendors.edit', $vendor)
                 ->with('notify_success', 'Sub agent updated successfully.');
         }
 
-        return redirect()->route('admin.vendors.show', $vendor)
+        return redirect()->route('admin.vendors.edit', $vendor)
             ->with('notify_success', 'Vendor updated successfully.');
     }
 
