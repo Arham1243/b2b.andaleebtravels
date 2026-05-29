@@ -92,14 +92,14 @@
                                     <div class="form-fields">
                                         <label class="title">WhatsApp number</label>
                                         <input type="text" name="B2B_WHATSAPP" class="field"
-                                            value="{{ $config['B2B_WHATSAPP'] ?? ($config['WHATSAPP'] ?? '') }}">
+                                            value="{{ \App\Support\B2bConfig::value(\App\Models\Config::B2B_WHATSAPP_KEY, 'WHATSAPP') }}">
                                     </div>
                                 </div>
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Support email</label>
                                         <input type="email" name="B2B_SUPPORT_EMAIL" class="field"
-                                            value="{{ $config['B2B_SUPPORT_EMAIL'] ?? ($config['SUPPORT_EMAIL'] ?? '') }}"
+                                            value="{{ \App\Support\B2bConfig::value(\App\Models\Config::B2B_SUPPORT_EMAIL_KEY, 'SUPPORT_EMAIL') }}"
                                             autocomplete="email">
                                     </div>
                                 </div>
