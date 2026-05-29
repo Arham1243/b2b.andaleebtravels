@@ -348,12 +348,18 @@
 
                         {{-- Pagination --}}
                         @if ($hotels->hasPages())
-                            <nav class="hl-pagination" aria-label="Hotel results pages">
+                            <div class="hl-pagination" aria-label="Hotel results pages">
                                 <div class="hl-pagination__info">
-                                    Page {{ $hotels->currentPage() }} of {{ $hotels->lastPage() }}
+                                    @if ($hotels->total() > 0)
+                                        Showing {{ $hotels->firstItem() }} to {{ $hotels->lastItem() }} of {{ $hotels->total() }} results
+                                    @else
+                                        Showing 0 results
+                                    @endif
                                 </div>
-                                {{ $hotels->onEachSide(1)->links('pagination::bootstrap-5') }}
-                            </nav>
+                                <div class="hl-pagination__links">
+                                    {{ $hotels->onEachSide(1)->links('pagination::bootstrap-5') }}
+                                </div>
+                            </div>
                         @endif
                     @else
                         <div class="fc-empty-state">
@@ -592,10 +598,35 @@
             box-shadow: 0 8px 15px rgba(205, 27, 79, 0.2);
         }
 
+        .hl-pagination {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 24px 0 8px;
+            flex-wrap: wrap;
+        }
+
+        .hl-pagination__info {
+            font-size: 0.82rem;
+            color: #888;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .hl-pagination__links {
+            margin-left: auto;
+        }
+
+        .hl-pagination__links nav {
+            margin-bottom: 0;
+        }
+
         .hl-pagination .pagination {
             margin-bottom: 0;
             flex-wrap: wrap;
-            justify-content: center;
+            justify-content: flex-end;
             gap: 4px;
         }
 
