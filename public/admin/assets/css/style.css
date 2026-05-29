@@ -1947,6 +1947,7 @@ input[readonly]:not(.date-picker, .date-picker-time):not([type="file"]),textarea
     margin: 0;
     font-size: 0.82rem;
     padding: 0.45rem 0.85rem;
+    color: #fff;
 }
 .agency-logo-upload__name {
     font-size: 0.78rem;

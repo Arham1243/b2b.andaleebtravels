@@ -203,6 +203,45 @@
     }
     .recharge-limit-note i { font-size: 18px; }
 
+    .wallet-file-upload__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: #fff;
+        cursor: pointer;
+        background: var(--color-primary);
+        margin: 0;
+        transition: background 0.2s;
+    }
+    .wallet-file-upload__btn:hover {
+        background: var(--color-primary-dark, #a91540);
+        color: #fff;
+    }
+    .recharge-section .agency-logo-upload__preview {
+        width: auto;
+        height: auto;
+        max-height: 80px;
+        max-width: 160px;
+        min-height: 48px;
+        object-fit: contain;
+        border-radius: 8px;
+        border: 1px solid #e4e9f0;
+        background: #f8f9fa;
+        padding: 6px;
+        margin-bottom: 10px;
+    }
+    .recharge-section .agency-logo-upload__name {
+        font-size: 13px;
+        color: #8492a6;
+    }
+
     /* Transaction history actions: icon + label inline */
     .custom-table .wallet-action-btn {
         display: inline-flex !important;

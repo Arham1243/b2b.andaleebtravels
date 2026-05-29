@@ -94,9 +94,16 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold" style="font-size: 13px;">Payment proof (screenshot) *</label>
-                        <input type="file" name="proof" class="form-control form-control-sm" style="max-width: 320px;"
-                               accept="image/jpeg,image/png,image/jpg,image/webp" required>
-                        <small class="text-muted d-block mt-1">JPG, PNG or WebP - max 5 MB</small>
+                        @include('partials.file-upload-picker', [
+                            'inputId' => 'bt_proof',
+                            'inputName' => 'proof',
+                            'previewId' => 'bt_proof_preview',
+                            'filenameId' => 'bt_proof_filename',
+                            'chooseLabel' => 'Choose file',
+                            'btnClass' => 'wallet-file-upload__btn agency-logo-upload__btn',
+                            'accept' => 'image/jpeg,image/png,image/jpg,image/webp',
+                            'required' => true,
+                        ])
                         @error('proof')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
