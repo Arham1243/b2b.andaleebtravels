@@ -139,6 +139,63 @@ function showImage(input, previewImgId, filenamePreviewId) {
     }
 }
 
+function showFilePreview(input, previewImgId, filenamePreviewId) {
+    var file = input.files && input.files[0];
+    var preview = document.getElementById(previewImgId);
+    var nameEl = document.getElementById(filenamePreviewId);
+    var imageTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+    ];
+
+    if (!file) {
+        if (preview) {
+            preview.src = "";
+            preview.style.display = "none";
+        }
+        if (nameEl) {
+            nameEl.textContent = "No file chosen";
+        }
+        return;
+    }
+
+    if (nameEl) {
+        nameEl.textContent = file.name;
+    }
+
+    if (file.type === "application/pdf") {
+        if (preview) {
+            preview.src = "";
+            preview.style.display = "none";
+        }
+        return;
+    }
+
+    if (imageTypes.includes(file.type)) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            if (preview) {
+                preview.src = e.target.result;
+                preview.style.display = "";
+            }
+        };
+        reader.readAsDataURL(file);
+        return;
+    }
+
+    alert("Please select a valid file. Supported formats: JPEG, PNG, GIF, WEBP, PDF.");
+    input.value = "";
+    if (preview) {
+        preview.src = "";
+        preview.style.display = "none";
+    }
+    if (nameEl) {
+        nameEl.textContent = "No file chosen";
+    }
+}
+
 let table = new DataTable(".data-table", {
     columnDefs: [
         { orderable: false, targets: 0 }, // first column unsortable

@@ -51,7 +51,15 @@
             </div>
             <div class="col-md-4">
                 <label for="mw_attachment">Attachment</label>
-                <input type="file" name="attachment" id="mw_attachment" class="field" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+                @include('partials.file-upload-picker', [
+                    'inputId' => 'mw_attachment',
+                    'inputName' => 'attachment',
+                    'previewId' => 'mw_attachment_preview',
+                    'filenameId' => 'mw_attachment_filename',
+                    'chooseLabel' => 'Choose file',
+                    'btnClass' => 'themeBtn agency-logo-upload__btn',
+                    'accept' => '.jpg,.jpeg,.png,.gif,.webp,.pdf',
+                ])
             </div>
             <div class="col-12">
                 <button type="submit" class="themeBtn" style="font-size:.85rem;">
@@ -60,16 +68,6 @@
             </div>
         </form>
     </div>
-@elseif ($readOnly)
-    <p class="vs-ledger-balance">
-        <i class="bx bx-wallet"></i>
-        Current wallet balance: <strong>{!! formatPrice($vendor->main_balance ?? 0) !!}</strong>
-        @if ($vendor->creditLimitAmount() > 0)
-            · Credit: <strong>{!! formatPrice($vendor->creditAvailableAmount()) !!}</strong> available
-            ({!! formatPrice($vendor->creditUsedAmount()) !!} used of {!! formatPrice($vendor->creditLimitAmount()) !!} limit)
-        @endif
-        <span class="text-muted">— view only; contact support to dispute a transaction.</span>
-    </p>
 @endif
 
 @if (($ledgerTotalCount ?? 0) > 0)

@@ -763,8 +763,16 @@
                         </div>
                         <div class="col-12" id="el_attachment_wrap">
                             <div class="vs-ledger-modal__field">
-                                <label for="el_attachment">Attachment/label>
-                                <input type="file" name="attachment" id="el_attachment" class="field" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+                                <label for="el_attachment">Attachment</label>
+                                @include('partials.file-upload-picker', [
+                                    'inputId' => 'el_attachment',
+                                    'inputName' => 'attachment',
+                                    'previewId' => 'el_attachment_preview',
+                                    'filenameId' => 'el_attachment_filename',
+                                    'chooseLabel' => 'Choose file',
+                                    'btnClass' => 'themeBtn agency-logo-upload__btn',
+                                    'accept' => '.jpg,.jpeg,.png,.gif,.webp,.pdf',
+                                ])
                                 <div id="el_attachment_current" class="mt-2" style="display:none;">
                                     <a href="#" id="el_attachment_link" class="vs-ledger-attachment-btn" target="_blank" rel="noopener">
                                         <i class="bx bx-paperclip"></i> Current attachment
@@ -803,6 +811,8 @@ document.querySelectorAll('.btn-edit-ledger').forEach(function(btn) {
         const attLink = document.getElementById('el_attachment_link');
         const removeAtt = document.getElementById('el_remove_attachment');
         const attUrl = btn.dataset.attachmentUrl || '';
+        const attPreview = document.getElementById('el_attachment_preview');
+        const attFilename = document.getElementById('el_attachment_filename');
         if (attCurrent && attLink && removeAtt) {
             const show = btn.dataset.hasAttachment === '1' && attUrl !== '';
             attCurrent.style.display = show ? 'block' : 'none';
@@ -810,6 +820,19 @@ document.querySelectorAll('.btn-edit-ledger').forEach(function(btn) {
                 attLink.href = attUrl;
             }
             removeAtt.checked = false;
+            if (attPreview) {
+                const isImage = /\.(jpe?g|png|gif|webp)(\?.*)?$/i.test(attUrl);
+                if (show && isImage) {
+                    attPreview.src = attUrl;
+                    attPreview.style.display = '';
+                } else {
+                    attPreview.src = '';
+                    attPreview.style.display = 'none';
+                }
+            }
+            if (attFilename) {
+                attFilename.textContent = show ? 'Current file attached' : 'No file chosen';
+            }
         }
         document.getElementById('el_attachment').value = '';
         bootstrap.Modal.getOrCreateInstance(document.getElementById('editLedgerModal')).show();
