@@ -185,7 +185,10 @@
                                 </div>
 
                                 @if(!empty($savedPassengers))
-                                    @include('user.flights.partials.hp-saved-passenger-search', ['pIndex' => $pIndex])
+                                    @include('user.flights.partials.hp-saved-passenger-search', [
+                                        'pIndex' => $pIndex,
+                                        'savedPassengers' => $savedPassengers,
+                                    ])
                                 @endif
 
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="ADT">
@@ -865,6 +868,7 @@
 @endpush
 
 @push('js')
+    @include('user.flights.partials.hp-pax-autocomplete-scripts')
 <script>
 (function () {
     /* Mirror passenger[0] into lead hidden fields */
@@ -888,7 +892,6 @@
     });
 
     /* Saved passengers + country autocomplete */
-    @include('user.flights.partials.hp-pax-autocomplete-scripts')
     HpPaxForm.init({
         formSelector: '#holdForm',
         savedPassengers: @json($savedPassengers ?? []),

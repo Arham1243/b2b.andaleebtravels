@@ -159,27 +159,26 @@
         };
     }
 
-    function initSavedPassengerSearch(form, savedPassengers, countryApi) {
-        const slots = Array.from(form.querySelectorAll('.hp-saved-ac'));
-        if (!slots.length || !savedPassengers.length) {
+    function initSavedPassengerDropdowns(form, savedPassengers, countryApi) {
+        const selects = Array.from(form.querySelectorAll('.hp-saved-pick'));
+        if (!selects.length || !savedPassengers.length) {
             return;
         }
-
-        const usedIds = new Map();
 
         function passengerLabel(passenger) {
             return [passenger.title, passenger.first_name, passenger.last_name].filter(Boolean).join(' ');
         }
 
-        function passengerMeta(passenger) {
-            const parts = [];
-            if (passenger.passport_no) {
-                parts.push('Passport ' + passenger.passport_no);
+        function selectedId(sel) {
+            if (!sel || !sel.value) {
+                return null;
             }
-            if (passenger.nationality) {
-                parts.push(String(passenger.nationality).toUpperCase());
+            try {
+                const passenger = JSON.parse(sel.value);
+                return passenger && passenger.id != null ? String(passenger.id) : null;
+            } catch (e) {
+                return null;
             }
-            return parts.join(' · ');
         }
 
         function fieldSelector(idx, name) {
@@ -241,101 +240,71 @@
             }
         }
 
-        function availablePassengers(currentIdx) {
-            const taken = new Set();
-            usedIds.forEach(function (id, idx) {
-                if (String(idx) !== String(currentIdx) && id != null) {
-                    taken.add(String(id));
-                }
-            });
+        function rebuildAll() {
+            selects.forEach(function (sel) {
+                const idx = sel.dataset.paxIdx;
+                const prevVal = sel.value;
 
-            return savedPassengers.filter(function (passenger) {
-                const id = passenger.id != null ? String(passenger.id) : null;
-                return !id || !taken.has(id);
-            });
-        }
-
-        function filterPassengers(list, query) {
-            const q = String(query || '').trim().toLowerCase();
-            if (!q) {
-                return list.slice(0, 8);
-            }
-
-            return list.filter(function (passenger) {
-                const haystack = [
-                    passenger.title,
-                    passenger.first_name,
-                    passenger.last_name,
-                    passenger.passport_no,
-                ].filter(Boolean).join(' ').toLowerCase();
-
-                return haystack.indexOf(q) !== -1;
-            }).slice(0, 8);
-        }
-
-        slots.forEach(function (wrap) {
-            const idx = wrap.dataset.paxIdx;
-            const input = wrap.querySelector('.hp-saved-ac-input');
-            const dropdown = wrap.querySelector('.hp-saved-ac-dropdown');
-            if (!input || !dropdown) {
-                return;
-            }
-
-            function closeDropdown() {
-                dropdown.hidden = true;
-                dropdown.innerHTML = '';
-            }
-
-            function renderDropdown() {
-                const matches = filterPassengers(availablePassengers(idx), input.value);
-                if (!matches.length) {
-                    dropdown.innerHTML = '<div class="hp-ac-empty">No saved passenger found</div>';
-                    dropdown.hidden = false;
-                    return;
-                }
-
-                dropdown.innerHTML = matches.map(function (passenger) {
-                    const meta = passengerMeta(passenger);
-                    return '<button type="button" class="hp-ac-item" data-id="' + escapeHtml(passenger.id) + '">' +
-                        '<span class="hp-ac-item__title">' + escapeHtml(passengerLabel(passenger)) + '</span>' +
-                        (meta ? '<span class="hp-ac-item__sub">' + escapeHtml(meta) + '</span>' : '') +
-                        '</button>';
-                }).join('');
-                dropdown.hidden = false;
-            }
-
-            input.addEventListener('focus', renderDropdown);
-            input.addEventListener('input', function () {
-                usedIds.delete(String(idx));
-                renderDropdown();
-            });
-
-            dropdown.addEventListener('mousedown', function (event) {
-                const item = event.target.closest('.hp-ac-item');
-                if (!item) {
-                    return;
-                }
-                event.preventDefault();
-
-                const passenger = savedPassengers.find(function (row) {
-                    return String(row.id) === String(item.dataset.id);
+                const othersTaken = new Set();
+                selects.forEach(function (other) {
+                    if (other === sel) {
+                        return;
+                    }
+                    const takenId = selectedId(other);
+                    if (takenId) {
+                        othersTaken.add(takenId);
+                    }
                 });
 
-                if (!passenger) {
+                sel.innerHTML = '<option value="">- Select saved passenger -</option>';
+                savedPassengers.forEach(function (passenger) {
+                    const passengerId = passenger.id != null ? String(passenger.id) : null;
+                    if (passengerId && othersTaken.has(passengerId)) {
+                        return;
+                    }
+
+                    const opt = document.createElement('option');
+                    opt.value = JSON.stringify(passenger);
+                    opt.textContent = passengerLabel(passenger);
+                    sel.appendChild(opt);
+                });
+
+                const stillAvailable = prevVal && Array.from(sel.options).some(function (option) {
+                    return option.value === prevVal;
+                });
+
+                if (stillAvailable) {
+                    sel.value = prevVal;
+                } else if (prevVal) {
+                    sel.selectedIndex = 0;
+                    clearPassengerFields(idx);
+                }
+            });
+        }
+
+        selects.forEach(function (sel) {
+            sel.addEventListener('change', function () {
+                const idx = sel.dataset.paxIdx;
+
+                if (!sel.value) {
+                    clearPassengerFields(idx);
+                    rebuildAll();
                     return;
                 }
 
-                clearPassengerFields(idx);
-                fillPassengerFields(idx, passenger);
-                usedIds.set(String(idx), passenger.id != null ? String(passenger.id) : null);
-                input.value = passengerLabel(passenger);
-                closeDropdown();
-            });
+                let passenger;
+                try {
+                    passenger = JSON.parse(sel.value);
+                } catch (e) {
+                    return;
+                }
 
-            input.addEventListener('blur', function () {
-                window.setTimeout(closeDropdown, 120);
+                fillPassengerFields(idx, passenger);
+                rebuildAll();
             });
         });
+
+        rebuildAll();
     }
 
     window.HpPaxForm = {
@@ -348,7 +317,7 @@
             const countries = Array.isArray(config.countries) ? config.countries : [];
             const savedPassengers = Array.isArray(config.savedPassengers) ? config.savedPassengers : [];
             const countryApi = initCountryFields(form, countries);
-            initSavedPassengerSearch(form, savedPassengers, countryApi);
+            initSavedPassengerDropdowns(form, savedPassengers, countryApi);
 
             form.addEventListener('submit', function (event) {
                 let valid = true;

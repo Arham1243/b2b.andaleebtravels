@@ -124,7 +124,10 @@
                                 </div>
 
                                 @if (!empty($savedPassengers))
-                                    @include('user.flights.partials.hp-saved-passenger-search', ['pIndex' => $pIndex])
+                                    @include('user.flights.partials.hp-saved-passenger-search', [
+                                        'pIndex' => $pIndex,
+                                        'savedPassengers' => $savedPassengers,
+                                    ])
                                 @endif
 
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="ADT">
@@ -559,6 +562,7 @@
 @endpush
 
 @push('js')
+    @include('user.flights.partials.hp-pax-autocomplete-scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const total = @json($totalAmount);
@@ -661,7 +665,6 @@
 
             recalc();
 
-            @include('user.flights.partials.hp-pax-autocomplete-scripts')
             HpPaxForm.init({
                 formSelector: '#flightCheckoutForm',
                 savedPassengers: @json($savedPassengers),
