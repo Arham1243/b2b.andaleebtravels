@@ -530,7 +530,12 @@ class FlightService
             $token = $this->getSabreToken();
 
             $searchResponse = $booking->search_response ?? [];
-            $itineraryRaw = $this->findRawItinerary($searchResponse, (int) $booking->itinerary_id);
+            $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+            $sabreItineraryId = (int) ($itineraryData['sabre_itinerary_id'] ?? $booking->itinerary_id);
+            $groupIndex = array_key_exists('sabre_group_index', $itineraryData)
+                ? (int) $itineraryData['sabre_group_index']
+                : null;
+            $itineraryRaw = $this->findRawItinerary($searchResponse, $sabreItineraryId, $groupIndex);
 
             if (!$itineraryRaw) {
                 throw new \Exception('Unable to locate itinerary for booking.');
@@ -1000,12 +1005,18 @@ class FlightService
         ];
     }
 
-    public function revalidateItinerary(array $searchResponse, int $itineraryId, int $adults, int $children, int $infants): array
-    {
+    public function revalidateItinerary(
+        array $searchResponse,
+        int $itineraryId,
+        int $adults,
+        int $children,
+        int $infants,
+        ?int $groupIndex = null,
+    ): array {
         try {
             $token = $this->getSabreToken();
 
-            $itineraryRaw = $this->findRawItinerary($searchResponse, $itineraryId);
+            $itineraryRaw = $this->findRawItinerary($searchResponse, $itineraryId, $groupIndex);
             if (!$itineraryRaw) {
                 throw new \Exception('Unable to locate itinerary for revalidation.');
             }
@@ -1064,15 +1075,23 @@ class FlightService
         return $token;
     }
 
-    private function findRawItinerary(array $grouped, int $itineraryId): ?array
+    private function findRawItinerary(array $grouped, int $itineraryId, ?int $groupIndex = null): ?array
     {
         $groups = $grouped['itineraryGroups'] ?? [];
-        $firstGroup = $groups[0] ?? [];
-        $itineraries = $firstGroup['itineraries'] ?? [];
 
-        foreach ($itineraries as $itinerary) {
-            if ((int) ($itinerary['id'] ?? 0) === $itineraryId) {
-                return $itinerary;
+        if ($groupIndex !== null && isset($groups[$groupIndex])) {
+            foreach ($groups[$groupIndex]['itineraries'] ?? [] as $itinerary) {
+                if ((int) ($itinerary['id'] ?? 0) === $itineraryId) {
+                    return $itinerary;
+                }
+            }
+        }
+
+        foreach ($groups as $group) {
+            foreach ($group['itineraries'] ?? [] as $itinerary) {
+                if ((int) ($itinerary['id'] ?? 0) === $itineraryId) {
+                    return $itinerary;
+                }
             }
         }
 

@@ -177,7 +177,11 @@ class FlightController extends Controller
         $itineraryCount = (int) ($grouped['statistics']['itineraryCount'] ?? 0);
 
         $results = $this->extractItineraries($grouped);
-        $results = applyFlightSearchPricing($results);
+
+        if (vendorPricing()->discountsEnabled(Auth::user())) {
+            $results = applyFlightSearchPricing($results);
+        }
+
         $resultsById = collect($results)->keyBy('id')->toArray();
 
         session([
@@ -435,75 +439,157 @@ class FlightController extends Controller
             return [];
         }
 
-        $groupRow = $itineraryGroups[0];
-        $legDescriptions = $groupRow['groupDescription']['legDescriptions'] ?? [];
-        $itineraries = $groupRow['itineraries'] ?? [];
         $results = [];
+        $sessionKey = 0;
 
-        foreach ($itineraries as $itinerary) {
-            $pricingBlock = $itinerary['pricingInformation'][0] ?? [];
-            $fareSeatMeta = $this->extractFareSeatMeta($pricingBlock);
-            $pricingTags = $this->inferFareTagsFromPricingBlock($pricingBlock);
-            $fareBrand = SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped);
-            $passengerFare = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo');
-            $baggageDetails = SabreBaggagePresenter::fromPricingBlock($pricingBlock, $grouped);
-            $fareRules = SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped);
-            $bagsSummary = $this->summarizeBaggageAllowances(
-                data_get($passengerFare, 'baggageInformation', []),
-                $baggageAllowanceById,
-            );
-            $bagSummaryLabel = $baggageDetails['summary'] ?? $bagsSummary['label'];
+        foreach ($itineraryGroups as $groupIndex => $groupRow) {
+            $legDescriptions = $groupRow['groupDescription']['legDescriptions'] ?? [];
+            $itineraries = $groupRow['itineraries'] ?? [];
 
-            $fareCursor = 0;
-            $legs = [];
-            $legIndex = -1;
-
-            foreach ($itinerary['legs'] ?? [] as $legRef) {
-                $legIndex++;
-                $leg = $legById->get($legRef['ref'] ?? null);
-                if (!$leg) {
-                    continue;
-                }
-
-                $baseDate = (string) (data_get($legDescriptions, $legIndex . '.departureDate') ?? '');
-                if ($baseDate === '') {
-                    $baseDate = now()->format('Y-m-d');
-                }
-
-                $legs[] = $this->buildSabreLeg(
-                    $leg,
-                    $scheduleById,
-                    $baseDate,
-                    $fareSeatMeta,
-                    $fareCursor,
+            foreach ($itineraries as $itinerary) {
+                $sessionKey++;
+                $pricingBlock = $this->selectSabrePricingBlock($itinerary['pricingInformation'] ?? []);
+                $fareSeatMeta = $this->extractFareSeatMeta($pricingBlock);
+                $pricingTags = $this->inferFareTagsFromPricingBlock($pricingBlock);
+                $fareBrand = SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped);
+                $passengerFare = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo');
+                $baggageDetails = SabreBaggagePresenter::fromPricingBlock($pricingBlock, $grouped);
+                $fareRules = SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped);
+                $bagsSummary = $this->summarizeBaggageAllowances(
+                    data_get($passengerFare, 'baggageInformation', []),
+                    $baggageAllowanceById,
                 );
+                $bagSummaryLabel = $baggageDetails['summary'] ?? $bagsSummary['label'];
+
+                $fareCursor = 0;
+                $legs = [];
+                $legIndex = -1;
+
+                foreach ($itinerary['legs'] ?? [] as $legRef) {
+                    $legIndex++;
+                    $leg = $legById->get($legRef['ref'] ?? null);
+                    if (!$leg) {
+                        continue;
+                    }
+
+                    $baseDate = (string) (data_get($legDescriptions, $legIndex . '.departureDate') ?? '');
+                    if ($baseDate === '') {
+                        $baseDate = now()->format('Y-m-d');
+                    }
+
+                    $legs[] = $this->buildSabreLeg(
+                        $leg,
+                        $scheduleById,
+                        $baseDate,
+                        $fareSeatMeta,
+                        $fareCursor,
+                    );
+                }
+
+                $totalFare = data_get($pricingBlock, 'fare.totalFare');
+                $totalPrice = $this->extractSabreTotalPrice($pricingBlock);
+
+                $results[] = [
+                    'id' => $sessionKey,
+                    'sabre_itinerary_id' => (int) ($itinerary['id'] ?? 0),
+                    'sabre_group_index' => (int) $groupIndex,
+                    'supplierPrice' => $totalPrice,
+                    'totalPrice' => $totalPrice,
+                    'currency' => data_get($totalFare, 'currency'),
+                    'legs' => $legs,
+                    'supplier' => 'sabre',
+                    'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
+                    'pricing_subsource' => (string) ($pricingBlock['pricingSubsource'] ?? ''),
+                    'pricing_source' => (string) ($itinerary['pricingSource'] ?? ''),
+                    'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
+                    'non_refundable' => (bool) data_get($passengerFare, 'nonRefundable', false),
+                    'fare_brand' => $fareBrand,
+                    'baggage_notes' => $bagSummaryLabel,
+                    'baggage_details' => $baggageDetails,
+                    'fare_rules' => $fareRules,
+                    'fare_tags' => $pricingTags['tags'],
+                    'listing_meta' => $this->buildListingMeta($legs, (float) ($totalPrice ?? 0.0), $pricingTags),
+                ];
             }
-
-            $fare = data_get($pricingBlock, 'fare.totalFare');
-            $totalPrice = $this->normalizeSabrePrice(data_get($fare, 'totalPrice'));
-
-            $results[] = [
-                'id' => $itinerary['id'] ?? null,
-                'supplierPrice' => $totalPrice,
-                'totalPrice' => $totalPrice,
-                'currency' => data_get($fare, 'currency'),
-                'legs' => $legs,
-                'supplier' => 'sabre',
-                'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
-                'pricing_subsource' => (string) ($pricingBlock['pricingSubsource'] ?? ''),
-                'pricing_source' => (string) ($itinerary['pricingSource'] ?? ''),
-                'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
-                'non_refundable' => (bool) data_get($passengerFare, 'nonRefundable', false),
-                'fare_brand' => $fareBrand,
-                'baggage_notes' => $bagSummaryLabel,
-                'baggage_details' => $baggageDetails,
-                'fare_rules' => $fareRules,
-                'fare_tags' => $pricingTags['tags'],
-                'listing_meta' => $this->buildListingMeta($legs, (float) ($totalPrice ?? 0.0), $pricingTags),
-            ];
         }
 
         return $results;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $pricingInformation
+     * @return array<string, mixed>
+     */
+    private function selectSabrePricingBlock(array $pricingInformation): array
+    {
+        $bestBlock = [];
+        $bestPrice = null;
+
+        foreach ($pricingInformation as $block) {
+            if (! is_array($block)) {
+                continue;
+            }
+
+            $price = $this->extractSabreTotalPrice($block);
+            if ($price === null) {
+                continue;
+            }
+
+            if ($bestPrice === null || $price < $bestPrice) {
+                $bestPrice = $price;
+                $bestBlock = $block;
+            }
+        }
+
+        if ($bestBlock !== []) {
+            return $bestBlock;
+        }
+
+        return is_array($pricingInformation[0] ?? null) ? $pricingInformation[0] : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $pricingBlock
+     */
+    private function extractSabreTotalPrice(array $pricingBlock): ?float
+    {
+        $totalFare = data_get($pricingBlock, 'fare.totalFare');
+
+        foreach (['totalPrice', 'equivalentAmount', 'constructAmount'] as $key) {
+            $amount = $this->normalizeSabrePrice(data_get($totalFare, $key));
+            if ($amount !== null) {
+                return $amount;
+            }
+        }
+
+        $passengerRows = data_get($pricingBlock, 'fare.passengerInfoList', []);
+        if (! is_array($passengerRows) || $passengerRows === []) {
+            return null;
+        }
+
+        $sum = 0.0;
+        $hasAmount = false;
+
+        foreach ($passengerRows as $row) {
+            $passengerTotalFare = data_get($row, 'passengerInfo.passengerTotalFare', []);
+
+            $paxAmount = null;
+            foreach (['totalPrice', 'equivalentAmount', 'constructAmount'] as $key) {
+                $paxAmount = $this->normalizeSabrePrice(data_get($passengerTotalFare, $key));
+                if ($paxAmount !== null) {
+                    break;
+                }
+            }
+
+            if ($paxAmount === null) {
+                continue;
+            }
+
+            $sum += $paxAmount;
+            $hasAmount = true;
+        }
+
+        return $hasAmount ? round($sum, 2) : null;
     }
 
     /**
@@ -965,6 +1051,16 @@ class FlightController extends Controller
 
     private function normalizeSabrePrice(mixed $value): ?float
     {
+        if (is_array($value)) {
+            foreach (['amount', 'Amount', 'totalPrice', 'TotalPrice', 'value', 'Value'] as $key) {
+                if (array_key_exists($key, $value)) {
+                    return $this->normalizeSabrePrice($value[$key]);
+                }
+            }
+
+            return null;
+        }
+
         if ($value === null || $value === '') {
             return null;
         }

@@ -108,12 +108,15 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Flight selection expired. Please search again.');
         }
 
+        [$sabreItineraryId, $sabreGroupIndex] = $this->resolveSabreItineraryLookup($itineraryData, $itineraryId);
+
         $revalidate = $flightService->revalidateItinerary(
             session('flight_search_response', []),
-            $itineraryId,
+            $sabreItineraryId,
             (int) ($params['adults'] ?? 1),
             (int) ($params['children'] ?? 0),
-            (int) ($params['infants'] ?? 0)
+            (int) ($params['infants'] ?? 0),
+            $sabreGroupIndex,
         );
 
         if (!($revalidate['success'] ?? false)) {
@@ -724,6 +727,20 @@ class FlightBookingController extends Controller
         unset($passenger);
 
         return $validated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $itineraryData
+     * @return array{0: int, 1: int|null}
+     */
+    private function resolveSabreItineraryLookup(array $itineraryData, int $sessionItineraryId): array
+    {
+        $sabreItineraryId = (int) ($itineraryData['sabre_itinerary_id'] ?? $sessionItineraryId);
+        $groupIndex = array_key_exists('sabre_group_index', $itineraryData)
+            ? (int) $itineraryData['sabre_group_index']
+            : null;
+
+        return [$sabreItineraryId, $groupIndex];
     }
 
     protected function getSourceMarketFromIP(): string

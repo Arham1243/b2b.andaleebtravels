@@ -345,7 +345,7 @@
                             $bagNote    = $result['baggage_notes'] ?? '';
                             $bagDetails = $result['baggage_details'] ?? [];
                             $fareRules  = $result['fare_rules'] ?? [];
-                            $totalPrice = $result['totalPrice'] ?? 0;
+                            $totalPrice = (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0));
                             $cardCur    = strtoupper((string) ($result['currency'] ?? $currencyCode));
                             $cabinTop   = $firstSeg['cabin_code'] ?? 'Y';
                             $rbdTop     = $firstSeg['booking_code'] ?? '';
