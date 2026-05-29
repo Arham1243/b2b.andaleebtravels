@@ -19,38 +19,6 @@
             font-weight: 600;
             color: #1a2540;
         }
-        .ps-markup-status {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 14px;
-            border: 1px solid #e8ecf2;
-            border-radius: 10px;
-            background: #fafbfd;
-            margin-bottom: 18px;
-        }
-        .ps-markup-status__label {
-            font-size: .88rem;
-            font-weight: 600;
-            color: #1a2540;
-        }
-        .ps-markup-status__badge {
-            font-size: .78rem;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 999px;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-        .ps-markup-status__badge--on {
-            background: #dcfce7;
-            color: #166534;
-        }
-        .ps-markup-status__badge--off {
-            background: #f1f5f9;
-            color: #64748b;
-        }
         .ps-markup-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -72,7 +40,6 @@
 @section('content')
 @php
     $overrideEnabled = (bool) old('agent_markup_override_enabled', $user->agent_markup_override_enabled ?? false);
-    $agencyMarkupsEnabled = (bool) ($agencyMarkupsEnabled ?? ($agency->vendor_markups_enabled ?? false));
 
     $agencyFlightType = $agency->flight_markup_type ?? '';
     $agencyFlightValue = ($agency->flight_markup_value ?? 0) > 0 ? $agency->flight_markup_value : '';
@@ -114,19 +81,7 @@
                         </div>
                         <div class="ps-card__body">
                             <div id="agency_markup_body" @if($overrideEnabled) hidden @endif>
-                                <div class="ps-markup-status">
-                                    <div>
-                                        <div class="ps-markup-status__label">Agency markup</div>
-                                        <div style="font-size:.78rem;color:#64748b;margin-top:2px;">
-                                            Set by admin for your agency. Applied to your searches and bookings.
-                                        </div>
-                                    </div>
-                                    <span class="ps-markup-status__badge {{ $agencyMarkupsEnabled ? 'ps-markup-status__badge--on' : 'ps-markup-status__badge--off' }}">
-                                        {{ $agencyMarkupsEnabled ? 'Enabled' : 'Disabled' }}
-                                    </span>
-                                </div>
-
-                                <div class="ps-markup-grid" @if(! $agencyMarkupsEnabled) hidden @endif id="agency_markup_fields">
+                                <div class="ps-markup-grid" id="agency_markup_fields">
                                     <div>
                                         <h6 style="font-size:.88rem;font-weight:700;margin-bottom:12px;">Flight markup</h6>
                                         <div class="ps-field" style="margin-bottom:14px;">

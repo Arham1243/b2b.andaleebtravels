@@ -59,7 +59,6 @@ class ProfileSettingsController extends Controller
             ->with([
                 'user' => $user,
                 'agency' => $agency,
-                'agencyMarkupsEnabled' => (bool) ($agency->vendor_markups_enabled ?? false),
             ]);
     }
 
