@@ -1160,6 +1160,8 @@ class HotelController extends Controller
                 'original_amount' => $pricingFields['original_amount'],
                 'vendor_discount_amount' => $pricingFields['vendor_discount_amount'],
                 'vendor_discount_snapshot' => $pricingFields['vendor_discount_snapshot'],
+                'vendor_markup_amount' => $pricingFields['vendor_markup_amount'],
+                'vendor_markup_snapshot' => $pricingFields['vendor_markup_snapshot'],
 
                 'payment_method' => $validated['payment_method'] ?? null,
                 'flight_details' => $validated['flight_details'] ?? null,

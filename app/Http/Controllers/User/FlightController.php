@@ -178,7 +178,7 @@ class FlightController extends Controller
 
         $results = $this->extractItineraries($grouped);
 
-        if (vendorPricing()->discountsEnabled(Auth::user())) {
+        if (vendorPricing()->pricingAdjustmentsEnabled(Auth::user())) {
             $results = applyFlightSearchPricing($results);
         }
 

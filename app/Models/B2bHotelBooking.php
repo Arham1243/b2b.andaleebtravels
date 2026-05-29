@@ -38,6 +38,8 @@ class B2bHotelBooking extends Model
         'original_amount',
         'vendor_discount_amount',
         'vendor_discount_snapshot',
+        'vendor_markup_amount',
+        'vendor_markup_snapshot',
         'wallet_amount',
         'currency',
         'supplier',
@@ -78,6 +80,8 @@ class B2bHotelBooking extends Model
         'original_amount' => 'decimal:2',
         'vendor_discount_amount' => 'decimal:2',
         'vendor_discount_snapshot' => 'array',
+        'vendor_markup_amount' => 'decimal:2',
+        'vendor_markup_snapshot' => 'array',
         'wallet_amount' => 'decimal:2',
         'cancelled_at' => 'datetime',
     ];

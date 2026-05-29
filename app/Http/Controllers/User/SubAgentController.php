@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Mail\VendorInviteMail;
 use App\Models\B2bVendor;
+use App\Services\VendorPricingService;
 use App\Support\B2bVendorValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,7 +49,10 @@ class SubAgentController extends Controller
 
         $plainPassword = $validated['password'] ?? '12345678';
 
-        $vendor = B2bVendor::create([
+        $agency = Auth::user();
+        $markupSnapshot = app(VendorPricingService::class)->markupSnapshotFromAgency($agency);
+
+        $vendor = B2bVendor::create(array_merge([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'username' => $validated['username'],
@@ -56,7 +60,7 @@ class SubAgentController extends Controller
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
             'parent_vendor_id' => Auth::id(),
-        ]);
+        ], $markupSnapshot));
 
         try {
             Mail::to($vendor->email)->send(new VendorInviteMail($vendor, $plainPassword));

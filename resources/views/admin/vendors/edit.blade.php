@@ -35,6 +35,8 @@
                             ])
 
                             @include('admin.vendors.partials._form-discounts', ['vendor' => $vendor])
+
+                            @include('admin.vendors.partials._form-markups', ['vendor' => $vendor])
                         @endif
                     </div>
                     <div class="col-md-4">

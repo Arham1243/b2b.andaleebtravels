@@ -38,6 +38,9 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     Route::post('profile/personal-info/update', [ProfileSettingsController::class, 'updatePersonalInfo'])->name('profile.updatePersonalInfo');
     Route::get('profile/wallet-ledger', [ProfileSettingsController::class, 'walletLedger'])->name('profile.walletLedger');
 
+    Route::get('profile/markup-settings', [ProfileSettingsController::class, 'markupSettings'])->name('profile.markupSettings');
+    Route::post('profile/markup-settings/update', [ProfileSettingsController::class, 'updateMarkupSettings'])->name('profile.updateMarkupSettings');
+
     Route::get('profile/change/password', [ProfileSettingsController::class, 'changePassword'])->name('profile.changePassword');
     Route::post('profile/change/password/update', [ProfileSettingsController::class, 'updatePassword'])->name('profile.updatePassword');
 

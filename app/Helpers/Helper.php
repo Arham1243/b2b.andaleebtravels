@@ -197,7 +197,7 @@ if (! function_exists('vendorPricing')) {
 }
 
 /**
- * Unified flight sell price — vendor discount only.
+ * Unified flight sell price — agency discount then agent/agency markup.
  * Pass supplier/list fare; returns the amount shown across search, checkout, and bookings.
  */
 if (! function_exists('flightSellPrice')) {
@@ -230,8 +230,8 @@ if (! function_exists('flightBookingPricingFields')) {
 }
 
 /**
- * Unified hotel sell price — vendor discount only.
- * Pass list price (after any legacy commission step); markup moves here later.
+ * Unified hotel sell price — agency discount then agent/agency markup.
+ * Pass list price (after any legacy commission step).
  */
 if (! function_exists('hotelSellPrice')) {
     function hotelSellPrice(float $listAmount): float

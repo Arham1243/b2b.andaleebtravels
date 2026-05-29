@@ -84,6 +84,8 @@ class HotelService
             'original_amount' => $data['original_amount'] ?? null,
             'vendor_discount_amount' => $data['vendor_discount_amount'] ?? 0,
             'vendor_discount_snapshot' => $data['vendor_discount_snapshot'] ?? null,
+            'vendor_markup_amount' => $data['vendor_markup_amount'] ?? 0,
+            'vendor_markup_snapshot' => $data['vendor_markup_snapshot'] ?? null,
             'currency' => $data['currency'] ?? 'AED',
             'supplier' => $data['supplier'] ?? 'yalago',
             'payment_method' => $data['payment_method'] ?? null,

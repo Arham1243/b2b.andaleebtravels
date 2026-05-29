@@ -46,6 +46,62 @@ class ProfileSettingsController extends Controller
             ]);
     }
 
+    public function markupSettings()
+    {
+        $user = Auth::user();
+        $agency = $user->walletAgency();
+
+        return view('user.profile-settings.markup-settings')
+            ->with('title', 'Markup Settings')
+            ->with([
+                'user' => $user,
+                'agency' => $agency,
+                'agencyFlightMarkup' => $this->formatPricingRuleLabel(
+                    $agency?->flight_markup_type,
+                    $agency?->flight_markup_value,
+                    (bool) ($agency?->vendor_markups_enabled ?? false),
+                ),
+                'agencyHotelMarkup' => $this->formatPricingRuleLabel(
+                    $agency?->hotel_markup_type,
+                    $agency?->hotel_markup_value,
+                    (bool) ($agency?->vendor_markups_enabled ?? false),
+                ),
+            ]);
+    }
+
+    public function updateMarkupSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'agent_markup_override_enabled' => 'nullable|boolean',
+            'agent_flight_markup_type' => 'nullable|in:percent,fixed',
+            'agent_flight_markup_value' => 'nullable|numeric|min:0|max:99999999.99',
+            'agent_hotel_markup_type' => 'nullable|in:percent,fixed',
+            'agent_hotel_markup_value' => 'nullable|numeric|min:0|max:99999999.99',
+        ]);
+
+        $overrideEnabled = $request->boolean('agent_markup_override_enabled');
+        $flightType = $overrideEnabled
+            ? $this->normalizeAgentMarkupType($validated['agent_flight_markup_type'] ?? null, (float) ($validated['agent_flight_markup_value'] ?? 0))
+            : null;
+        $hotelType = $overrideEnabled
+            ? $this->normalizeAgentMarkupType($validated['agent_hotel_markup_type'] ?? null, (float) ($validated['agent_hotel_markup_value'] ?? 0))
+            : null;
+
+        B2bVendor::where('id', Auth::id())->update([
+            'agent_markup_override_enabled' => $overrideEnabled,
+            'agent_flight_markup_type' => $flightType,
+            'agent_flight_markup_value' => $overrideEnabled
+                ? $this->normalizeAgentMarkupValue($validated['agent_flight_markup_type'] ?? null, $validated['agent_flight_markup_value'] ?? 0)
+                : 0,
+            'agent_hotel_markup_type' => $hotelType,
+            'agent_hotel_markup_value' => $overrideEnabled
+                ? $this->normalizeAgentMarkupValue($validated['agent_hotel_markup_type'] ?? null, $validated['agent_hotel_markup_value'] ?? 0)
+                : 0,
+        ]);
+
+        return redirect()->back()->with('notify_success', 'Markup settings updated successfully.');
+    }
+
     public function updatePersonalInfo(Request $request)
     {
         $vendorId = Auth::user()->id;
@@ -137,5 +193,48 @@ class ProfileSettingsController extends Controller
         ]);
 
         return redirect()->back()->with('notify_success', 'Password updated successfully');
+    }
+
+    private function formatPricingRuleLabel(?string $type, mixed $value, bool $enabled): string
+    {
+        if (! $enabled) {
+            return 'Disabled';
+        }
+
+        $type = strtolower(trim((string) $type));
+        $numeric = round((float) $value, 2);
+
+        if (! in_array($type, ['percent', 'fixed'], true) || $numeric <= 0) {
+            return 'Not set';
+        }
+
+        if ($type === 'percent') {
+            return rtrim(rtrim(number_format($numeric, 2), '0'), '.') . '%';
+        }
+
+        return 'AED ' . number_format($numeric, 2);
+    }
+
+    private function normalizeAgentMarkupType(?string $type, float $value): ?string
+    {
+        $type = strtolower(trim((string) $type));
+
+        if (! in_array($type, ['percent', 'fixed'], true) || $value <= 0) {
+            return null;
+        }
+
+        return $type;
+    }
+
+    private function normalizeAgentMarkupValue(?string $type, mixed $value): float
+    {
+        $type = strtolower(trim((string) $type));
+        $numeric = round((float) $value, 2);
+
+        if (! in_array($type, ['percent', 'fixed'], true) || $numeric <= 0) {
+            return 0;
+        }
+
+        return $numeric;
     }
 }

@@ -11,6 +11,7 @@ use App\Models\Config;
 use App\Models\B2bWalletLedger;
 use App\Services\AdminManualWalletTransactionService;
 use App\Services\AdminWalletLedgerAdjustmentService;
+use App\Services\VendorPricingService;
 use App\Support\B2bVendorValidation;
 use App\Support\VendorWalletCredit;
 use App\Support\WalletLedgerResolver;
@@ -425,6 +426,19 @@ class VendorController extends Controller
                 'hotel_discount_value' => $request->boolean('vendor_discounts_enabled')
                     ? $this->normalizeDiscountValue($validated['hotel_discount_type'] ?? null, $validated['hotel_discount_value'] ?? 0)
                     : 0,
+                'vendor_markups_enabled' => $request->boolean('vendor_markups_enabled'),
+                'flight_markup_type' => $request->boolean('vendor_markups_enabled')
+                    ? $this->normalizeMarkupType($validated['flight_markup_type'] ?? null, (float) ($validated['flight_markup_value'] ?? 0))
+                    : null,
+                'flight_markup_value' => $request->boolean('vendor_markups_enabled')
+                    ? $this->normalizeMarkupValue($validated['flight_markup_type'] ?? null, $validated['flight_markup_value'] ?? 0)
+                    : 0,
+                'hotel_markup_type' => $request->boolean('vendor_markups_enabled')
+                    ? $this->normalizeMarkupType($validated['hotel_markup_type'] ?? null, (float) ($validated['hotel_markup_value'] ?? 0))
+                    : null,
+                'hotel_markup_value' => $request->boolean('vendor_markups_enabled')
+                    ? $this->normalizeMarkupValue($validated['hotel_markup_type'] ?? null, $validated['hotel_markup_value'] ?? 0)
+                    : 0,
             ];
 
             if ($request->hasFile('agency_logo')) {
@@ -496,7 +510,9 @@ class VendorController extends Controller
 
         $plainPassword = $validated['password'] ?? '12345678';
 
-        $subAgent = B2bVendor::create([
+        $markupSnapshot = app(VendorPricingService::class)->markupSnapshotFromAgency($vendor);
+
+        $subAgent = B2bVendor::create(array_merge([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'username' => $validated['username'],
@@ -504,7 +520,7 @@ class VendorController extends Controller
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
             'parent_vendor_id' => $vendor->id,
-        ]);
+        ], $markupSnapshot));
 
         try {
             Mail::to($subAgent->email)->send(new VendorInviteMail($subAgent, $plainPassword));
@@ -593,6 +609,11 @@ class VendorController extends Controller
             'flight_discount_value' => 'nullable|numeric|min:0|max:99999999.99',
             'hotel_discount_type' => 'nullable|in:percent,fixed',
             'hotel_discount_value' => 'nullable|numeric|min:0|max:99999999.99',
+            'vendor_markups_enabled' => 'nullable|boolean',
+            'flight_markup_type' => 'nullable|in:percent,fixed',
+            'flight_markup_value' => 'nullable|numeric|min:0|max:99999999.99',
+            'hotel_markup_type' => 'nullable|in:percent,fixed',
+            'hotel_markup_value' => 'nullable|numeric|min:0|max:99999999.99',
         ]);
 
         return $request->validate($rules, B2bVendorValidation::messages());
@@ -619,6 +640,29 @@ class VendorController extends Controller
         }
 
         if ($type === 'percent' && $numeric >= 100) {
+            return 0;
+        }
+
+        return $numeric;
+    }
+
+    private function normalizeMarkupType(?string $type, float $value): ?string
+    {
+        $type = strtolower(trim((string) $type));
+
+        if (! in_array($type, ['percent', 'fixed'], true) || $value <= 0) {
+            return null;
+        }
+
+        return $type;
+    }
+
+    private function normalizeMarkupValue(?string $type, mixed $value): float
+    {
+        $type = strtolower(trim((string) $type));
+        $numeric = round((float) $value, 2);
+
+        if (! in_array($type, ['percent', 'fixed'], true) || $numeric <= 0) {
             return 0;
         }
 

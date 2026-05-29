@@ -28,6 +28,12 @@ class B2bVendor extends Authenticatable
         'flight_discount_value' => 'decimal:2',
         'hotel_discount_value' => 'decimal:2',
         'vendor_discounts_enabled' => 'boolean',
+        'flight_markup_value' => 'decimal:2',
+        'hotel_markup_value' => 'decimal:2',
+        'vendor_markups_enabled' => 'boolean',
+        'agent_markup_override_enabled' => 'boolean',
+        'agent_flight_markup_value' => 'decimal:2',
+        'agent_hotel_markup_value' => 'decimal:2',
     ];
 
     public function getContactNameAttribute(): string

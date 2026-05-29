@@ -17,6 +17,11 @@ Breadcrumbs::for('user.profile.walletLedger', function (BreadcrumbTrail $trail) 
     $trail->push('Wallet Ledger', route('user.profile.walletLedger'));
 });
 
+Breadcrumbs::for('user.profile.markupSettings', function (BreadcrumbTrail $trail) {
+    $trail->parent('user.dashboard');
+    $trail->push('Markup Settings', route('user.profile.markupSettings'));
+});
+
 Breadcrumbs::for('user.profile.changePassword', function (BreadcrumbTrail $trail) {
     $trail->parent('user.dashboard');
     $trail->push('Change Password', route('user.profile.changePassword'));
