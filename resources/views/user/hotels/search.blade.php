@@ -42,8 +42,14 @@
             {{-- Results toolbar (flight-style count + SORT BY pills) --}}
             <div class="hl-rp-bar">
                 <div class="hl-rp-bar__left">
-                    <span class="hl-rp-bar__count">Showing <strong>{{ $hotels->count() }}</strong> of
-                        <strong>{{ $totalHotels }}</strong> hotels found</span>
+                    <span class="hl-rp-bar__count">
+                        @if ($hotels->total() > 0)
+                            Showing <strong>{{ $hotels->firstItem() }}–{{ $hotels->lastItem() }}</strong> of
+                            <strong>{{ $hotels->total() }}</strong> hotels found
+                        @else
+                            <strong>0</strong> hotels found
+                        @endif
+                    </span>
                 </div>
                 <div class="hl-rp-bar__sort">
                     <span class="hl-rp-bar__sortlabel">SORT BY:</span>
@@ -341,22 +347,14 @@
                         @endforeach
 
                         {{-- Pagination --}}
-                        <div class="hl-pagination">
-                            <div class="hl-pagination__info">
-                                Showing {{ min($currentPage * $perPage, $totalHotels) }} of {{ $totalHotels }} hotels
-                            </div>
-                            @if ($hasMore)
-                                @php
-                                    $nextPageUrl =
-                                        url()->current() .
-                                        '?' .
-                                        http_build_query(array_merge(request()->query(), ['page' => $currentPage + 1]));
-                                @endphp
-                                <a href="{{ $nextPageUrl }}" class="hl-pagination__btn">
-                                    Show More <i class="bx bx-chevron-down"></i>
-                                </a>
-                            @endif
-                        </div>
+                        @if ($hotels->hasPages())
+                            <nav class="hl-pagination" aria-label="Hotel results pages">
+                                <div class="hl-pagination__info">
+                                    Page {{ $hotels->currentPage() }} of {{ $hotels->lastPage() }}
+                                </div>
+                                {{ $hotels->onEachSide(1)->links('pagination::bootstrap-5') }}
+                            </nav>
+                        @endif
                     @else
                         <div class="fc-empty-state">
                             <div class="fc-empty-icon">
@@ -387,10 +385,15 @@
                 window.location.href = url;
             };
 
+            const resetPageParam = (url) => {
+                url.searchParams.delete('page');
+                return url;
+            };
+
             // Checkboxes
             document.querySelectorAll('.check-filter__input')?.forEach(input => {
                 input.addEventListener('change', () => {
-                    const url = new URL(window.location.href);
+                    const url = resetPageParam(new URL(window.location.href));
                     const selected = Array.from(document.querySelectorAll(
                         `.check-filter__input[name="${input.name}"]:checked`
                     )).map(el => el.value);
@@ -428,7 +431,7 @@
 
             function hlReloadPriceFilter() {
                 if (!hlPriceLo || !hlPriceHi) return;
-                const url = new URL(window.location.href);
+                const url = resetPageParam(new URL(window.location.href));
                 url.searchParams.set('min_price', hlPriceLo.value);
                 url.searchParams.set('max_price', hlPriceHi.value);
                 navigateWithLoader(url.toString());
@@ -457,7 +460,7 @@
             if (hotelInput) {
                 hotelInput.addEventListener('blur', () => {
                     const val = hotelInput.value.trim();
-                    const url = new URL(window.location.href);
+                    const url = resetPageParam(new URL(window.location.href));
                     val ? url.searchParams.set('hotel_name', val) : url.searchParams.delete('hotel_name');
                     navigateWithLoader(url.toString());
                 });
@@ -467,7 +470,7 @@
             document.querySelectorAll('.hl-rp-sortbtn[data-hl-sort]').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const kind = btn.dataset.hlSort;
-                    const url = new URL(window.location.href);
+                    const url = resetPageParam(new URL(window.location.href));
                     if (kind === 'price') {
                         const cur = url.searchParams.get('sort_by') || '';
                         let next;
@@ -494,13 +497,16 @@
                 });
             });
 
-            // Pagination
-            document.querySelectorAll('.hl-pagination__btn')?.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const url = btn.getAttribute('href');
-                    if (!url) return;
+            // Pagination page links
+            document.querySelectorAll('.hl-pagination .page-link')?.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const url = link.getAttribute('href');
+                    const pageItem = link.closest('.page-item');
+                    if (!url || !url.startsWith('http') || pageItem?.classList.contains('disabled') || pageItem?.classList.contains('active')) {
+                        return;
+                    }
                     e.preventDefault();
-                    navigateWithLoader(url, 'Loading more hotels...');
+                    navigateWithLoader(url, 'Loading hotels...');
                 });
             });
 
@@ -584,6 +590,32 @@
             background: #cd1b4f;
             color: white !important;
             box-shadow: 0 8px 15px rgba(205, 27, 79, 0.2);
+        }
+
+        .hl-pagination .pagination {
+            margin-bottom: 0;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .hl-pagination .page-link {
+            border-radius: 8px;
+            color: var(--color-primary, #cd1b4f);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.75rem;
+            border-color: #e5e7eb;
+        }
+
+        .hl-pagination .page-item.active .page-link {
+            background: var(--color-primary, #cd1b4f);
+            border-color: var(--color-primary, #cd1b4f);
+            color: #fff;
+        }
+
+        .hl-pagination .page-item.disabled .page-link {
+            color: #9ca3af;
         }
     </style>
 @endpush

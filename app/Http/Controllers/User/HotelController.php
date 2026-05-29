@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
 
 class HotelController extends Controller
@@ -77,7 +78,7 @@ class HotelController extends Controller
         [$province, $country] = $this->resolveDestination($request);
 
         $hotels = collect();
-        $perPage = 10;
+        $perPage = max(5, min(50, (int) $request->input('per_page', 10)));
         $request->merge(['per_page' => $perPage]);
 
         $tripInDealOnly = is_array($this->enabledHotelProviders)
@@ -106,31 +107,37 @@ class HotelController extends Controller
 
         $this->storeTboSearchRates($hotels);
 
-        // Paginate results
         $page = max(1, (int) $request->input('page', 1));
         $tripInDealPaginated = (bool) $request->attributes->get('tripindeal_paginated', false);
         $total = $hotels->count();
-        $pagedHotels = $hotels->values();
+        $items = $hotels->values();
 
-        if (!$tripInDealPaginated) {
-            $pagedHotels = $pagedHotels->forPage($page, $perPage)->values();
-        } else {
+        if ($tripInDealPaginated) {
             $tripInDealTotal = (int) $request->attributes->get('tripindeal_total', 0);
             if (!$this->hasSearchFilters($request) && $tripInDealTotal > 0) {
                 $total = $tripInDealTotal;
             }
+        } else {
+            $lastPage = max(1, (int) ceil($total / $perPage));
+            $page = min($page, $lastPage);
+            $items = $items->forPage($page, $perPage)->values();
         }
 
-        $hasMore = ($page * $perPage) < $total;
+        $hotels = (new LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'pageName' => 'page',
+            ]
+        ))->withQueryString();
 
         $availableSuppliers = $this->getEnabledProviderLabels();
 
         return view('user.hotels.search', [
-            'hotels' => $pagedHotels,
-            'totalHotels' => $total,
-            'currentPage' => $page,
-            'perPage' => $perPage,
-            'hasMore' => $hasMore,
+            'hotels' => $hotels,
             'availableSuppliers' => $availableSuppliers,
         ]);
     }
