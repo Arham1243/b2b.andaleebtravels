@@ -6,6 +6,8 @@ use App\Models\Config;
 
 class FlightPromoConfig
 {
+    public const ENABLED_KEY = 'FLIGHT_PROMOS_ENABLED';
+
     /** @var array<string, string> */
     public const DEFAULTS = [
         'FLIGHT_PROMO_1_KICKER' => 'Exclusive Deal',
@@ -31,6 +33,17 @@ class FlightPromoConfig
         }
 
         return $resolved;
+    }
+
+    public static function enabled(?array $config = null): bool
+    {
+        $config = $config ?? Config::pluck('config_value', 'config_key')->toArray();
+
+        if (! array_key_exists(self::ENABLED_KEY, $config)) {
+            return true;
+        }
+
+        return filter_var($config[self::ENABLED_KEY], FILTER_VALIDATE_BOOLEAN);
     }
 
     public static function formatMultiline(string $text): string

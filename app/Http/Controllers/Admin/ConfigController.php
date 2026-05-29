@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Config;
-use App\Support\FlightPromoConfig;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
 
@@ -45,11 +44,7 @@ class ConfigController extends Controller
         $title = 'Update Details';
         $config = Config::pluck('config_value', 'config_key')->toArray();
 
-        return view('admin.site-settings.details', [
-            'title' => $title,
-            'config' => $config,
-            'flightPromoDefaults' => FlightPromoConfig::DEFAULTS,
-        ]);
+        return view('admin.site-settings.details', compact('title', 'config'));
     }
 
     public function saveDetails(Request $request)

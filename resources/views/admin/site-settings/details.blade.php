@@ -121,31 +121,39 @@
                         </div>
                     </div>
 
-                    <div class="form-box">
-                        <div class="form-box__header">
-                            <div class="title">Flight search promo boxes</div>
-                        </div>
-                        <div class="form-box__body">
-                            <p class="text-muted mb-3" style="font-size:13px;">
-                                Text shown on the flight search page promo banners. Leave a field empty to use the default shown in the placeholder.
-                            </p>
+                    @php
+                        $flightPromosEnabled = filter_var($config['FLIGHT_PROMOS_ENABLED'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+                    @endphp
 
+                    <div class="form-box">
+                        <div class="form-box__header d-flex align-items-center justify-content-between gap-3">
+                            <div class="title mb-0">Flight search promo boxes</div>
+                            <div class="form-check form-switch mb-0">
+                                <input type="hidden" name="FLIGHT_PROMOS_ENABLED" value="0">
+                                <input class="form-check-input" type="checkbox" name="FLIGHT_PROMOS_ENABLED" value="1"
+                                    id="flight_promos_enabled" role="switch"
+                                    @checked($flightPromosEnabled)>
+                                <label class="form-check-label" for="flight_promos_enabled">
+                                    {{ $flightPromosEnabled ? 'Enabled' : 'Disabled' }}
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-box__body" id="flight_promos_body" @if(! $flightPromosEnabled) hidden @endif>
+                            
                             <h6 class="mb-2">Box 1 (gold)</h6>
                             <div class="row mb-3">
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Kicker</label>
-                                        <input type="text" name="FLIGHT_PROMO_1_KICKER" class="field"
-                                            value="{{ $config['FLIGHT_PROMO_1_KICKER'] ?? '' }}"
-                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_1_KICKER'] }}">
+                                        <input type="text" name="FLIGHT_PROMO_1_KICKER" class="field flight-promo-field"
+                                            value="{{ $config['FLIGHT_PROMO_1_KICKER'] ?? '' }}">
                                     </div>
                                 </div>
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Title</label>
-                                        <input type="text" name="FLIGHT_PROMO_1_TITLE" class="field"
-                                            value="{{ $config['FLIGHT_PROMO_1_TITLE'] ?? '' }}"
-                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_1_TITLE'] }}">
+                                        <input type="text" name="FLIGHT_PROMO_1_TITLE" class="field flight-promo-field"
+                                            value="{{ $config['FLIGHT_PROMO_1_TITLE'] ?? '' }}">
                                     </div>
                                 </div>
                             </div>
@@ -155,25 +163,22 @@
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Kicker</label>
-                                        <input type="text" name="FLIGHT_PROMO_2_KICKER" class="field"
-                                            value="{{ $config['FLIGHT_PROMO_2_KICKER'] ?? '' }}"
-                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_2_KICKER'] }}">
+                                        <input type="text" name="FLIGHT_PROMO_2_KICKER" class="field flight-promo-field"
+                                            value="{{ $config['FLIGHT_PROMO_2_KICKER'] ?? '' }}">
                                     </div>
                                 </div>
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Title</label>
-                                        <textarea name="FLIGHT_PROMO_2_TITLE" class="field" rows="2"
-                                            placeholder="{{ str_replace("\n", ' / ', $flightPromoDefaults['FLIGHT_PROMO_2_TITLE']) }}">{{ $config['FLIGHT_PROMO_2_TITLE'] ?? '' }}</textarea>
+                                        <textarea name="FLIGHT_PROMO_2_TITLE" class="field flight-promo-field" rows="2">{{ $config['FLIGHT_PROMO_2_TITLE'] ?? '' }}</textarea>
                                         <small class="text-muted d-block mt-1">Use a new line for a line break in the banner.</small>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-md-12 col-12 mt-2">
                                     <div class="form-fields">
                                         <label class="title">Subtext</label>
-                                        <input type="text" name="FLIGHT_PROMO_2_CTA" class="field"
-                                            value="{{ $config['FLIGHT_PROMO_2_CTA'] ?? '' }}"
-                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_2_CTA'] }}">
+                                        <input type="text" name="FLIGHT_PROMO_2_CTA" class="field flight-promo-field"
+                                            value="{{ $config['FLIGHT_PROMO_2_CTA'] ?? '' }}">
                                     </div>
                                 </div>
                             </div>
@@ -183,17 +188,15 @@
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Title</label>
-                                        <input type="text" name="FLIGHT_PROMO_3_TITLE" class="field"
-                                            value="{{ $config['FLIGHT_PROMO_3_TITLE'] ?? '' }}"
-                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_3_TITLE'] }}">
+                                        <input type="text" name="FLIGHT_PROMO_3_TITLE" class="field flight-promo-field"
+                                            value="{{ $config['FLIGHT_PROMO_3_TITLE'] ?? '' }}">
                                     </div>
                                 </div>
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Subtext</label>
-                                        <input type="text" name="FLIGHT_PROMO_3_CTA" class="field"
-                                            value="{{ $config['FLIGHT_PROMO_3_CTA'] ?? '' }}"
-                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_3_CTA'] }}">
+                                        <input type="text" name="FLIGHT_PROMO_3_CTA" class="field flight-promo-field"
+                                            value="{{ $config['FLIGHT_PROMO_3_CTA'] ?? '' }}">
                                     </div>
                                 </div>
                             </div>
@@ -222,3 +225,30 @@
         </div>
     </div>
 @endsection
+
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var toggle = document.getElementById('flight_promos_enabled');
+    var body = document.getElementById('flight_promos_body');
+    var label = toggle ? toggle.closest('.form-switch').querySelector('.form-check-label') : null;
+    var fields = document.querySelectorAll('.flight-promo-field');
+
+    if (!toggle || !body) return;
+
+    function syncFlightPromosPanel() {
+        var on = toggle.checked;
+        body.hidden = !on;
+        if (label) {
+            label.textContent = on ? 'Enabled' : 'Disabled';
+        }
+        fields.forEach(function (field) {
+            field.disabled = !on;
+        });
+    }
+
+    toggle.addEventListener('change', syncFlightPromosPanel);
+    syncFlightPromosPanel();
+});
+</script>
+@endpush

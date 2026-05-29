@@ -661,9 +661,11 @@
         </aside>
 
         @php
+            $flightPromosEnabled = \App\Support\FlightPromoConfig::enabled();
             $flightPromos = \App\Support\FlightPromoConfig::resolved();
         @endphp
 
+        @if ($flightPromosEnabled)
         <div class="fs-pro-promos">
             <a href="#" class="fs-promo fs-promo--gold" @click.prevent>
                 <div class="fs-promo__body">
@@ -696,6 +698,7 @@
                 <i class='bx bxs-plane-alt fs-promo__art'></i>
             </a>
         </div>
+        @endif
     </form>
 </div>
 @push('css')
