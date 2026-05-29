@@ -239,6 +239,28 @@ class HotelController extends Controller
             });
         }
 
+        // Refund policy
+        if ($request->filled('refund_type')) {
+            $refundTypes = array_map('strtolower', explode(',', $request->refund_type));
+            $hotels = $hotels->filter(function ($hotel) use ($refundTypes) {
+                $isRefundable = $hotel['is_refundable'] ?? null;
+
+                if ($isRefundable === null) {
+                    return false;
+                }
+
+                if (in_array('refundable', $refundTypes, true) && $isRefundable === true) {
+                    return true;
+                }
+
+                if (in_array('non_refundable', $refundTypes, true) && $isRefundable === false) {
+                    return true;
+                }
+
+                return false;
+            });
+        }
+
         return $hotels;
     }
 
@@ -326,6 +348,7 @@ class HotelController extends Controller
             'hotel_name',
             'board_type',
             'supplier',
+            'refund_type',
             'sort_by',
         ];
 
