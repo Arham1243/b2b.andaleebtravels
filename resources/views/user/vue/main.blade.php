@@ -50,4 +50,6 @@
         };
     </script>
 @endpush
+@php ob_start(); @endphp
 @include('user.vue.js.' . $appJs)
+@php ob_end_clean(); @endphp

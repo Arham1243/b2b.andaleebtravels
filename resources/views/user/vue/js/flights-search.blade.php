@@ -1,4 +1,4 @@
-﻿@push('js')
+@push('js')
 <script>
     const FLIGHT_SEARCH_ACTION = @json(route('user.flights.search'));
     const RECENT_FLIGHTS_KEY = 'b2b_flight_recent_searches_v1';
