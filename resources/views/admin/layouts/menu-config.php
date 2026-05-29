@@ -1,8 +1,13 @@
 <?php
 
 use App\Models\B2bVendor;
+use App\Models\B2bWalletRecharge;
 
 $vendorPendingCount = B2bVendor::pendingSignups()->count();
+$walletBankTransfersPendingCount = B2bWalletRecharge::query()
+    ->where('payment_method', 'bank_transfer')
+    ->where('status', 'pending')
+    ->count();
 
 return [
     [
@@ -46,6 +51,7 @@ return [
         'title' => 'Wallet Bank Transfers',
         'icon' => 'bx bxs-bank',
         'route' => route('admin.wallet.bank-transfers.index'),
+        'badge_count' => $walletBankTransfersPendingCount,
     ],
     [
         'title' => 'Layout',

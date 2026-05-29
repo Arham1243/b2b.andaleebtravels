@@ -42,6 +42,9 @@
                     @if (isset($item['status']) && $item['status'] === 'pending')
                         <span class="badge badge-sm rounded-pill bg-warning ms-3">pending</span>
                     @endif
+                    @if (!empty($item['badge_count']))
+                        <span class="badge badge-sm rounded-pill bg-warning ms-3">{{ $item['badge_count'] }}</span>
+                    @endif
                     @if (isset($item['submenu']))
                         <div class="icon"><i class='bx bx-chevron-down'></i></div>
                     @endif
