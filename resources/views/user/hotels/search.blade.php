@@ -138,13 +138,13 @@
                                     <input type="checkbox" name="refund_type"
                                         class="check-filter__input sf__stopchk" value="refundable"
                                         {{ in_array('refundable', $selectedRefundTypes) ? 'checked' : '' }}>
-                                    <span class="sf__stoppill">Refundable Rooms</span>
+                                    <span class="sf__stoppill">Refundable </span>
                                 </label>
                                 <label class="sf__stoplbl">
                                     <input type="checkbox" name="refund_type"
                                         class="check-filter__input sf__stopchk" value="non_refundable"
                                         {{ in_array('non_refundable', $selectedRefundTypes) ? 'checked' : '' }}>
-                                    <span class="sf__stoppill">Non-Refundable Rooms</span>
+                                    <span class="sf__stoppill">Non-Refundable </span>
                                 </label>
                             </div>
                         </div>
