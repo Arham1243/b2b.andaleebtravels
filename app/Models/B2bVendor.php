@@ -13,6 +13,10 @@ use Illuminate\Notifications\Notifiable;
 class B2bVendor extends Authenticatable
 {
     use Notifiable;
+
+    /** @var array{prepaid: float, credit_used: float, net: float}|null */
+    protected ?array $creditPoolsCache = null;
+
     protected $guarded = ['id', 'created_at', 'updated_at'];
     protected $casts = [
         'hotel_search_providers' => 'array',
@@ -156,18 +160,43 @@ class B2bVendor extends Authenticatable
         return $this->creditLimitAmount() > 0;
     }
 
+    /**
+     * Replay active wallet ledger entries to derive prepaid, credit used, and net balance.
+     *
+     * @return array{prepaid: float, credit_used: float, net: float}
+     */
+    public function creditPools(bool $fresh = false): array
+    {
+        if ($fresh || $this->creditPoolsCache === null) {
+            $this->creditPoolsCache = VendorWalletCredit::poolsFromLedger($this);
+        }
+
+        return $this->creditPoolsCache;
+    }
+
+    public function refresh()
+    {
+        $this->creditPoolsCache = null;
+
+        return parent::refresh();
+    }
+
     /** Outstanding amount drawn from the agency credit line. */
     public function creditUsedAmount(): float
     {
         if ($this->hasCreditLimit()) {
-            return max(0, round((float) ($this->credit_used ?? 0), 2));
+            return max(0, round($this->creditPools()['credit_used'], 2));
         }
 
-        return max(0, round(-min(0, (float) $this->main_balance), 2));
+        return max(0, round($this->creditPools()['credit_used'], 2));
     }
 
     public function creditAvailableAmount(): float
     {
+        if (! $this->hasCreditLimit()) {
+            return 0;
+        }
+
         return max(0, round($this->creditLimitAmount() - $this->creditUsedAmount(), 2));
     }
 
@@ -175,7 +204,7 @@ class B2bVendor extends Authenticatable
     public function prepaidWalletBalance(): float
     {
         if ($this->hasCreditLimit()) {
-            return max(0, round((float) $this->main_balance, 2));
+            return max(0, round($this->creditPools()['prepaid'], 2));
         }
 
         return max(0, round((float) $this->main_balance, 2));
@@ -184,10 +213,7 @@ class B2bVendor extends Authenticatable
     public function netWalletBalance(): float
     {
         if ($this->hasCreditLimit()) {
-            return VendorWalletCredit::netBalance(
-                (float) $this->main_balance,
-                (float) ($this->credit_used ?? 0)
-            );
+            return round($this->creditPools()['net'], 2);
         }
 
         return round((float) $this->main_balance, 2);
@@ -196,9 +222,11 @@ class B2bVendor extends Authenticatable
     public function totalSpendableBalance(): float
     {
         if ($this->hasCreditLimit()) {
+            $pools = $this->creditPools();
+
             return VendorWalletCredit::totalSpendable(
-                VendorWalletCredit::currentPrepaid($this),
-                (float) ($this->credit_used ?? 0),
+                $pools['prepaid'],
+                $pools['credit_used'],
                 $this->creditLimitAmount()
             );
         }
@@ -232,8 +260,9 @@ class B2bVendor extends Authenticatable
             return 50000;
         }
 
-        $prepaid = VendorWalletCredit::currentPrepaid($this);
-        $creditUsed = $this->creditUsedAmount();
+        $pools = $this->creditPools();
+        $prepaid = $pools['prepaid'];
+        $creditUsed = $pools['credit_used'];
         $limit = $this->creditLimitAmount();
         $prepaidHeadroom = max(0, round($limit - $prepaid - $this->pendingRechargeAmount(), 2));
 

@@ -299,6 +299,11 @@ class VendorController extends Controller
 
     public function edit(B2bVendor $vendor)
     {
+        if ($vendor->isAgencyAccount()) {
+            VendorWalletCredit::syncVendorPools($vendor);
+            $vendor->refresh();
+        }
+
         $config = Config::pluck('config_value', 'config_key')->toArray();
         $adminProviders = $this->parseProviderConfig(
             $config['HOTEL_SEARCH_PROVIDERS'] ?? null,
@@ -330,6 +335,12 @@ class VendorController extends Controller
                 'status' => $validated['status'],
             ];
         } else {
+            $proposedLimit = round((float) ($validated['credit_limit'] ?? 0), 2);
+            $originalLimit = $vendor->credit_limit;
+            $vendor->credit_limit = $proposedLimit;
+            $creditUsed = max(0, round(VendorWalletCredit::poolsFromLedger($vendor)['credit_used'], 2));
+            $vendor->credit_limit = $originalLimit;
+
             $data = [
                 'name' => $validated['travel_agency'],
                 'travel_agency' => $validated['travel_agency'],
@@ -349,11 +360,10 @@ class VendorController extends Controller
                     $request->input('flight_search_providers'),
                     ['sabre']
                 ),
-                'credit_limit' => round((float) ($validated['credit_limit'] ?? 0), 2),
+                'credit_limit' => $proposedLimit,
             ];
 
-            $creditUsed = $vendor->creditUsedAmount();
-            if ($data['credit_limit'] < $creditUsed) {
+            if ($proposedLimit < $creditUsed) {
                 return redirect()->back()
                     ->withInput()
                     ->withErrors(['credit_limit' => 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).'])
@@ -374,6 +384,11 @@ class VendorController extends Controller
         }
 
         $vendor->update($data);
+
+        if ($vendor->isAgencyAccount()) {
+            VendorWalletCredit::syncVendorPools($vendor);
+        }
+
         $vendor->refresh();
 
         if ($vendor->isPendingApproval() && $vendor->isAgencyAccount()) {
