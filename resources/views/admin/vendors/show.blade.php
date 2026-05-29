@@ -326,24 +326,24 @@
                         <span><i class="bx bx-id-card" style="vertical-align:middle;"></i> <code style="font-size:.85em; color:var(--color-primary);">{{ $vendor->agent_code }}</code></span>
                     </p>
                 </div>
-                <div class="flex-shrink-0 d-flex gap-2">
+                <div class="flex-shrink-0 d-flex align-items-center gap-2 flex-wrap">
                     @if ($vendor->isAgencyAccount() && $vendor->status !== 'pending')
-                        <form action="{{ route('admin.vendors.payment-reminder', $vendor) }}" method="POST" class="d-inline"
+                        <form action="{{ route('admin.vendors.payment-reminder', $vendor) }}" method="POST" class="d-flex m-0"
                               onsubmit="return confirm('Send a payment reminder email to {{ addslashes($vendor->email) }}?');">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-primary fw-semibold px-3"
-                                    style="border-radius:8px; font-size:.82rem; align-self:center;">
+                                    style="border-radius:8px; font-size:.82rem;">
                                 <i class="bx bx-bell"></i> Payment Reminder
                             </button>
                         </form>
                     @endif
-                    <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3" style="border-radius:8px; font-size:.82rem;align-self: center;">
+                    <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3" style="border-radius:8px; font-size:.82rem;">
                         <i class="bx bx-edit"></i> Edit
                     </a>
                     @if ($vendor->status !== 'pending')
                         <a href="{{ route('admin.vendors.change-status', $vendor->id) }}"
                             class="btn btn-sm {{ $vendor->status === 'active' ? 'btn-outline-danger' : 'btn-outline-success' }} fw-semibold px-3"
-                            style="border-radius:8px; font-size:.82rem;align-self: center;"
+                            style="border-radius:8px; font-size:.82rem;"
                             onclick="return confirm('Are you sure you want to {{ $vendor->status === 'active' ? 'deactivate' : 'activate' }} {{ addslashes($vendor->display_agency_name ?: $vendor->name) }}?')">
                             <i class="bx {{ $vendor->status === 'active' ? 'bx-pause-circle' : 'bx-play-circle' }}"></i>
                             {{ $vendor->status === 'active' ? 'Deactivate' : 'Activate' }}
