@@ -27,7 +27,7 @@
                                     <div class="form-fields mb-0">
                                         <label class="title">Role name</label>
                                         <input type="text" name="name" class="field" value="{{ old('name') }}"
-                                            placeholder="e.g. Vendor support" required>
+                                             required>
                                         @error('name')
                                             <span class="text-danger small">{{ $message }}</span>
                                         @enderror
