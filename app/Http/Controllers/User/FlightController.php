@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Config;
+use App\Support\FlightPromoConfig;
 use App\Support\SabreBaggagePresenter;
 use App\Support\SabreFareBrandPresenter;
 use App\Support\SabreFareRulesPresenter;
@@ -38,7 +39,9 @@ class FlightController extends Controller
 
     public function index()
     {
-        return view('user.flights.index');
+        return view('user.flights.index', [
+            'flightPromosEnabled' => FlightPromoConfig::enabled(),
+        ]);
     }
 
     public function search(Request $request)

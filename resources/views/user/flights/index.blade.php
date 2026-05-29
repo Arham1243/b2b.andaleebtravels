@@ -1,6 +1,6 @@
 @extends('user.layouts.main')
 @section('content')
-    <div class="flight-page-shell my-4">
+    <div class="flight-page-shell my-4 @if(empty($flightPromosEnabled)) flight-page-shell--no-promos @endif">
         <div class="container px-2 px-lg-3">
             @include('user.vue.main', [
                 'appId' => 'flights-search',
@@ -9,7 +9,7 @@
             ])
 
             {{-- Contact Support Strip --}}
-            <div class="hs-support-strip mt-4">
+            <div class="hs-support-strip @if(! empty($flightPromosEnabled)) mt-4 @else mt-2 @endif">
                 <div class="hs-support-strip__left">
                     <i class='bx bx-support'></i>
                     <div>

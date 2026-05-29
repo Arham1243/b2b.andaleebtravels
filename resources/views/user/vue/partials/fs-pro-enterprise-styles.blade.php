@@ -95,6 +95,12 @@
             z-index: 1;
         }
 
+        /* Promo boxes disabled: tighten space before the support strip */
+        .flight-search-redesign--no-promos .fs-pro-layout {
+            gap: 1rem;
+            margin-bottom: 0;
+        }
+
         @media (max-width: 1100px) {
             .fs-pro-layout {
                 grid-template-columns: 1fr;

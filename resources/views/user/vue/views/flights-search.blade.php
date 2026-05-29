@@ -1,4 +1,8 @@
-<div class="hotel-search-redesign flight-search-redesign fs-pro-enterprise" v-cloak>
+@php
+    $flightPromosEnabled = \App\Support\FlightPromoConfig::enabled();
+    $flightPromos = $flightPromosEnabled ? \App\Support\FlightPromoConfig::resolved() : [];
+@endphp
+<div class="hotel-search-redesign flight-search-redesign fs-pro-enterprise @unless($flightPromosEnabled) flight-search-redesign--no-promos @endunless" v-cloak>
     <form method="GET" action="{{ route('user.flights.search') }}" @submit="onFlightSearchSubmit" class="fs-pro-layout">
         <input type="hidden" name="trip_type" :value="tripType">
 
@@ -659,11 +663,6 @@
                 </a>
             </div>
         </aside>
-
-        @php
-            $flightPromosEnabled = \App\Support\FlightPromoConfig::enabled();
-            $flightPromos = \App\Support\FlightPromoConfig::resolved();
-        @endphp
 
         @if ($flightPromosEnabled)
         <div class="fs-pro-promos">
