@@ -322,6 +322,7 @@
                             }
                             $seatMin    = !empty($seatList) ? min($seatList) : null;
                             $nonRefund  = (bool) ($result['non_refundable'] ?? false);
+                            $fareBrand  = trim((string) ($result['fare_brand'] ?? ''));
                             $bagNote    = $result['baggage_notes'] ?? '';
                             $totalPrice = $result['totalPrice'] ?? 0;
                             $cardCur    = strtoupper((string) ($result['currency'] ?? $currencyCode));
@@ -397,6 +398,9 @@
                                         </div>
                                         <div>
                                             <div class="rc__aname">{{ $s0['carrier_display'] ?? ($s0['carrier'] ?? '') }}</div>
+                                            @if($li === 0 && $fareBrand !== '')
+                                                <div class="rc__brand">{{ $fareBrand }}</div>
+                                            @endif
                                             <div class="rc__aflight">{{ strtoupper((string)($s0['carrier']??'')) }}{{ $s0['flight_number']??'' }}</div>
                                         </div>
                                     </div>
@@ -460,6 +464,9 @@
                             {{-- ── fare row ── --}}
                             <div class="rc__fare">
                                 <div class="rc__fare-left">
+                                    @if($fareBrand !== '')
+                                        <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
+                                    @endif
                                     @if($nonRefund)
                                         <span class="rc__fbadge rc__fbadge--nr">Non-Refundable</span>
                                     @else
@@ -927,6 +934,12 @@
 }
 .rc__fbadge--ref { background: var(--c-green-soft); color: var(--c-green); }
 .rc__fbadge--nr  { background: #fff0f3; color: #c0143c; }
+.rc__fbadge--brand { background: #eef2ff; color: #4338ca; text-transform: none; letter-spacing: 0; font-size: .68rem; }
+
+.rc__brand {
+    font-size: .72rem; font-weight: 700; color: #4338ca;
+    margin-top: .08rem; line-height: 1.25;
+}
 
 .rc__ftag {
     display: inline-flex; align-items: center; gap: .18rem;

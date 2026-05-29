@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Config;
+use App\Support\SabreFareBrandPresenter;
 use Carbon\Carbon;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Request;
@@ -369,13 +370,15 @@ class FlightController extends Controller
                     'PassengerTypeQuantity' => $passengerTypes,
                 ],
             ],
+            'PriceRequestInformation' => [
+                'TPA_Extensions' => [
+                    'BrandedFareIndicators' => [
+                        'SingleBrandedFare' => true,
+                        'MultipleBrandedFares' => true,
+                    ],
+                ],
+            ],
         ];
-
-        if ($children > 0 && $infants === 0) {
-            $travelerInfoSummary['PriceRequestInformation'] = [
-                'TPA_Extensions' => new \stdClass(),
-            ];
-        }
 
         return [
             'OTA_AirLowFareSearchRQ' => [
@@ -433,6 +436,7 @@ class FlightController extends Controller
             $pricingBlock = $itinerary['pricingInformation'][0] ?? [];
             $fareSeatMeta = $this->extractFareSeatMeta($pricingBlock);
             $pricingTags = $this->inferFareTagsFromPricingBlock($pricingBlock);
+            $fareBrand = SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped);
             $passengerFare = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo');
             $bagsSummary = $this->summarizeBaggageAllowances(
                 data_get($passengerFare, 'baggageInformation', []),
@@ -477,6 +481,7 @@ class FlightController extends Controller
                 'pricing_source' => (string) ($itinerary['pricingSource'] ?? ''),
                 'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
                 'non_refundable' => (bool) data_get($passengerFare, 'nonRefundable', false),
+                'fare_brand' => $fareBrand,
                 'baggage_notes' => $bagsSummary['label'],
                 'fare_tags' => $pricingTags['tags'],
                 'listing_meta' => $this->buildListingMeta($legs, $fare ? (float) $fare['totalPrice'] : 0.0, $pricingTags),
