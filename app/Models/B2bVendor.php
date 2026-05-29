@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\VendorWalletCredit;
+
 use App\Notifications\B2bVendorResetPassword;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +20,7 @@ class B2bVendor extends Authenticatable
         'trade_license_expiry' => 'date',
         'main_balance' => 'decimal:2',
         'credit_limit' => 'decimal:2',
+        'credit_used' => 'decimal:2',
     ];
 
     public function getContactNameAttribute(): string
@@ -148,9 +151,18 @@ class B2bVendor extends Authenticatable
         return max(0, (float) ($this->walletAgency()->credit_limit ?? 0));
     }
 
-    /** Amount of credit limit currently in use (negative prepaid balance). */
+    public function hasCreditLimit(): bool
+    {
+        return $this->creditLimitAmount() > 0;
+    }
+
+    /** Outstanding amount drawn from the agency credit line. */
     public function creditUsedAmount(): float
     {
+        if ($this->hasCreditLimit()) {
+            return max(0, round((float) ($this->credit_used ?? 0), 2));
+        }
+
         return max(0, round(-min(0, (float) $this->main_balance), 2));
     }
 
@@ -159,19 +171,114 @@ class B2bVendor extends Authenticatable
         return max(0, round($this->creditLimitAmount() - $this->creditUsedAmount(), 2));
     }
 
+    /** Prepaid wallet funds (excludes credit line). */
+    public function prepaidWalletBalance(): float
+    {
+        if ($this->hasCreditLimit()) {
+            return max(0, round((float) $this->main_balance, 2));
+        }
+
+        return max(0, round((float) $this->main_balance, 2));
+    }
+
+    public function netWalletBalance(): float
+    {
+        if ($this->hasCreditLimit()) {
+            return VendorWalletCredit::netBalance(
+                (float) $this->main_balance,
+                (float) ($this->credit_used ?? 0)
+            );
+        }
+
+        return round((float) $this->main_balance, 2);
+    }
+
     public function totalSpendableBalance(): float
     {
-        return round((float) $this->main_balance + $this->creditAvailableAmount(), 2);
+        if ($this->hasCreditLimit()) {
+            return VendorWalletCredit::totalSpendable(
+                VendorWalletCredit::currentPrepaid($this),
+                (float) ($this->credit_used ?? 0),
+                $this->creditLimitAmount()
+            );
+        }
+
+        return round((float) $this->main_balance, 2);
     }
 
     public function minimumAllowedBalance(): float
     {
-        return round(-$this->creditLimitAmount(), 2);
+        if ($this->hasCreditLimit()) {
+            return round(-$this->creditLimitAmount(), 2);
+        }
+
+        return 0.0;
     }
 
     public function canDebitAmount(float $amount): bool
     {
-        return round((float) $this->main_balance - $amount, 2) >= $this->minimumAllowedBalance();
+        return round($this->totalSpendableBalance(), 2) >= round($amount, 2);
+    }
+
+    public function pendingRechargeAmount(): float
+    {
+        return round((float) $this->walletRecharges()->where('status', 'pending')->sum('amount'), 2);
+    }
+
+    /** Max single recharge allowed (respects credit limit prepaid cap). */
+    public function maxRechargeAmount(): float
+    {
+        if (! $this->hasCreditLimit()) {
+            return 50000;
+        }
+
+        $prepaid = VendorWalletCredit::currentPrepaid($this);
+        $creditUsed = $this->creditUsedAmount();
+        $limit = $this->creditLimitAmount();
+        $prepaidHeadroom = max(0, round($limit - $prepaid - $this->pendingRechargeAmount(), 2));
+
+        return min(50000, round($creditUsed + $prepaidHeadroom, 2));
+    }
+
+    public function canRechargeAmount(float $amount): bool
+    {
+        $amount = round($amount, 2);
+
+        if ($amount < 100 || $amount > 50000) {
+            return false;
+        }
+
+        if (! $this->hasCreditLimit()) {
+            return true;
+        }
+
+        [$newPrepaid] = VendorWalletCredit::applyCredit(
+            VendorWalletCredit::currentPrepaid($this),
+            $this->creditUsedAmount(),
+            $amount
+        );
+
+        return round($newPrepaid + $this->pendingRechargeAmount(), 2) <= round($this->creditLimitAmount(), 2) + 0.001;
+    }
+
+    public function canRecharge(): bool
+    {
+        return $this->maxRechargeAmount() >= 100;
+    }
+
+    public function rechargeBlockedMessage(): ?string
+    {
+        if ($this->canRecharge()) {
+            return null;
+        }
+
+        if (! $this->hasCreditLimit()) {
+            return null;
+        }
+
+        return 'Your prepaid wallet has reached the credit limit of '
+            . number_format($this->creditLimitAmount(), 2)
+            . ' AED. You cannot add more funds until your balance is below this limit or your credit limit is increased.';
     }
 
     public function savedPassengers(): HasMany

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\B2bVendor;
 use App\Models\B2bWalletLedger;
+use App\Support\VendorWalletCredit;
 use App\Support\WalletLedgerDescription;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -89,11 +90,12 @@ class AdminWalletLedgerAdjustmentService
     }
 
     /**
-     * Rebuild balance_before / balance_after on all active ledger rows and sync vendor main_balance.
+     * Rebuild balance_before / balance_after on all active ledger rows and sync vendor pools.
      */
     public function syncVendorBalanceFromLedger(int $vendorId): float
     {
         $vendor = B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
+        $creditLimit = $vendor->creditLimitAmount();
 
         $entries = B2bWalletLedger::query()
             ->where('b2b_vendor_id', $vendorId)
@@ -102,36 +104,79 @@ class AdminWalletLedgerAdjustmentService
             ->orderBy('id')
             ->get();
 
-        $running = 0.0;
+        $prepaid = 0.0;
+        $creditUsed = 0.0;
+        $runningNet = 0.0;
 
         foreach ($entries as $ledgerEntry) {
-            $before = round($running, 2);
-            $after = $ledgerEntry->type === 'credit'
-                ? round($before + (float) $ledgerEntry->amount, 2)
-                : round($before - (float) $ledgerEntry->amount, 2);
+            $amount = round((float) $ledgerEntry->amount, 2);
+            $netBefore = $creditLimit > 0
+                ? VendorWalletCredit::netBalance($prepaid, $creditUsed)
+                : round($runningNet, 2);
 
-            if (
-                (float) $ledgerEntry->balance_before !== $before
-                || (float) $ledgerEntry->balance_after !== $after
-            ) {
-                $ledgerEntry->balance_before = $before;
-                $ledgerEntry->balance_after = $after;
-                $ledgerEntry->saveQuietly();
+            if ($ledgerEntry->isCredit()) {
+                if ($creditLimit > 0) {
+                    [$prepaid, $creditUsed] = VendorWalletCredit::applyCredit($prepaid, $creditUsed, $amount);
+                } else {
+                    $runningNet = round($runningNet + $amount, 2);
+                }
+            } else {
+                if ($creditLimit > 0) {
+                    [$prepaid, $creditUsed] = VendorWalletCredit::applyDebit($prepaid, $creditUsed, $amount, $creditLimit);
+                } else {
+                    $runningNet = round($runningNet - $amount, 2);
+                }
             }
 
-            $running = $after;
+            $netAfter = $creditLimit > 0
+                ? VendorWalletCredit::netBalance($prepaid, $creditUsed)
+                : round($runningNet, 2);
+
+            if (
+                (float) $ledgerEntry->balance_before !== $netBefore
+                || (float) $ledgerEntry->balance_after !== $netAfter
+            ) {
+                $ledgerEntry->balance_before = $netBefore;
+                $ledgerEntry->balance_after = $netAfter;
+                $ledgerEntry->saveQuietly();
+            }
         }
 
-        $finalBalance = round($running, 2);
-        $minAllowed = $vendor->minimumAllowedBalance();
+        if ($creditLimit > 0) {
+            if ($creditUsed > $creditLimit + 0.001) {
+                throw ValidationException::withMessages([
+                    'amount' => 'This change would exceed the credit limit. Credit used would be ' . number_format($creditUsed, 2) . ' AED.',
+                ]);
+            }
 
-        if ($finalBalance < $minAllowed) {
+            if ($prepaid < -0.001) {
+                throw ValidationException::withMessages([
+                    'amount' => 'This change would overdraw the wallet beyond the available credit line.',
+                ]);
+            }
+
+            $net = VendorWalletCredit::netBalance($prepaid, $creditUsed);
+
+            $vendor->update([
+                'main_balance' => round($net, 2),
+                'credit_used' => round($creditUsed, 2),
+            ]);
+
+            return round($net, 2);
+        }
+
+        $finalBalance = round($runningNet, 2);
+
+        if ($finalBalance < 0) {
             throw ValidationException::withMessages([
-                'amount' => 'This change would exceed the credit limit. Balance would be ' . number_format($finalBalance, 2) . ' AED (minimum allowed: ' . number_format($minAllowed, 2) . ' AED).',
+                'amount' => 'This change would make the wallet balance negative (' . number_format($finalBalance, 2) . ' AED). Adjust the transaction or void other entries first.',
             ]);
         }
 
-        $vendor->update(['main_balance' => $finalBalance]);
+        $vendor->update([
+            'main_balance' => $finalBalance,
+            'credit_used' => 0,
+        ]);
 
         return $finalBalance;
     }

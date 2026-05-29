@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bWalletLedger;
+use App\Support\VendorRechargeGuard;
 use App\Support\WalletLedgerDescription;
 use App\Models\B2bWalletRecharge;
 use Illuminate\Http\Request;
@@ -45,6 +46,9 @@ class WalletBankTransferController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
+                $vendor = $locked->vendor()->lockForUpdate()->firstOrFail();
+                VendorRechargeGuard::assertCanRecharge($vendor, (float) $locked->amount);
+
                 $paymentResponse = array_merge($locked->payment_response ?? [], [
                     'confirmed_at' => now()->toIso8601String(),
                 ]);
@@ -72,6 +76,8 @@ class WalletBankTransferController extends Controller
             ]);
 
             return redirect()->back()->with('notify_success', 'Payment confirmed and wallet credited.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->with('notify_error', collect($e->errors())->flatten()->first());
         } catch (\Throwable $e) {
             Log::error('Wallet bank transfer confirm failed', [
                 'recharge_id' => $recharge->id,

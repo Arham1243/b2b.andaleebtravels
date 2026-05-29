@@ -411,15 +411,15 @@
                 @if ($vendor->isAgencyAccount())
                     <div class="vs-info-item">
                         <span class="vs-info-label">Credit Limit</span>
-                        <span class="vs-info-value">{!! formatPrice($vendor->creditLimitAmount()) !!}</span>
+                        <span class="vs-info-value">{!! formatCreditLimitDisplay($vendor) !!}</span>
                     </div>
                     <div class="vs-info-item">
                         <span class="vs-info-label">Credit Used</span>
-                        <span class="vs-info-value">{!! formatPrice($vendor->creditUsedAmount()) !!}</span>
+                        <span class="vs-info-value">{!! formatCreditMetricDisplay($vendor, $vendor->creditUsedAmount()) !!}</span>
                     </div>
                     <div class="vs-info-item">
                         <span class="vs-info-label">Available Credit</span>
-                        <span class="vs-info-value">{!! formatPrice($vendor->creditAvailableAmount()) !!}</span>
+                        <span class="vs-info-value">{!! formatCreditMetricDisplay($vendor, $vendor->creditAvailableAmount()) !!}</span>
                     </div>
                 @endif
                 <div class="vs-info-item">

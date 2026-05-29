@@ -52,6 +52,29 @@ if (! function_exists('formatPrice')) {
     }
 }
 
+if (! function_exists('formatCreditLimitDisplay')) {
+    function formatCreditLimitDisplay(?\App\Models\B2bVendor $vendor, string $emptyLabel = 'Not set'): HtmlString
+    {
+        if ($vendor === null || ! $vendor->hasCreditLimit()) {
+            return new HtmlString('<span class="text-muted">' . e($emptyLabel) . '</span>');
+        }
+
+        return formatPrice($vendor->creditLimitAmount());
+    }
+}
+
+if (! function_exists('formatCreditMetricDisplay')) {
+    /** Credit used/available — show em dash when no credit limit is configured. */
+    function formatCreditMetricDisplay(?\App\Models\B2bVendor $vendor, float $amount, string $emptyLabel = '—'): HtmlString
+    {
+        if ($vendor === null || ! $vendor->hasCreditLimit()) {
+            return new HtmlString('<span class="text-muted">' . e($emptyLabel) . '</span>');
+        }
+
+        return formatPrice($amount);
+    }
+}
+
 if (! function_exists('formatBookingSupplierLabel')) {
     /** Supplier label for booking UIs (e.g. TBO must stay uppercase). */
     function formatBookingSupplierLabel(?string $supplier, string $emptyLabel = 'N/A'): string

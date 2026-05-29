@@ -176,6 +176,33 @@
     .wallet-balance-summary__sep { color: #ccc; }
     .wallet-balance-summary__used { color: #b45309; font-weight: 600; }
 
+    .recharge-limit-alert {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        margin-bottom: 20px;
+    }
+    .recharge-limit-alert i { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+    .recharge-limit-alert p { margin: 4px 0 0; font-size: 13px; color: #7f1d1d; }
+    .recharge-limit-note {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: #fff8e1;
+        border: 1px solid #ffe082;
+        color: #7a5c00;
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+    .recharge-limit-note i { font-size: 18px; }
+
     /* Transaction history actions: icon + label inline */
     .custom-table .wallet-action-btn {
         display: inline-flex !important;

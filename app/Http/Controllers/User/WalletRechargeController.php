@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bWalletLedger;
+use App\Support\VendorRechargeGuard;
 use App\Support\WalletLedgerDescription;
 use App\Models\B2bWalletRecharge;
 use App\Models\Config;
@@ -77,6 +78,18 @@ class WalletRechargeController extends Controller
             'proof' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
+        $user = Auth::user();
+        $user->refresh();
+
+        try {
+            VendorRechargeGuard::assertCanRecharge($user, (float) $validated['amount']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('notify_error', collect($e->errors())->flatten()->first());
+        }
+
         $proofPath = $this->storeWalletBankProofPublic($request->file('proof'));
         if (!$proofPath) {
             return redirect()->back()->withInput()->with('notify_error', 'Could not upload proof image. Please try again.');
@@ -103,11 +116,19 @@ class WalletRechargeController extends Controller
      */
     protected function rechargePageData(): array
     {
+        $user = Auth::user();
+        $user->refresh();
+
         $recharges = B2bWalletRecharge::where('b2b_vendor_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
-        return compact('recharges');
+        return array_merge(compact('recharges'), [
+            'walletUser' => $user,
+            'maxRechargeAmount' => $user->maxRechargeAmount(),
+            'canRecharge' => $user->canRecharge(),
+            'rechargeBlockedMessage' => $user->rechargeBlockedMessage(),
+        ]);
     }
 
     protected function rechargeListRoute(string $paymentMethod): string
@@ -139,6 +160,17 @@ class WalletRechargeController extends Controller
         ]);
 
         $listRoute = $this->rechargeListRoute($paymentMethod);
+        $user = Auth::user();
+        $user->refresh();
+
+        try {
+            VendorRechargeGuard::assertCanRecharge($user, (float) $request->input('amount'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route($listRoute)
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('notify_error', collect($e->errors())->flatten()->first());
+        }
 
         try {
             $transactionNumber = B2bWalletRecharge::generateTransactionNumber();
@@ -197,6 +229,18 @@ class WalletRechargeController extends Controller
             }
 
             if ($verification['success']) {
+                $user = Auth::user();
+                $user->refresh();
+
+                try {
+                    VendorRechargeGuard::assertCanRecharge($user, (float) $rechargeData['amount']);
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    session()->forget("wallet_recharge.{$transactionNumber}");
+
+                    return redirect()->route($listRoute)
+                        ->with('notify_error', collect($e->errors())->flatten()->first());
+                }
+
                 // Create DB record as paid
                 $recharge = B2bWalletRecharge::create([
                     'b2b_vendor_id' => Auth::id(),
@@ -315,6 +359,16 @@ class WalletRechargeController extends Controller
                 ->where('status', 'failed')
                 ->whereIn('payment_method', ['payby', 'tabby'])
                 ->firstOrFail();
+
+            $user = Auth::user();
+            $user->refresh();
+
+            try {
+                VendorRechargeGuard::assertCanRecharge($user, (float) $recharge->amount);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return redirect()->route($this->rechargeListRoute($recharge->payment_method))
+                    ->with('notify_error', collect($e->errors())->flatten()->first());
+            }
 
             $transactionNumber = B2bWalletRecharge::generateTransactionNumber();
 
