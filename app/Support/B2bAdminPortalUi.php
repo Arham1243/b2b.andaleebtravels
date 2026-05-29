@@ -40,7 +40,7 @@ final class B2bAdminPortalUi
             'canDelete' => $canDelete,
             'canDetail' => $canDetail,
             'canBulk' => $canEdit || $canDelete,
-            'showRowActions' => $canEdit || $canDelete,
+            'showRowActions' => $canView || $canEdit || $canDelete,
         ];
     }
 

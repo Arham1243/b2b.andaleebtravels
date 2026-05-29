@@ -305,9 +305,11 @@
 
 @section('content')
 @php
+    $canViewVendor = \App\Support\B2bAdminPortalUi::can('vendors_view');
     $canEditVendor = \App\Support\B2bAdminPortalUi::can('vendors_edit');
     $canDeleteVendor = \App\Support\B2bAdminPortalUi::can('vendors_delete');
     $canWalletManage = \App\Support\B2bAdminPortalUi::can('vendors_wallet_manage');
+    $showSubAgentActions = $canViewVendor || $canEditVendor || $canDeleteVendor;
 @endphp
 <div class="col-md-12">
     <div class="dashboard-content py-3">
@@ -705,7 +707,9 @@
                                     <th>Agent Code</th>
                                     <th>Status</th>
                                     <th>Created</th>
-                                    <th>Actions</th>
+                                    @if ($showSubAgentActions)
+                                        <th>Actions</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -722,25 +726,31 @@
                                             </span>
                                         </td>
                                         <td style="white-space:nowrap; font-size:12px;">{{ formatDateTime($agent->created_at) }}</td>
-                                        <td>
-                                            <div class="vs-ledger-actions">
-                                                @if ($canEditVendor)
-                                                <a href="{{ route('admin.vendors.edit', $agent) }}" class="vs-view-btn">
-                                                    <i class="bx bx-edit-alt"></i> Edit
-                                                </a>
-                                                @endif
-                                                @if ($canDeleteVendor)
-                                                <form action="{{ route('admin.vendors.destroy', $agent) }}" method="POST" class="d-inline"
-                                                    onsubmit="return confirm('Delete this sub agent? This cannot be undone.');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn-ledger btn-ledger--void">
-                                                        <i class="bx bx-trash"></i> Delete
-                                                    </button>
-                                                </form>
-                                                @endif
-                                            </div>
-                                        </td>
+                                        @if ($showSubAgentActions)
+                                            <td>
+                                                <div class="vs-ledger-actions">
+                                                    @if ($canEditVendor)
+                                                        <a href="{{ route('admin.vendors.edit', $agent) }}" class="vs-view-btn">
+                                                            <i class="bx bx-edit-alt"></i> Edit
+                                                        </a>
+                                                    @elseif ($canViewVendor)
+                                                        <a href="{{ route('admin.vendors.show', $agent) }}" class="vs-view-btn">
+                                                            <i class="bx bx-show"></i> View
+                                                        </a>
+                                                    @endif
+                                                    @if ($canDeleteVendor)
+                                                        <form action="{{ route('admin.vendors.destroy', $agent) }}" method="POST" class="d-inline"
+                                                            onsubmit="return confirm('Delete this sub agent? This cannot be undone.');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn-ledger btn-ledger--void">
+                                                                <i class="bx bx-trash"></i> Delete
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -758,6 +768,7 @@
     </div>
 </div>
 
+@if ($canWalletManage)
 <div class="modal fade vs-ledger-modal" id="editLedgerModal" tabindex="-1" aria-labelledby="editLedgerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -837,10 +848,12 @@
         </div>
     </div>
 </div>
+@endif
 @endsection
 
 @push('js')
 <script>
+@if ($canWalletManage)
 document.querySelectorAll('.btn-edit-ledger').forEach(function(btn) {
     btn.addEventListener('click', function() {
         const form = document.getElementById('edit-ledger-form');
@@ -927,6 +940,7 @@ document.getElementById('manual-wallet-form')?.addEventListener('submit', functi
         e.preventDefault();
     }
 });
+@endif
 
     function vsTab(e, panelId) {
         document.querySelectorAll('.vs-tabs__btn').forEach(b => b.classList.remove('active'));

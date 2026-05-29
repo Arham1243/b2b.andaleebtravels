@@ -121,7 +121,7 @@ class B2bAdminRoutePermissionRegistry
             ["{$routePrefix}.show", ["{$prefix}_view"]],
             ["{$routePrefix}.create", ["{$prefix}_add"]],
             ["{$routePrefix}.store", ["{$prefix}_add"]],
-            ["{$routePrefix}.edit", ["{$prefix}_view", "{$prefix}_edit"]],
+            ["{$routePrefix}.edit", ["{$prefix}_edit"]],
             ["{$routePrefix}.update", ["{$prefix}_edit"]],
             ["{$routePrefix}.destroy", ["{$prefix}_delete"]],
         ];

@@ -73,9 +73,11 @@
                                 <thead>
                                     <tr>
                                         <th class="no-sort">
+                                            @if ($canBulk)
                                             <div class="selection select-all-container">
                                                 <input type="checkbox" id="select-all">
                                             </div>
+                                            @endif
                                         </th>
                                         <th>Agency</th>
                                         <th>Login</th>
@@ -99,10 +101,12 @@
                                         @endphp
                                         <tr>
                                             <td>
+                                                @if ($canBulk)
                                                 <div class="selection item-select-container">
                                                     <input type="checkbox" class="bulk-item" name="bulk_select[]"
                                                         value="{{ $vendor->id }}">
                                                 </div>
+                                                @endif
                                             </td>
                                             <td>
                                                 @if ($canDetail)
