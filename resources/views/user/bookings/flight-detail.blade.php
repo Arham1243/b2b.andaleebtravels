@@ -296,6 +296,7 @@
                                         <div class="bkpd-pax__meta">
                                             {{ $paxType }}
                                             @if(!empty($pax['nationality'])) &bull; {{ strtoupper($pax['nationality']) }} @endif
+                                            @if(!empty($pax['issuing_country'])) &bull; Issued {{ strtoupper($pax['issuing_country']) }} @endif
                                             @if(!empty($pax['dob'])) &bull; DOB: {{ \Carbon\Carbon::parse($pax['dob'])->format('d M Y') }} @endif
                                         </div>
                                     </div>

@@ -279,6 +279,9 @@
                                                     @if (!empty($pax['nationality']))
                                                         · {{ strtoupper($pax['nationality']) }}
                                                     @endif
+                                                    @if (!empty($pax['issuing_country']))
+                                                        · Issued {{ strtoupper($pax['issuing_country']) }}
+                                                    @endif
                                                     @if (!empty($pax['dob']))
                                                         · DOB: {{ \Carbon\Carbon::parse($pax['dob'])->format('d M Y') }}
                                                     @endif

@@ -955,7 +955,7 @@
                                     <div class="bk-pax-avatar">{{ $initials }}</div>
                                     <div>
                                         <div class="bk-pax-name">{{ $pName }}</div>
-                                        <div class="bk-pax-type">{{ $pType }} @if(!empty($pax['nationality'])) &bull; {{ strtoupper($pax['nationality']) }} @endif</div>
+                                        <div class="bk-pax-type">{{ $pType }} @if(!empty($pax['nationality'])) &bull; {{ strtoupper($pax['nationality']) }} @endif @if(!empty($pax['issuing_country'])) &bull; Issued {{ strtoupper($pax['issuing_country']) }} @endif</div>
                                     </div>
                                     @if(!empty($pax['passport_no']))
                                         <div class="bk-pax-passport">{{ $pax['passport_no'] }}</div>
