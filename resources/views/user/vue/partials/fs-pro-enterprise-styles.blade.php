@@ -1634,6 +1634,10 @@
             overflow: hidden;
             isolation: isolate;
         }
+        
+        .fs-promo:hover{
+            color: #fff !important;
+        }
 
         .fs-promo__body {
             display: flex;
