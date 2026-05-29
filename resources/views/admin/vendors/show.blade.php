@@ -261,85 +261,6 @@
     .pm-wallet { background:#e8f5e9; color:#2e7d32; }
     .pm-system { background:#f1f2f5; color:#4b4753; }
 
-    .vs-credit-card {
-        border: 1px solid #ebecf0;
-        border-radius: 10px;
-        padding: 1rem 1.15rem;
-        margin-bottom: 1.25rem;
-        background: #fff;
-    }
-    .vs-credit-card__head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-bottom: 0.85rem;
-    }
-    .vs-credit-card__title {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #18181b;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-    }
-    .vs-credit-card__title i { color: var(--color-primary, #cd1b4f); }
-    .vs-credit-stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-    }
-    .vs-credit-stat {
-        border: 1px solid #f0f3f8;
-        border-radius: 8px;
-        padding: 0.65rem 0.75rem;
-        background: #fafbfc;
-    }
-    .vs-credit-stat__label {
-        display: block;
-        font-size: 0.68rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .04em;
-        color: #8492a6;
-        margin-bottom: 0.2rem;
-    }
-    .vs-credit-stat__value {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #1a2540;
-    }
-    .vs-credit-stat__value.is-used { color: #b45309; }
-    .vs-credit-stat__value.is-available { color: #15803d; }
-    .vs-credit-form {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        gap: 0.75rem;
-    }
-    .vs-credit-form label {
-        display: block;
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: #6b6573;
-        text-transform: uppercase;
-        letter-spacing: .04em;
-        margin-bottom: 0.25rem;
-    }
-    .vs-credit-form .field {
-        width: 180px;
-        border: 1px solid #d8dbe2;
-        border-radius: 8px;
-        padding: 0.45rem 0.65rem;
-        font-size: 0.88rem;
-    }
-    @media (max-width: 768px) {
-        .vs-credit-stats { grid-template-columns: 1fr; }
-    }
-
     @media (max-width: 576px) {
         .vs-info-grid { grid-template-columns: 1fr; }
         .vs-info-item:nth-child(odd)  { border-right: none; padding-right: 0.5rem; }
@@ -405,11 +326,6 @@
                         <span class="vs-stat__icon"><i class="bx bx-wallet"></i></span>
                     </div>
                     <div class="vs-stat__value is-currency">{!! formatPrice($vendor->main_balance ?? 0) !!}</div>
-                    @if ($vendor->creditLimitAmount() > 0)
-                        <div style="font-size:.72rem; color:#6b6573; margin-top:.25rem;">
-                            + {!! formatPrice($vendor->creditAvailableAmount()) !!} credit available
-                        </div>
-                    @endif
                 </div>
             </div>
             <div class="col-6 col-xl-3">
@@ -441,47 +357,6 @@
             </div>
         </div>
 
-        @if ($vendor->isAgencyAccount())
-            <div class="vs-credit-card">
-                <div class="vs-credit-card__head">
-                    <h2 class="vs-credit-card__title"><i class="bx bx-credit-card-alt"></i> Credit Limit</h2>
-                    <span class="text-muted" style="font-size:.78rem;">Total spendable: <strong>{!! formatPrice($vendor->totalSpendableBalance()) !!}</strong></span>
-                </div>
-                <div class="vs-credit-stats">
-                    <div class="vs-credit-stat">
-                        <span class="vs-credit-stat__label">Credit Limit</span>
-                        <span class="vs-credit-stat__value is-currency">{!! formatPrice($vendor->creditLimitAmount()) !!}</span>
-                    </div>
-                    <div class="vs-credit-stat">
-                        <span class="vs-credit-stat__label">Credit Used</span>
-                        <span class="vs-credit-stat__value is-used is-currency">{!! formatPrice($vendor->creditUsedAmount()) !!}</span>
-                    </div>
-                    <div class="vs-credit-stat">
-                        <span class="vs-credit-stat__label">Available Credit</span>
-                        <span class="vs-credit-stat__value is-available is-currency">{!! formatPrice($vendor->creditAvailableAmount()) !!}</span>
-                    </div>
-                </div>
-                <form action="{{ route('admin.vendors.credit-limit.update', $vendor) }}" method="POST" class="vs-credit-form">
-                    @csrf
-                    @method('PUT')
-                    <div>
-                        <label for="credit_limit">Set / update credit limit (AED)</label>
-                        <input type="number" name="credit_limit" id="credit_limit" class="field"
-                            step="0.01" min="0" max="99999999.99" required
-                            value="{{ old('credit_limit', $vendor->credit_limit ?? 0) }}">
-                    </div>
-                    <button type="submit" class="themeBtn" style="font-size:.85rem;">
-                        <i class="bx bx-save"></i> Save credit limit
-                    </button>
-                </form>
-                @if ($vendor->creditUsedAmount() > 0)
-                    <p class="text-muted mb-0 mt-2" style="font-size:.75rem;">
-                        Credit used reflects prepaid balance below zero. Minimum allowed balance: {!! formatPrice($vendor->minimumAllowedBalance()) !!}.
-                    </p>
-                @endif
-            </div>
-        @endif
-
         {{-- ── Vendor details ─────────────────────────────────────── --}}
         <p class="vs-section-title">Vendor Details</p>
         <div class="vs-card mb-4">
@@ -502,7 +377,7 @@
                     </span>
                 </div>
                 <div class="vs-info-item">
-                    <span class="vs-info-label">Contact Name</span>
+                    <span class="vs-info-label">Name</span>
                     <span class="vs-info-value">{{ $vendor->contact_name ?: $vendor->name ?: '—' }}</span>
                 </div>
                 <div class="vs-info-item">
@@ -539,10 +414,12 @@
                         <span class="vs-info-value">{!! formatPrice($vendor->creditLimitAmount()) !!}</span>
                     </div>
                     <div class="vs-info-item">
-                        <span class="vs-info-label">Credit Used / Available</span>
-                        <span class="vs-info-value">
-                            {!! formatPrice($vendor->creditUsedAmount()) !!} / {!! formatPrice($vendor->creditAvailableAmount()) !!}
-                        </span>
+                        <span class="vs-info-label">Credit Used</span>
+                        <span class="vs-info-value">{!! formatPrice($vendor->creditUsedAmount()) !!}</span>
+                    </div>
+                    <div class="vs-info-item">
+                        <span class="vs-info-label">Available Credit</span>
+                        <span class="vs-info-value">{!! formatPrice($vendor->creditAvailableAmount()) !!}</span>
                     </div>
                 @endif
                 <div class="vs-info-item">

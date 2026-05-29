@@ -63,48 +63,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            @if (!$vendor->parent_vendor_id)
-                                <div class="form-box mt-3">
-                                    <div class="form-box__header">
-                                        <div class="title">Credit Limit</div>
-                                    </div>
-                                    <div class="form-box__body">
-                                        <div class="row g-2 mb-3">
-                                            <div class="col-4">
-                                                <div class="text-muted" style="font-size:11px; text-transform:uppercase; font-weight:600;">Used</div>
-                                                <div class="fw-semibold" style="font-size:14px; color:#b45309;">{!! formatPrice($vendor->creditUsedAmount()) !!}</div>
-                                            </div>
-                                            <div class="col-4">
-                                                <div class="text-muted" style="font-size:11px; text-transform:uppercase; font-weight:600;">Available</div>
-                                                <div class="fw-semibold" style="font-size:14px; color:#15803d;">{!! formatPrice($vendor->creditAvailableAmount()) !!}</div>
-                                            </div>
-                                            <div class="col-4">
-                                                <div class="text-muted" style="font-size:11px; text-transform:uppercase; font-weight:600;">Spendable</div>
-                                                <div class="fw-semibold" style="font-size:14px;">{!! formatPrice($vendor->totalSpendableBalance()) !!}</div>
-                                            </div>
-                                        </div>
-                                        <p class="text-muted mb-2" style="font-size:12px;">
-                                            Prepaid wallet: <strong>{!! formatPrice($vendor->main_balance ?? 0) !!}</strong>
-                                        </p>
-                                        <div class="form-group mb-0">
-                                            <label for="credit_limit" class="form-label">Credit limit (AED)</label>
-                                            <input type="number" name="credit_limit" id="credit_limit" class="form-control"
-                                                step="0.01" min="0" max="99999999.99"
-                                                value="{{ old('credit_limit', $vendor->credit_limit ?? 0) }}">
-                                            @error('credit_limit')
-                                                <div class="text-danger mt-1" style="font-size:12px;">{{ $message }}</div>
-                                            @enderror
-                                            @if ($vendor->creditUsedAmount() > 0)
-                                                <p class="text-muted mt-2 mb-0" style="font-size:11px;">
-                                                    Minimum allowed: {!! formatPrice($vendor->creditUsedAmount()) !!} (current credit in use).
-                                                </p>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-
                             <div class="text-end mt-3">
                                 @if ($vendor->isPendingApproval() && $vendor->isAgencyAccount())
                                     <a href="{{ route('admin.vendors.pending.show', $vendor) }}" class="text-muted" style="font-size:13px;">← Back to signup request</a>

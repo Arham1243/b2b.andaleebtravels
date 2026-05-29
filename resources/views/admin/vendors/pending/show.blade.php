@@ -40,7 +40,7 @@
                     <div class="col-md-8">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <div class="text-muted" style="font-size:.72rem; text-transform:uppercase; font-weight:600;">Contact Name</div>
+                                <div class="text-muted" style="font-size:.72rem; text-transform:uppercase; font-weight:600;">Name</div>
                                 <div>{{ $vendor->contact_name ?: '—' }}</div>
                             </div>
                             <div class="col-md-6">

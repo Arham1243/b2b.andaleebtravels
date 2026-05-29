@@ -97,6 +97,25 @@
     </div>
 @endif
 
+@if ($isEdit && !$isSubAgent)
+    <div class="form-fields">
+        <label class="title">Credit Limit (AED)</label>
+        <input type="number" name="credit_limit" class="field"
+            step="0.01" min="0" max="99999999.99"
+            value="{{ old('credit_limit', $vendor->credit_limit ?? 0) }}"
+            placeholder="0.00">
+        <small class="text-muted d-block mt-1">
+            Credit used: {!! formatPrice($vendor->creditUsedAmount()) !!} · Available: {!! formatPrice($vendor->creditAvailableAmount()) !!}
+        </small>
+        @if ($vendor->creditUsedAmount() > 0)
+            <small class="text-muted d-block mt-1">Minimum allowed: {!! formatPrice($vendor->creditUsedAmount()) !!} (current credit in use).</small>
+        @endif
+        @error('credit_limit')
+            <div class="text-danger">{{ $message }}</div>
+        @enderror
+    </div>
+@endif
+
 <div class="form-fields">
     <label class="title">Email Address <span class="text-danger">*</span></label>
     <input type="email" name="email" class="field"
