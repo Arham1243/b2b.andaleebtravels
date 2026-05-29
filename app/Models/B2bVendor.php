@@ -284,11 +284,19 @@ class B2bVendor extends Authenticatable
         }
 
         $pools = $this->creditPools();
-        $prepaid = $pools['prepaid'];
-        $creditUsed = $pools['credit_used'];
+        $prepaid = max(0, round($pools['prepaid'], 2));
+        $creditUsed = max(0, round($pools['credit_used'], 2));
         $limit = $this->creditLimitAmount();
-        $prepaidHeadroom = max(0, round($limit - $prepaid - $this->pendingRechargeAmount(), 2));
+        $pending = $this->pendingRechargeAmount();
 
+        // Prepaid already above the cap — no further top-ups (even if net/available looks lower).
+        if ($prepaid + $pending > $limit + 0.001) {
+            return 0;
+        }
+
+        $prepaidHeadroom = max(0, round($limit - $prepaid - $pending, 2));
+
+        // Recharges pay credit used first, then add prepaid up to the limit.
         return min(50000, round($creditUsed + $prepaidHeadroom, 2));
     }
 
@@ -304,9 +312,16 @@ class B2bVendor extends Authenticatable
             return true;
         }
 
+        $pools = $this->creditPools();
+        $prepaid = max(0, round($pools['prepaid'], 2));
+
+        if ($prepaid + $this->pendingRechargeAmount() > $this->creditLimitAmount() + 0.001) {
+            return false;
+        }
+
         [$newPrepaid] = VendorWalletCredit::applyCredit(
-            VendorWalletCredit::currentPrepaid($this),
-            $this->creditUsedAmount(),
+            $prepaid,
+            $creditUsed = max(0, round($pools['credit_used'], 2)),
             $amount
         );
 
@@ -326,6 +341,16 @@ class B2bVendor extends Authenticatable
 
         if (! $this->hasCreditLimit()) {
             return null;
+        }
+
+        $prepaid = max(0, round($this->creditPools()['prepaid'], 2));
+
+        if ($prepaid + $this->pendingRechargeAmount() > $this->creditLimitAmount() + 0.001) {
+            return 'Your prepaid wallet ('
+                . number_format($prepaid, 2)
+                . ' AED) is above the credit limit of '
+                . number_format($this->creditLimitAmount(), 2)
+                . ' AED. You cannot add more funds until your prepaid balance is below this limit or your credit limit is increased.';
         }
 
         return 'Your prepaid wallet has reached the credit limit of '
