@@ -1124,6 +1124,18 @@ label.title.title--xs {
     margin-bottom: 1rem;
 }
 
+.form-box__body > .row {
+    margin-bottom: 1.25rem;
+}
+
+.form-box__body > .form-fields {
+    margin-bottom: 1.25rem;
+}
+
+.form-box__body > :last-child {
+    margin-bottom: 0;
+}
+
 .form-wrapper {
     margin-bottom: 1.25rem;
 }

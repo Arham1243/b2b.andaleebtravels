@@ -36,9 +36,9 @@
         @enderror
     </div>
 
-    <div class="row">
+    <div class="row g-3 mb-0">
         <div class="col-md-6">
-            <div class="form-fields">
+            <div class="form-fields mb-0">
                 <label class="title">First Name <span class="text-danger">*</span></label>
                 <input type="text" name="first_name" class="field"
                     value="{{ old('first_name', $isEdit ? $vendor->first_name : '') }}" required>
@@ -48,7 +48,7 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="form-fields">
+            <div class="form-fields mb-0">
                 <label class="title">Last Name <span class="text-danger">*</span></label>
                 <input type="text" name="last_name" class="field"
                     value="{{ old('last_name', $isEdit ? $vendor->last_name : '') }}" required>
@@ -68,9 +68,9 @@
         @enderror
     </div>
 
-    <div class="row">
+    <div class="row g-3 mb-0">
         <div class="col-md-6">
-            <div class="form-fields">
+            <div class="form-fields mb-0">
                 <label class="title">Trade License Number <span class="text-danger">*</span></label>
                 <input type="text" name="trade_license_number" class="field"
                     value="{{ old('trade_license_number', $isEdit ? $vendor->trade_license_number : '') }}" required>
@@ -80,7 +80,7 @@
             </div>
         </div>
         <div class="col-md-6">
-            <div class="form-fields">
+            <div class="form-fields mb-0">
                 <label class="title">Trade License Expiry <span class="text-danger">*</span></label>
                 <input type="date" name="trade_license_expiry" class="field"
                     value="{{ old('trade_license_expiry', $isEdit && $vendor->trade_license_expiry ? $vendor->trade_license_expiry->format('Y-m-d') : '') }}"

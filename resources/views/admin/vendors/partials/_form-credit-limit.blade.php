@@ -16,7 +16,7 @@
                         id="remove_credit_limit"
                         @checked(old('remove_credit_limit', ! $vendor->hasCreditLimit()))>
                     <label class="form-check-label" for="remove_credit_limit">
-                        No credit limit (vendor can recharge without cap)
+                        No credit limit
                     </label>
                 </div>
                 @if ($vendor->hasCreditLimit())
