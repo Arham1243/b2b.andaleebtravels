@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Carbon\Carbon;
+
 final class SabreFareRulesPresenter
 {
     /**
@@ -17,6 +19,7 @@ final class SabreFareRulesPresenter
      *     e_ticketable: ?bool,
      *     last_ticket_date: ?string,
      *     last_ticket_time: ?string,
+     *     last_ticket_display: ?string,
      *     components: list<array{
      *         route: string,
      *         fare_basis: ?string,
@@ -24,7 +27,9 @@ final class SabreFareRulesPresenter
      *         cabin: ?string,
      *         brand: ?string,
      *         valid_from: ?string,
-     *         valid_to: ?string
+     *         valid_to: ?string,
+     *         valid_from_display: ?string,
+     *         valid_to_display: ?string
      *     }>,
      *     notes: list<string>
      * }
@@ -45,6 +50,8 @@ final class SabreFareRulesPresenter
             $from = strtoupper(trim((string) ($component['beginAirport'] ?? '')));
             $to = strtoupper(trim((string) ($component['endAirport'] ?? '')));
             $route = ($from !== '' && $to !== '') ? $from . ' → ' . $to : 'Segment';
+            $validFrom = self::stringOrNull($desc['notValidBefore'] ?? null);
+            $validTo = self::stringOrNull($desc['notValidAfter'] ?? null);
 
             $components[] = [
                 'route' => $route,
@@ -52,8 +59,10 @@ final class SabreFareRulesPresenter
                 'fare_rule' => self::stringOrNull($desc['fareRule'] ?? null),
                 'cabin' => self::stringOrNull($desc['cabinCode'] ?? null),
                 'brand' => self::componentBrand(is_array($desc) ? $desc : null),
-                'valid_from' => self::stringOrNull($desc['notValidBefore'] ?? null),
-                'valid_to' => self::stringOrNull($desc['notValidAfter'] ?? null),
+                'valid_from' => $validFrom,
+                'valid_to' => $validTo,
+                'valid_from_display' => self::formatDisplayDate($validFrom),
+                'valid_to_display' => self::formatDisplayDate($validTo),
             ];
         }
 
@@ -68,6 +77,7 @@ final class SabreFareRulesPresenter
 
         $lastTicketDate = self::stringOrNull(data_get($pricingBlock, 'fare.lastTicketDate'));
         $lastTicketTime = self::stringOrNull(data_get($pricingBlock, 'fare.lastTicketTime'));
+        $lastTicketDisplay = self::formatDisplayDateTime($lastTicketDate, $lastTicketTime);
 
         return [
             'refundable' => !$nonRefundable,
@@ -78,8 +88,9 @@ final class SabreFareRulesPresenter
             'e_ticketable' => data_get($pricingBlock, 'fare.eTicketable'),
             'last_ticket_date' => $lastTicketDate,
             'last_ticket_time' => $lastTicketTime,
+            'last_ticket_display' => $lastTicketDisplay,
             'components' => $components,
-            'notes' => self::buildNotes($nonRefundable, $lastTicketDate, $lastTicketTime),
+            'notes' => self::buildNotes($nonRefundable, $lastTicketDisplay),
         ];
     }
 
@@ -120,7 +131,7 @@ final class SabreFareRulesPresenter
     /**
      * @return list<string>
      */
-    private static function buildNotes(bool $nonRefundable, ?string $lastTicketDate, ?string $lastTicketTime): array
+    private static function buildNotes(bool $nonRefundable, ?string $lastTicketDisplay): array
     {
         $notes = [];
 
@@ -130,19 +141,46 @@ final class SabreFareRulesPresenter
             $notes[] = 'This fare is marked refundable. Airline penalties and fare difference may still apply on changes or cancellations.';
         }
 
-        if ($lastTicketDate !== null) {
-            $deadline = $lastTicketDate;
-
-            if ($lastTicketTime !== null) {
-                $deadline .= ' ' . $lastTicketTime;
-            }
-
-            $notes[] = 'Ticket must be issued by ' . $deadline . ' (local agency time).';
+        if ($lastTicketDisplay !== null) {
+            $notes[] = 'Ticket must be issued by ' . $lastTicketDisplay . ' (local agency time).';
         }
 
         $notes[] = 'Full fare rule details are governed by the validating carrier and may change before ticketing.';
 
         return $notes;
+    }
+
+    private static function formatDisplayDate(?string $date): ?string
+    {
+        if ($date === null) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($date)->format('D, M j, Y');
+        } catch (\Throwable) {
+            return $date;
+        }
+    }
+
+    private static function formatDisplayDateTime(?string $date, ?string $time): ?string
+    {
+        if ($date === null) {
+            return null;
+        }
+
+        try {
+            $value = trim($date . ($time !== null && $time !== '' ? ' ' . $time : ''));
+            $parsed = Carbon::parse($value);
+
+            if ($time !== null && $time !== '') {
+                return $parsed->format('D, M j, Y') . ' · ' . $parsed->format('g:i A');
+            }
+
+            return $parsed->format('D, M j, Y');
+        } catch (\Throwable) {
+            return trim($date . ($time !== null && $time !== '' ? ' ' . $time : ''));
+        }
     }
 
     private static function stringOrNull(mixed $value): ?string

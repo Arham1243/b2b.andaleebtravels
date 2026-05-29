@@ -480,16 +480,6 @@
                                     Flight Details
                                     <i class="bx bx-chevron-down"></i>
                                 </button>
-                                <button type="button" class="rc__details-link rc__details-link--sub"
-                                    data-fd-open="fd-{{ $lid }}" data-fd-open-tab="baggage">
-                                    <i class="bx bx-briefcase-alt-2"></i>
-                                    Baggage
-                                </button>
-                                <button type="button" class="rc__details-link rc__details-link--sub"
-                                    data-fd-open="fd-{{ $lid }}" data-fd-open-tab="fare-rules">
-                                    <i class="bx bx-receipt"></i>
-                                    Fare Rules
-                                </button>
                             </div>
 
                             {{-- ── fare row ── --}}
@@ -761,15 +751,10 @@
                                                         <span class="fd-rules__val">{{ $fareRules['passenger_type'] }}</span>
                                                     </div>
                                                 @endif
-                                                @if(!empty($fareRules['last_ticket_date']))
+                                                @if(!empty($fareRules['last_ticket_display']))
                                                     <div class="fd-rules__row">
                                                         <span class="fd-rules__key">Last Ticket Date</span>
-                                                        <span class="fd-rules__val">
-                                                            {{ $fareRules['last_ticket_date'] }}
-                                                            @if(!empty($fareRules['last_ticket_time']))
-                                                                {{ $fareRules['last_ticket_time'] }}
-                                                            @endif
-                                                        </span>
+                                                        <span class="fd-rules__val">{{ $fareRules['last_ticket_display'] }}</span>
                                                     </div>
                                                 @endif
                                             </div>
@@ -793,8 +778,8 @@
                                                                 @if(!empty($component['cabin']))
                                                                     <div><span>Cabin</span><strong>{{ $component['cabin'] }}</strong></div>
                                                                 @endif
-                                                                @if(!empty($component['valid_from']) || !empty($component['valid_to']))
-                                                                    <div><span>Travel Validity</span><strong>{{ $component['valid_from'] ?? '—' }} to {{ $component['valid_to'] ?? '—' }}</strong></div>
+                                                                @if(!empty($component['valid_from_display']) || !empty($component['valid_to_display']))
+                                                                    <div><span>Travel Validity</span><strong>{{ $component['valid_from_display'] ?? '—' }} to {{ $component['valid_to_display'] ?? '—' }}</strong></div>
                                                                 @endif
                                                             </div>
                                                         </div>
@@ -1089,8 +1074,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
-    gap: .15rem .55rem;
     padding: .35rem 0;
     border-top: 1px solid var(--c-line-inner);
     border-bottom: 1px solid var(--c-line-inner);
@@ -1109,11 +1092,6 @@
     text-decoration-color: var(--c-brand);
     opacity: .85;
 }
-.rc__details-link--sub {
-    color: var(--c-slate);
-    font-size: .72rem;
-}
-.rc__details-link--sub:hover { color: var(--c-brand); }
 
 /* price */
 .rc__price-label {
