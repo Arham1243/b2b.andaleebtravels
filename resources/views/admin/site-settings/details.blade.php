@@ -89,15 +89,23 @@
                             <div class="title">Contact Information</div>
                         </div>
                         <div class="form-box__body">
+                            <p class="text-muted mb-3" style="font-size:13px;">
+                                Shown on the flights and hotels support strip for agents.
+                            </p>
                             <div class="row">
-                                <div class="col-lg-6 col-md-6 col-12 ">
+                                <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
-                                        <label class="title">Whatsapp</label>
-                                        <div class="relative-div">
-                                            <input type="text" name="WHATSAPP" class="field"
-                                                value="{{ $config['WHATSAPP'] ?? '' }}" placeholder="Enter Whatsapp Number"
-                                                required>
-                                        </div>
+                                        <label class="title">WhatsApp number</label>
+                                        <input type="text" name="WHATSAPP" class="field"
+                                            value="{{ $config['WHATSAPP'] ?? '' }}">
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 col-md-6 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Support email</label>
+                                        <input type="email" name="SUPPORT_EMAIL" class="field"
+                                            value="{{ $config['SUPPORT_EMAIL'] ?? '' }}"
+                                            autocomplete="email">
                                     </div>
                                 </div>
                             </div>
