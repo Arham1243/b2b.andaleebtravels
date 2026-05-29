@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\VendorApprovedMail;
 use App\Mail\VendorInviteMail;
+use App\Mail\VendorPaymentReminderMail;
 use App\Models\B2bVendor;
 use App\Models\Config;
 use App\Models\B2bWalletLedger;
@@ -172,6 +173,39 @@ class VendorController extends Controller
             'ledgerFilters',
             'ledgerTotalCount'
         ));
+    }
+
+    public function sendPaymentReminder(B2bVendor $vendor)
+    {
+        if ($vendor->isPendingApproval()) {
+            return redirect()->back()->with('notify_error', 'Approve the vendor before sending a payment reminder.');
+        }
+
+        if (! $vendor->isAgencyAccount()) {
+            return redirect()->back()->with('notify_error', 'Payment reminders can only be sent to agency accounts.');
+        }
+
+        $email = filter_var($vendor->email, FILTER_VALIDATE_EMAIL);
+
+        if (! $email) {
+            return redirect()->back()->with('notify_error', 'This vendor does not have a valid email address.');
+        }
+
+        VendorWalletCredit::syncVendorPools($vendor);
+        $vendor->refresh();
+
+        try {
+            Mail::to($email)->send(new VendorPaymentReminderMail($vendor));
+        } catch (\Exception $e) {
+            Log::error('Vendor payment reminder email failed', [
+                'vendor_id' => $vendor->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('notify_error', 'Unable to send payment reminder. Please try again.');
+        }
+
+        return redirect()->back()->with('notify_success', 'Payment reminder sent to ' . $email . '.');
     }
 
     public function storeWalletTransaction(Request $request, B2bVendor $vendor)

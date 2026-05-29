@@ -327,6 +327,16 @@
                     </p>
                 </div>
                 <div class="flex-shrink-0 d-flex gap-2">
+                    @if ($vendor->isAgencyAccount() && $vendor->status !== 'pending')
+                        <form action="{{ route('admin.vendors.payment-reminder', $vendor) }}" method="POST" class="d-inline"
+                              onsubmit="return confirm('Send a payment reminder email to {{ addslashes($vendor->email) }}?');">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-primary fw-semibold px-3"
+                                    style="border-radius:8px; font-size:.82rem; align-self:center;">
+                                <i class="bx bx-bell"></i> Payment Reminder
+                            </button>
+                        </form>
+                    @endif
                     <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3" style="border-radius:8px; font-size:.82rem;align-self: center;">
                         <i class="bx bx-edit"></i> Edit
                     </a>
