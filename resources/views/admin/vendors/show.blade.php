@@ -304,6 +304,11 @@
 @endpush
 
 @section('content')
+@php
+    $canEditVendor = \App\Support\B2bAdminPortalUi::can('vendors_edit');
+    $canDeleteVendor = \App\Support\B2bAdminPortalUi::can('vendors_delete');
+    $canWalletManage = \App\Support\B2bAdminPortalUi::can('vendors_wallet_manage');
+@endphp
 <div class="col-md-12">
     <div class="dashboard-content py-3">
         {{ Breadcrumbs::render('admin.vendors.show', $vendor) }}
@@ -327,7 +332,7 @@
                     </p>
                 </div>
                 <div class="flex-shrink-0 d-flex align-items-center gap-2 flex-wrap">
-                    @if ($vendor->isAgencyAccount() && $vendor->status !== 'pending')
+                    @if ($canWalletManage && $vendor->isAgencyAccount() && $vendor->status !== 'pending')
                         <form action="{{ route('admin.vendors.payment-reminder', $vendor) }}" method="POST" class="d-flex m-0"
                               onsubmit="return confirm('Send a payment reminder email to {{ addslashes($vendor->email) }}?');">
                             @csrf
@@ -337,10 +342,12 @@
                             </button>
                         </form>
                     @endif
+                    @if ($canEditVendor)
                     <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-sm btn-outline-secondary fw-semibold px-3" style="border-radius:8px; font-size:.82rem;">
                         <i class="bx bx-edit"></i> Edit
                     </a>
-                    @if ($vendor->status !== 'pending')
+                    @endif
+                    @if ($canEditVendor && $vendor->status !== 'pending')
                         <a href="{{ route('admin.vendors.change-status', $vendor->id) }}"
                             class="btn btn-sm {{ $vendor->status === 'active' ? 'btn-outline-danger' : 'btn-outline-success' }} fw-semibold px-3"
                             style="border-radius:8px; font-size:.82rem;"
@@ -504,8 +511,8 @@
                     'filterFormAction' => route('admin.vendors.show', $vendor),
                     'clearFiltersUrl' => route('admin.vendors.show', $vendor) . '?tab=wallet',
                     'filterHiddenInputs' => ['tab' => 'wallet'],
-                    'showManualForm' => true,
-                    'readOnly' => false,
+                    'showManualForm' => $canWalletManage,
+                    'readOnly' => ! $canWalletManage,
                     'ledgerContext' => 'admin',
                 ])
             </div>
@@ -678,7 +685,7 @@
 
             {{-- Sub Agents --}}
             <div class="vs-tab-panel" id="panel-sub-agents">
-                @if (!$vendor->parent_vendor_id)
+                @if (!$vendor->parent_vendor_id && $canEditVendor)
                     <div class="d-flex justify-content-end mb-3">
                         <a href="{{ route('admin.vendors.sub-agents.create', $vendor) }}" class="themeBtn" style="font-size:.82rem; padding:.4rem 1rem;">
                             <i class="bx bx-plus"></i> Add Sub Agent
@@ -717,9 +724,12 @@
                                         <td style="white-space:nowrap; font-size:12px;">{{ formatDateTime($agent->created_at) }}</td>
                                         <td>
                                             <div class="vs-ledger-actions">
+                                                @if ($canEditVendor)
                                                 <a href="{{ route('admin.vendors.edit', $agent) }}" class="vs-view-btn">
                                                     <i class="bx bx-edit-alt"></i> Edit
                                                 </a>
+                                                @endif
+                                                @if ($canDeleteVendor)
                                                 <form action="{{ route('admin.vendors.destroy', $agent) }}" method="POST" class="d-inline"
                                                     onsubmit="return confirm('Delete this sub agent? This cannot be undone.');">
                                                     @csrf
@@ -728,6 +738,7 @@
                                                         <i class="bx bx-trash"></i> Delete
                                                     </button>
                                                 </form>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

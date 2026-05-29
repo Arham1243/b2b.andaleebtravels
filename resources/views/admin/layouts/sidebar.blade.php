@@ -1,5 +1,5 @@
 @php
-    $menuItems = require resource_path('views/admin/layouts/menu-config.php');
+    $menuItems = $adminMenuItems ?? require resource_path('views/admin/layouts/menu-config.php');
 @endphp
 
 <div class="sidebar">

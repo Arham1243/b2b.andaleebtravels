@@ -33,6 +33,7 @@
             is_array($booking->booking_response) ? $booking->booking_response : null
         );
     }
+    $canEditBooking = \App\Support\B2bAdminPortalUi::can('hotel_bookings_edit');
 @endphp
 
 <div class="col-md-12">
@@ -329,6 +330,7 @@
                                 $booking->id
                             );
                         @endphp
+                        @if ($canEditBooking)
                         <form action="{{ route('admin.bookings.hotels.status', $booking->id) }}" method="POST"
                             class="bkpd-card mb-3 admin-hotel-status admin-booking-status-form"
                             data-booking-number="{{ $booking->booking_number }}"
@@ -389,15 +391,20 @@
                                 <button type="submit" class="bkp-btn bkp-btn--primary w-100">Save changes</button>
                             </div>
                         </form>
+                        @endif
 
                         <div class="bkpd-card">
                             <div class="bkpd-card__section-head"><i class="bx bx-cog"></i> Actions</div>
                             <div class="bkpd-actions">
+                                @if ($canEditBooking)
                                 @include('partials.admin-hotel-booking-cancel-actions', [
                                     'booking' => $booking,
                                     'cancellation' => $cancellation ?? [],
                                     'status' => $status,
                                 ])
+                                @else
+                                    <p class="bkpd-no-action"><i class="bx bx-lock"></i> You do not have permission to manage this booking.</p>
+                                @endif
                             </div>
                         </div>
                     </div>

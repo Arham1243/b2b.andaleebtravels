@@ -1,4 +1,14 @@
 @extends('admin.layouts.main')
+@php
+    extract(
+        \App\Support\B2bAdminPortalUi::crud([
+            'add' => 'vendors_add',
+            'edit' => 'vendors_edit',
+            'delete' => 'vendors_delete',
+            'view' => 'vendors_view',
+        ]),
+    );
+@endphp
 @push('css')
     <style>
         .vendor-list__title {
@@ -34,10 +44,13 @@
                             <div class="section-content">
                                 <h3 class="heading">Manage Vendors</h3>
                             </div>
-                            <a href="{{ route('admin.vendors.create') }}" class="themeBtn">
-                                <i class="bx bx-plus"></i> Add Vendor
-                            </a>
+                            @if ($canAdd)
+                                <a href="{{ route('admin.vendors.create') }}" class="themeBtn">
+                                    <i class="bx bx-plus"></i> Add Vendor
+                                </a>
+                            @endif
                         </div>
+                        @if ($canBulk)
                         <div class="row mb-4">
                             <div class="col-md-5">
                                 <form class="custom-form">
@@ -54,6 +67,7 @@
                                 </form>
                             </div>
                         </div>
+                        @endif
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>
@@ -68,7 +82,9 @@
                                         <th>Balance</th>
                                         <th>Status</th>
                                         <th>Registered</th>
-                                        <th class="no-sort">Actions</th>
+                                        @if ($showRowActions)
+                                            <th class="no-sort">Actions</th>
+                                        @endif
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -89,8 +105,12 @@
                                                 </div>
                                             </td>
                                             <td>
+                                                @if ($canDetail)
                                                 <a href="{{ route('admin.vendors.show', $vendor) }}"
                                                     class="vendor-list__title">{{ $agencyName }}</a>
+                                                @else
+                                                    <span class="vendor-list__title">{{ $agencyName }}</span>
+                                                @endif
                                                 @if ($vendor->contact_name)
                                                     <span class="vendor-list__meta">{{ $vendor->contact_name }}</span>
                                                 @endif
@@ -107,6 +127,7 @@
                                                 </span>
                                             </td>
                                             <td>{{ formatDate($vendor->created_at) }}</td>
+                                            @if ($showRowActions)
                                             <td>
                                                 <div class="dropstart">
                                                     <button type="button" class="recent-act__icon dropdown-toggle"
@@ -114,19 +135,23 @@
                                                         <i class='bx bx-dots-vertical-rounded'></i>
                                                     </button>
                                                     <ul class="dropdown-menu">
+                                                        @if ($canDetail)
                                                         <li>
                                                             <a class="dropdown-item"
                                                                 href="{{ route('admin.vendors.show', $vendor->id) }}">
                                                                 <i class="bx bx-show"></i> View Details
                                                             </a>
                                                         </li>
+                                                        @endif
+                                                        @if ($canEdit)
                                                         <li>
                                                             <a class="dropdown-item"
                                                                 href="{{ route('admin.vendors.edit', $vendor->id) }}">
                                                                 <i class="bx bx-edit"></i> Edit Vendor
                                                             </a>
                                                         </li>
-                                                        @if (!$vendor->parent_vendor_id)
+                                                        @endif
+                                                        @if ($canEdit && ! $vendor->parent_vendor_id)
                                                             <li>
                                                                 <a class="dropdown-item"
                                                                     href="{{ route('admin.vendors.sub-agents.create', $vendor->id) }}">
@@ -134,6 +159,7 @@
                                                                 </a>
                                                             </li>
                                                         @endif
+                                                        @if ($canEdit)
                                                         <li>
                                                             <a class="dropdown-item"
                                                                 href="{{ route('admin.vendors.change-status', $vendor->id) }}">
@@ -142,6 +168,8 @@
                                                                 {{ $vendor->status === 'active' ? 'Make Inactive' : 'Make Active' }}
                                                             </a>
                                                         </li>
+                                                        @endif
+                                                        @if ($canDelete)
                                                         <li>
                                                             <form
                                                                 action="{{ route('admin.vendors.destroy', $vendor->id) }}"
@@ -154,9 +182,11 @@
                                                                 </button>
                                                             </form>
                                                         </li>
+                                                        @endif
                                                     </ul>
                                                 </div>
                                             </td>
+                                            @endif
                                         </tr>
                                     @endforeach
                                 </tbody>

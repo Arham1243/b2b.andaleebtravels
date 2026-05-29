@@ -1,4 +1,14 @@
 @extends('admin.layouts.main')
+@php
+    extract(
+        \App\Support\B2bAdminPortalUi::crud([
+            'add' => 'inquiries_add',
+            'edit' => 'inquiries_edit',
+            'delete' => 'inquiries_delete',
+            'view' => 'inquiries_view',
+        ]),
+    );
+@endphp
 @section('content')
     <div class="col-md-12">
         <div class="dashboard-content">
@@ -12,6 +22,7 @@
                                 <h3 class="heading">Inquiries</h3>
                             </div>
                         </div>
+                        @if ($canDelete)
                         <div class="row mb-4">
                             <div class="col-md-5">
                                 <form class="custom-form ">
@@ -26,6 +37,7 @@
                                 </form>
                             </div>
                         </div>
+                        @endif
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>

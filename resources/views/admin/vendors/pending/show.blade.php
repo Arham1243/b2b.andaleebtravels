@@ -1,4 +1,8 @@
 @extends('admin.layouts.main')
+@php
+    $canManagePending = \App\Support\B2bAdminPortalUi::can('vendors_pending_manage');
+    $canEditVendor = \App\Support\B2bAdminPortalUi::can('vendors_edit');
+@endphp
 @section('content')
     <div class="col-md-12">
         <div class="dashboard-content">
@@ -15,9 +19,12 @@
                     <span class="badge rounded-pill bg-warning mt-2">Pending Approval</span>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
+                    @if ($canEditVendor)
                     <a href="{{ route('admin.vendors.edit', $vendor) }}" class="btn btn-outline-secondary btn-sm fw-semibold px-3">
                         <i class="bx bx-edit"></i> Edit
                     </a>
+                    @endif
+                    @if ($canManagePending)
                     <form action="{{ route('admin.vendors.pending.approve', $vendor) }}" method="POST"
                           onsubmit="return confirm('Approve this agency? The user will receive an email and can log in to the portal.');">
                         @csrf
@@ -32,6 +39,7 @@
                             <i class="bx bx-x-circle"></i> Reject
                         </button>
                     </form>
+                    @endif
                 </div>
             </header>
 

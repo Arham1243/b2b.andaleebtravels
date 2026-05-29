@@ -4,6 +4,11 @@
     @php
         $adminName = \Illuminate\Support\Str::title($adminFirstName);
         $today = \Carbon\Carbon::now();
+        $canVendors = \App\Support\B2bAdminPortalUi::can('vendors_view');
+        $canHotelBookings = \App\Support\B2bAdminPortalUi::can('hotel_bookings_view');
+        $canFlightBookings = \App\Support\B2bAdminPortalUi::can('flight_bookings_view');
+        $canWalletTransfers = \App\Support\B2bAdminPortalUi::can('wallet_transfers_view');
+        $canInquiries = \App\Support\B2bAdminPortalUi::can('inquiries_view');
     @endphp
 
     <div class="col-md-12">
@@ -26,6 +31,7 @@
                     <h2 class="admin-dash__section-title">Bookings overview</h2>
                 </div>
                 <div class="row g-3 admin-dash__kpi-row">
+                    @if ($canHotelBookings)
                     <div class="col-sm-6 col-xl-4 d-flex">
                         <a href="{{ route('admin.hotel-bookings.index') }}" class="admin-stat w-100">
                             <span class="admin-stat__head">
@@ -44,6 +50,8 @@
                             </span>
                         </a>
                     </div>
+                    @endif
+                    @if ($canFlightBookings)
                     <div class="col-sm-6 col-xl-4 d-flex">
                         <a href="{{ route('admin.flight-bookings.index') }}" class="admin-stat w-100">
                             <span class="admin-stat__head">
@@ -62,6 +70,8 @@
                             </span>
                         </a>
                     </div>
+                    @endif
+                    @if ($canWalletTransfers)
                     <div class="col-sm-6 col-xl-4 d-flex">
                         <a href="{{ route('admin.wallet.bank-transfers.index') }}" class="admin-stat w-100">
                             <span class="admin-stat__head">
@@ -79,6 +89,7 @@
                             </span>
                         </a>
                     </div>
+                    @endif
                 </div>
             </section>
 
@@ -118,7 +129,7 @@
                                 </div>
                             </div>
                             <ul class="admin-actions">
-                                @if ($walletTransfersPending > 0)
+                                @if ($canWalletTransfers && $walletTransfersPending > 0)
                                     <li>
                                         <a href="{{ route('admin.wallet.bank-transfers.index') }}">
                                             <span class="admin-actions__icon"><i class='bx bx-time-five'></i></span>
@@ -128,7 +139,7 @@
                                         </a>
                                     </li>
                                 @endif
-                                @if ($hotelBookingsPending > 0)
+                                @if ($canHotelBookings && $hotelBookingsPending > 0)
                                     <li>
                                         <a href="{{ route('admin.hotel-bookings.index') }}">
                                             <span class="admin-actions__icon"><i class='bx bx-hotel'></i></span>
@@ -138,7 +149,7 @@
                                         </a>
                                     </li>
                                 @endif
-                                @if ($flightBookingsPending > 0)
+                                @if ($canFlightBookings && $flightBookingsPending > 0)
                                     <li>
                                         <a href="{{ route('admin.flight-bookings.index') }}">
                                             <span class="admin-actions__icon"><i class='bx bx-plane'></i></span>
@@ -148,7 +159,7 @@
                                         </a>
                                     </li>
                                 @endif
-                                @if ($hotelBookingsFailed > 0)
+                                @if ($canHotelBookings && $hotelBookingsFailed > 0)
                                     <li>
                                         <a href="{{ route('admin.hotel-bookings.index') }}">
                                             <span class="admin-actions__icon admin-actions__icon--danger"><i class='bx bx-error-circle'></i></span>
@@ -158,7 +169,7 @@
                                         </a>
                                     </li>
                                 @endif
-                                @if ($flightBookingsFailed > 0)
+                                @if ($canFlightBookings && $flightBookingsFailed > 0)
                                     <li>
                                         <a href="{{ route('admin.flight-bookings.index') }}">
                                             <span class="admin-actions__icon admin-actions__icon--danger"><i class='bx bx-error-circle'></i></span>
@@ -168,6 +179,7 @@
                                         </a>
                                     </li>
                                 @endif
+                                @if ($canHotelBookings)
                                 <li>
                                     <a href="{{ route('admin.hotel-bookings.index') }}">
                                         <span class="admin-actions__icon admin-actions__icon--neutral"><i class='bx bx-hotel'></i></span>
@@ -175,6 +187,8 @@
                                         <i class='bx bx-chevron-right admin-actions__arrow'></i>
                                     </a>
                                 </li>
+                                @endif
+                                @if ($canFlightBookings)
                                 <li>
                                     <a href="{{ route('admin.flight-bookings.index') }}">
                                         <span class="admin-actions__icon admin-actions__icon--neutral"><i class='bx bx-plane'></i></span>
@@ -182,6 +196,8 @@
                                         <i class='bx bx-chevron-right admin-actions__arrow'></i>
                                     </a>
                                 </li>
+                                @endif
+                                @if ($canVendors)
                                 <li>
                                     <a href="{{ route('admin.vendors.index') }}">
                                         <span class="admin-actions__icon admin-actions__icon--neutral"><i class='bx bx-briefcase'></i></span>
@@ -189,6 +205,8 @@
                                         <i class='bx bx-chevron-right admin-actions__arrow'></i>
                                     </a>
                                 </li>
+                                @endif
+                                @if ($canInquiries)
                                 <li>
                                     <a href="{{ route('admin.inquiries.index') }}">
                                         <span class="admin-actions__icon admin-actions__icon--neutral"><i class='bx bx-message-dots'></i></span>
@@ -199,6 +217,7 @@
                                         <i class='bx bx-chevron-right admin-actions__arrow'></i>
                                     </a>
                                 </li>
+                                @endif
                             </ul>
                         </div>
                     </div>
@@ -210,6 +229,7 @@
                     <h2 class="admin-dash__section-title">Platform</h2>
                 </div>
                 <div class="row g-3 admin-dash__catalog-row">
+                    @if ($canVendors)
                     <div class="col-sm-6 col-xl-3 d-flex">
                         <a href="{{ route('admin.vendors.index') }}" class="admin-tile w-100">
                             <span class="admin-tile__icon"><i class='bx bx-briefcase'></i></span>
@@ -230,6 +250,8 @@
                             <i class='bx bx-chevron-right admin-tile__arrow'></i>
                         </a>
                     </div>
+                    @endif
+                    @if ($canWalletTransfers)
                     <div class="col-sm-6 col-xl-3 d-flex">
                         <a href="{{ route('admin.wallet.bank-transfers.index') }}" class="admin-tile w-100">
                             <span class="admin-tile__icon"><i class='bx bx-bank'></i></span>
@@ -240,6 +262,8 @@
                             <i class='bx bx-chevron-right admin-tile__arrow'></i>
                         </a>
                     </div>
+                    @endif
+                    @if ($canInquiries)
                     <div class="col-sm-6 col-xl-3 d-flex">
                         <a href="{{ route('admin.inquiries.index') }}" class="admin-tile w-100">
                             <span class="admin-tile__icon"><i class='bx bx-message-dots'></i></span>
@@ -250,6 +274,7 @@
                             <i class='bx bx-chevron-right admin-tile__arrow'></i>
                         </a>
                     </div>
+                    @endif
                 </div>
             </section>
         </div>

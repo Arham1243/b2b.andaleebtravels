@@ -1,13 +1,17 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashController;
+use App\Http\Controllers\Admin\AdminForgotPasswordController;
 use App\Http\Controllers\Admin\AdminLoginController;
+use App\Http\Controllers\Admin\AdminResetPasswordController;
 use App\Http\Controllers\Admin\BulkActionController;
 use App\Http\Controllers\Admin\ConfigController;
 use App\Http\Controllers\Admin\InquiryController;
 use App\Http\Controllers\Admin\DBConsoleController;
 use App\Http\Controllers\Admin\EnvEditorController;
 use App\Http\Controllers\Admin\LogController;
+use App\Http\Controllers\Admin\PortalAdminController;
+use App\Http\Controllers\Admin\PortalRoleController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\TerminalController;
 use App\Http\Controllers\Admin\AdminHotelController;
@@ -27,26 +31,36 @@ Route::get('/admins', function () {
 Route::middleware('guest')->prefix('admin')->namespace('Admin')->group(function () {
     Route::get('/auth', [AdminLoginController::class, 'login'])->name('admin.login');
     Route::post('/perform-login', [AdminLoginController::class, 'performLogin'])->name('admin.performLogin')->middleware('throttle:5,1');
+
+    Route::get('/auth/forgot-password', [AdminForgotPasswordController::class, 'showLinkRequestForm'])->name('admin.password.request');
+    Route::post('/auth/forgot-password', [AdminForgotPasswordController::class, 'sendResetLinkEmail'])->name('admin.password.email')->middleware('throttle:5,1');
+    Route::get('/auth/reset-password/{token}', [AdminResetPasswordController::class, 'showResetForm'])->name('admin.password.reset');
+    Route::post('/auth/reset-password', [AdminResetPasswordController::class, 'reset'])->name('admin.password.update')->middleware('throttle:5,1');
 });
 
-Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['admin', 'admin.staff_gate'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashController::class, 'dashboard'])->name('dashboard');
     Route::post('/logout', [AdminLoginController::class, 'logout'])->name('logout');
 
+    Route::resource('portal-users', PortalAdminController::class)->except(['show']);
+    Route::resource('portal-roles', PortalRoleController::class)->except(['show']);
+
+    Route::middleware('admin.super')->group(function () {
+        Route::get('/terminal', [TerminalController::class, 'index']);
+        Route::post('/terminal/run', [TerminalController::class, 'run']);
+
+        Route::get('/db-console', [DBConsoleController::class, 'index']);
+        Route::post('/db-console', [DBConsoleController::class, 'run'])->name('db.console.run');
+
+        Route::get('/env-editor', [EnvEditorController::class, 'index'])->name('env');
+        Route::post('/env-editor', [EnvEditorController::class, 'save'])->name('env.save');
+
+        Route::get('logs', [LogController::class, 'read']);
+        Route::get('logs/delete', [LogController::class, 'delete']);
+    });
+
     Route::get('/hotels/start', [AdminHotelController::class, 'start'])->name('hotels.start');
     Route::get('/flights/start', [AdminFlightController::class, 'start'])->name('flights.start');
-
-    Route::get('/terminal', [TerminalController::class, 'index']);
-    Route::post('/terminal/run', [TerminalController::class, 'run']);
-
-    Route::get('/db-console', [DBConsoleController::class, 'index']);
-    Route::post('/db-console', [DBConsoleController::class, 'run'])->name('db.console.run');
-
-    Route::get('/env-editor', [EnvEditorController::class, 'index'])->name('env');
-    Route::post('/env-editor', [EnvEditorController::class, 'save'])->name('env.save');
-
-    Route::get('logs', [LogController::class, 'read']);
-    Route::get('logs/delete', [LogController::class, 'delete']);
 
     Route::post('bulk-actions/{resource}', [BulkActionController::class, 'handle'])->name('bulk-actions');
 
@@ -76,7 +90,7 @@ Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
     Route::post('wallet/bank-transfers/{recharge}/confirm', [WalletBankTransferController::class, 'confirm'])->name('wallet.bank-transfers.confirm');
     Route::post('wallet/bank-transfers/{recharge}/reject', [WalletBankTransferController::class, 'reject'])->name('wallet.bank-transfers.reject');
 
-    Route::resource('inquiries', InquiryController::class);
+    Route::resource('inquiries', InquiryController::class)->only(['index', 'destroy']);
     Route::get('logo-management', [ConfigController::class, 'logoManagement'])->name('settings.logo');
     Route::post('logo-management', [ConfigController::class, 'saveLogo'])->name('settings.logo');
     Route::get('details', [ConfigController::class, 'details'])->name('settings.details');

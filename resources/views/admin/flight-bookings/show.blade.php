@@ -71,6 +71,7 @@
 
         return $h ? ($r ? "{$h}h {$r}m" : "{$h}h") : "{$r}m";
     };
+    $canEditBooking = \App\Support\B2bAdminPortalUi::can('flight_bookings_edit');
 @endphp
 
 <div class="col-md-12">
@@ -406,6 +407,7 @@
                                 $booking->id
                             );
                         @endphp
+                        @if ($canEditBooking)
                         <form action="{{ route('admin.bookings.flights.status', $booking->id) }}" method="POST"
                             class="bkpd-card mb-3 admin-flight-status admin-booking-status-form"
                             data-booking-number="{{ $booking->booking_number }}"
@@ -474,10 +476,12 @@
                                 <button type="submit" class="bkp-btn bkp-btn--primary w-100">Save changes</button>
                             </div>
                         </form>
+                        @endif
 
                         <div class="bkpd-card">
                             <div class="bkpd-card__section-head"><i class="bx bx-cog"></i> Actions</div>
                             <div class="bkpd-actions">
+                                @if ($canEditBooking)
                                 @if ($status === 'cancelled')
                                     <p class="bkpd-no-action"><i class="bx bx-x-circle"></i> Booking has been cancelled.</p>
                                 @elseif ($isHold)
@@ -507,6 +511,9 @@
                                     @endif
                                 @else
                                     <p class="bkpd-no-action"><i class="bx bx-info-circle"></i> No supplier cancel action available for this state.</p>
+                                @endif
+                                @else
+                                    <p class="bkpd-no-action"><i class="bx bx-lock"></i> You do not have permission to manage this booking.</p>
                                 @endif
                             </div>
                         </div>

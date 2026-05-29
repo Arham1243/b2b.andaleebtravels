@@ -1,4 +1,7 @@
 @extends('admin.layouts.main')
+@php
+    $canManageTransfers = \App\Support\B2bAdminPortalUi::can('wallet_transfers_manage');
+@endphp
 @section('content')
     <div class="col-md-12">
         <div class="dashboard-content">
@@ -47,7 +50,7 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @if ($r->status === 'pending')
+                                            @if ($r->status === 'pending' && $canManageTransfers)
                                                 <div class="d-flex flex-wrap gap-2 align-items-center">
                                                     <button type="button"
                                                             class="themeBtn wallet-bank-open-confirm"

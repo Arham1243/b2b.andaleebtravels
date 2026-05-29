@@ -65,7 +65,9 @@
                                     @endif
 
                                     <div class="text-end mt-4">
+                                        @unless ($readOnly ?? false)
                                         <button class="themeBtn" type="submit">Save Changes</button>
+                                        @endunless
                                     </div>
                                 </div>
                             </div>

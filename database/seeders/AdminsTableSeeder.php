@@ -2,25 +2,25 @@
 
 namespace Database\Seeders;
 
+use App\Models\B2bAdmin;
+use App\Models\B2bAdminRole;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AdminsTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        DB::table('b2b_admins')->updateOrInsert(
+        $superRole = B2bAdminRole::query()->where('slug', 'super_admin')->first();
+
+        B2bAdmin::query()->updateOrCreate(
             ['email' => 'admin@andaleebtravels.com'],
             [
                 'name' => 'admin',
-                'email' => 'admin@andaleebtravels.com',
                 'password' => Hash::make('12345678'),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'role' => 'admin',
+                'status' => B2bAdmin::STATUS_ACTIVE,
+                'admin_role_id' => $superRole?->id,
             ],
         );
     }

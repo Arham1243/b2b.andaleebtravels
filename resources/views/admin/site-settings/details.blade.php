@@ -8,7 +8,7 @@
                         <div class="section-content">
                             <h3 class="heading">{{ isset($title) ? $title : '' }}</h3>
                         </div>
-                        <button class="themeBtn">Save Changes</button>
+                        <button class="themeBtn" @disabled(! \App\Support\B2bAdminPortalUi::can('settings_edit'))>Save Changes</button>
                     </div>
 
                     <div class="form-box">

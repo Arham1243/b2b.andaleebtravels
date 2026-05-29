@@ -82,3 +82,33 @@ Breadcrumbs::for('admin.flight-bookings.show', function (BreadcrumbTrail $trail,
     $trail->parent('admin.flight-bookings.index');
     $trail->push($booking->booking_number, route('admin.flight-bookings.show', $booking));
 });
+
+Breadcrumbs::for('admin.portal-users.index', function (BreadcrumbTrail $trail) {
+    $trail->parent('admin.dashboard');
+    $trail->push('Portal Administrators', route('admin.portal-users.index'));
+});
+
+Breadcrumbs::for('admin.portal-users.create', function (BreadcrumbTrail $trail) {
+    $trail->parent('admin.portal-users.index');
+    $trail->push('Add Administrator', route('admin.portal-users.create'));
+});
+
+Breadcrumbs::for('admin.portal-users.edit', function (BreadcrumbTrail $trail, $adminUser) {
+    $trail->parent('admin.portal-users.index');
+    $trail->push('Edit Administrator', route('admin.portal-users.edit', $adminUser));
+});
+
+Breadcrumbs::for('admin.portal-roles.index', function (BreadcrumbTrail $trail) {
+    $trail->parent('admin.dashboard');
+    $trail->push('Portal roles', route('admin.portal-roles.index'));
+});
+
+Breadcrumbs::for('admin.portal-roles.create', function (BreadcrumbTrail $trail) {
+    $trail->parent('admin.portal-roles.index');
+    $trail->push('Add role', route('admin.portal-roles.create'));
+});
+
+Breadcrumbs::for('admin.portal-roles.edit', function (BreadcrumbTrail $trail, $role) {
+    $trail->parent('admin.portal-roles.index');
+    $trail->push('Edit role', route('admin.portal-roles.edit', $role));
+});

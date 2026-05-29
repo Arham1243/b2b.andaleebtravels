@@ -28,7 +28,9 @@
                         </div>
                         <div class="col-md-12 mt-2">
                             <div class="form-fields">
+                                @if (\App\Support\B2bAdminPortalUi::can('settings_edit'))
                                 <button class="themeBtn themeBtn--center">Save Changes</button>
+                                @endif
                             </div>
                         </div>
                     </div>

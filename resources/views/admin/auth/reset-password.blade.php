@@ -1,42 +1,43 @@
-@extends('admin.layouts.main')
 @php
     $is_login = true;
 @endphp
+@extends('admin.layouts.main')
 @section('content')
     <div class="login-wrapper">
         <div class="container-fluid p-0">
             <div class="row g-0">
                 <div class="col-md-5">
                     <div class="login-content">
-                        <div class="login-content__title">Admin Login</div>
-                        <p>Welcome Back, please login to your account.</p>
-                        <form class="login-content__form" method="POST" action="{{ route('admin.performLogin') }}">
+                        <div class="login-content__title">Set new password</div>
+                        <form class="login-content__form" method="POST"
+                            action="{{ route('admin.password.update') }}">
                             @csrf
+                            <input type="hidden" name="token" value="{{ $token }}">
                             <div class="fields">
-                                <label for="email" class="title">Email Address <span
-                                        class="text-danger">*</span></label>
+                                <label for="email" class="title">Email <span class="text-danger">*</span></label>
                                 <input class="@if ($errors->has('email')) is-invalid @endif" type="email"
-                                    name="email" id="email" value="{{ old('email') }}">
+                                    name="email" id="email" value="{{ old('email', $email) }}" required>
                                 @error('email')
                                     <span class="text-danger">{{ $message }}</span>
                                 @enderror
                             </div>
                             <div class="fields">
-                                <label for="password" class="title">Password <span class="text-danger">*</span></label>
+                                <label for="password" class="title">New password <span
+                                        class="text-danger">*</span></label>
                                 <input class="@if ($errors->has('password')) is-invalid @endif" type="password"
-                                    name="password" id="password">
+                                    name="password" id="password" required>
                                 @error('password')
                                     <span class="text-danger">{{ $message }}</span>
                                 @enderror
                             </div>
-                            <div class="fields mt-3">
-                                <a href="{{ route('admin.password.request') }}">Forgot password?</a>
+                            <div class="fields">
+                                <label for="password_confirmation" class="title">Confirm password <span
+                                        class="text-danger">*</span></label>
+                                <input type="password" name="password_confirmation" id="password_confirmation"
+                                    required>
                             </div>
                             <div class="fields mt-4">
-                                <button class="themeBtn">
-                                    <i class='btn-loader bx-spin d-none'></i>
-                                    Login
-                                </button>
+                                <button class="themeBtn" type="submit">Update password</button>
                             </div>
                         </form>
                     </div>
@@ -50,11 +51,3 @@
         </div>
     </div>
 @endsection
-@push('js')
-    <script>
-        document.querySelector('.login-content__form').addEventListener('submit', function() {
-            document.querySelector('.themeBtn').disabled = true;
-            document.querySelector('.btn-loader').classList.remove('d-none');
-        });
-    </script>
-@endpush
