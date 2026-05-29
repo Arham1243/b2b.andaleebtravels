@@ -19,12 +19,6 @@
             </div>
         </div>
         <div class="form-box__body" id="vendor_discounts_body" @if(! $discountsEnabled) hidden @endif>
-            <p class="text-muted mb-3" style="font-size:13px;">
-                Set agency-level discounts for flights and hotels. Sub-agents inherit these rules.
-                Vendors see the discounted price as the normal fare; only admins see the breakdown on bookings.
-                Turn off to remove discounts and restore normal supplier pricing.
-            </p>
-
             <div class="row g-3">
                 <div class="col-md-6">
                     <h6 class="mb-2">Flight discount</h6>
