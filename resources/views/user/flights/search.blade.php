@@ -106,6 +106,15 @@
                     }
                     ksort($sfStopsAvail);
                     $sfStopsAvail = array_keys($sfStopsAvail);
+
+                    $sfRefundCounts = ['refundable' => 0, 'non_refundable' => 0];
+                    foreach ($results as $_r) {
+                        if (!empty($_r['non_refundable'])) {
+                            $sfRefundCounts['non_refundable']++;
+                        } else {
+                            $sfRefundCounts['refundable']++;
+                        }
+                    }
                 @endphp
 
                 {{-- Fare count full-width above filters/results --}}
@@ -173,6 +182,31 @@
                     </div>
                     @endif
 
+                    {{-- Refund policy --}}
+                    @if($sfRefundCounts['refundable'] > 0 || $sfRefundCounts['non_refundable'] > 0)
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-check-shield"></i> Refund policy</div>
+                        <div class="sf__stop-row">
+                            @if($sfRefundCounts['refundable'] > 0)
+                            <label class="sf__stoplbl">
+                                <input type="checkbox" class="sf__stopchk" data-sf="refund" value="1">
+                                <span class="sf__stoppill sf__stoppill--ref">
+                                    Refundable <span class="sf__pillcnt">({{ $sfRefundCounts['refundable'] }})</span>
+                                </span>
+                            </label>
+                            @endif
+                            @if($sfRefundCounts['non_refundable'] > 0)
+                            <label class="sf__stoplbl">
+                                <input type="checkbox" class="sf__stopchk" data-sf="refund" value="0">
+                                <span class="sf__stoppill sf__stoppill--nr">
+                                    Non-Refundable <span class="sf__pillcnt">({{ $sfRefundCounts['non_refundable'] }})</span>
+                                </span>
+                            </label>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+
                     {{-- Departure Time --}}
                     <div class="sf__section">
                         <div class="sf__sechead"><i class="bx bx-time-five"></i> Departure Time</div>
@@ -209,21 +243,6 @@
                                 <i class="bx bx-moon"></i><span>Evening</span><small>18–24</small>
                             </button>
                         </div>
-                    </div>
-
-                    {{-- Fare Type --}}
-                    <div class="sf__section">
-                        <div class="sf__sechead"><i class="bx bx-receipt"></i> Fare Type</div>
-                        <label class="sf__chklbl">
-                            <input type="checkbox" data-sf="refund" value="1">
-                            <span class="sf__chkmark"></span>
-                            <span class="sf__chktxt sf__chktxt--ref"><i class="bx bx-check-circle"></i> Refundable</span>
-                        </label>
-                        <label class="sf__chklbl">
-                            <input type="checkbox" data-sf="refund" value="0">
-                            <span class="sf__chkmark"></span>
-                            <span class="sf__chktxt sf__chktxt--nr"><i class="bx bx-x-circle"></i> Non-Refundable</span>
-                        </label>
                     </div>
 
                     {{-- Max Duration --}}
@@ -287,6 +306,22 @@
                             <i class="bx bx-chevron-right"></i>
                         </button>
                     </div>
+
+                    @if($sfRefundCounts['refundable'] > 0 || $sfRefundCounts['non_refundable'] > 0)
+                    <div class="rp-refund-bar">
+                        <span class="rp-refund-bar__label">Refund:</span>
+                        @if($sfRefundCounts['refundable'] > 0)
+                        <button type="button" class="rp-refund-chip" data-rp-refund-filter="1">
+                            Refundable <span class="rp-refund-chip__cnt">({{ $sfRefundCounts['refundable'] }})</span>
+                        </button>
+                        @endif
+                        @if($sfRefundCounts['non_refundable'] > 0)
+                        <button type="button" class="rp-refund-chip" data-rp-refund-filter="0">
+                            Non-Refundable <span class="rp-refund-chip__cnt">({{ $sfRefundCounts['non_refundable'] }})</span>
+                        </button>
+                        @endif
+                    </div>
+                    @endif
 
                     <div class="rp-bar rp-bar--sort">
                         <div class="rp-bar__sort">
@@ -817,6 +852,50 @@
 .rp-sortbtn--active, .rp-sortbtn.is-active { background: var(--c-brand); color: #fff; }
 .rp-sortbtn__dir { transition: transform .2s ease; }
 .rp-sortbtn.is-desc .rp-sortbtn__dir { transform: rotate(180deg); }
+
+.rp-refund-bar {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    flex-wrap: wrap;
+    margin-bottom: .75rem;
+    padding: .55rem .85rem;
+    background: var(--c-white);
+    border: 1px solid var(--c-line);
+    border-radius: 12px;
+}
+.rp-refund-bar__label {
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin-right: .15rem;
+}
+.rp-refund-chip {
+    border: 1px solid var(--c-line);
+    background: #fff;
+    color: var(--c-slate);
+    font: inherit;
+    font-size: .76rem;
+    font-weight: 600;
+    padding: .32rem .72rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
+}
+.rp-refund-chip:hover { border-color: rgba(205,27,79,.35); background: var(--c-brand-soft); }
+.rp-refund-chip--active[data-rp-refund-filter="1"] {
+    background: var(--c-green-soft);
+    border-color: rgba(22, 163, 74, .35);
+    color: var(--c-green);
+}
+.rp-refund-chip--active[data-rp-refund-filter="0"] {
+    background: #fff0f3;
+    border-color: rgba(192, 20, 60, .35);
+    color: #c0143c;
+}
+.rp-refund-chip__cnt { font-weight: 700; opacity: .85; }
 
 /* =========================================================
    CARD
@@ -1489,6 +1568,26 @@
     color: var(--c-brand);
 }
 .sf__stoppill:hover { border-color: rgba(205,27,79,.3); background: var(--c-brand-soft); }
+.sf__stoppill--ref.sf__stoppill,
+.sf__stoplbl input:checked + .sf__stoppill--ref {
+    border-color: rgba(22, 163, 74, .35);
+}
+.sf__stoplbl input:checked + .sf__stoppill--ref {
+    background: var(--c-green-soft);
+    color: var(--c-green);
+}
+.sf__stoppill--nr.sf__stoppill,
+.sf__stoplbl input:checked + .sf__stoppill--nr {
+    border-color: rgba(192, 20, 60, .35);
+}
+.sf__stoplbl input:checked + .sf__stoppill--nr {
+    background: #fff0f3;
+    color: #c0143c;
+}
+.sf__pillcnt {
+    font-weight: 700;
+    opacity: .85;
+}
 
 /* ── Time slot grid ── */
 .sf__time-grid {
@@ -2090,10 +2189,29 @@
     });
 
     /* Fare type checkboxes */
+    function syncRefundUi(){
+        document.querySelectorAll('[data-sf="refund"]').forEach(chk=>{
+            chk.checked = state.refund.has(chk.value);
+        });
+        document.querySelectorAll('[data-rp-refund-filter]').forEach(btn=>{
+            btn.classList.toggle('rp-refund-chip--active', state.refund.has(btn.dataset.rpRefundFilter));
+        });
+    }
+
     document.querySelectorAll('[data-sf="refund"]').forEach(chk=>{
         chk.addEventListener('change', ()=>{
             const v = chk.value;
             chk.checked ? state.refund.add(v) : state.refund.delete(v);
+            syncRefundUi();
+            applyFilters();
+        });
+    });
+
+    document.querySelectorAll('[data-rp-refund-filter]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            const v = btn.dataset.rpRefundFilter;
+            state.refund.has(v) ? state.refund.delete(v) : state.refund.add(v);
+            syncRefundUi();
             applyFilters();
         });
     });
@@ -2151,6 +2269,7 @@
 
             // reset fare checkboxes
             document.querySelectorAll('[data-sf="refund"]').forEach(c=>{ c.checked = false; });
+            document.querySelectorAll('[data-rp-refund-filter]').forEach(b=> b.classList.remove('rp-refund-chip--active'));
 
             // reset duration
             if (durSlider){

@@ -30,6 +30,7 @@ final class SabreFareBrandPresenter
     public static function collectBrandNames(array $pricingBlock, array $grouped = []): array
     {
         $brandById = collect($grouped['brandDescs'] ?? [])->keyBy('id');
+        $fareComponentById = collect($grouped['fareComponentDescs'] ?? [])->keyBy('id');
         $fareComponents = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo.fareComponents');
 
         if (!is_array($fareComponents)) {
@@ -43,7 +44,7 @@ final class SabreFareBrandPresenter
                 continue;
             }
 
-            $name = self::resolveComponentBrandName($component, $brandById);
+            $name = self::resolveComponentBrandName($component, $brandById, $fareComponentById);
 
             if ($name !== null) {
                 $names[] = $name;
@@ -150,9 +151,10 @@ final class SabreFareBrandPresenter
 
     /**
      * @param \Illuminate\Support\Collection<int|string, mixed> $brandById
+     * @param \Illuminate\Support\Collection<int|string, mixed> $fareComponentById
      * @param array<string, mixed> $component
      */
-    private static function resolveComponentBrandName(array $component, $brandById): ?string
+    private static function resolveComponentBrandName(array $component, $brandById, $fareComponentById): ?string
     {
         foreach (['brandName', 'brandText'] as $key) {
             $direct = self::normalizeBrandToken((string) ($component[$key] ?? ''));
@@ -165,27 +167,19 @@ final class SabreFareBrandPresenter
         $nestedBrand = $component['brand'] ?? null;
 
         if (is_array($nestedBrand)) {
-            foreach (['brandName', 'brandText', 'name'] as $key) {
-                $nested = self::normalizeBrandToken((string) ($nestedBrand[$key] ?? ''));
+            $fromNested = self::brandFromDescriptor($nestedBrand);
 
-                if ($nested !== '') {
-                    return $nested;
-                }
+            if ($fromNested !== null) {
+                return $fromNested;
             }
 
             $ref = $nestedBrand['ref'] ?? null;
 
             if ($ref !== null) {
-                $desc = $brandById->get($ref);
+                $fromDesc = self::brandFromDescriptor($brandById->get($ref));
 
-                if (is_array($desc)) {
-                    foreach (['brandName', 'brandText', 'name'] as $key) {
-                        $fromDesc = self::normalizeBrandToken((string) ($desc[$key] ?? ''));
-
-                        if ($fromDesc !== '') {
-                            return $fromDesc;
-                        }
-                    }
+                if ($fromDesc !== null) {
+                    return $fromDesc;
                 }
             }
         }
@@ -193,16 +187,40 @@ final class SabreFareBrandPresenter
         $componentRef = $component['ref'] ?? null;
 
         if ($componentRef !== null) {
-            $desc = $brandById->get($componentRef);
+            $fareComponent = $fareComponentById->get($componentRef);
 
-            if (is_array($desc)) {
-                foreach (['brandName', 'brandText', 'name'] as $key) {
-                    $fromDesc = self::normalizeBrandToken((string) ($desc[$key] ?? ''));
+            if (is_array($fareComponent)) {
+                $fromFareComponent = self::brandFromDescriptor($fareComponent['brand'] ?? null);
 
-                    if ($fromDesc !== '') {
-                        return $fromDesc;
-                    }
+                if ($fromFareComponent !== null) {
+                    return $fromFareComponent;
                 }
+            }
+
+            $fromDesc = self::brandFromDescriptor($brandById->get($componentRef));
+
+            if ($fromDesc !== null) {
+                return $fromDesc;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed>|null $descriptor
+     */
+    private static function brandFromDescriptor(?array $descriptor): ?string
+    {
+        if (!is_array($descriptor)) {
+            return null;
+        }
+
+        foreach (['brandName', 'brandText', 'name'] as $key) {
+            $value = self::normalizeBrandToken((string) ($descriptor[$key] ?? ''));
+
+            if ($value !== '') {
+                return $value;
             }
         }
 
