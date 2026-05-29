@@ -480,13 +480,13 @@ class FlightController extends Controller
             }
 
             $fare = data_get($pricingBlock, 'fare.totalFare');
-            $supplierPrice = $fare ? (float) ($fare['totalPrice'] ?? 0) : 0.0;
+            $totalPrice = $this->normalizeSabrePrice(data_get($fare, 'totalPrice'));
 
             $results[] = [
                 'id' => $itinerary['id'] ?? null,
-                'supplierPrice' => $supplierPrice > 0 ? $supplierPrice : null,
-                'totalPrice' => $fare['totalPrice'] ?? null,
-                'currency' => $fare['currency'] ?? null,
+                'supplierPrice' => $totalPrice,
+                'totalPrice' => $totalPrice,
+                'currency' => data_get($fare, 'currency'),
                 'legs' => $legs,
                 'supplier' => 'sabre',
                 'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
@@ -499,7 +499,7 @@ class FlightController extends Controller
                 'baggage_details' => $baggageDetails,
                 'fare_rules' => $fareRules,
                 'fare_tags' => $pricingTags['tags'],
-                'listing_meta' => $this->buildListingMeta($legs, $fare ? (float) $fare['totalPrice'] : 0.0, $pricingTags),
+                'listing_meta' => $this->buildListingMeta($legs, (float) ($totalPrice ?? 0.0), $pricingTags),
             ];
         }
 
@@ -961,5 +961,20 @@ class FlightController extends Controller
         }
 
         return in_array(strtolower($provider), $this->enabledFlightProviders, true);
+    }
+
+    private function normalizeSabrePrice(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $amount = round((float) $value, 2);
+
+        return $amount > 0 ? $amount : null;
     }
 }

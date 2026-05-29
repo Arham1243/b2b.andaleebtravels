@@ -27,6 +27,7 @@ class B2bVendor extends Authenticatable
         'credit_used' => 'decimal:2',
         'flight_discount_value' => 'decimal:2',
         'hotel_discount_value' => 'decimal:2',
+        'vendor_discounts_enabled' => 'boolean',
     ];
 
     public function getContactNameAttribute(): string

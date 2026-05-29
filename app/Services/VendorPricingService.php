@@ -27,8 +27,8 @@ class VendorPricingService
     {
         $originalAmount = round(max(0, $originalAmount), 2);
 
-        if ($originalAmount <= 0) {
-            return PricedAmount::unchanged(0, $product);
+        if ($originalAmount <= 0 || ! $this->discountsEnabled($vendor)) {
+            return PricedAmount::unchanged($originalAmount, $product);
         }
 
         $rule = $this->resolveRule($this->resolveAgency($vendor), $product);
@@ -56,13 +56,21 @@ class VendorPricingService
      */
     public function applyFlightItinerary(?B2bVendor $vendor, array $itinerary): array
     {
-        $supplierPrice = (float) ($itinerary['supplierPrice'] ?? $itinerary['originalPrice'] ?? $itinerary['totalPrice'] ?? 0);
+        if (! $this->discountsEnabled($vendor)) {
+            return $itinerary;
+        }
+
+        $supplierPrice = $this->resolveItineraryAmount($itinerary);
 
         if ($supplierPrice <= 0) {
             return $itinerary;
         }
 
         $priced = $this->applyFlight($vendor, $supplierPrice);
+
+        if ($priced->sellAmount <= 0 || ! $priced->hasDiscount()) {
+            return $itinerary;
+        }
 
         $itinerary = array_merge($itinerary, $priced->toItineraryMeta());
 
@@ -71,6 +79,33 @@ class VendorPricingService
         }
 
         return $itinerary;
+    }
+
+    /**
+     * @param  array<string, mixed>  $itinerary
+     */
+    private function resolveItineraryAmount(array $itinerary): float
+    {
+        foreach (['supplierPrice', 'originalPrice', 'totalPrice'] as $key) {
+            if (! array_key_exists($key, $itinerary)) {
+                continue;
+            }
+
+            $value = $itinerary[$key];
+
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            if (is_numeric($value)) {
+                $amount = round((float) $value, 2);
+                if ($amount > 0) {
+                    return $amount;
+                }
+            }
+        }
+
+        return 0.0;
     }
 
     /**
@@ -148,12 +183,19 @@ class VendorPricingService
         return $vendor->walletAgency();
     }
 
+    public function discountsEnabled(?B2bVendor $vendor): bool
+    {
+        $agency = $this->resolveAgency($vendor);
+
+        return $agency !== null && (bool) ($agency->vendor_discounts_enabled ?? false);
+    }
+
     /**
      * @return array{type: string, value: float}|null
      */
     public function resolveRule(?B2bVendor $agency, string $product): ?array
     {
-        if ($agency === null) {
+        if ($agency === null || ! (bool) ($agency->vendor_discounts_enabled ?? false)) {
             return null;
         }
 

@@ -412,10 +412,19 @@ class VendorController extends Controller
                     ['sabre']
                 ),
                 'credit_limit' => $proposedLimit,
-                'flight_discount_type' => $this->normalizeDiscountType($validated['flight_discount_type'] ?? null, (float) ($validated['flight_discount_value'] ?? 0)),
-                'flight_discount_value' => $this->normalizeDiscountValue($validated['flight_discount_type'] ?? null, $validated['flight_discount_value'] ?? 0),
-                'hotel_discount_type' => $this->normalizeDiscountType($validated['hotel_discount_type'] ?? null, (float) ($validated['hotel_discount_value'] ?? 0)),
-                'hotel_discount_value' => $this->normalizeDiscountValue($validated['hotel_discount_type'] ?? null, $validated['hotel_discount_value'] ?? 0),
+                'vendor_discounts_enabled' => $request->boolean('vendor_discounts_enabled'),
+                'flight_discount_type' => $request->boolean('vendor_discounts_enabled')
+                    ? $this->normalizeDiscountType($validated['flight_discount_type'] ?? null, (float) ($validated['flight_discount_value'] ?? 0))
+                    : null,
+                'flight_discount_value' => $request->boolean('vendor_discounts_enabled')
+                    ? $this->normalizeDiscountValue($validated['flight_discount_type'] ?? null, $validated['flight_discount_value'] ?? 0)
+                    : 0,
+                'hotel_discount_type' => $request->boolean('vendor_discounts_enabled')
+                    ? $this->normalizeDiscountType($validated['hotel_discount_type'] ?? null, (float) ($validated['hotel_discount_value'] ?? 0))
+                    : null,
+                'hotel_discount_value' => $request->boolean('vendor_discounts_enabled')
+                    ? $this->normalizeDiscountValue($validated['hotel_discount_type'] ?? null, $validated['hotel_discount_value'] ?? 0)
+                    : 0,
             ];
 
             if ($request->hasFile('agency_logo')) {
@@ -579,6 +588,7 @@ class VendorController extends Controller
             'flight_search_providers.*' => 'in:sabre',
             'credit_limit' => 'nullable|numeric|min:0|max:99999999.99',
             'remove_credit_limit' => 'nullable|boolean',
+            'vendor_discounts_enabled' => 'nullable|boolean',
             'flight_discount_type' => 'nullable|in:percent,fixed',
             'flight_discount_value' => 'nullable|numeric|min:0|max:99999999.99',
             'hotel_discount_type' => 'nullable|in:percent,fixed',
