@@ -3,7 +3,6 @@
     const FLIGHT_SEARCH_ACTION = @json(route('user.flights.search'));
     const RECENT_FLIGHTS_KEY = 'b2b_flight_recent_searches_v1';
     const MAX_RECENT_FLIGHTS = 4;
-    const HOME_ORIGIN_CODE = 'DXB';
     const HOME_AIRPORT_PRIORITY = [
         'DXB', 'DWC', 'AUH', 'SHJ', 'AAN', 'RKT', 'FJR',
         'DOH', 'MCT', 'SLL', 'BAH', 'KWI', 'RUH', 'JED', 'DMM', 'MED',
@@ -704,14 +703,6 @@
                         city: toCode
                     };
                     toInput.value = formatAirportInput(selectedTo.value);
-                }
-
-                if (!fromCode) {
-                    const homeOrigin = airports.value.find((airport) => airport.code === HOME_ORIGIN_CODE);
-                    if (homeOrigin) {
-                        selectedFrom.value = homeOrigin;
-                        fromInput.value = formatAirportInput(homeOrigin);
-                    }
                 }
 
                 const adultsParam = parseInt(params.get('adults') || '1', 10);
