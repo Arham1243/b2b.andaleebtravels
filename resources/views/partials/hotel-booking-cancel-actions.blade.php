@@ -2,7 +2,6 @@
     $cancellation = $cancellation ?? ['can_cancel' => false, 'reason' => null];
     $status = $status ?? ($booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status);
     $canCancel = (bool) ($cancellation['can_cancel'] ?? false);
-    $needsLivePolicy = (bool) ($cancellation['needs_live_policy'] ?? false);
     $isRefundable = $cancellation['is_refundable'] ?? null;
     $showPolicy = $isRefundable !== null
         || !empty($cancellation['policy_summary'])
@@ -26,11 +25,6 @@
         <button type="button" class="bkp-btn bkp-btn--danger w-100 cancel-booking-btn" data-booking-id="{{ $booking->id }}">
             <i class="bx bx-x"></i> Cancel Booking
         </button>
-    @elseif ($needsLivePolicy && $isRefundable !== false)
-        <button type="button" class="bkp-btn bkp-btn--danger w-100 cancel-booking-btn" data-booking-id="{{ $booking->id }}">
-            <i class="bx bx-x"></i> Cancel Booking
-        </button>
-        <p class="bkpd-cancel-hint">Review cancellation charges before confirming.</p>
     @elseif (!$canCancel)
         <p class="bkpd-no-action">
             <i class="bx bx-x-circle"></i>
