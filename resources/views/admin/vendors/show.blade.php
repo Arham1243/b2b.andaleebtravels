@@ -335,7 +335,7 @@
                         <span class="vs-stat__label">Used Balance</span>
                         <span class="vs-stat__icon"><i class="bx bx-trending-down"></i></span>
                     </div>
-                    <div class="vs-stat__value is-currency">{!! formatPrice($vendor->creditUsedAmount()) !!}</div>
+                    <div class="vs-stat__value is-currency">{!! formatPrice($vendor->usedBalanceAmount()) !!}</div>
                 </div>
             </div>
             <div class="col-6 col-xl-3">
@@ -421,7 +421,7 @@
                     </div>
                     <div class="vs-info-item">
                         <span class="vs-info-label">Used Balance</span>
-                        <span class="vs-info-value">{!! formatPrice($vendor->creditUsedAmount()) !!}</span>
+                        <span class="vs-info-value">{!! formatPrice($vendor->usedBalanceAmount()) !!}</span>
                     </div>
                 @endif
                 <div class="vs-info-item">

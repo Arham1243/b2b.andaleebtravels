@@ -191,6 +191,12 @@ class B2bVendor extends Authenticatable
         return max(0, round($this->creditPools()['credit_used'], 2));
     }
 
+    /** Total active wallet debits — shown to admins/users as "Used Balance". */
+    public function usedBalanceAmount(): float
+    {
+        return round((float) $this->walletLedger()->active()->where('type', 'debit')->sum('amount'), 2);
+    }
+
     public function creditAvailableAmount(): float
     {
         if (! $this->hasCreditLimit()) {
