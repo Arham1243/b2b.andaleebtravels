@@ -9,12 +9,6 @@
 @elseif (($maxRechargeAmount ?? 50000) < 50000 && ($walletUser ?? null)?->hasCreditLimit())
     <div class="recharge-limit-note">
         <i class="bx bx-wallet"></i>
-        Prepaid wallet limit: {!! formatPrice($walletUser->creditLimitAmount()) !!}.
-        You can add up to <strong>{!! formatPrice($maxRechargeAmount) !!}</strong> more
-        @if ($walletUser->creditUsedAmount() > 0)
-            (includes paying down {!! formatPrice($walletUser->creditUsedAmount()) !!} credit used).
-        @else
-            to your prepaid balance.
-        @endif
+        You can add up to <strong>{!! formatPrice($maxRechargeAmount) !!}</strong> more to your wallet.
     </div>
 @endif

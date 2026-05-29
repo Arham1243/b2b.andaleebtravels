@@ -44,10 +44,7 @@
 
             <main class="ps-main">
             <div class="recharge-section">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
-                    <h3 class="heading fw-bold mb-0">Direct Bank Transfer</h3>
-                    @include('user.wallet.partials._wallet-balance-summary')
-                </div>
+                <h3 class="heading fw-bold mb-3">Direct Bank Transfer</h3>
 
                 @include('user.wallet.partials._recharge-limit')
 

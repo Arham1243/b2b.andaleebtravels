@@ -303,6 +303,10 @@
     }
     .vs-ledger-balance strong { color: #18181b; }
 
+    .vs-wallet-form__hint .wallet-balance-metrics {
+        margin-top: 0.5rem;
+    }
+
     @media (max-width: 900px) {
         #wallet-ledger-table .vs-ledger-col-desc {
             max-width: none;

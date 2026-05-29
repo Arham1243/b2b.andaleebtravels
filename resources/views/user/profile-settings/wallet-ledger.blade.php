@@ -3,6 +3,7 @@
 @section('css')
     @include('user.profile-settings._styles')
     @include('partials.wallet-ledger-styles')
+    @include('partials.wallet-balance-metrics-styles')
 @endsection
 
 @section('content')
@@ -34,6 +35,9 @@
                         </span>
                     </div>
                     <div class="ps-card__body">
+                        <div class="mb-3">
+                            @include('partials.wallet-balance-metrics', ['walletUser' => $user])
+                        </div>
                         @include('partials.wallet-ledger-panel', [
                             'vendor' => $user,
                             'walletLedger' => $walletLedger,

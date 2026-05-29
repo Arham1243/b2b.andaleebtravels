@@ -12,13 +12,13 @@
                     placeholder="Not set">
                 @if ($vendor->hasCreditLimit())
                     <small class="text-muted d-block mt-1">
-                        Credit used: {!! formatPrice($vendor->creditUsedAmount()) !!} · Available: {!! formatPrice($vendor->creditAvailableAmount()) !!}
+                        @include('partials.wallet-balance-metrics', ['vendor' => $vendor, 'compact' => true])
                     </small>
                     @if ($vendor->creditUsedAmount() > 0)
-                        <small class="text-muted d-block mt-1">Minimum allowed: {!! formatPrice($vendor->creditUsedAmount()) !!} (current credit in use).</small>
+                        <small class="text-muted d-block mt-1">Minimum allowed: {!! formatPrice($vendor->creditUsedAmount()) !!}.</small>
                     @endif
                 @else
-                    <small class="text-muted d-block mt-1">No credit limit configured. Enter an amount to enable credit for this vendor.</small>
+                    <small class="text-muted d-block mt-1">Enter an amount to set the vendor credit limit.</small>
                 @endif
                 @error('credit_limit')
                     <div class="text-danger">{{ $message }}</div>

@@ -18,7 +18,7 @@
                         </button>
                         <a href="{{ route('user.wallet.recharge.card') }}" class="topbar-balance-link">
                             <div class="topbar-balance-label-row">
-                                <span class="topbar-balance-label">{{ $vendor->creditLimitAmount() > 0 ? 'Available Balance' : 'Main Balance' }}</span>
+                                <span class="topbar-balance-label">Available Balance</span>
                                 <i class='bx bx-chevron-down'></i>
                             </div>
                             <span class="topbar-balance-value">{!! formatPrice($vendor->totalSpendableBalance()) !!}</span>

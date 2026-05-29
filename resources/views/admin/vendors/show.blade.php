@@ -92,6 +92,12 @@
     .vs-info-item:nth-child(odd)  { border-right: 1px solid #f1f3f5; padding-right: 1.5rem; }
     .vs-info-item:nth-child(even) { padding-left: 1.5rem; }
     .vs-info-item:nth-last-child(-n+2) { border-bottom: none; }
+    .vs-info-item--full {
+        grid-column: 1 / -1;
+        border-right: none !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
     .vs-info-label {
         font-size: 0.72rem;
         font-weight: 700;
@@ -271,6 +277,7 @@
     }
 </style>
 @include('partials.wallet-ledger-styles')
+@include('partials.wallet-balance-metrics-styles')
 @endpush
 
 @section('content')
@@ -322,10 +329,19 @@
             <div class="col-6 col-xl-3">
                 <div class="vs-stat">
                     <div class="vs-stat__head">
-                        <span class="vs-stat__label">{{ $vendor->hasCreditLimit() ? 'Available to Spend' : 'Wallet Balance' }}</span>
+                        <span class="vs-stat__label">Available Balance</span>
                         <span class="vs-stat__icon"><i class="bx bx-wallet"></i></span>
                     </div>
                     <div class="vs-stat__value is-currency">{!! formatPrice($vendor->totalSpendableBalance()) !!}</div>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="vs-stat">
+                    <div class="vs-stat__head">
+                        <span class="vs-stat__label">Used Balance</span>
+                        <span class="vs-stat__icon"><i class="bx bx-trending-down"></i></span>
+                    </div>
+                    <div class="vs-stat__value is-currency">{!! formatPrice($vendor->creditUsedAmount()) !!}</div>
                 </div>
             </div>
             <div class="col-6 col-xl-3">
@@ -404,31 +420,9 @@
                     <span class="vs-info-label">Trade License Expiry</span>
                     <span class="vs-info-value">{{ $vendor->trade_license_expiry ? $vendor->trade_license_expiry->format('d M Y') : '—' }}</span>
                 </div>
-                <div class="vs-info-item">
-                    <span class="vs-info-label">{{ $vendor->hasCreditLimit() ? 'Available to Spend' : 'Wallet Balance' }}</span>
-                    <span class="vs-info-value fw-bold" style="color:var(--color-primary);">{!! formatPrice($vendor->totalSpendableBalance()) !!}</span>
-                </div>
-                @if ($vendor->isAgencyAccount() && $vendor->hasCreditLimit())
-                    <div class="vs-info-item">
-                        <span class="vs-info-label">Prepaid Wallet</span>
-                        <span class="vs-info-value">{!! formatPrice($vendor->prepaidWalletBalance()) !!}</span>
-                    </div>
-                    <div class="vs-info-item">
-                        <span class="vs-info-label">Credit Limit</span>
-                        <span class="vs-info-value">{!! formatCreditLimitDisplay($vendor) !!}</span>
-                    </div>
-                    <div class="vs-info-item">
-                        <span class="vs-info-label">Credit Used</span>
-                        <span class="vs-info-value">{!! formatPrice($vendor->creditUsedAmount()) !!}</span>
-                    </div>
-                    <div class="vs-info-item">
-                        <span class="vs-info-label">Available Credit</span>
-                        <span class="vs-info-value">{!! formatPrice($vendor->creditAvailableAmount()) !!}</span>
-                    </div>
-                @elseif ($vendor->isAgencyAccount())
-                    <div class="vs-info-item">
-                        <span class="vs-info-label">Credit Line</span>
-                        <span class="vs-info-value text-muted">Not configured</span>
+                @if ($vendor->isAgencyAccount())
+                    <div class="vs-info-item vs-info-item--full">
+                        @include('partials.wallet-balance-metrics', ['vendor' => $vendor, 'compact' => true])
                     </div>
                 @endif
                 <div class="vs-info-item">

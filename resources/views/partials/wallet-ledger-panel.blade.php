@@ -13,11 +13,7 @@
         <div class="vs-wallet-form__title"><i class="bx bx-plus-circle"></i> Add manual transaction</div>
         <p class="vs-wallet-form__hint">
             Record an admin credit or debit (e.g. hotel payment taken from wallet offline). Use <strong>Edit</strong> or <strong>Void</strong> on any row below to correct mistakes — the wallet balance is recalculated automatically.
-            Current balance: <strong>{!! formatPrice($vendor->main_balance ?? 0) !!}</strong>
-            @if ($vendor->creditLimitAmount() > 0)
-                · Credit available: <strong>{!! formatPrice($vendor->creditAvailableAmount()) !!}</strong>
-                · Total spendable: <strong>{!! formatPrice($vendor->totalSpendableBalance()) !!}</strong>
-            @endif
+            @include('partials.wallet-balance-metrics', ['vendor' => $vendor, 'compact' => true])
         </p>
         <form action="{{ route('admin.vendors.wallet-transactions.store', $vendor) }}" method="POST"
             id="manual-wallet-form" class="row g-3 align-items-end" enctype="multipart/form-data">
