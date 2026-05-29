@@ -89,9 +89,6 @@
                             <div class="title">Contact Information</div>
                         </div>
                         <div class="form-box__body">
-                            <p class="text-muted mb-3" style="font-size:13px;">
-                                Shown on the flights and hotels support strip for agents.
-                            </p>
                             <div class="row">
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
