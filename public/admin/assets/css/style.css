@@ -1125,7 +1125,11 @@ label.title.title--xs {
 }
 
 .form-box__body > .row {
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-box__body > .row + .form-fields {
+    margin-top: 1.15rem;
 }
 
 .form-box__body > .form-fields {

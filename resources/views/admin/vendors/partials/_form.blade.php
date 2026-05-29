@@ -36,7 +36,7 @@
         @enderror
     </div>
 
-    <div class="row g-3 mb-0">
+    <div class="row g-3">
         <div class="col-md-6">
             <div class="form-fields mb-0">
                 <label class="title">First Name <span class="text-danger">*</span></label>
@@ -68,7 +68,7 @@
         @enderror
     </div>
 
-    <div class="row g-3 mb-0">
+    <div class="row g-3">
         <div class="col-md-6">
             <div class="form-fields mb-0">
                 <label class="title">Trade License Number <span class="text-danger">*</span></label>
