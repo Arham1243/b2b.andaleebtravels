@@ -283,14 +283,29 @@
                                 <div class="bkpd-info-row bkpd-info-row--refund">
                                     <span class="bkpd-info-row__label">Refund</span>
                                     <div class="bkpd-info-row__val bkpd-info-row__val--refund">
-                                        @if ($tboRefundMeta['is_refundable'] === true)
+                                        @if (($cancellation['is_refundable'] ?? $tboRefundMeta['is_refundable']) === true)
                                             <span class="bkpd-refund-pill bkpd-refund-pill--yes"><i class="bx bx-check-shield"></i> Refundable rate</span>
-                                            <p class="bkpd-refund-note">Recorded as refundable on your TBO confirmation. Cancellation penalties still follow supplier timing and hotel rules.</p>
-                                        @elseif ($tboRefundMeta['is_refundable'] === false)
+                                        @elseif (($cancellation['is_refundable'] ?? $tboRefundMeta['is_refundable']) === false)
                                             <span class="bkpd-refund-pill bkpd-refund-pill--no"><i class="bx bx-x-circle"></i> Non-refundable rate</span>
-                                            <p class="bkpd-refund-note">Recorded as non-refundable on your TBO confirmation.</p>
                                         @elseif (!empty($tboRefundMeta['summary']))
                                             <p class="bkpd-refund-note">{{ $tboRefundMeta['summary'] }}</p>
+                                        @endif
+                                        @if (!empty($cancellation['policy_summary']))
+                                            <p class="bkpd-refund-note">{{ $cancellation['policy_summary'] }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                @elseif (($cancellation['is_refundable'] ?? null) !== null || !empty($cancellation['policy_summary']))
+                                <div class="bkpd-info-row bkpd-info-row--refund">
+                                    <span class="bkpd-info-row__label">Refund</span>
+                                    <div class="bkpd-info-row__val bkpd-info-row__val--refund">
+                                        @if (($cancellation['is_refundable'] ?? null) === true)
+                                            <span class="bkpd-refund-pill bkpd-refund-pill--yes"><i class="bx bx-check-shield"></i> Refundable rate</span>
+                                        @elseif (($cancellation['is_refundable'] ?? null) === false)
+                                            <span class="bkpd-refund-pill bkpd-refund-pill--no"><i class="bx bx-x-circle"></i> Non-refundable rate</span>
+                                        @endif
+                                        @if (!empty($cancellation['policy_summary']))
+                                            <p class="bkpd-refund-note">{{ $cancellation['policy_summary'] }}</p>
                                         @endif
                                     </div>
                                 </div>
@@ -356,7 +371,13 @@ $(document).on('click', '.cancel-booking-btn', function() {
     modal.show();
     $.post("{{ route('user.bookings.hotels.cancellation-charges') }}", { booking_id: bookingId, _token: "{{ csrf_token() }}" })
         .done(html => $('#cancelBookingModalBody').html(html))
-        .fail(() => $('#cancelBookingModalBody').html('<p class="text-danger text-center py-3">Failed to load policy.</p>'));
+        .fail(xhr => {
+            if (xhr.status === 422 && xhr.responseText) {
+                $('#cancelBookingModalBody').html(xhr.responseText);
+                return;
+            }
+            $('#cancelBookingModalBody').html('<p class="text-danger text-center py-3">Failed to load policy.</p>');
+        });
 });
 $(document).on('click', '.cancel-booking-btn-tbo', function() {
     if (!confirm('Cancel this booking?')) return;

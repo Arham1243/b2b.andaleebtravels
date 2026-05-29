@@ -121,9 +121,16 @@ class BookingController extends Controller
         $booking = B2bHotelBooking::where('b2b_vendor_id', Auth::id())
             ->findOrFail($request->booking_id);
 
-        $cancelUrl = route('user.bookings.hotels.cancel', $booking->id);
-
         $response = $hotelService->getCancellationCharges($booking);
+        $eligibility = BookingCancellationEligibility::forHotel($booking, $response);
+
+        if (!($eligibility['can_cancel'] ?? false)) {
+            return response()->view('user.bookings.partials.cancellation-unavailable', [
+                'cancellation' => $eligibility,
+            ], 422);
+        }
+
+        $cancelUrl = route('user.bookings.hotels.cancel', $booking->id);
 
         return view('user.bookings.partials.cancellation-charges', compact('booking', 'response', 'cancelUrl'));
     }

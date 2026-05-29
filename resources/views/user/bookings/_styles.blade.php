@@ -959,6 +959,47 @@
 .bkpd-actions { padding: 14px 18px; }
 .bkpd-no-action { font-size: .8rem; color: #8492a6; margin: 0; display: flex; align-items: center; gap: 6px; }
 
+.bkpd-cancel-policy {
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid #e8edf3;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.bkpd-cancel-policy__head {
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #8492a6;
+    margin-bottom: 8px;
+}
+
+.bkpd-cancel-policy__text {
+    font-size: .75rem;
+    color: #4a5568;
+    line-height: 1.45;
+    margin: 8px 0 0;
+}
+
+.bkpd-cancel-policy__deadline {
+    font-size: .72rem;
+    color: #64748b;
+    margin: 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.bkpd-cancel-hint {
+    font-size: .72rem;
+    color: #64748b;
+    margin: 10px 0 0;
+    text-align: center;
+    line-height: 1.4;
+}
+
 /* Hotel stay visual */
 .bkpd-stay {
     display: flex;

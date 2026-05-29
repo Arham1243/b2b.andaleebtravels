@@ -1125,21 +1125,11 @@
                             @if($bkStatus !== 'cancelled')
                             <p class="bk-section-label"><i class="bx bx-cog"></i> Actions</p>
                             <div class="bk-actions">
-                                @if($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
-                                    @if(($booking->supplier ?? 'yalago') === 'tbo')
-                                        <button type="button" class="bk-btn bk-btn--danger cancel-booking-btn-tbo"
-                                                data-booking-id="{{ $booking->id }}">
-                                            <i class="bx bx-x"></i> Cancel (TBO)
-                                        </button>
-                                    @else
-                                        <button type="button" class="bk-btn bk-btn--danger cancel-booking-btn"
-                                                data-booking-id="{{ $booking->id }}">
-                                            <i class="bx bx-x"></i> Cancel Booking
-                                        </button>
-                                    @endif
-                                @else
-                                    <span style="font-size:.8rem;color:#8492a6;">No actions available.</span>
-                                @endif
+                                @include('partials.hotel-booking-cancel-actions', [
+                                    'booking' => $booking,
+                                    'cancellation' => \App\Support\BookingCancellationEligibility::forHotel($booking),
+                                    'status' => $booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status,
+                                ])
                             </div>
                             @else
                             <p style="font-size:.8rem;color:#b91c1c;margin:0;">
@@ -1246,7 +1236,13 @@ $(document).on('click', '.cancel-booking-btn', function() {
         _token: "{{ csrf_token() }}"
     })
     .done(html => $('#cancelBookingModalBody').html(html))
-    .fail(() => $('#cancelBookingModalBody').html('<p class="text-danger text-center py-3">Failed to load cancellation policy.</p>'));
+    .fail(xhr => {
+        if (xhr.status === 422 && xhr.responseText) {
+            $('#cancelBookingModalBody').html(xhr.responseText);
+            return;
+        }
+        $('#cancelBookingModalBody').html('<p class="text-danger text-center py-3">Failed to load cancellation policy.</p>');
+    });
 });
 
 // ── hotel cancel (tbo) ───────────────────────────────────────

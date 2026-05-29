@@ -1,7 +1,7 @@
 @if (!($response['IsCancellable'] ?? false))
     <p class="text-danger mb-0">
         <i class="bx bx-x-circle"></i>
-        This booking is not cancellable according to the supplier.
+        Cancellation deadline has expired.
     </p>
 @else
     @php
@@ -63,7 +63,7 @@
         @if (!$actionShown)
             <p class="text-danger mb-0 mt-3">
                 <i class="bx bx-time-five"></i>
-                The cancellation window for this booking has passed. It can no longer be cancelled.
+                Cancellation deadline has expired.
             </p>
         @endif
     @else

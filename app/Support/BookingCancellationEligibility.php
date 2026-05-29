@@ -207,7 +207,7 @@ final class BookingCancellationEligibility
         if ($storedRefundable === false) {
             return array_merge($base, [
                 'is_refundable' => false,
-                'reason' => 'This is a non-refundable booking. Cancellation is not available.',
+                'reason' => 'Booking is no longer refundable.',
             ]);
         }
 
@@ -221,7 +221,7 @@ final class BookingCancellationEligibility
         if (!($yalagoCharges['IsCancellable'] ?? false)) {
             return array_merge($base, [
                 'is_refundable' => $storedRefundable ?? true,
-                'reason' => 'The supplier reports this booking is no longer cancellable.',
+                'reason' => 'Cancellation deadline has expired.',
                 'policy_summary' => self::yalagoPolicySummaryFromCharges($yalagoCharges),
             ]);
         }
@@ -236,8 +236,8 @@ final class BookingCancellationEligibility
                 'deadline' => $deadline,
                 'deadline_formatted' => self::formatDeadline($deadline),
                 'reason' => $deadline
-                    ? 'The cancellation window closed on ' . self::formatDeadline($deadline) . '. This booking can no longer be cancelled.'
-                    : 'The cancellation window for this booking has passed. This booking can no longer be cancelled.',
+                    ? 'Cancellation deadline has expired.'
+                    : 'Cancellation deadline has expired.',
                 'policy_summary' => self::yalagoPolicySummaryFromCharges($yalagoCharges),
             ]);
         }
@@ -276,7 +276,7 @@ final class BookingCancellationEligibility
         if ($isRefundable === false) {
             return array_merge($base, [
                 'is_refundable' => false,
-                'reason' => 'This is a non-refundable booking. Cancellation is not available.',
+                'reason' => 'Booking is no longer refundable.',
                 'policy_summary' => $refundMeta['summary'],
             ]);
         }
@@ -288,7 +288,7 @@ final class BookingCancellationEligibility
                 'is_refundable' => $isRefundable ?? true,
                 'deadline' => $deadline,
                 'deadline_formatted' => self::formatDeadline($deadline),
-                'reason' => 'The cancellation window closed on ' . self::formatDeadline($deadline) . '. This booking can no longer be cancelled.',
+                'reason' => 'Cancellation deadline has expired.',
                 'policy_summary' => self::tboPolicySummary($source),
             ]);
         }
