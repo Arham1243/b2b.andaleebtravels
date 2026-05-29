@@ -75,11 +75,28 @@
                             <h2 class="ps-card__title">
                                 <i class="bx bx-slider-alt"></i> Markup Settings
                             </h2>
-                            <button type="submit" class="ps-btn-save" id="markup_save_btn" @if(! $overrideEnabled) hidden @endif>
+                            <button type="submit" class="ps-btn-save" id="markup_save_btn">
                                 <i class="bx bx-save"></i> Save Markup
                             </button>
                         </div>
                         <div class="ps-card__body">
+                            <div class="ps-markup-toggle">
+                                <div>
+                                    <div class="ps-markup-toggle__label">Use custom markup</div>
+                                    <div id="agent_markup_toggle_hint" style="font-size:.78rem;color:#64748b;margin-top:2px;">
+                                        {{ $overrideEnabled
+                                            ? 'Your custom markup applies independently to your searches and bookings.'
+                                            : 'Turn off and save to use agency markup. Turn on to set your own flight and hotel markup.' }}
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    <input type="hidden" name="agent_markup_override_enabled" value="0">
+                                    <input class="form-check-input" type="checkbox" name="agent_markup_override_enabled"
+                                        value="1" id="agent_markup_override_enabled" role="switch"
+                                        @checked($overrideEnabled)>
+                                </div>
+                            </div>
+
                             <div id="agency_markup_body" @if($overrideEnabled) hidden @endif>
                                 <div class="ps-markup-grid" id="agency_markup_fields">
                                     <div>
@@ -117,23 +134,6 @@
                                                 placeholder="{{ $agencyHotelType ? '' : 'Not set' }}">
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div class="ps-markup-toggle">
-                                <div>
-                                    <div class="ps-markup-toggle__label">Use custom markup</div>
-                                    <div id="agent_markup_toggle_hint" style="font-size:.78rem;color:#64748b;margin-top:2px;">
-                                        {{ $overrideEnabled
-                                            ? 'Your custom markup applies independently to your searches and bookings.'
-                                            : 'Turn on to replace agency markup with your own flight and hotel settings.' }}
-                                    </div>
-                                </div>
-                                <div class="form-check form-switch mb-0">
-                                    <input type="hidden" name="agent_markup_override_enabled" value="0">
-                                    <input class="form-check-input" type="checkbox" name="agent_markup_override_enabled"
-                                        value="1" id="agent_markup_override_enabled" role="switch"
-                                        @checked($overrideEnabled)>
                                 </div>
                             </div>
 
@@ -205,7 +205,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var toggle = document.getElementById('agent_markup_override_enabled');
     var agencyBody = document.getElementById('agency_markup_body');
     var agentBody = document.getElementById('agent_markup_body');
-    var saveBtn = document.getElementById('markup_save_btn');
     var hint = document.getElementById('agent_markup_toggle_hint');
     var fields = document.querySelectorAll('.agent-markup-field');
 
@@ -220,13 +219,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (agentBody) {
             agentBody.hidden = !on;
         }
-        if (saveBtn) {
-            saveBtn.hidden = !on;
-        }
         if (hint) {
             hint.textContent = on
                 ? 'Your custom markup applies independently to your searches and bookings.'
-                : 'Turn on to replace agency markup with your own flight and hotel settings.';
+                : 'Turn off and save to use agency markup. Turn on to set your own flight and hotel markup.';
         }
         fields.forEach(function (field) {
             field.disabled = !on;
