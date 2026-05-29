@@ -270,6 +270,37 @@ class VendorController extends Controller
             ->with('notify_success', 'Transaction voided. Wallet balance is now ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED.');
     }
 
+    public function updateCreditLimit(Request $request, B2bVendor $vendor)
+    {
+        if ($vendor->isSubAgentAccount()) {
+            return redirect()->route('admin.vendors.show', $vendor->parent_vendor_id)
+                ->with('notify_error', 'Credit limit is managed on the parent agency account.');
+        }
+
+        if ($vendor->isPendingApproval()) {
+            return redirect()->back()
+                ->with('notify_error', 'Approve the vendor before setting a credit limit.');
+        }
+
+        $validated = $request->validate([
+            'credit_limit' => 'required|numeric|min:0|max:99999999.99',
+        ]);
+
+        $creditLimit = round((float) $validated['credit_limit'], 2);
+        $creditUsed = $vendor->creditUsedAmount();
+
+        if ($creditLimit < $creditUsed) {
+            return redirect()->back()
+                ->withInput()
+                ->with('notify_error', 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).');
+        }
+
+        $vendor->update(['credit_limit' => $creditLimit]);
+
+        return redirect()->back()
+            ->with('notify_success', 'Credit limit updated to ' . number_format($creditLimit, 2) . ' AED.');
+    }
+
     private function ensureLedgerBelongsToVendor(B2bVendor $vendor, B2bWalletLedger $ledger): void
     {
         if ((int) $ledger->b2b_vendor_id !== (int) $vendor->id) {

@@ -24,10 +24,7 @@
             <div class="recharge-section">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                     <h3 class="heading fw-bold mb-0">Tabby</h3>
-                    <div class="current-balance">
-                        <i class='bx bxs-wallet'></i>
-                        Current Balance: {!! formatPrice(Auth::user()->main_balance) !!}
-                    </div>
+                    @include('user.wallet.partials._wallet-balance-summary')
                 </div>
 
                 <form action="{{ route('user.wallet.recharge.tabby.process') }}" method="POST" id="rechargeForm">

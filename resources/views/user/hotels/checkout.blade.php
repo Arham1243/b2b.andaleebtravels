@@ -5,7 +5,9 @@
         $adultCount = collect($rooms_request)->sum('Adults');
         $childrenCount = collect($rooms_request)->sum(fn($r) => count($r['ChildAges']));
         $groupedRooms = collect($selected_rooms)->groupBy(fn($room) => $room['room_name'] . '|' . $room['board_title']);
-        $walletBalance = Auth::user()->main_balance ?? 0;
+        $walletBalance = Auth::user()->totalSpendableBalance();
+        $walletPrepaid = Auth::user()->main_balance ?? 0;
+        $creditAvailable = Auth::user()->creditAvailableAmount();
     @endphp
 
     {{-- Price Update Modal --}}
@@ -310,7 +312,12 @@
                                                 <div class="hc-payment-option__icon"><i class="bx bxs-wallet"></i></div>
                                                 <div class="hc-payment-option__info">
                                                     <div class="hc-payment-option__name">Use Wallet Balance</div>
-                                                    <div class="hc-payment-option__desc">Available: <strong>{!! formatPrice($walletBalance) !!}</strong></div>
+                                                    <div class="hc-payment-option__desc">
+                                                        Available: <strong>{!! formatPrice($walletBalance) !!}</strong>
+                                                        @if ($creditAvailable > 0)
+                                                            <span style="font-size:.85em; color:#666;"> (incl. {!! formatPrice($creditAvailable) !!} credit)</span>
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div class="hc-wallet-toggle__switch">

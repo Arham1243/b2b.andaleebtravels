@@ -16,6 +16,8 @@ class B2bVendor extends Authenticatable
         'hotel_search_providers' => 'array',
         'flight_search_providers' => 'array',
         'trade_license_expiry' => 'date',
+        'main_balance' => 'decimal:2',
+        'credit_limit' => 'decimal:2',
     ];
 
     public function getContactNameAttribute(): string
@@ -127,6 +129,49 @@ class B2bVendor extends Authenticatable
     public function walletLedger(): HasMany
     {
         return $this->hasMany(B2bWalletLedger::class, 'b2b_vendor_id');
+    }
+
+    /** Agency account that owns credit limit (parent for sub-agents). */
+    public function walletAgency(): self
+    {
+        if ($this->isSubAgentAccount()) {
+            $this->loadMissing('parentVendor');
+
+            return $this->parentVendor ?? $this;
+        }
+
+        return $this;
+    }
+
+    public function creditLimitAmount(): float
+    {
+        return max(0, (float) ($this->walletAgency()->credit_limit ?? 0));
+    }
+
+    /** Amount of credit limit currently in use (negative prepaid balance). */
+    public function creditUsedAmount(): float
+    {
+        return max(0, round(-min(0, (float) $this->main_balance), 2));
+    }
+
+    public function creditAvailableAmount(): float
+    {
+        return max(0, round($this->creditLimitAmount() - $this->creditUsedAmount(), 2));
+    }
+
+    public function totalSpendableBalance(): float
+    {
+        return round((float) $this->main_balance + $this->creditAvailableAmount(), 2);
+    }
+
+    public function minimumAllowedBalance(): float
+    {
+        return round(-$this->creditLimitAmount(), 2);
+    }
+
+    public function canDebitAmount(float $amount): bool
+    {
+        return round((float) $this->main_balance - $amount, 2) >= $this->minimumAllowedBalance();
     }
 
     public function savedPassengers(): HasMany

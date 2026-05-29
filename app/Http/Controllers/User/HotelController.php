@@ -844,7 +844,7 @@ class HotelController extends Controller
             'check_in'               => $checkInDate,
             'check_out'              => $checkOutDate,
             'hotelCommissionPercentage'              => $this->hotelCommissionPercentage,
-            'walletBalance'          => (float) Auth::user()->main_balance,
+            'walletBalance'          => (float) Auth::user()->totalSpendableBalance(),
             'provider'               => 'yalago',
         ]);
     }
@@ -959,7 +959,7 @@ class HotelController extends Controller
             'check_in'               => Carbon::parse($request->check_in)->format('Y-m-d'),
             'check_out'              => Carbon::parse($request->check_out)->format('Y-m-d'),
             'hotelCommissionPercentage' => $this->hotelCommissionPercentage,
-            'walletBalance'          => (float) Auth::user()->main_balance,
+            'walletBalance'          => (float) Auth::user()->totalSpendableBalance(),
             'provider'               => 'tbo',
             'tbo_currency'           => $tboCurrency,
         ]);
@@ -1168,7 +1168,7 @@ class HotelController extends Controller
             if ($useWallet) {
                 $user = Auth::user();
                 $requestedWalletAmount = (float) ($validated['wallet_amount'] ?? 0);
-                $maxApplicable = min((float) $user->main_balance, $totalAmount);
+                $maxApplicable = min((float) $user->totalSpendableBalance(), $totalAmount);
 
                 // When wallet is selected, derive amount server-side if the hidden field was not synced.
                 $walletDeduction = $requestedWalletAmount > 0
@@ -1254,7 +1254,7 @@ class HotelController extends Controller
             if ($booking->payment_method === 'wallet' && $booking->wallet_amount >= $booking->total_amount) {
                 // Full wallet payment  -  verify balance is still sufficient
                 $vendor = $booking->vendor;
-                if ((float) $vendor->main_balance < (float) $booking->wallet_amount) {
+                if (! $vendor->canDebitAmount((float) $booking->wallet_amount)) {
                     $booking->update([
                         'payment_status' => 'failed',
                         'booking_status' => 'failed',

@@ -123,10 +123,11 @@ class AdminWalletLedgerAdjustmentService
         }
 
         $finalBalance = round($running, 2);
+        $minAllowed = $vendor->minimumAllowedBalance();
 
-        if ($finalBalance < 0) {
+        if ($finalBalance < $minAllowed) {
             throw ValidationException::withMessages([
-                'amount' => 'This change would make the wallet balance negative (' . number_format($finalBalance, 2) . ' AED). Adjust the transaction or void other entries first.',
+                'amount' => 'This change would exceed the credit limit. Balance would be ' . number_format($finalBalance, 2) . ' AED (minimum allowed: ' . number_format($minAllowed, 2) . ' AED).',
             ]);
         }
 

@@ -148,6 +148,34 @@
         font-size: 20px;
     }
 
+    .wallet-balance-summary {
+        background: var(--color-primary-light, #fdf1f4);
+        border: 1px solid rgba(205, 27, 79, 0.15);
+        border-radius: 10px;
+        padding: 10px 16px;
+        min-width: 240px;
+    }
+    .wallet-balance-summary__main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        color: var(--color-primary);
+        font-size: 15px;
+    }
+    .wallet-balance-summary__main i { font-size: 20px; }
+    .wallet-balance-summary__breakdown {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #666;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem 0.35rem;
+        align-items: center;
+    }
+    .wallet-balance-summary__sep { color: #ccc; }
+    .wallet-balance-summary__used { color: #b45309; font-weight: 600; }
+
     /* Transaction history actions: icon + label inline */
     .custom-table .wallet-action-btn {
         display: inline-flex !important;

@@ -30,7 +30,7 @@ class FlightBookingController extends Controller
 
         $totalAmount = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency = $itineraryData['currency'] ?? 'AED';
-        $walletBalance = (float) (Auth::user()->main_balance ?? 0);
+        $walletBalance = (float) (Auth::user()->totalSpendableBalance() ?? 0);
 
         try {
             $savedPassengers = Auth::user()
@@ -179,7 +179,7 @@ class FlightBookingController extends Controller
         if ($useWallet) {
             $user = Auth::user();
             $requestedWalletAmount = (float) ($validated['wallet_amount'] ?? 0);
-            $maxApplicable = min((float) $user->main_balance, $totalAmount);
+            $maxApplicable = min((float) $user->totalSpendableBalance(), $totalAmount);
 
             $walletDeduction = $requestedWalletAmount > 0
                 ? min($requestedWalletAmount, $maxApplicable)
@@ -247,7 +247,7 @@ class FlightBookingController extends Controller
             if ($needsPaymentStep) {
                 if ($booking->payment_method === 'wallet' && (float) $booking->wallet_amount >= (float) $booking->total_amount) {
                     $vendor = $booking->vendor;
-                    if ((float) $vendor->main_balance < (float) $booking->wallet_amount) {
+                    if (! $vendor->canDebitAmount((float) $booking->wallet_amount)) {
                         $booking->update([
                             'payment_status' => 'failed',
                             'booking_status' => 'failed',
@@ -537,7 +537,7 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'No PNR found for this booking. Cannot proceed to payment.');
         }
 
-        $walletBalance = (float) (Auth::user()->main_balance ?? 0);
+        $walletBalance = (float) (Auth::user()->totalSpendableBalance() ?? 0);
 
         return view('user.flights.hold-confirm', compact('booking', 'walletBalance'));
     }
@@ -564,7 +564,7 @@ class FlightBookingController extends Controller
         if ($useWallet) {
             $user                = Auth::user();
             $requestedAmount     = (float) ($validated['wallet_amount'] ?? 0);
-            $maxApplicable       = min((float) $user->main_balance, $totalAmount);
+            $maxApplicable       = min((float) $user->totalSpendableBalance(), $totalAmount);
             $walletDeduction     = $requestedAmount > 0
                 ? min($requestedAmount, $maxApplicable)
                 : $maxApplicable;
