@@ -31,16 +31,14 @@ final class VendorRechargeGuard
 
         if ($max < 100) {
             throw ValidationException::withMessages([
-                'amount' => $vendor->rechargeBlockedMessage() ?? 'Recharge is not available at this time.',
+                'amount' => $vendor->rechargeBlockedMessage()
+                    ?? 'You have reached your wallet recharge limit. To add more funds, please contact system administrator.',
             ]);
         }
 
         throw ValidationException::withMessages([
-            'amount' => 'This recharge would exceed your prepaid wallet limit of '
-                . number_format($vendor->creditLimitAmount(), 2)
-                . ' AED. Maximum you can add now is '
-                . number_format($max, 2)
-                . ' AED.',
+            'amount' => $vendor->rechargeBlockedMessage()
+                ?? 'You have reached your wallet recharge limit. To add more funds, please contact your system administrator.',
         ]);
     }
 }

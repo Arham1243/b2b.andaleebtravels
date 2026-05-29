@@ -343,19 +343,7 @@ class B2bVendor extends Authenticatable
             return null;
         }
 
-        $prepaid = max(0, round($this->creditPools()['prepaid'], 2));
-
-        if ($prepaid + $this->pendingRechargeAmount() > $this->creditLimitAmount() + 0.001) {
-            return 'Your prepaid wallet ('
-                . number_format($prepaid, 2)
-                . ' AED) is above the credit limit of '
-                . number_format($this->creditLimitAmount(), 2)
-                . ' AED. You cannot add more funds until your prepaid balance is below this limit or your credit limit is increased.';
-        }
-
-        return 'Your prepaid wallet has reached the credit limit of '
-            . number_format($this->creditLimitAmount(), 2)
-            . ' AED. You cannot add more funds until your balance is below this limit or your credit limit is increased.';
+        return 'You have reached your wallet recharge limit. To add more funds, please contact your system administrator.';
     }
 
     public function savedPassengers(): HasMany
