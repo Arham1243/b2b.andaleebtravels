@@ -334,11 +334,29 @@ class VendorController extends Controller
                 'status' => $validated['status'],
             ];
         } else {
-            $proposedLimit = round((float) ($validated['credit_limit'] ?? 0), 2);
-            $originalLimit = $vendor->credit_limit;
-            $vendor->credit_limit = $proposedLimit;
-            $creditUsed = max(0, round(VendorWalletCredit::poolsFromLedger($vendor)['credit_used'], 2));
-            $vendor->credit_limit = $originalLimit;
+            $removeLimit = $request->boolean('remove_credit_limit');
+
+            if ($removeLimit) {
+                $proposedLimit = 0;
+            } elseif ($request->input('credit_limit') === null || $request->input('credit_limit') === '') {
+                $proposedLimit = round((float) ($vendor->credit_limit ?? 0), 2);
+            } else {
+                $proposedLimit = round((float) $validated['credit_limit'], 2);
+            }
+
+            if ($proposedLimit > 0) {
+                $originalLimit = $vendor->credit_limit;
+                $vendor->credit_limit = $proposedLimit;
+                $creditUsed = max(0, round(VendorWalletCredit::poolsFromLedger($vendor)['credit_used'], 2));
+                $vendor->credit_limit = $originalLimit;
+
+                if ($proposedLimit < $creditUsed) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['credit_limit' => 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).'])
+                        ->with('notify_error', 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).');
+                }
+            }
 
             $data = [
                 'name' => $validated['travel_agency'],
@@ -361,13 +379,6 @@ class VendorController extends Controller
                 ),
                 'credit_limit' => $proposedLimit,
             ];
-
-            if ($proposedLimit < $creditUsed) {
-                return redirect()->back()
-                    ->withInput()
-                    ->withErrors(['credit_limit' => 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).'])
-                    ->with('notify_error', 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).');
-            }
 
             if ($request->hasFile('agency_logo')) {
                 $data['agency_logo'] = $this->uploadImage(
@@ -529,6 +540,7 @@ class VendorController extends Controller
             'flight_search_providers' => 'nullable|array',
             'flight_search_providers.*' => 'in:sabre',
             'credit_limit' => 'nullable|numeric|min:0|max:99999999.99',
+            'remove_credit_limit' => 'nullable|boolean',
         ]);
 
         return $request->validate($rules, B2bVendorValidation::messages());
