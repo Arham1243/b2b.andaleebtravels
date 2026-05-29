@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bWalletLedger;
+use App\Support\CountryCatalog;
 use App\Support\WalletLedgerDescription;
 use App\Models\Config;
 use App\Services\FlightService;
@@ -42,7 +43,7 @@ class FlightBookingController extends Controller
             $savedPassengers = [];
         }
 
-        return view('user.flights.checkout', [
+        return view('user.flights.checkout', $this->passengerPageData([
             'itineraryId' => $itinerary,
             'itinerary' => $itineraryData,
             'searchParams' => $params,
@@ -50,7 +51,7 @@ class FlightBookingController extends Controller
             'currency' => $currency,
             'walletBalance' => $walletBalance,
             'savedPassengers' => $savedPassengers,
-        ]);
+        ]));
     }
 
     public function processPayment(Request $request, FlightService $flightService)
@@ -67,7 +68,8 @@ class FlightBookingController extends Controller
             'passengers.*.first_name' => 'required|string|max:60',
             'passengers.*.last_name' => 'required|string|max:60',
             'passengers.*.dob' => 'nullable|date',
-            'passengers.*.nationality' => 'nullable|string|max:4',
+            'passengers.*.nationality' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
+            'passengers.*.issuing_country' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'passengers.*.passport_no' => 'nullable|string|max:20',
             'passengers.*.passport_exp' => 'nullable|date',
             'passengers.*.save_profile' => 'nullable|in:1',
@@ -76,6 +78,8 @@ class FlightBookingController extends Controller
             'use_wallet' => 'nullable|in:1',
             'wallet_amount' => 'nullable|numeric|min:0',
         ]);
+
+        $validated = $this->normalizePassengerCountries($validated);
 
         $p0 = $validated['passengers'][0] ?? null;
         if (!$p0 || ($p0['type'] ?? '') !== 'ADT') {
@@ -130,6 +134,7 @@ class FlightBookingController extends Controller
                             'title' => $pax['title'],
                             'dob' => $pax['dob'] ?? null,
                             'nationality' => $pax['nationality'] ?? null,
+                            'issuing_country' => $pax['issuing_country'] ?? null,
                             'passport_exp' => $pax['passport_exp'] ?? null,
                         ]
                     );
@@ -399,14 +404,14 @@ class FlightBookingController extends Controller
             $savedPassengers = [];
         }
 
-        return view('user.flights.hold', [
+        return view('user.flights.hold', $this->passengerPageData([
             'itineraryId'     => $itinerary,
             'itinerary'       => $itineraryData,
             'searchParams'    => $params,
             'totalAmount'     => (float) ($itineraryData['totalPrice'] ?? 0),
             'currency'        => $itineraryData['currency'] ?? 'AED',
             'savedPassengers' => $savedPassengers,
-        ]);
+        ]));
     }
 
     public function processHold(Request $request, FlightService $flightService)
@@ -425,11 +430,14 @@ class FlightBookingController extends Controller
             'passengers.*.first_name'   => 'required|string|max:60',
             'passengers.*.last_name'    => 'required|string|max:60',
             'passengers.*.dob'          => 'nullable|date',
-            'passengers.*.nationality'  => 'nullable|string|max:4',
+            'passengers.*.nationality'  => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
+            'passengers.*.issuing_country' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'passengers.*.passport_no'  => 'nullable|string|max:20',
             'passengers.*.passport_exp' => 'nullable|date',
             'passengers.*.save_profile' => 'nullable|in:1',
         ]);
+
+        $validated = $this->normalizePassengerCountries($validated);
 
         $results       = session('flight_search_results', []);
         $params        = session('flight_search_params', []);
@@ -455,6 +463,7 @@ class FlightBookingController extends Controller
                             'title'        => $pax['title'],
                             'dob'          => $pax['dob'] ?? null,
                             'nationality'  => $pax['nationality'] ?? null,
+                            'issuing_country' => $pax['issuing_country'] ?? null,
                             'passport_exp' => $pax['passport_exp'] ?? null,
                         ]
                     );
@@ -622,7 +631,8 @@ class FlightBookingController extends Controller
             'first_name'   => 'required|string|max:60',
             'last_name'    => 'required|string|max:60',
             'dob'          => 'nullable|date',
-            'nationality'  => 'nullable|string|max:4',
+            'nationality'  => 'nullable|string|size:2',
+            'issuing_country' => 'nullable|string|size:2',
             'passport_no'  => 'nullable|string|max:20',
             'passport_exp' => 'nullable|date',
         ]);
@@ -680,6 +690,32 @@ class FlightBookingController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    protected function passengerPageData(array $data = []): array
+    {
+        return array_merge([
+            'countries' => CountryCatalog::forAutocomplete(),
+        ], $data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    protected function normalizePassengerCountries(array $validated): array
+    {
+        foreach ($validated['passengers'] as &$passenger) {
+            if (isset($passenger['nationality'])) {
+                $passenger['nationality'] = strtoupper((string) $passenger['nationality']);
+            }
+            if (isset($passenger['issuing_country'])) {
+                $passenger['issuing_country'] = strtoupper((string) $passenger['issuing_country']);
+            }
+        }
+        unset($passenger);
+
+        return $validated;
     }
 
     protected function getSourceMarketFromIP(): string

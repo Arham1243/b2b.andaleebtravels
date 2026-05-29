@@ -1,0 +1,376 @@
+<script>
+(function (window) {
+    'use strict';
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function countryLabel(country) {
+        return country.name + ' (' + country.code + ')';
+    }
+
+    function buildCountryMaps(countries) {
+        const byCode = {};
+        countries.forEach(function (country) {
+            byCode[country.code] = country;
+        });
+        return byCode;
+    }
+
+    function filterCountries(countries, query) {
+        const q = String(query || '').trim().toLowerCase();
+        if (!q) {
+            return countries.slice(0, 12);
+        }
+
+        return countries.filter(function (country) {
+            return country.name.toLowerCase().indexOf(q) !== -1
+                || country.code.toLowerCase().indexOf(q) !== -1;
+        }).slice(0, 12);
+    }
+
+    function setCountryField(wrap, code, byCode) {
+        const hidden = wrap.querySelector('.hp-country-ac-value');
+        const display = wrap.querySelector('.hp-country-ac-display');
+        if (!hidden || !display) {
+            return;
+        }
+
+        const normalized = String(code || '').trim().toUpperCase();
+        if (!normalized) {
+            hidden.value = '';
+            display.value = '';
+            display.setCustomValidity('');
+            return;
+        }
+
+        const match = byCode[normalized];
+        hidden.value = normalized;
+        display.value = match ? countryLabel(match) : normalized;
+        display.setCustomValidity('');
+    }
+
+    function initCountryFields(form, countries) {
+        const byCode = buildCountryMaps(countries);
+
+        form.querySelectorAll('.hp-country-ac').forEach(function (wrap) {
+            const display = wrap.querySelector('.hp-country-ac-display');
+            const hidden = wrap.querySelector('.hp-country-ac-value');
+            const dropdown = wrap.querySelector('.hp-country-ac-dropdown');
+            if (!display || !hidden || !dropdown) {
+                return;
+            }
+
+            if (hidden.value) {
+                setCountryField(wrap, hidden.value, byCode);
+            }
+
+            function closeDropdown() {
+                dropdown.hidden = true;
+                dropdown.innerHTML = '';
+            }
+
+            function renderMatches(query) {
+                const matches = filterCountries(countries, query);
+                if (!matches.length) {
+                    dropdown.innerHTML = '<div class="hp-ac-empty">No matching country</div>';
+                    dropdown.hidden = false;
+                    return;
+                }
+
+                dropdown.innerHTML = matches.map(function (country) {
+                    return '<button type="button" class="hp-ac-item" data-code="' + escapeHtml(country.code) + '">' +
+                        '<span class="hp-ac-item__title">' + escapeHtml(country.name) + '</span>' +
+                        '<span class="hp-ac-item__sub">' + escapeHtml(country.code) + '</span>' +
+                        '</button>';
+                }).join('');
+                dropdown.hidden = false;
+            }
+
+            display.addEventListener('focus', function () {
+                renderMatches(display.value);
+            });
+
+            display.addEventListener('input', function () {
+                hidden.value = '';
+                renderMatches(display.value);
+            });
+
+            dropdown.addEventListener('mousedown', function (event) {
+                const item = event.target.closest('.hp-ac-item');
+                if (!item) {
+                    return;
+                }
+                event.preventDefault();
+                setCountryField(wrap, item.dataset.code, byCode);
+                closeDropdown();
+            });
+
+            display.addEventListener('blur', function () {
+                window.setTimeout(function () {
+                    closeDropdown();
+                    const typed = display.value.trim();
+                    if (!typed) {
+                        hidden.value = '';
+                        display.setCustomValidity('');
+                        return;
+                    }
+
+                    const codeMatch = typed.match(/\(([A-Z]{2})\)\s*$/i);
+                    const directCode = typed.length === 2 ? typed.toUpperCase() : '';
+                    const code = codeMatch ? codeMatch[1].toUpperCase() : directCode;
+
+                    if (code && byCode[code]) {
+                        setCountryField(wrap, code, byCode);
+                        return;
+                    }
+
+                    const nameMatch = countries.find(function (country) {
+                        return country.name.toLowerCase() === typed.toLowerCase();
+                    });
+                    if (nameMatch) {
+                        setCountryField(wrap, nameMatch.code, byCode);
+                        return;
+                    }
+
+                    if (hidden.hasAttribute('required')) {
+                        display.setCustomValidity('Please select a country from the list.');
+                    }
+                }, 120);
+            });
+
+            display.addEventListener('change', function () {
+                display.setCustomValidity('');
+            });
+        });
+
+        return {
+            setCountryField: function (wrap, code) {
+                setCountryField(wrap, code, byCode);
+            },
+            findWrapByFieldName: function (fieldName) {
+                return form.querySelector('.hp-country-ac[data-field-name="' + fieldName + '"]');
+            },
+        };
+    }
+
+    function initSavedPassengerSearch(form, savedPassengers, countryApi) {
+        const slots = Array.from(form.querySelectorAll('.hp-saved-ac'));
+        if (!slots.length || !savedPassengers.length) {
+            return;
+        }
+
+        const usedIds = new Map();
+
+        function passengerLabel(passenger) {
+            return [passenger.title, passenger.first_name, passenger.last_name].filter(Boolean).join(' ');
+        }
+
+        function passengerMeta(passenger) {
+            const parts = [];
+            if (passenger.passport_no) {
+                parts.push('Passport ' + passenger.passport_no);
+            }
+            if (passenger.nationality) {
+                parts.push(String(passenger.nationality).toUpperCase());
+            }
+            return parts.join(' · ');
+        }
+
+        function fieldSelector(idx, name) {
+            return '[name="passengers[' + idx + '][' + name + ']"]';
+        }
+
+        function clearPassengerFields(idx) {
+            ['title', 'first_name', 'last_name', 'dob', 'nationality', 'issuing_country', 'passport_no', 'passport_exp']
+                .forEach(function (key) {
+                    const el = form.querySelector(fieldSelector(idx, key));
+                    if (!el) {
+                        return;
+                    }
+                    el.value = '';
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+
+            ['nationality', 'issuing_country'].forEach(function (key) {
+                const wrap = countryApi.findWrapByFieldName('passengers[' + idx + '][' + key + ']');
+                if (wrap) {
+                    countryApi.setCountryField(wrap, '');
+                }
+            });
+        }
+
+        function fillPassengerFields(idx, passenger) {
+            function fill(name, value) {
+                const el = form.querySelector(fieldSelector(idx, name));
+                if (!el || value == null || value === '') {
+                    return;
+                }
+                let next = value;
+                if (el.type === 'date' && typeof next === 'string') {
+                    next = next.substring(0, 10);
+                }
+                el.value = next;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            fill('title', passenger.title);
+            fill('first_name', passenger.first_name);
+            fill('last_name', passenger.last_name);
+            fill('dob', passenger.dob);
+            fill('passport_no', passenger.passport_no);
+            fill('passport_exp', passenger.passport_exp);
+
+            ['nationality', 'issuing_country'].forEach(function (key) {
+                const wrap = countryApi.findWrapByFieldName('passengers[' + idx + '][' + key + ']');
+                if (wrap && passenger[key]) {
+                    countryApi.setCountryField(wrap, passenger[key]);
+                }
+            });
+
+            if (!passenger.issuing_country && passenger.nationality) {
+                const issuingWrap = countryApi.findWrapByFieldName('passengers[' + idx + '][issuing_country]');
+                if (issuingWrap) {
+                    countryApi.setCountryField(issuingWrap, passenger.nationality);
+                }
+            }
+        }
+
+        function availablePassengers(currentIdx) {
+            const taken = new Set();
+            usedIds.forEach(function (id, idx) {
+                if (String(idx) !== String(currentIdx) && id != null) {
+                    taken.add(String(id));
+                }
+            });
+
+            return savedPassengers.filter(function (passenger) {
+                const id = passenger.id != null ? String(passenger.id) : null;
+                return !id || !taken.has(id);
+            });
+        }
+
+        function filterPassengers(list, query) {
+            const q = String(query || '').trim().toLowerCase();
+            if (!q) {
+                return list.slice(0, 8);
+            }
+
+            return list.filter(function (passenger) {
+                const haystack = [
+                    passenger.title,
+                    passenger.first_name,
+                    passenger.last_name,
+                    passenger.passport_no,
+                ].filter(Boolean).join(' ').toLowerCase();
+
+                return haystack.indexOf(q) !== -1;
+            }).slice(0, 8);
+        }
+
+        slots.forEach(function (wrap) {
+            const idx = wrap.dataset.paxIdx;
+            const input = wrap.querySelector('.hp-saved-ac-input');
+            const dropdown = wrap.querySelector('.hp-saved-ac-dropdown');
+            if (!input || !dropdown) {
+                return;
+            }
+
+            function closeDropdown() {
+                dropdown.hidden = true;
+                dropdown.innerHTML = '';
+            }
+
+            function renderDropdown() {
+                const matches = filterPassengers(availablePassengers(idx), input.value);
+                if (!matches.length) {
+                    dropdown.innerHTML = '<div class="hp-ac-empty">No saved passenger found</div>';
+                    dropdown.hidden = false;
+                    return;
+                }
+
+                dropdown.innerHTML = matches.map(function (passenger) {
+                    const meta = passengerMeta(passenger);
+                    return '<button type="button" class="hp-ac-item" data-id="' + escapeHtml(passenger.id) + '">' +
+                        '<span class="hp-ac-item__title">' + escapeHtml(passengerLabel(passenger)) + '</span>' +
+                        (meta ? '<span class="hp-ac-item__sub">' + escapeHtml(meta) + '</span>' : '') +
+                        '</button>';
+                }).join('');
+                dropdown.hidden = false;
+            }
+
+            input.addEventListener('focus', renderDropdown);
+            input.addEventListener('input', function () {
+                usedIds.delete(String(idx));
+                renderDropdown();
+            });
+
+            dropdown.addEventListener('mousedown', function (event) {
+                const item = event.target.closest('.hp-ac-item');
+                if (!item) {
+                    return;
+                }
+                event.preventDefault();
+
+                const passenger = savedPassengers.find(function (row) {
+                    return String(row.id) === String(item.dataset.id);
+                });
+
+                if (!passenger) {
+                    return;
+                }
+
+                clearPassengerFields(idx);
+                fillPassengerFields(idx, passenger);
+                usedIds.set(String(idx), passenger.id != null ? String(passenger.id) : null);
+                input.value = passengerLabel(passenger);
+                closeDropdown();
+            });
+
+            input.addEventListener('blur', function () {
+                window.setTimeout(closeDropdown, 120);
+            });
+        });
+    }
+
+    window.HpPaxForm = {
+        init: function (config) {
+            const form = document.querySelector(config.formSelector);
+            if (!form) {
+                return;
+            }
+
+            const countries = Array.isArray(config.countries) ? config.countries : [];
+            const savedPassengers = Array.isArray(config.savedPassengers) ? config.savedPassengers : [];
+            const countryApi = initCountryFields(form, countries);
+            initSavedPassengerSearch(form, savedPassengers, countryApi);
+
+            form.addEventListener('submit', function (event) {
+                let valid = true;
+
+                form.querySelectorAll('.hp-country-ac').forEach(function (wrap) {
+                    const hidden = wrap.querySelector('.hp-country-ac-value');
+                    const display = wrap.querySelector('.hp-country-ac-display');
+                    if (!hidden || !display || !hidden.hasAttribute('required')) {
+                        return;
+                    }
+                    if (!hidden.value) {
+                        display.setCustomValidity('Please select a country from the list.');
+                        display.reportValidity();
+                        valid = false;
+                    }
+                });
+
+                if (!valid) {
+                    event.preventDefault();
+                }
+            });
+        },
+    };
+})(window);
+</script>

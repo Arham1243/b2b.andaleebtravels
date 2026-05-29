@@ -203,6 +203,12 @@
                                         <span class="hcf-pax-field__val">{{ strtoupper($pax['nationality']) }}</span>
                                     </div>
                                     @endif
+                                    @if(!empty($pax['issuing_country']))
+                                    <div class="hcf-pax-field">
+                                        <span class="hcf-pax-field__label">Issuing Country</span>
+                                        <span class="hcf-pax-field__val">{{ strtoupper($pax['issuing_country']) }}</span>
+                                    </div>
+                                    @endif
                                     @if(!empty($pax['passport_no']))
                                     <div class="hcf-pax-field">
                                         <span class="hcf-pax-field__label">Passport No.</span>

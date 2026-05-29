@@ -14,6 +14,7 @@ class B2bSavedPassenger extends Model
         'last_name',
         'dob',
         'nationality',
+        'issuing_country',
         'passport_no',
         'passport_exp',
     ];

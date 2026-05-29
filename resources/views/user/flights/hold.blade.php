@@ -11,6 +11,7 @@
         $taxAmount  = (float) ($itinerary['taxes']     ?? 0);
         if ($baseAmount + $taxAmount < 0.01) { $baseAmount = $totalAmount; }
         $paxCount = max(1, $adults + $children + $infants);
+        $countries = $countries ?? [];
 
         function hd_fmt(?int $mins): string {
             if (!$mins || $mins < 1) return ' - ';
@@ -184,17 +185,7 @@
                                 </div>
 
                                 @if(!empty($savedPassengers))
-                                    <div class="hp-saved-row">
-                                        <label class="hp-label" for="saved-{{ $pIndex }}">Load from saved passengers</label>
-                                        <select class="hp-select hp-saved-pick" id="saved-{{ $pIndex }}" data-pax-idx="{{ $pIndex }}">
-                                            <option value=""> -  Select saved passenger  - </option>
-                                            @foreach($savedPassengers as $sp)
-                                                <option value="{{ json_encode($sp) }}">
-                                                    {{ $sp['title'] }} {{ $sp['first_name'] }} {{ $sp['last_name'] }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
+                                    @include('user.flights.partials.hp-saved-passenger-search', ['pIndex' => $pIndex])
                                 @endif
 
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="ADT">
@@ -223,11 +214,16 @@
                                         <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
                                         <span class="hp-hint">Age calculated as per travel date</span>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="hp-label">Nationality</label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][nationality]"
-                                            placeholder="e.g. AE, PK, IN" maxlength="4" style="text-transform:uppercase;">
-                                    </div>
+                                    @include('user.flights.partials.hp-country-field', [
+                                        'name' => 'passengers['.$pIndex.'][nationality]',
+                                        'label' => 'Nationality',
+                                        'required' => true,
+                                    ])
+                                    @include('user.flights.partials.hp-country-field', [
+                                        'name' => 'passengers['.$pIndex.'][issuing_country]',
+                                        'label' => 'Issuing Country',
+                                        'required' => true,
+                                    ])
                                     <div class="col-md-4">
                                         <label class="hp-label">Passport Number</label>
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]"
@@ -278,6 +274,16 @@
                                         <label class="hp-label">Date of Birth</label>
                                         <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
                                     </div>
+                                    @include('user.flights.partials.hp-country-field', [
+                                        'name' => 'passengers['.$pIndex.'][nationality]',
+                                        'label' => 'Nationality',
+                                        'required' => true,
+                                    ])
+                                    @include('user.flights.partials.hp-country-field', [
+                                        'name' => 'passengers['.$pIndex.'][issuing_country]',
+                                        'label' => 'Issuing Country',
+                                        'required' => true,
+                                    ])
                                     <div class="col-md-4">
                                         <label class="hp-label">Passport Number</label>
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]" placeholder="Passport number">
@@ -321,6 +327,16 @@
                                         <label class="hp-label">Date of Birth</label>
                                         <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
                                     </div>
+                                    @include('user.flights.partials.hp-country-field', [
+                                        'name' => 'passengers['.$pIndex.'][nationality]',
+                                        'label' => 'Nationality',
+                                        'required' => true,
+                                    ])
+                                    @include('user.flights.partials.hp-country-field', [
+                                        'name' => 'passengers['.$pIndex.'][issuing_country]',
+                                        'label' => 'Issuing Country',
+                                        'required' => true,
+                                    ])
                                 </div>
                             </div>
                             @php $pIndex++; @endphp
@@ -843,6 +859,8 @@
     .hp-leg__pt--arr { text-align: left; }
     .hp-summary { position: static; }
 }
+
+@include('user.flights.partials.hp-pax-autocomplete-styles')
 </style>
 @endpush
 
@@ -869,124 +887,13 @@
         if (el) el.addEventListener('change', syncLead);
     });
 
-    /* Saved passengers: load + exclude profile already chosen in another adult slot */
-    (function initHoldSavedPassengers() {
-        const savedList = @json($savedPassengers ?? []);
-        const selects = document.querySelectorAll('#holdForm .hp-saved-pick');
-        if (!selects.length || !savedList.length) {
-            return;
-        }
-
-        function labelOf(sp) {
-            return [sp.title, sp.first_name, sp.last_name].filter(Boolean).join(' ');
-        }
-
-        function selectedId(sel) {
-            if (!sel || !sel.value) {
-                return null;
-            }
-            try {
-                const p = JSON.parse(sel.value);
-                return p && p.id != null ? String(p.id) : null;
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function clearPaxFields(idx) {
-            ['title', 'first_name', 'last_name', 'dob', 'nationality', 'passport_no', 'passport_exp'].forEach(function (k) {
-                const el = document.querySelector('#holdForm [name="passengers[' + idx + '][' + k + ']"]');
-                if (el) {
-                    el.value = '';
-                }
-            });
-        }
-
-        function fillFromSaved(sel) {
-            const idx = sel.dataset.paxIdx;
-            if (!sel.value) {
-                return;
-            }
-            let pax;
-            try {
-                pax = JSON.parse(sel.value);
-            } catch (e) {
-                return;
-            }
-
-            function fill(name, val) {
-                const el = document.querySelector('#holdForm [name="passengers[' + idx + '][' + name + ']"]');
-                if (!el || val == null) {
-                    return;
-                }
-                if (name === 'dob' || name === 'passport_exp') {
-                    el.value = val ? String(val).substring(0, 10) : '';
-                } else {
-                    el.value = val;
-                }
-                el.dispatchEvent(new Event('change'));
-            }
-
-            fill('title', pax.title);
-            fill('first_name', pax.first_name);
-            fill('last_name', pax.last_name);
-            fill('dob', pax.dob);
-            fill('nationality', pax.nationality);
-            fill('passport_no', pax.passport_no);
-            fill('passport_exp', pax.passport_exp);
-        }
-
-        function rebuildAll() {
-            selects.forEach(function (sel) {
-                const idx = sel.dataset.paxIdx;
-                const prevVal = sel.value;
-
-                const othersTaken = new Set();
-                selects.forEach(function (other) {
-                    if (other === sel) {
-                        return;
-                    }
-                    const oid = selectedId(other);
-                    if (oid) {
-                        othersTaken.add(oid);
-                    }
-                });
-
-                sel.innerHTML = '<option value="">- Select saved passenger -</option>';
-                savedList.forEach(function (sp) {
-                    const sid = sp.id != null ? String(sp.id) : null;
-                    if (sid && othersTaken.has(sid)) {
-                        return;
-                    }
-
-                    const opt = document.createElement('option');
-                    opt.value = JSON.stringify(sp);
-                    opt.textContent = labelOf(sp);
-                    sel.appendChild(opt);
-                });
-
-                const match =
-                    prevVal && Array.from(sel.options).some(function (o) {
-                        return o.value === prevVal;
-                    });
-                if (match) {
-                    sel.value = prevVal;
-                } else if (prevVal) {
-                    sel.selectedIndex = 0;
-                    clearPaxFields(idx);
-                }
-            });
-        }
-
-        selects.forEach(function (sel) {
-            sel.addEventListener('change', function () {
-                fillFromSaved(sel);
-                rebuildAll();
-            });
-        });
-
-        rebuildAll();
-    })();
+    /* Saved passengers + country autocomplete */
+    @include('user.flights.partials.hp-pax-autocomplete-scripts')
+    HpPaxForm.init({
+        formSelector: '#holdForm',
+        savedPassengers: @json($savedPassengers ?? []),
+        countries: @json($countries),
+    });
 
     /* Disable button on submit */
     document.getElementById('holdForm').addEventListener('submit', function () {
