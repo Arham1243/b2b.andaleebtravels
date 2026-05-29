@@ -48,19 +48,17 @@
                                         </td>
                                         <td>
                                             @if ($r->status === 'pending')
-                                                @php
-                                                    $confirmCreditMsg = 'Credit '.number_format((float) $r->amount, 2).' AED to '.($r->vendor->name ?? 'this vendor').'? Transaction #'.$r->transaction_number;
-                                                @endphp
                                                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                                                    <form action="{{ route('admin.wallet.bank-transfers.confirm', $r) }}" method="POST" class="d-inline">
-                                                        @csrf
-                                                        <button type="submit"
-                                                                class="themeBtn"
-                                                                style="background: #15803d; border: none; padding: 6px 12px; font-size: 12px;"
-                                                                onclick="return confirm(@json($confirmCreditMsg));">
-                                                            Confirm &amp; credit
-                                                        </button>
-                                                    </form>
+                                                    <button type="button"
+                                                            class="themeBtn wallet-bank-open-confirm"
+                                                            style="background: #15803d; border: none; padding: 6px 12px; font-size: 12px;"
+                                                            data-confirm-url="{{ route('admin.wallet.bank-transfers.confirm', $r) }}"
+                                                            data-vendor="{{ e($r->vendor->name ?? 'Vendor') }}"
+                                                            data-email="{{ e($r->vendor->email ?? '—') }}"
+                                                            data-amount="{{ number_format((float) $r->amount, 2) }}"
+                                                            data-txn="{{ $r->transaction_number }}">
+                                                        Confirm &amp; credit
+                                                    </button>
                                                     <button type="button"
                                                             class="themeBtn wallet-bank-open-reject"
                                                             style="background: #b91c1c; border: none; padding: 6px 12px; font-size: 12px;"
@@ -100,6 +98,30 @@
         </div>
     </div>
 
+    {{-- Confirm modal --}}
+    <div class="modal fade" id="walletBankConfirmModal" tabindex="-1" aria-labelledby="walletBankConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="walletBankConfirmForm" method="POST" action="#">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="walletBankConfirmModalLabel">Confirm bank transfer</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="walletBankConfirmSummary" class="mb-0"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="themeBtn" style="background: #15803d; border: none;">
+                            Yes, confirm &amp; credit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {{-- Reject modal --}}
     <div class="modal fade" id="walletBankRejectModal" tabindex="-1" aria-labelledby="walletBankRejectModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -130,6 +152,9 @@
 @push('js')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            var confirmModalEl = document.getElementById('walletBankConfirmModal');
+            var confirmForm = document.getElementById('walletBankConfirmForm');
+            var confirmSummary = document.getElementById('walletBankConfirmSummary');
             var rejectModalEl = document.getElementById('walletBankRejectModal');
             var rejectForm = document.getElementById('walletBankRejectForm');
             var rejectSummary = document.getElementById('walletBankRejectSummary');
@@ -144,6 +169,17 @@
                     window.jQuery(el).modal('show');
                 }
             }
+
+            document.querySelectorAll('.wallet-bank-open-confirm').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    confirmForm.action = btn.getAttribute('data-confirm-url');
+                    confirmSummary.textContent =
+                        'Credit ' + btn.getAttribute('data-amount') + ' AED to ' +
+                        btn.getAttribute('data-vendor') + ' (' + btn.getAttribute('data-email') + ')? ' +
+                        'Transaction #' + btn.getAttribute('data-txn') + '.';
+                    showModal(confirmModalEl);
+                });
+            });
 
             document.querySelectorAll('.wallet-bank-open-reject').forEach(function (btn) {
                 btn.addEventListener('click', function () {
