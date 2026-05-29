@@ -107,22 +107,23 @@
         color: #b71c1c;
     }
     .vs-ledger-type-badge.is-voided {
-        background: #f3f4f6;
-        color: #9ca3af;
+        background: #e5e7eb;
+        color: #6b7280;
         text-decoration: line-through;
     }
     .vs-ledger-void-tag {
         display: inline-block;
-        font-size: 0.65rem;
+        font-size: 0.68rem;
         font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 4px;
-        background: #fef2f2;
-        color: #b91c1c;
-        border: 1px solid #fecaca;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: #dc2626;
+        color: #fff;
+        border: none;
         line-height: 1.2;
         white-space: nowrap;
         cursor: default;
+        letter-spacing: .02em;
     }
 
     /* Reason pills inside ledger table */
@@ -132,8 +133,9 @@
         border-radius: 6px;
     }
     #wallet-ledger-table .pm-pill--voided-reason {
-        opacity: .55;
+        opacity: 1;
         text-decoration: line-through;
+        filter: saturate(0.75);
     }
 
     /* Description */
@@ -155,8 +157,15 @@
     .vs-ledger-desc .text-muted { font-size: 0.72rem; }
 
     /* Voided rows */
-    .vs-ledger-row--voided td { opacity: .78; }
-    .vs-ledger-row--voided .vs-ledger-amount { text-decoration: line-through; }
+    .vs-ledger-row--voided .vs-ledger-date__day,
+    .vs-ledger-row--voided .vs-ledger-col-balance,
+    .vs-ledger-row--voided .vs-ledger-desc__text {
+        color: #6b7280;
+    }
+    .vs-ledger-row--voided .vs-ledger-amount {
+        text-decoration: line-through;
+        color: #6b7280 !important;
+    }
 
     .vs-ledger-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .vs-ledger-actions .btn-ledger {
