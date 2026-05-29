@@ -349,16 +349,7 @@
                         {{-- Pagination --}}
                         @if ($hotels->hasPages())
                             <div class="hl-pagination" aria-label="Hotel results pages">
-                                <div class="hl-pagination__info">
-                                    @if ($hotels->total() > 0)
-                                        Showing {{ $hotels->firstItem() }} to {{ $hotels->lastItem() }} of {{ $hotels->total() }} results
-                                    @else
-                                        Showing 0 results
-                                    @endif
-                                </div>
-                                <div class="hl-pagination__links">
-                                    {{ $hotels->onEachSide(1)->links('pagination::bootstrap-5') }}
-                                </div>
+                                {{ $hotels->onEachSide(1)->links('pagination::bootstrap-5') }}
                             </div>
                         @endif
                     @else
@@ -599,28 +590,23 @@
         }
 
         .hl-pagination {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
             padding: 24px 0 8px;
-            flex-wrap: wrap;
         }
 
-        .hl-pagination__info {
-            font-size: 0.82rem;
-            color: #888;
-            font-weight: 500;
-            margin: 0;
-        }
-
-        .hl-pagination__links {
-            margin-left: auto;
-        }
-
-        .hl-pagination__links nav {
+        .hl-pagination > nav {
+            width: 100%;
             margin-bottom: 0;
+        }
+
+        .hl-pagination .flex-sm-fill {
+            width: 100%;
+        }
+
+        .hl-pagination .small.text-muted {
+            margin: 0;
+            font-size: 0.82rem;
+            color: #888 !important;
+            font-weight: 500;
         }
 
         .hl-pagination .pagination {
