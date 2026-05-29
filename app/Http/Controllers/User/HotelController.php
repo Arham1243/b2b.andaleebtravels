@@ -28,6 +28,8 @@ class HotelController extends Controller
     protected ?array $enabledHotelProviders = null;
     public function __construct()
     {
+        parent::__construct();
+
         $config = Config::pluck('config_value', 'config_key')->toArray();
         $this->hotelCommissionPercentage = $config['HOTEL_COMMISSION_PERCENTAGE'] ?? 10;
         $adminProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null);

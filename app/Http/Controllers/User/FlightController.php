@@ -22,6 +22,8 @@ class FlightController extends Controller
 
     public function __construct()
     {
+        parent::__construct();
+
         $config = Config::pluck('config_value', 'config_key')->toArray();
         $adminProviders = $this->parseProviderConfig($config['FLIGHT_SEARCH_PROVIDERS'] ?? null);
 

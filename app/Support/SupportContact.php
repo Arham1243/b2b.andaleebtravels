@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Config;
+
 class SupportContact
 {
     public const DEFAULT_WHATSAPP = '+971525748986';
@@ -11,14 +13,9 @@ class SupportContact
     /**
      * @return array{link: string, display: string}
      */
-    public static function whatsapp(?array $config = null): array
+    public static function whatsapp(): array
     {
-        $raw = trim((string) (($config ?? [])['WHATSAPP'] ?? ''));
-
-        if ($raw === '') {
-            $raw = self::DEFAULT_WHATSAPP;
-        }
-
+        $raw = B2bConfig::value(Config::B2B_WHATSAPP_KEY, 'WHATSAPP', self::DEFAULT_WHATSAPP);
         $digits = preg_replace('/\D+/', '', $raw);
 
         return [
@@ -27,10 +24,8 @@ class SupportContact
         ];
     }
 
-    public static function email(?array $config = null): string
+    public static function email(): string
     {
-        $email = trim((string) (($config ?? [])['SUPPORT_EMAIL'] ?? ''));
-
-        return $email !== '' ? $email : self::DEFAULT_EMAIL;
+        return B2bConfig::value(Config::B2B_SUPPORT_EMAIL_KEY, 'SUPPORT_EMAIL', self::DEFAULT_EMAIL);
     }
 }

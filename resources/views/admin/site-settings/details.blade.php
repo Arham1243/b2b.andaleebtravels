@@ -22,42 +22,40 @@
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Facebook</label>
-                                        <input type="url" name="FACEBOOK" class="field"
-                                            value="{{ $config['FACEBOOK'] ?? '' }} " placeholder="Enter Facebook Address">
+                                        <input type="url" name="B2B_FACEBOOK" class="field"
+                                            value="{{ \App\Support\SocialMediaConfig::adminValue(\App\Models\Config::B2B_FACEBOOK_KEY, 'FACEBOOK') }}">
                                     </div>
                                 </div>
 
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Instagram</label>
-                                        <input type="url" name="INSTAGRAM" class="field"
-                                            value="{{ $config['INSTAGRAM'] ?? '' }}" placeholder="Enter Instagram Address"
-                                            >
+                                        <input type="url" name="B2B_INSTAGRAM" class="field"
+                                            value="{{ \App\Support\SocialMediaConfig::adminValue(\App\Models\Config::B2B_INSTAGRAM_KEY, 'INSTAGRAM') }}">
                                     </div>
                                 </div>
 
                                 <div class="col-lg-6 col-md-6 col-12 mt-3">
                                     <div class="form-fields">
                                         <label class="title">Twitter</label>
-                                        <input type="url" name="TWITTER" class="field"
-                                            value="{{ $config['TWITTER'] ?? '' }}" placeholder="Enter Twitter Address"
-                                            required>
+                                        <input type="url" name="B2B_TWITTER" class="field"
+                                            value="{{ \App\Support\SocialMediaConfig::adminValue(\App\Models\Config::B2B_TWITTER_KEY, 'TWITTER') }}">
                                     </div>
                                 </div>
 
                                 <div class="col-lg-6 col-md-6 col-12 mt-3">
                                     <div class="form-fields">
                                         <label class="title">LinkedIn</label>
-                                        <input type="url" name="LINKEDIN" class="field"
-                                            value="{{ $config['LINKEDIN'] ?? '' }}" placeholder="Enter LinkedIn Address">
+                                        <input type="url" name="B2B_LINKEDIN" class="field"
+                                            value="{{ \App\Support\SocialMediaConfig::adminValue(\App\Models\Config::B2B_LINKEDIN_KEY, 'LINKEDIN') }}">
                                     </div>
                                 </div>
 
                                 <div class="col-lg-6 col-md-6 col-12 mt-3">
                                     <div class="form-fields">
                                         <label class="title">YouTube</label>
-                                        <input type="url" name="YOUTUBE" class="field"
-                                            value="{{ $config['YOUTUBE'] ?? '' }}" placeholder="Enter YouTube Channel URL">
+                                        <input type="url" name="B2B_YOUTUBE" class="field"
+                                            value="{{ \App\Support\SocialMediaConfig::adminValue(\App\Models\Config::B2B_YOUTUBE_KEY, 'YOUTUBE') }}">
                                     </div>
                                 </div>
                             </div>
@@ -93,15 +91,15 @@
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">WhatsApp number</label>
-                                        <input type="text" name="WHATSAPP" class="field"
-                                            value="{{ $config['WHATSAPP'] ?? '' }}">
+                                        <input type="text" name="B2B_WHATSAPP" class="field"
+                                            value="{{ $config['B2B_WHATSAPP'] ?? ($config['WHATSAPP'] ?? '') }}">
                                     </div>
                                 </div>
                                 <div class="col-lg-6 col-md-6 col-12">
                                     <div class="form-fields">
                                         <label class="title">Support email</label>
-                                        <input type="email" name="SUPPORT_EMAIL" class="field"
-                                            value="{{ $config['SUPPORT_EMAIL'] ?? '' }}"
+                                        <input type="email" name="B2B_SUPPORT_EMAIL" class="field"
+                                            value="{{ $config['B2B_SUPPORT_EMAIL'] ?? ($config['SUPPORT_EMAIL'] ?? '') }}"
                                             autocomplete="email">
                                     </div>
                                 </div>
