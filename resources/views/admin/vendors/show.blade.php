@@ -92,12 +92,6 @@
     .vs-info-item:nth-child(odd)  { border-right: 1px solid #f1f3f5; padding-right: 1.5rem; }
     .vs-info-item:nth-child(even) { padding-left: 1.5rem; }
     .vs-info-item:nth-last-child(-n+2) { border-bottom: none; }
-    .vs-info-item--full {
-        grid-column: 1 / -1;
-        border-right: none !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-    }
     .vs-info-label {
         font-size: 0.72rem;
         font-weight: 700;
@@ -421,8 +415,13 @@
                     <span class="vs-info-value">{{ $vendor->trade_license_expiry ? $vendor->trade_license_expiry->format('d M Y') : '—' }}</span>
                 </div>
                 @if ($vendor->isAgencyAccount())
-                    <div class="vs-info-item vs-info-item--full">
-                        @include('partials.wallet-balance-metrics', ['vendor' => $vendor, 'compact' => true])
+                    <div class="vs-info-item">
+                        <span class="vs-info-label">Available Balance</span>
+                        <span class="vs-info-value fw-bold" style="color:var(--color-primary);">{!! formatPrice($vendor->totalSpendableBalance()) !!}</span>
+                    </div>
+                    <div class="vs-info-item">
+                        <span class="vs-info-label">Used Balance</span>
+                        <span class="vs-info-value">{!! formatPrice($vendor->creditUsedAmount()) !!}</span>
                     </div>
                 @endif
                 <div class="vs-info-item">
