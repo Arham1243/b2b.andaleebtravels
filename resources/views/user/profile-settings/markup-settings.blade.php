@@ -81,7 +81,7 @@
             @include('user.profile-settings._sidebar')
 
             <main class="ps-main">
-                <div class="ps-card" style="margin-bottom:18px;">
+                <div class="ps-card" id="agency_default_markup_card" style="margin-bottom:18px;" @if($overrideEnabled) hidden @endif>
                     <div class="ps-card__head">
                         <h2 class="ps-card__title">
                             <i class="bx bx-buildings"></i> Agency Default Markup
@@ -89,7 +89,7 @@
                     </div>
                     <div class="ps-card__body">
                         <p style="font-size:.84rem;color:#64748b;margin-bottom:14px;">
-                            Set by admin for your agency. Used for all agents unless you enable a personal override below.
+                            Set by admin for your agency. Applies to your searches and bookings while custom markup is off.
                         </p>
                         <div class="ps-markup-readonly">
                             <div class="ps-markup-readonly__item">
@@ -120,8 +120,10 @@
                             <div class="ps-markup-toggle">
                                 <div>
                                     <div class="ps-markup-toggle__label">Use custom markup</div>
-                                    <div style="font-size:.78rem;color:#64748b;margin-top:2px;">
-                                        When off, agency default markup applies to your searches and bookings.
+                                    <div id="agent_markup_toggle_hint" style="font-size:.78rem;color:#64748b;margin-top:2px;">
+                                        {{ $overrideEnabled
+                                            ? 'Your custom markup applies independently to your searches and bookings.'
+                                            : 'When off, agency default markup applies to your searches and bookings.' }}
                                     </div>
                                 </div>
                                 <div class="form-check form-switch mb-0">
@@ -199,6 +201,8 @@
 document.addEventListener('DOMContentLoaded', function () {
     var toggle = document.getElementById('agent_markup_override_enabled');
     var body = document.getElementById('agent_markup_body');
+    var agencyCard = document.getElementById('agency_default_markup_card');
+    var hint = document.getElementById('agent_markup_toggle_hint');
     var fields = document.querySelectorAll('.agent-markup-field');
 
     if (!toggle || !body) return;
@@ -206,6 +210,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function syncMarkupPanel() {
         var on = toggle.checked;
         body.hidden = !on;
+        if (agencyCard) {
+            agencyCard.hidden = on;
+        }
+        if (hint) {
+            hint.textContent = on
+                ? 'Your custom markup applies independently to your searches and bookings.'
+                : 'When off, agency default markup applies to your searches and bookings.';
+        }
         fields.forEach(function (field) {
             field.disabled = !on;
         });
