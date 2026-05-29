@@ -124,14 +124,14 @@ class B2bWalletLedger extends Model
             ->exists();
     }
 
-    public function adminReasonLabel(): string
+    public function adminReasonLabel(bool $ignoreVoid = false): string
     {
-        return WalletLedgerDescription::adminReasonLabel($this);
+        return WalletLedgerDescription::adminReasonLabel($this, $ignoreVoid);
     }
 
-    public function adminReasonClass(): string
+    public function adminReasonClass(bool $ignoreVoid = false): string
     {
-        return WalletLedgerDescription::adminReasonClass($this);
+        return WalletLedgerDescription::adminReasonClass($this, $ignoreVoid);
     }
 
     /** @return array{label: string, url: string|null} */

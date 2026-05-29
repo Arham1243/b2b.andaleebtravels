@@ -1,12 +1,12 @@
 <style>
     .pm-pill {
         display: inline-block;
-        font-size: 0.7rem;
-        font-weight: 700;
-        padding: 2px 8px;
-        border-radius: 999px;
-        text-transform: uppercase;
-        letter-spacing: .04em;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 6px;
+        line-height: 1.35;
+        white-space: nowrap;
     }
     .pm-bank   { background:#f3e5f5; color:#6a1b9a; }
     .pm-debit-booking { background:#ffebee; color:#b71c1c; }
@@ -18,19 +18,146 @@
         background: #fee2e2;
         color: #b91c1c;
         border: 1px solid #fecaca;
-        font-weight: 700;
-        letter-spacing: .06em;
-    }
-    .badge-voided {
-        background: #dc2626 !important;
-        color: #fff !important;
-        font-weight: 700;
-        letter-spacing: .04em;
-        font-size: 0.68rem;
     }
 
-    .vs-ledger-row--voided td { opacity: .72; }
+    /* ── Wallet ledger table ───────────────────────────────── */
+    .vs-ledger-table-wrap {
+        margin: 0 -4px;
+    }
+
+    #wallet-ledger-table.vs-ledger-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    #wallet-ledger-table.vs-ledger-table thead th {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #8492a6;
+        padding: 10px 12px;
+        border-bottom: 2px solid #e8ecf2;
+        white-space: nowrap;
+        vertical-align: bottom;
+    }
+
+    #wallet-ledger-table.vs-ledger-table tbody td {
+        padding: 11px 12px;
+        font-size: 0.82rem;
+        color: #1a2540;
+        border-bottom: 1px solid #f0f3f8;
+        vertical-align: middle;
+    }
+
+    #wallet-ledger-table.vs-ledger-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    #wallet-ledger-table .vs-ledger-col-date { min-width: 96px; }
+    #wallet-ledger-table .vs-ledger-col-type { width: 1%; white-space: nowrap; }
+    #wallet-ledger-table .vs-ledger-col-reason { width: 1%; white-space: nowrap; }
+    #wallet-ledger-table .vs-ledger-col-amount { white-space: nowrap; text-align: right; }
+    #wallet-ledger-table .vs-ledger-col-balance { white-space: nowrap; text-align: right; font-size: 0.8rem; color: #4a5568; }
+    #wallet-ledger-table .vs-ledger-col-desc { min-width: 180px; max-width: 280px; }
+    #wallet-ledger-table .vs-ledger-col-attach { width: 1%; white-space: nowrap; text-align: center; }
+
+    #wallet-ledger-table thead .vs-ledger-col-amount,
+    #wallet-ledger-table thead .vs-ledger-col-balance { text-align: right; }
+
+    /* Date */
+    .vs-ledger-date {
+        white-space: nowrap;
+        line-height: 1.35;
+    }
+    .vs-ledger-date__day {
+        display: block;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .vs-ledger-date__time {
+        display: block;
+        font-size: 0.72rem;
+        color: #8492a6;
+    }
+
+    /* Type badges */
+    .vs-ledger-type {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 5px;
+    }
+    .vs-ledger-type-badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 6px;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .vs-ledger-type-badge--credit {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+    .vs-ledger-type-badge--debit {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+    .vs-ledger-type-badge.is-voided {
+        background: #f3f4f6;
+        color: #9ca3af;
+        text-decoration: line-through;
+    }
+    .vs-ledger-void-tag {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+        line-height: 1.2;
+        white-space: nowrap;
+        cursor: default;
+    }
+
+    /* Reason pills inside ledger table */
+    #wallet-ledger-table .pm-pill {
+        font-size: 0.7rem;
+        padding: 3px 9px;
+        border-radius: 6px;
+    }
+    #wallet-ledger-table .pm-pill--voided-reason {
+        opacity: .55;
+        text-decoration: line-through;
+    }
+
+    /* Description */
+    .vs-ledger-desc__text {
+        font-size: 0.8rem;
+        line-height: 1.45;
+        color: #4a5568;
+        word-break: break-word;
+    }
+    .vs-ledger-desc a {
+        display: inline-block;
+        margin-top: 3px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--color-primary, #cd1b4f);
+        text-decoration: none;
+    }
+    .vs-ledger-desc a:hover { text-decoration: underline; }
+    .vs-ledger-desc .text-muted { font-size: 0.72rem; }
+
+    /* Voided rows */
+    .vs-ledger-row--voided td { opacity: .78; }
     .vs-ledger-row--voided .vs-ledger-amount { text-decoration: line-through; }
+
     .vs-ledger-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .vs-ledger-actions .btn-ledger {
         font-size: 0.72rem;
@@ -66,9 +193,10 @@
         color: var(--color-primary, #cd1b4f);
     }
     .vs-ledger-attachment-empty {
-        color: #9ca3af;
+        color: #c9d2df;
         font-size: 0.85rem;
     }
+
     .vs-wallet-form {
         border: 1px solid #ebecf0;
         border-radius: 10px;
@@ -165,4 +293,10 @@
         margin: 0 0 1rem;
     }
     .vs-ledger-balance strong { color: #18181b; }
+
+    @media (max-width: 900px) {
+        #wallet-ledger-table .vs-ledger-col-desc {
+            max-width: none;
+        }
+    }
 </style>

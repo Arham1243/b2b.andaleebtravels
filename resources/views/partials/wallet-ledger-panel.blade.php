@@ -128,18 +128,18 @@
 @endif
 
 @if ($walletLedger->isNotEmpty())
-    <div class="table-responsive">
-        <table class="data-table" id="wallet-ledger-table">
+    <div class="table-responsive vs-ledger-table-wrap">
+        <table class="data-table vs-ledger-table" id="wallet-ledger-table">
             <thead>
                 <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Reason</th>
-                    <th>Amount</th>
-                    <th>Balance Before</th>
-                    <th>Balance After</th>
-                    <th>Description</th>
-                    <th class="no-sort">Attachment</th>
+                    <th class="vs-ledger-col-date">Date</th>
+                    <th class="vs-ledger-col-type">Type</th>
+                    <th class="vs-ledger-col-reason">Reason</th>
+                    <th class="vs-ledger-col-amount">Amount</th>
+                    <th class="vs-ledger-col-balance" title="Balance before transaction">Before</th>
+                    <th class="vs-ledger-col-balance" title="Balance after transaction">After</th>
+                    <th class="vs-ledger-col-desc">Description</th>
+                    <th class="no-sort vs-ledger-col-attach">Attach</th>
                     @unless ($readOnly)
                         <th class="no-sort">Actions</th>
                     @endunless
@@ -153,44 +153,42 @@
                     @endphp
                     <tr class="{{ $isVoided ? 'vs-ledger-row--voided' : '' }}"
                         data-ledger-category="{{ \App\Support\WalletLedgerDescription::adminFilterCategory($entry) }}">
-                        <td data-order="{{ $entry->created_at->timestamp }}" style="white-space:nowrap; font-size:12px;">
-                            {{ $entry->created_at->format('d M Y') }}<br>
-                            <small class="text-muted">{{ $entry->created_at->format('h:i A') }}</small>
-                            @if ($isVoided && $entry->voided_at)
-                                <br><small class="text-danger">Voided {{ $entry->voided_at->format('d M Y') }}</small>
-                            @endif
+                        <td data-order="{{ $entry->created_at->timestamp }}" class="vs-ledger-date">
+                            <span class="vs-ledger-date__day">{{ $entry->created_at->format('d M Y') }}</span>
+                            <span class="vs-ledger-date__time">{{ $entry->created_at->format('h:i A') }}</span>
                         </td>
-                        <td>
-                            <span class="badge rounded-pill bg-{{ $isVoided ? 'secondary' : ($entry->isCredit() ? 'success' : 'danger') }}">
+                        <td class="vs-ledger-type">
+                            <span class="vs-ledger-type-badge vs-ledger-type-badge--{{ $entry->type }}{{ $isVoided ? ' is-voided' : '' }}">
                                 {{ ucfirst($entry->type) }}
                             </span>
                             @if ($isVoided)
-                                <span class="badge rounded-pill badge-voided ms-1">VOIDED</span>
+                                <span class="vs-ledger-void-tag"
+                                    @if ($entry->voided_at) title="Voided {{ $entry->voided_at->format('d M Y') }}" @endif>
+                                    Voided
+                                </span>
                             @endif
                         </td>
-                        <td>
-                            @if ($isVoided)
-                                <span class="pm-pill pm-void">VOIDED</span>
-                            @else
-                                <span class="pm-pill {{ $entry->adminReasonClass() }}">{{ $entry->adminReasonLabel() }}</span>
-                            @endif
+                        <td class="vs-ledger-reason">
+                            <span class="pm-pill {{ $entry->adminReasonClass($isVoided) }}{{ $isVoided ? ' pm-pill--voided-reason' : '' }}">
+                                {{ $entry->adminReasonLabel($isVoided) }}
+                            </span>
                         </td>
-                        <td class="fw-bold vs-ledger-amount {{ $isVoided ? 'text-muted' : ($entry->isCredit() ? 'text-success' : 'text-danger') }}">
+                        <td class="fw-bold vs-ledger-amount vs-ledger-col-amount {{ $isVoided ? 'text-muted' : ($entry->isCredit() ? 'text-success' : 'text-danger') }}">
                             {{ $entry->isCredit() ? '+' : '-' }}{!! formatPrice($entry->amount) !!}
                         </td>
-                        <td>{!! formatPrice($entry->balance_before) !!}</td>
-                        <td class="fw-semibold">{!! formatPrice($entry->balance_after) !!}</td>
-                        <td style="font-size:13px; max-width:320px;">
-                            <div>{{ $entry->description }}</div>
+                        <td class="vs-ledger-col-balance">{!! formatPrice($entry->balance_before) !!}</td>
+                        <td class="fw-semibold vs-ledger-col-balance">{!! formatPrice($entry->balance_after) !!}</td>
+                        <td class="vs-ledger-desc">
+                            <div class="vs-ledger-desc__text">{{ $entry->description }}</div>
                             @if (!empty($refLink['label']))
                                 @if (!empty($refLink['url']))
-                                    <a href="{{ $refLink['url'] }}" class="small" style="color:var(--color-primary,#cd1b4f);">{{ $refLink['label'] }}</a>
+                                    <a href="{{ $refLink['url'] }}">{{ $refLink['label'] }}</a>
                                 @else
-                                    <span class="small text-muted">{{ $refLink['label'] }}</span>
+                                    <span class="text-muted">{{ $refLink['label'] }}</span>
                                 @endif
                             @endif
                         </td>
-                        <td class="text-center" style="white-space:nowrap;">
+                        <td class="vs-ledger-col-attach">
                             @if ($entry->hasAttachment())
                                 <a href="{{ $entry->attachmentUrl() }}" class="vs-ledger-attachment-btn" target="_blank" rel="noopener" title="View attachment">
                                     <i class="bx bx-show"></i> View

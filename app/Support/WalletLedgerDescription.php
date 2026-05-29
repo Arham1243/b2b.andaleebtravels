@@ -139,9 +139,9 @@ final class WalletLedgerDescription
         return 'other';
     }
 
-    public static function adminReasonLabel(B2bWalletLedger $entry): string
+    public static function adminReasonLabel(B2bWalletLedger $entry, bool $ignoreVoid = false): string
     {
-        if ($entry->isVoided()) {
+        if (! $ignoreVoid && $entry->isVoided()) {
             return 'VOIDED';
         }
 
@@ -223,9 +223,9 @@ final class WalletLedgerDescription
         return 'Wallet entry';
     }
 
-    public static function adminReasonClass(B2bWalletLedger $entry): string
+    public static function adminReasonClass(B2bWalletLedger $entry, bool $ignoreVoid = false): string
     {
-        $label = self::adminReasonLabel($entry);
+        $label = self::adminReasonLabel($entry, $ignoreVoid);
 
         return match ($label) {
             'VOIDED' => 'pm-void',
