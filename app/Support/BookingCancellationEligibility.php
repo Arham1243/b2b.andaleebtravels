@@ -128,17 +128,22 @@ final class BookingCancellationEligibility
 
         $nonRefundable = self::flightIsNonRefundable($booking);
 
-        if ($nonRefundable === true) {
+        if ($nonRefundable !== false) {
             return array_merge($base, [
                 'is_refundable' => false,
-                'reason' => 'This is a non-refundable fare. Cancellation is not available for this booking.',
+                'reason' => $nonRefundable === true
+                    ? 'This is a non-refundable fare. Cancellation is not available for this booking.'
+                    : 'Refund eligibility could not be verified. Cancellation is only available for refundable fares.',
+                'policy_summary' => $nonRefundable === true
+                    ? 'Non-refundable fare — ticket value cannot be recovered through cancellation.'
+                    : null,
             ]);
         }
 
         return array_merge($base, [
             'can_cancel' => true,
-            'is_refundable' => $nonRefundable === false,
-            'policy_summary' => 'Airline fare rules and penalties apply at cancellation.',
+            'is_refundable' => true,
+            'policy_summary' => 'Refundable fare — airline cancellation penalties and rules apply.',
         ]);
     }
 
@@ -312,6 +317,14 @@ final class BookingCancellationEligibility
         }
 
         $passengerFare = $itinerary['passenger_fare'] ?? null;
+        if (is_array($passengerFare) && array_key_exists('nonRefundable', $passengerFare)) {
+            return (bool) ($passengerFare['nonRefundable'] ?? false);
+        }
+
+        $passengerFare = data_get(
+            $booking->search_response,
+            'groupedItineraryResponse.itineraryGroups.0.itineraries.0.pricingInformation.0.fare.passengerInfoList.0.passengerInfo'
+        );
         if (is_array($passengerFare) && array_key_exists('nonRefundable', $passengerFare)) {
             return (bool) ($passengerFare['nonRefundable'] ?? false);
         }

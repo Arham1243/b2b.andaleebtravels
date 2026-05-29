@@ -30,6 +30,9 @@
             <i class="bx bx-x-circle"></i>
             {{ $cancellation['reason'] ?? 'Cancellation is not available for this booking.' }}
         </p>
+        @if (!empty($cancellation['policy_summary']))
+            <p style="font-size:.72rem;color:#64748b;margin-top:8px;line-height:1.45;">{{ $cancellation['policy_summary'] }}</p>
+        @endif
     @else
         <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}"
            class="bkp-btn bkp-btn--danger w-100"

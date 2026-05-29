@@ -1052,13 +1052,12 @@
                                         Releasing the hold cancels the PNR at the airline end. No refund is needed since no payment was made.
                                     </p>
                                 @elseif($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
-                                    <div class="bk-actions">
-                                        <a href="{{ route('user.bookings.flights.cancel', $booking->id) }}"
-                                           class="bk-btn bk-btn--danger"
-                                           onclick="return confirm('Cancel this confirmed flight booking? Cancellation charges may apply.');">
-                                            <i class="bx bx-x"></i> Cancel Booking
-                                        </a>
-                                    </div>
+                                    @include('partials.flight-booking-cancel-actions', [
+                                        'booking' => $booking,
+                                        'cancellation' => \App\Support\BookingCancellationEligibility::forFlight($booking),
+                                        'status' => $bkStatus,
+                                        'isHold' => false,
+                                    ])
                                 @else
                                     <p style="font-size:.8rem;color:#8492a6;margin:0;">No actions available for this booking.</p>
                                 @endif
