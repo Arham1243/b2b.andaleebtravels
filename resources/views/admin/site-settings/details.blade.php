@@ -123,6 +123,85 @@
 
                     <div class="form-box">
                         <div class="form-box__header">
+                            <div class="title">Flight search promo boxes</div>
+                        </div>
+                        <div class="form-box__body">
+                            <p class="text-muted mb-3" style="font-size:13px;">
+                                Text shown on the flight search page promo banners. Leave a field empty to use the default shown in the placeholder.
+                            </p>
+
+                            <h6 class="mb-2">Box 1 (gold)</h6>
+                            <div class="row mb-3">
+                                <div class="col-lg-6 col-md-6 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Kicker</label>
+                                        <input type="text" name="FLIGHT_PROMO_1_KICKER" class="field"
+                                            value="{{ $config['FLIGHT_PROMO_1_KICKER'] ?? '' }}"
+                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_1_KICKER'] }}">
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 col-md-6 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Title</label>
+                                        <input type="text" name="FLIGHT_PROMO_1_TITLE" class="field"
+                                            value="{{ $config['FLIGHT_PROMO_1_TITLE'] ?? '' }}"
+                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_1_TITLE'] }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6 class="mb-2">Box 2 (blue)</h6>
+                            <div class="row mb-3">
+                                <div class="col-lg-6 col-md-6 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Kicker</label>
+                                        <input type="text" name="FLIGHT_PROMO_2_KICKER" class="field"
+                                            value="{{ $config['FLIGHT_PROMO_2_KICKER'] ?? '' }}"
+                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_2_KICKER'] }}">
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 col-md-6 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Title</label>
+                                        <textarea name="FLIGHT_PROMO_2_TITLE" class="field" rows="2"
+                                            placeholder="{{ str_replace("\n", ' / ', $flightPromoDefaults['FLIGHT_PROMO_2_TITLE']) }}">{{ $config['FLIGHT_PROMO_2_TITLE'] ?? '' }}</textarea>
+                                        <small class="text-muted d-block mt-1">Use a new line for a line break in the banner.</small>
+                                    </div>
+                                </div>
+                                <div class="col-lg-12 col-md-12 col-12 mt-2">
+                                    <div class="form-fields">
+                                        <label class="title">Subtext</label>
+                                        <input type="text" name="FLIGHT_PROMO_2_CTA" class="field"
+                                            value="{{ $config['FLIGHT_PROMO_2_CTA'] ?? '' }}"
+                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_2_CTA'] }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6 class="mb-2">Box 3 (dark)</h6>
+                            <div class="row">
+                                <div class="col-lg-6 col-md-6 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Title</label>
+                                        <input type="text" name="FLIGHT_PROMO_3_TITLE" class="field"
+                                            value="{{ $config['FLIGHT_PROMO_3_TITLE'] ?? '' }}"
+                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_3_TITLE'] }}">
+                                    </div>
+                                </div>
+                                <div class="col-lg-6 col-md-6 col-12">
+                                    <div class="form-fields">
+                                        <label class="title">Subtext</label>
+                                        <input type="text" name="FLIGHT_PROMO_3_CTA" class="field"
+                                            value="{{ $config['FLIGHT_PROMO_3_CTA'] ?? '' }}"
+                                            placeholder="{{ $flightPromoDefaults['FLIGHT_PROMO_3_CTA'] }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-box">
+                        <div class="form-box__header">
                             <div class="title">Footer Content</div>
                         </div>
                         <div class="form-box__body">

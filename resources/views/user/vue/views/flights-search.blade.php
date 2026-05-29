@@ -660,26 +660,38 @@
             </div>
         </aside>
 
+        @php
+            $flightPromos = \App\Support\FlightPromoConfig::resolved();
+        @endphp
+
         <div class="fs-pro-promos">
             <a href="#" class="fs-promo fs-promo--gold" @click.prevent>
                 <div class="fs-promo__body">
-                    <span class="fs-promo__kicker">Exclusive Deal</span>
-                    <span class="fs-promo__title">Hotel Bookings</span>
+                    @if ($flightPromos['FLIGHT_PROMO_1_KICKER'] !== '')
+                        <span class="fs-promo__kicker">{{ $flightPromos['FLIGHT_PROMO_1_KICKER'] }}</span>
+                    @endif
+                    <span class="fs-promo__title">{!! \App\Support\FlightPromoConfig::formatMultiline($flightPromos['FLIGHT_PROMO_1_TITLE']) !!}</span>
                 </div>
                 <i class='bx bxs-buildings fs-promo__art'></i>
             </a>
             <a href="#" class="fs-promo fs-promo--ocean" @click.prevent>
                 <div class="fs-promo__body">
-                    <span class="fs-promo__kicker">Fly from Dubai, Effortlessly</span>
-                    <span class="fs-promo__title">Al Maktoum to<br>Saudi Arabia</span>
-                    <span class="fs-promo__cta">Operates 4 days a week from DWC to RUH</span>
+                    @if ($flightPromos['FLIGHT_PROMO_2_KICKER'] !== '')
+                        <span class="fs-promo__kicker">{{ $flightPromos['FLIGHT_PROMO_2_KICKER'] }}</span>
+                    @endif
+                    <span class="fs-promo__title">{!! \App\Support\FlightPromoConfig::formatMultiline($flightPromos['FLIGHT_PROMO_2_TITLE']) !!}</span>
+                    @if ($flightPromos['FLIGHT_PROMO_2_CTA'] !== '')
+                        <span class="fs-promo__cta">{{ $flightPromos['FLIGHT_PROMO_2_CTA'] }}</span>
+                    @endif
                 </div>
                 <i class='bx bxs-plane-alt fs-promo__art'></i>
             </a>
             <a href="#" class="fs-promo fs-promo--night" @click.prevent>
                 <div class="fs-promo__body">
-                    <span class="fs-promo__title">NDC FARES</span>
-                    <span class="fs-promo__cta">Now Available Exclusively on Online</span>
+                    <span class="fs-promo__title">{!! \App\Support\FlightPromoConfig::formatMultiline($flightPromos['FLIGHT_PROMO_3_TITLE']) !!}</span>
+                    @if ($flightPromos['FLIGHT_PROMO_3_CTA'] !== '')
+                        <span class="fs-promo__cta">{{ $flightPromos['FLIGHT_PROMO_3_CTA'] }}</span>
+                    @endif
                 </div>
                 <i class='bx bxs-plane-alt fs-promo__art'></i>
             </a>
