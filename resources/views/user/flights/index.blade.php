@@ -9,7 +9,7 @@
             ])
 
             {{-- Contact Support Strip --}}
-            <div class="hs-support-strip @if(! empty($flightPromosEnabled)) mt-4 @else mt-2 @endif">
+            <div class="hs-support-strip mt-4">
                 <div class="hs-support-strip__left">
                     <i class='bx bx-support'></i>
                     <div>
