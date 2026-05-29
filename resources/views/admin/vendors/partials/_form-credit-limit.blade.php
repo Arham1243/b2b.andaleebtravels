@@ -23,8 +23,6 @@
                     <small class="text-muted d-block mt-1">
                         @include('partials.wallet-balance-metrics', ['vendor' => $vendor, 'compact' => true])
                     </small>
-                @else
-                    <small class="text-muted d-block mt-1">Enter an amount to set a recharge cap, or leave unchecked with no amount for unlimited recharge.</small>
                 @endif
                 @error('credit_limit')
                     <div class="text-danger">{{ $message }}</div>
