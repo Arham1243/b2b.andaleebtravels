@@ -414,11 +414,15 @@
             });
 
             const onFromBoxClick = () => {
+                closeToDropdown();
+                closeAllSegmentDropdowns();
                 openFromDropdown();
                 fromInputRef.value?.focus();
             };
 
             const onToBoxClick = () => {
+                closeFromDropdown();
+                closeAllSegmentDropdowns();
                 openToDropdown();
                 toInputRef.value?.focus();
             };
@@ -426,12 +430,16 @@
             const onFromInput = () => {
                 selectedFrom.value = null;
                 fromQuery.value = fromInput.value;
+                closeToDropdown();
+                closeAllSegmentDropdowns();
                 openFromDropdown();
             };
 
             const onToInput = () => {
                 selectedTo.value = null;
                 toQuery.value = toInput.value;
+                closeFromDropdown();
+                closeAllSegmentDropdowns();
                 openToDropdown();
             };
 
@@ -482,6 +490,8 @@
             };
 
             const openSegmentDropdown = (index, field) => {
+                closeFromDropdown();
+                closeToDropdown();
                 closeAllSegmentDropdowns();
                 const segment = multiCitySegments.value[index];
                 if (!segment) return;
