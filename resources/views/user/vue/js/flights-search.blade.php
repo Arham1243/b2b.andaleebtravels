@@ -3,6 +3,16 @@
     const FLIGHT_SEARCH_ACTION = @json(route('user.flights.search'));
     const RECENT_FLIGHTS_KEY = 'b2b_flight_recent_searches_v1';
     const MAX_RECENT_FLIGHTS = 4;
+    const HOME_ORIGIN_CODE = 'DXB';
+    const HOME_AIRPORT_PRIORITY = [
+        'DXB', 'DWC', 'AUH', 'SHJ', 'AAN', 'RKT', 'FJR',
+        'DOH', 'MCT', 'SLL', 'BAH', 'KWI', 'RUH', 'JED', 'DMM', 'MED',
+        'KHI', 'LHE', 'ISB', 'PEW', 'SKT', 'MUX', 'UET', 'LYP',
+        'DAC', 'CGP', 'CMB', 'KTM', 'MLE',
+        'DEL', 'BOM', 'BLR', 'HYD', 'MAA', 'CCU', 'COK', 'AMD', 'ATQ', 'CCJ', 'LKO',
+        'LHR', 'MAN', 'BHX', 'CDG', 'FRA', 'IST', 'CAI', 'AMM', 'BEY',
+        'BKK', 'SIN', 'KUL', 'MNL', 'CMB', 'HKG', 'PEK', 'PVG',
+    ];
 
     const FlightsSearch = createApp({
         setup() {
@@ -232,7 +242,7 @@
                 createEmptySegment()
             ]);
 
-            const normalize = (val) => (val || '').toString().toLowerCase();
+            const normalize = (val) => (val || '').toString().toLowerCase().trim();
             const todayIso = () => new Date().toISOString().split('T')[0];
             const parseDisplayDateToIso = (value) => {
                 if (!value) return '';
@@ -278,18 +288,113 @@
                 };
             };
 
+            const airportCityCode = (airport) => {
+                if (!airport) return '';
+                return String(airport.cityCode || airport.code || '').toUpperCase();
+            };
+
+            const resolveLocationCode = (airport) => {
+                if (!airport) return '';
+                if (nearbyAirports.value) {
+                    return airportCityCode(airport);
+                }
+                return String(airport.code || '').toUpperCase();
+            };
+
+            const sortHomeAirports = (list) => {
+                const priorityIndex = new Map(
+                    HOME_AIRPORT_PRIORITY.map((code, index) => [code, index]),
+                );
+
+                return [...list].sort((a, b) => {
+                    const left = priorityIndex.get(a.code) ?? 9999;
+                    const right = priorityIndex.get(b.code) ?? 9999;
+
+                    if (left !== right) {
+                        return left - right;
+                    }
+
+                    return String(a.city || a.code).localeCompare(String(b.city || b.code));
+                });
+            };
+
+            const defaultHomeAirportSuggestions = () => {
+                const picked = [];
+                const seen = new Set();
+
+                HOME_AIRPORT_PRIORITY.forEach((code) => {
+                    const airport = airports.value.find((entry) => entry.code === code);
+                    if (airport && !seen.has(airport.code)) {
+                        seen.add(airport.code);
+                        picked.push(airport);
+                    }
+                });
+
+                if (picked.length >= 20) {
+                    return picked.slice(0, 20);
+                }
+
+                airports.value.forEach((airport) => {
+                    if (picked.length >= 20 || seen.has(airport.code)) {
+                        return;
+                    }
+                    seen.add(airport.code);
+                    picked.push(airport);
+                });
+
+                return picked;
+            };
+
             const filterAirports = (query) => {
                 const q = normalize(query);
-                if (!q) return airports.value.slice(0, 20);
-                return airports.value.filter((airport) => {
+                if (!q) return defaultHomeAirportSuggestions();
+
+                const matchesQuery = (airport) => {
                     const haystack = [
                         airport.code,
+                        airport.cityCode,
                         airport.name,
                         airport.city,
-                        airport.country
+                        airport.country,
                     ].map(normalize).join(' ');
+
                     return haystack.includes(q);
-                }).slice(0, 20);
+                };
+
+                const direct = airports.value.filter(matchesQuery);
+                const expanded = [];
+                const seen = new Set();
+
+                const pushAirport = (airport) => {
+                    if (!airport?.code || seen.has(airport.code)) return;
+                    seen.add(airport.code);
+                    expanded.push(airport);
+                };
+
+                direct.forEach(pushAirport);
+
+                direct.forEach((airport) => {
+                    const metro = airportCityCode(airport);
+                    if (!metro) return;
+
+                    airports.value.forEach((candidate) => {
+                        if (airportCityCode(candidate) === metro) {
+                            pushAirport(candidate);
+                        }
+                    });
+                });
+
+                airports.value.forEach((airport) => {
+                    if (normalize(airportCityCode(airport)) === q) {
+                        airports.value.forEach((candidate) => {
+                            if (airportCityCode(candidate) === airportCityCode(airport)) {
+                                pushAirport(candidate);
+                            }
+                        });
+                    }
+                });
+
+                return expanded.slice(0, 30);
             };
 
             const formatAirportInput = (airport) => {
@@ -540,7 +645,11 @@
                 try {
                     const response = await fetch("{{ asset('user/mocks/airports.json') }}");
                     const data = await response.json();
-                    airports.value = Array.isArray(data) ? data : [];
+                    airports.value = sortHomeAirports((Array.isArray(data) ? data : []).map((airport) => ({
+                        ...airport,
+                        cityCode: String(airport.cityCode || airport.code || '').toUpperCase(),
+                        code: String(airport.code || '').toUpperCase(),
+                    })));
                 } catch (err) {
                     console.error("Airports load error:", err);
                     airports.value = [];
@@ -580,7 +689,7 @@
                 const toCode = (params.get('to') || '').toUpperCase();
 
                 if (fromCode) {
-                    const fromAirport = airports.value.find(a => a.code === fromCode);
+                    const fromAirport = airports.value.find(a => a.code === fromCode || a.cityCode === fromCode);
                     selectedFrom.value = fromAirport || {
                         code: fromCode,
                         city: fromCode
@@ -589,12 +698,20 @@
                 }
 
                 if (toCode) {
-                    const toAirport = airports.value.find(a => a.code === toCode);
+                    const toAirport = airports.value.find(a => a.code === toCode || a.cityCode === toCode);
                     selectedTo.value = toAirport || {
                         code: toCode,
                         city: toCode
                     };
                     toInput.value = formatAirportInput(selectedTo.value);
+                }
+
+                if (!fromCode) {
+                    const homeOrigin = airports.value.find((airport) => airport.code === HOME_ORIGIN_CODE);
+                    if (homeOrigin) {
+                        selectedFrom.value = homeOrigin;
+                        fromInput.value = formatAirportInput(homeOrigin);
+                    }
                 }
 
                 const adultsParam = parseInt(params.get('adults') || '1', 10);
@@ -609,8 +726,10 @@
                     if (segments.length) {
                         multiCitySegments.value = segments.map((segment) => {
                             const entry = createEmptySegment();
-                            const fromAirport = airports.value.find(a => a.code === (segment.from || '').toUpperCase());
-                            const toAirport = airports.value.find(a => a.code === (segment.to || '').toUpperCase());
+                            const fromUpper = (segment.from || '').toUpperCase();
+                            const toUpper = (segment.to || '').toUpperCase();
+                            const fromAirport = airports.value.find(a => a.code === fromUpper || a.cityCode === fromUpper);
+                            const toAirport = airports.value.find(a => a.code === toUpper || a.cityCode === toUpper);
 
                             if (segment.from) {
                                 entry.selectedFrom = fromAirport || {
@@ -796,6 +915,7 @@
                 onToInput,
                 selectFromAirport,
                 selectToAirport,
+                resolveLocationCode,
                 swapRoutes,
                 clearQuickReturn,
                 onwardCabin,

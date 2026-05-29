@@ -96,7 +96,7 @@
                                                 placeholder="City or airport" ref="fromInputRef">
                                             <i class='bx bx-current-location fs-pro-route-inline-icon'></i>
                                         </div>
-                                        <input type="hidden" name="from" :value="selectedFrom ? selectedFrom.code : ''">
+                                        <input type="hidden" name="from" :value="resolveLocationCode(selectedFrom)">
                                     </div>
                                 </div>
 
@@ -129,7 +129,7 @@
                                                     </div>
                                                     <div class="info">
                                                         <div class="name">@{{ airport.code }} - @{{ airport.name }}</div>
-                                                        <span class="sub-text">@{{ airport.city }}, @{{ airport.country }}</span>
+                                                        <span class="sub-text">@{{ airport.city }}, @{{ airport.country }}<template v-if="airport.cityCode && airport.cityCode !== airport.code"> · Metro @{{ airport.cityCode }}</template></span>
                                                     </div>
                                                 </li>
                                             </ul>
@@ -168,7 +168,7 @@
                                                 placeholder="City or airport" ref="toInputRef">
                                             <i class='bx bx-map-pin fs-pro-route-inline-icon'></i>
                                         </div>
-                                        <input type="hidden" name="to" :value="selectedTo ? selectedTo.code : ''">
+                                        <input type="hidden" name="to" :value="resolveLocationCode(selectedTo)">
                                     </div>
                                 </div>
 
@@ -200,7 +200,7 @@
                                                     </div>
                                                     <div class="info">
                                                         <div class="name">@{{ airport.code }} - @{{ airport.name }}</div>
-                                                        <span class="sub-text">@{{ airport.city }}, @{{ airport.country }}</span>
+                                                        <span class="sub-text">@{{ airport.city }}, @{{ airport.country }}<template v-if="airport.cityCode && airport.cityCode !== airport.code"> · Metro @{{ airport.cityCode }}</template></span>
                                                     </div>
                                                 </li>
                                             </ul>
@@ -277,7 +277,7 @@
                                         v-model="segment.fromInput" @input="onSegmentAirportInput(index, 'from')"
                                         placeholder="City or airport">
                                     <input type="hidden" :name="'segments[' + index + '][from]'"
-                                        :value="segment.selectedFrom ? segment.selectedFrom.code : ''">
+                                        :value="resolveLocationCode(segment.selectedFrom)">
                                     <i class='bx bx-plane-take-off hs-field__icon'></i>
                                 </div>
                             </div>
@@ -311,7 +311,7 @@
                                                 </div>
                                                 <div class="info">
                                                     <div class="name">@{{ airport.code }} - @{{ airport.name }}</div>
-                                                    <span class="sub-text">@{{ airport.city }}, @{{ airport.country }}</span>
+                                                    <span class="sub-text">@{{ airport.city }}, @{{ airport.country }}<template v-if="airport.cityCode && airport.cityCode !== airport.code"> · Metro @{{ airport.cityCode }}</template></span>
                                                 </div>
                                             </li>
                                         </ul>
@@ -336,7 +336,7 @@
                                         v-model="segment.toInput" @input="onSegmentAirportInput(index, 'to')"
                                         placeholder="City or airport">
                                     <input type="hidden" :name="'segments[' + index + '][to]'"
-                                        :value="segment.selectedTo ? segment.selectedTo.code : ''">
+                                        :value="resolveLocationCode(segment.selectedTo)">
                                     <i class='bx bx-plane-landing hs-field__icon'></i>
                                 </div>
                             </div>
@@ -370,7 +370,7 @@
                                                 </div>
                                                 <div class="info">
                                                     <div class="name">@{{ airport.code }} - @{{ airport.name }}</div>
-                                                    <span class="sub-text">@{{ airport.city }}, @{{ airport.country }}</span>
+                                                    <span class="sub-text">@{{ airport.city }}, @{{ airport.country }}<template v-if="airport.cityCode && airport.cityCode !== airport.code"> · Metro @{{ airport.cityCode }}</template></span>
                                                 </div>
                                             </li>
                                         </ul>
