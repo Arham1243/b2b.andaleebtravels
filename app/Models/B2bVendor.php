@@ -225,19 +225,36 @@ class B2bVendor extends Authenticatable
         return round((float) $this->main_balance, 2);
     }
 
-    public function totalSpendableBalance(): float
+    /** Net wallet balance — what the vendor actually has (shown as Available Balance). */
+    public function availableBalanceAmount(): float
     {
         if ($this->hasCreditLimit()) {
             $pools = $this->creditPools();
 
-            return VendorWalletCredit::totalSpendable(
+            return VendorWalletCredit::availableBalance(
                 $pools['prepaid'],
                 $pools['credit_used'],
                 $this->creditLimitAmount()
             );
         }
 
-        return round((float) $this->main_balance, 2);
+        return max(0, round((float) $this->main_balance, 2));
+    }
+
+    /** Maximum spend allowed on checkout / new debits (may include unused credit line). */
+    public function totalSpendableBalance(): float
+    {
+        if ($this->hasCreditLimit()) {
+            $pools = $this->creditPools();
+
+            return VendorWalletCredit::maxSpendable(
+                $pools['prepaid'],
+                $pools['credit_used'],
+                $this->creditLimitAmount()
+            );
+        }
+
+        return max(0, round((float) $this->main_balance, 2));
     }
 
     public function minimumAllowedBalance(): float

@@ -25,7 +25,7 @@ class AdminManualWalletTransactionService
 
         if ($type === 'debit' && ! $vendor->canDebitAmount($amount)) {
             throw ValidationException::withMessages([
-                'amount' => 'Insufficient wallet balance. Available to spend: ' . number_format($vendor->totalSpendableBalance(), 2) . ' AED (prepaid: ' . number_format((float) $vendor->main_balance, 2) . ', credit: ' . number_format($vendor->creditAvailableAmount(), 2) . ').',
+                'amount' => 'Insufficient wallet balance. Available to spend: ' . number_format($vendor->availableBalanceAmount(), 2) . ' AED (max spendable: ' . number_format($vendor->totalSpendableBalance(), 2) . ' AED).',
             ]);
         }
 

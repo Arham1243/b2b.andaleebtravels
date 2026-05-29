@@ -21,7 +21,7 @@
                                 <span class="topbar-balance-label">Available Balance</span>
                                 <i class='bx bx-chevron-down'></i>
                             </div>
-                            <span class="topbar-balance-value">{!! formatPrice($vendor->totalSpendableBalance()) !!}</span>
+                            <span class="topbar-balance-value">{!! formatPrice($vendor->availableBalanceAmount()) !!}</span>
                         </a>
                     </div>
 

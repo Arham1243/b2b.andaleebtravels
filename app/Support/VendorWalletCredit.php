@@ -111,12 +111,21 @@ final class VendorWalletCredit
     }
 
     /**
-     * Spendable balance for checkout / display.
-     *
-     * Credit limit caps prepaid recharge — it is NOT added on top of an existing prepaid balance.
-     * The credit line only increases spendable when prepaid is below the limit, or when credit is already drawn.
+     * Net wallet balance shown as "Available Balance" (main ledger position).
      */
-    public static function totalSpendable(float $prepaid, float $creditUsed, float $creditLimit): float
+    public static function availableBalance(float $prepaid, float $creditUsed, float $creditLimit): float
+    {
+        if ($creditLimit <= 0) {
+            return round(max(0, $prepaid), 2);
+        }
+
+        return round(max(0, $prepaid - $creditUsed), 2);
+    }
+
+    /**
+     * Maximum the vendor can spend on a new debit (includes unused credit line when applicable).
+     */
+    public static function maxSpendable(float $prepaid, float $creditUsed, float $creditLimit): float
     {
         if ($creditLimit <= 0) {
             return round(max(0, $prepaid), 2);
@@ -124,9 +133,11 @@ final class VendorWalletCredit
 
         $prepaid = max(0, round($prepaid, 2));
         $creditUsed = max(0, round($creditUsed, 2));
+        $net = round($prepaid - $creditUsed, 2);
+        $creditAvailable = max(0, round($creditLimit - $creditUsed, 2));
 
         if ($creditUsed > 0) {
-            return round($prepaid + max(0, $creditLimit - $creditUsed), 2);
+            return round(max(0, $net) + $creditAvailable, 2);
         }
 
         if ($prepaid >= $creditLimit) {
@@ -134,6 +145,12 @@ final class VendorWalletCredit
         }
 
         return round($creditLimit, 2);
+    }
+
+    /** @deprecated Use availableBalance() or maxSpendable() explicitly. */
+    public static function totalSpendable(float $prepaid, float $creditUsed, float $creditLimit): float
+    {
+        return self::maxSpendable($prepaid, $creditUsed, $creditLimit);
     }
 
     public static function syncVendorPools(B2bVendor $vendor): array

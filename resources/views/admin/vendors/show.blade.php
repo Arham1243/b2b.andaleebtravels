@@ -326,7 +326,7 @@
                         <span class="vs-stat__label">Available Balance</span>
                         <span class="vs-stat__icon"><i class="bx bx-wallet"></i></span>
                     </div>
-                    <div class="vs-stat__value is-currency">{!! formatPrice($vendor->totalSpendableBalance()) !!}</div>
+                    <div class="vs-stat__value is-currency">{!! formatPrice($vendor->availableBalanceAmount()) !!}</div>
                 </div>
             </div>
             <div class="col-6 col-xl-3">
@@ -408,7 +408,7 @@
                 @if ($vendor->isAgencyAccount())
                     <div class="vs-info-item">
                         <span class="vs-info-label">Available Balance</span>
-                        <span class="vs-info-value fw-bold" style="color:var(--color-primary);">{!! formatPrice($vendor->totalSpendableBalance()) !!}</span>
+                        <span class="vs-info-value fw-bold" style="color:var(--color-primary);">{!! formatPrice($vendor->availableBalanceAmount()) !!}</span>
                     </div>
                     <div class="vs-info-item">
                         <span class="vs-info-label">Used Balance</span>

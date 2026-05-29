@@ -1,6 +1,6 @@
 @php
     $walletUser = $walletUser ?? ($vendor ?? null) ?? Auth::user();
-    $availableBalance = $walletUser->totalSpendableBalance();
+    $availableBalance = $walletUser->availableBalanceAmount();
     $usedBalance = $walletUser->usedBalanceAmount();
     $compact = $compact ?? false;
 @endphp
