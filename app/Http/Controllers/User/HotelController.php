@@ -414,7 +414,7 @@ class HotelController extends Controller
 
             // API-related fields
             'price'       => $price
-                ? calculatePriceWithCommission($price, $this->hotelCommissionPercentage)
+                ? hotelSellPriceFromNet($price, $this->hotelCommissionPercentage)
                 : null,
             'boards'      => collect($boards ?? [])->pluck('Description')->unique()->values(),
         ];
@@ -807,10 +807,7 @@ class HotelController extends Controller
                 abort(400, 'Invalid pricing from supplier.');
             }
 
-            $finalRoomPrice = yalagoFinalPrice(
-                $board,
-                $this->hotelCommissionPercentage
-            );
+            $finalRoomPrice = hotelSellPriceFromBoard($board, $this->hotelCommissionPercentage);
 
             $selectedRoom['price'] = $finalRoomPrice;
             $netCostDetail += $finalRoomPrice;
@@ -1135,6 +1132,7 @@ class HotelController extends Controller
                 ->sum(fn($room) => (float) $room['price']);
 
             $totalAmount = $roomsTotal + $extrasTotal;
+            $pricingFields = hotelBookingPricingFields($totalAmount);
 
             // Get source market from IP
             $sourceMarket = $this->getSourceMarketFromIP();
@@ -1158,7 +1156,10 @@ class HotelController extends Controller
                 'extras_total' => $extrasTotal,
 
                 'rooms_total' => $roomsTotal,
-                'total_amount' => $totalAmount,
+                'total_amount' => $pricingFields['total_amount'],
+                'original_amount' => $pricingFields['original_amount'],
+                'vendor_discount_amount' => $pricingFields['vendor_discount_amount'],
+                'vendor_discount_snapshot' => $pricingFields['vendor_discount_snapshot'],
 
                 'payment_method' => $validated['payment_method'] ?? null,
                 'flight_details' => $validated['flight_details'] ?? null,

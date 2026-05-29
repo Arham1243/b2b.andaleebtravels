@@ -33,6 +33,8 @@
                                 'adminProviders' => $adminProviders,
                                 'adminFlightProviders' => $adminFlightProviders,
                             ])
+
+                            @include('admin.vendors.partials._form-discounts', ['vendor' => $vendor])
                         @endif
                     </div>
                     <div class="col-md-4">

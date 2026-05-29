@@ -146,6 +146,7 @@ class FlightBookingController extends Controller
 
         $totalAmount = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency = $itineraryData['currency'] ?? 'AED';
+        $pricingFields = flightBookingPricingFields($itineraryData, $totalAmount);
 
         $departureDate = !empty($params['departure_date'])
             ? Carbon::parse($params['departure_date'])->format('Y-m-d')
@@ -170,7 +171,10 @@ class FlightBookingController extends Controller
             'itinerary_data' => $itineraryData,
             'search_request' => session('flight_search_payload'),
             'search_response' => session('flight_search_response'),
-            'total_amount' => $totalAmount,
+            'total_amount' => $pricingFields['total_amount'],
+            'original_amount' => $pricingFields['original_amount'],
+            'vendor_discount_amount' => $pricingFields['vendor_discount_amount'],
+            'vendor_discount_snapshot' => $pricingFields['vendor_discount_snapshot'],
             'currency' => $currency,
             'payment_method' => $validated['payment_method'] ?? null,
             'source_market' => $this->getSourceMarketFromIP(),
@@ -475,6 +479,7 @@ class FlightBookingController extends Controller
 
         $totalAmount  = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency     = $itineraryData['currency'] ?? 'AED';
+        $pricingFields = flightBookingPricingFields($itineraryData, $totalAmount);
 
         $bookingData = [
             'itinerary_id'    => $itineraryId,
@@ -489,7 +494,10 @@ class FlightBookingController extends Controller
             'itinerary_data'  => $itineraryData,
             'search_request'  => session('flight_search_payload'),
             'search_response' => session('flight_search_response'),
-            'total_amount'    => $totalAmount,
+            'total_amount'    => $pricingFields['total_amount'],
+            'original_amount' => $pricingFields['original_amount'],
+            'vendor_discount_amount' => $pricingFields['vendor_discount_amount'],
+            'vendor_discount_snapshot' => $pricingFields['vendor_discount_snapshot'],
             'currency'        => $currency,
             'payment_method'  => 'hold',
             'source_market'   => $this->getSourceMarketFromIP(),

@@ -229,6 +229,7 @@
                         <div class="bkpd-card mb-3">
                             <div class="bkpd-card__section-head bkpd-card__section-head--green"><i class="bx bx-receipt"></i> Fare Summary</div>
                             <div class="bkpd-fare">
+                                @include('admin.partials.vendor-discount-fare', ['booking' => $booking])
                                 <div class="bkpd-fare__row">
                                     <span>Rooms</span>
                                     <span>{!! formatPrice($booking->rooms_total ?? $booking->total_amount) !!}</span>

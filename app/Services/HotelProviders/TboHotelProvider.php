@@ -209,7 +209,7 @@ class TboHotelProvider implements HotelProviderInterface
             $image = $catalogueImage ?? (is_array($rate) ? ($rate['thumbnail_url'] ?? null) : null);
             $rawPrice = is_array($rate) ? ($rate['total_fare'] ?? null) : null;
             $finalPrice = $rawPrice !== null
-                ? calculatePriceWithCommission((float) $rawPrice, $this->commissionPercentage)
+                ? hotelSellPriceFromNet((float) $rawPrice, $this->commissionPercentage)
                 : null;
 
             $tboRefRaw = is_array($rate) ? ($rate['is_refundable'] ?? null) : null;

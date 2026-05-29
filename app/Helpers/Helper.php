@@ -189,22 +189,96 @@ if (! function_exists('sanitizeBulletText')) {
     }
 }
 
-function calculatePriceWithCommission($basePrice, $commissionPercentage = 10)
-{
-    return $basePrice + ($commissionPercentage / 100) * $basePrice;
+if (! function_exists('vendorPricing')) {
+    function vendorPricing(): \App\Services\VendorPricingService
+    {
+        return app(\App\Services\VendorPricingService::class);
+    }
 }
 
-
-function yalagoFinalPrice(array $board, float $commissionPercent): float
-{
-    if (!empty($board['IsBindingPrice'])) {
-        return round($board['GrossCost']['Amount'], 2);
+/**
+ * Unified flight sell price — vendor discount only.
+ * Pass supplier/list fare; returns the amount shown across search, checkout, and bookings.
+ */
+if (! function_exists('flightSellPrice')) {
+    function flightSellPrice(float $amount): float
+    {
+        return vendorPricing()->applyFlight(auth()->user(), $amount)->sellAmount;
     }
+}
 
-    $net = $board['NetCost']['Amount'];
-    $commission = ($net * $commissionPercent) / 100;
+/**
+ * @param  list<array<string, mixed>>  $results
+ * @return list<array<string, mixed>>
+ */
+if (! function_exists('applyFlightSearchPricing')) {
+    function applyFlightSearchPricing(array $results): array
+    {
+        return vendorPricing()->applyFlightResults(auth()->user(), $results);
+    }
+}
 
-    return round($net + $commission, 2);
+/**
+ * @param  array<string, mixed>  $itineraryData
+ * @return array<string, mixed>
+ */
+if (! function_exists('flightBookingPricingFields')) {
+    function flightBookingPricingFields(array $itineraryData, float $fallbackSellAmount): array
+    {
+        return vendorPricing()->bookingFieldsFromFlightItinerary($itineraryData, $fallbackSellAmount);
+    }
+}
+
+/**
+ * Unified hotel sell price — vendor discount only.
+ * Pass list price (after any legacy commission step); markup moves here later.
+ */
+if (! function_exists('hotelSellPrice')) {
+    function hotelSellPrice(float $listAmount): float
+    {
+        return vendorPricing()->applyHotel(auth()->user(), $listAmount)->sellAmount;
+    }
+}
+
+/**
+ * Supplier net → legacy commission → vendor discount.
+ * Commission/markup will be consolidated into hotelSellPrice() later.
+ */
+if (! function_exists('hotelSellPriceFromNet')) {
+    function hotelSellPriceFromNet(float $netAmount, float $commissionPercentage = 10): float
+    {
+        $listAmount = round($netAmount + ($commissionPercentage / 100) * $netAmount, 2);
+
+        return hotelSellPrice($listAmount);
+    }
+}
+
+/**
+ * Yalago board payload → legacy commission → vendor discount.
+ */
+if (! function_exists('hotelSellPriceFromBoard')) {
+    function hotelSellPriceFromBoard(array $board, float $commissionPercent): float
+    {
+        if (! empty($board['IsBindingPrice'])) {
+            $listAmount = round((float) $board['GrossCost']['Amount'], 2);
+        } else {
+            $net = (float) $board['NetCost']['Amount'];
+            $listAmount = round($net + ($net * $commissionPercent) / 100, 2);
+        }
+
+        return hotelSellPrice($listAmount);
+    }
+}
+
+if (! function_exists('hotelBookingPricingFields')) {
+    function hotelBookingPricingFields(float $sellAmount): array
+    {
+        return vendorPricing()->buildBookingPricingFromSell(
+            auth()->user(),
+            \App\Services\VendorPricingService::PRODUCT_HOTEL,
+            $sellAmount
+        );
+    }
 }
 
 if (! function_exists('bookingVendorAgency')) {

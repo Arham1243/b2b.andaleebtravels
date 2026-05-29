@@ -177,6 +177,7 @@ class FlightController extends Controller
         $itineraryCount = (int) ($grouped['statistics']['itineraryCount'] ?? 0);
 
         $results = $this->extractItineraries($grouped);
+        $results = applyFlightSearchPricing($results);
         $resultsById = collect($results)->keyBy('id')->toArray();
 
         session([
@@ -479,9 +480,11 @@ class FlightController extends Controller
             }
 
             $fare = data_get($pricingBlock, 'fare.totalFare');
+            $supplierPrice = $fare ? (float) ($fare['totalPrice'] ?? 0) : 0.0;
 
             $results[] = [
                 'id' => $itinerary['id'] ?? null,
+                'supplierPrice' => $supplierPrice > 0 ? $supplierPrice : null,
                 'totalPrice' => $fare['totalPrice'] ?? null,
                 'currency' => $fare['currency'] ?? null,
                 'legs' => $legs,

@@ -140,7 +140,7 @@ class YalagoHotelProvider implements HotelProviderInterface
                 'image' => $images[0]['Url'] ?? null,
 
                 'price' => $netAmount !== null
-                    ? calculatePriceWithCommission($netAmount, $this->commissionPercentage)
+                    ? hotelSellPriceFromNet($netAmount, $this->commissionPercentage)
                     : null,
 
                 'boards' => $boards

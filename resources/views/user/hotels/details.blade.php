@@ -312,7 +312,7 @@
                             @foreach ($api_availability[0]['Rooms'] as $roomIndex => $room)
                                 @foreach (collect($room['Boards'])->unique('Code') as $boardIndex => $board)
                                     @php
-                                        $finalPrice = yalagoFinalPrice($board, $hotelCommissionPercentage);
+                                        $finalPrice = hotelSellPriceFromBoard($board, $hotelCommissionPercentage);
                                         $finalPriceFormatted = formatPrice($finalPrice);
                                         $isRefundable = empty($board['NonRefundable']);
                                         $boardTitle = $board['Description'] ?? '';
