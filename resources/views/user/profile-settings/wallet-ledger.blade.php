@@ -15,7 +15,7 @@
             </div>
             <div>
                 <h1 class="ps-page-head__title">Account Settings</h1>
-                <p class="ps-page-head__sub">Wallet ledger — all your transactions</p>
+                <p class="ps-page-head__sub">Wallet ledger - all your transactions</p>
             </div>
         </div>
 
