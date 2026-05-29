@@ -19,32 +19,37 @@
             font-weight: 600;
             color: #1a2540;
         }
-        .ps-markup-readonly {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-        }
-        @media (max-width: 767px) {
-            .ps-markup-readonly { grid-template-columns: 1fr; }
-        }
-        .ps-markup-readonly__item {
-            padding: 14px;
+        .ps-markup-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
             border: 1px solid #e8ecf2;
             border-radius: 10px;
-            background: #fff;
+            background: #fafbfd;
+            margin-bottom: 18px;
         }
-        .ps-markup-readonly__label {
-            font-size: .72rem;
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            color: #8492a6;
-            margin-bottom: 6px;
-            font-weight: 700;
-        }
-        .ps-markup-readonly__value {
-            font-size: 1rem;
-            font-weight: 700;
+        .ps-markup-status__label {
+            font-size: .88rem;
+            font-weight: 600;
             color: #1a2540;
+        }
+        .ps-markup-status__badge {
+            font-size: .78rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .ps-markup-status__badge--on {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .ps-markup-status__badge--off {
+            background: #f1f5f9;
+            color: #64748b;
         }
         .ps-markup-grid {
             display: grid;
@@ -54,12 +59,26 @@
         @media (max-width: 767px) {
             .ps-markup-grid { grid-template-columns: 1fr; }
         }
+        .ps-markup-grid .ps-field__input:disabled,
+        .ps-markup-grid .ps-field__input[readonly] {
+            background: #f8fafc;
+            color: #1a2540;
+            opacity: 1;
+            cursor: default;
+        }
     </style>
 @endsection
 
 @section('content')
 @php
     $overrideEnabled = (bool) old('agent_markup_override_enabled', $user->agent_markup_override_enabled ?? false);
+    $agencyMarkupsEnabled = (bool) ($agencyMarkupsEnabled ?? ($agency->vendor_markups_enabled ?? false));
+
+    $agencyFlightType = $agency->flight_markup_type ?? '';
+    $agencyFlightValue = ($agency->flight_markup_value ?? 0) > 0 ? $agency->flight_markup_value : '';
+    $agencyHotelType = $agency->hotel_markup_type ?? '';
+    $agencyHotelValue = ($agency->hotel_markup_value ?? 0) > 0 ? $agency->hotel_markup_value : '';
+
     $flightMarkupValue = old('agent_flight_markup_value', ($user->agent_flight_markup_value ?? 0) > 0 ? $user->agent_flight_markup_value : '');
     $hotelMarkupValue = old('agent_hotel_markup_value', ($user->agent_hotel_markup_value ?? 0) > 0 ? $user->agent_hotel_markup_value : '');
 @endphp
@@ -81,49 +100,78 @@
             @include('user.profile-settings._sidebar')
 
             <main class="ps-main">
-                <div class="ps-card" id="agency_default_markup_card" style="margin-bottom:18px;" @if($overrideEnabled) hidden @endif>
-                    <div class="ps-card__head">
-                        <h2 class="ps-card__title">
-                            <i class="bx bx-buildings"></i> Agency Default Markup
-                        </h2>
-                    </div>
-                    <div class="ps-card__body">
-                        <p style="font-size:.84rem;color:#64748b;margin-bottom:14px;">
-                            Set by admin for your agency. Applies to your searches and bookings while custom markup is off.
-                        </p>
-                        <div class="ps-markup-readonly">
-                            <div class="ps-markup-readonly__item">
-                                <div class="ps-markup-readonly__label">Flight markup</div>
-                                <div class="ps-markup-readonly__value">{{ $agencyFlightMarkup }}</div>
-                            </div>
-                            <div class="ps-markup-readonly__item">
-                                <div class="ps-markup-readonly__label">Hotel markup</div>
-                                <div class="ps-markup-readonly__value">{{ $agencyHotelMarkup }}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <form action="{{ route('user.profile.updateMarkupSettings') }}" method="POST" id="validation-form">
                     @csrf
 
                     <div class="ps-card">
                         <div class="ps-card__head">
                             <h2 class="ps-card__title">
-                                <i class="bx bx-slider-alt"></i> Your Markup Override
+                                <i class="bx bx-slider-alt"></i> Markup Settings
                             </h2>
-                            <button type="submit" class="ps-btn-save">
+                            <button type="submit" class="ps-btn-save" id="markup_save_btn" @if(! $overrideEnabled) hidden @endif>
                                 <i class="bx bx-save"></i> Save Markup
                             </button>
                         </div>
                         <div class="ps-card__body">
+                            <div id="agency_markup_body" @if($overrideEnabled) hidden @endif>
+                                <div class="ps-markup-status">
+                                    <div>
+                                        <div class="ps-markup-status__label">Agency markup</div>
+                                        <div style="font-size:.78rem;color:#64748b;margin-top:2px;">
+                                            Set by admin for your agency. Applied to your searches and bookings.
+                                        </div>
+                                    </div>
+                                    <span class="ps-markup-status__badge {{ $agencyMarkupsEnabled ? 'ps-markup-status__badge--on' : 'ps-markup-status__badge--off' }}">
+                                        {{ $agencyMarkupsEnabled ? 'Enabled' : 'Disabled' }}
+                                    </span>
+                                </div>
+
+                                <div class="ps-markup-grid" @if(! $agencyMarkupsEnabled) hidden @endif id="agency_markup_fields">
+                                    <div>
+                                        <h6 style="font-size:.88rem;font-weight:700;margin-bottom:12px;">Flight markup</h6>
+                                        <div class="ps-field" style="margin-bottom:14px;">
+                                            <label class="ps-field__label">Type</label>
+                                            <select class="ps-field__input" disabled>
+                                                <option value="" @selected($agencyFlightType === '' || $agencyFlightType === null)>No markup</option>
+                                                <option value="percent" @selected($agencyFlightType === 'percent')>Percentage (%)</option>
+                                                <option value="fixed" @selected($agencyFlightType === 'fixed')>Fixed amount</option>
+                                            </select>
+                                        </div>
+                                        <div class="ps-field">
+                                            <label class="ps-field__label">Value</label>
+                                            <input type="text" class="ps-field__input" readonly
+                                                value="{{ $agencyFlightValue !== '' ? $agencyFlightValue : '' }}"
+                                                placeholder="{{ $agencyFlightType ? '' : 'Not set' }}">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h6 style="font-size:.88rem;font-weight:700;margin-bottom:12px;">Hotel markup</h6>
+                                        <div class="ps-field" style="margin-bottom:14px;">
+                                            <label class="ps-field__label">Type</label>
+                                            <select class="ps-field__input" disabled>
+                                                <option value="" @selected($agencyHotelType === '' || $agencyHotelType === null)>No markup</option>
+                                                <option value="percent" @selected($agencyHotelType === 'percent')>Percentage (%)</option>
+                                                <option value="fixed" @selected($agencyHotelType === 'fixed')>Fixed amount</option>
+                                            </select>
+                                        </div>
+                                        <div class="ps-field">
+                                            <label class="ps-field__label">Value</label>
+                                            <input type="text" class="ps-field__input" readonly
+                                                value="{{ $agencyHotelValue !== '' ? $agencyHotelValue : '' }}"
+                                                placeholder="{{ $agencyHotelType ? '' : 'Not set' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="ps-markup-toggle">
                                 <div>
                                     <div class="ps-markup-toggle__label">Use custom markup</div>
                                     <div id="agent_markup_toggle_hint" style="font-size:.78rem;color:#64748b;margin-top:2px;">
                                         {{ $overrideEnabled
                                             ? 'Your custom markup applies independently to your searches and bookings.'
-                                            : 'When off, agency default markup applies to your searches and bookings.' }}
+                                            : 'Turn on to replace agency markup with your own flight and hotel settings.' }}
                                     </div>
                                 </div>
                                 <div class="form-check form-switch mb-0">
@@ -200,23 +248,30 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var toggle = document.getElementById('agent_markup_override_enabled');
-    var body = document.getElementById('agent_markup_body');
-    var agencyCard = document.getElementById('agency_default_markup_card');
+    var agencyBody = document.getElementById('agency_markup_body');
+    var agentBody = document.getElementById('agent_markup_body');
+    var saveBtn = document.getElementById('markup_save_btn');
     var hint = document.getElementById('agent_markup_toggle_hint');
     var fields = document.querySelectorAll('.agent-markup-field');
 
-    if (!toggle || !body) return;
+    if (!toggle) return;
 
     function syncMarkupPanel() {
         var on = toggle.checked;
-        body.hidden = !on;
-        if (agencyCard) {
-            agencyCard.hidden = on;
+
+        if (agencyBody) {
+            agencyBody.hidden = on;
+        }
+        if (agentBody) {
+            agentBody.hidden = !on;
+        }
+        if (saveBtn) {
+            saveBtn.hidden = !on;
         }
         if (hint) {
             hint.textContent = on
                 ? 'Your custom markup applies independently to your searches and bookings.'
-                : 'When off, agency default markup applies to your searches and bookings.';
+                : 'Turn on to replace agency markup with your own flight and hotel settings.';
         }
         fields.forEach(function (field) {
             field.disabled = !on;

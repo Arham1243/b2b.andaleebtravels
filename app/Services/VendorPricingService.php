@@ -281,22 +281,12 @@ class VendorPricingService
      */
     public function markupSnapshotFromAgency(B2bVendor $agency): array
     {
-        if (! (bool) ($agency->vendor_markups_enabled ?? false)) {
-            return [
-                'agent_markup_override_enabled' => false,
-                'agent_flight_markup_type' => null,
-                'agent_flight_markup_value' => 0,
-                'agent_hotel_markup_type' => null,
-                'agent_hotel_markup_value' => 0,
-            ];
-        }
-
         return [
-            'agent_markup_override_enabled' => true,
-            'agent_flight_markup_type' => $agency->flight_markup_type,
-            'agent_flight_markup_value' => (float) ($agency->flight_markup_value ?? 0),
-            'agent_hotel_markup_type' => $agency->hotel_markup_type,
-            'agent_hotel_markup_value' => (float) ($agency->hotel_markup_value ?? 0),
+            'agent_markup_override_enabled' => false,
+            'agent_flight_markup_type' => null,
+            'agent_flight_markup_value' => 0,
+            'agent_hotel_markup_type' => null,
+            'agent_hotel_markup_value' => 0,
         ];
     }
 

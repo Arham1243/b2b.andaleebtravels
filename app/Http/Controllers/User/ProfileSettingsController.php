@@ -48,24 +48,18 @@ class ProfileSettingsController extends Controller
 
     public function markupSettings()
     {
-        $user = Auth::user();
+        $user = B2bVendor::findOrFail(Auth::id());
         $agency = $user->walletAgency();
+        if ($agency->id !== $user->id) {
+            $agency = B2bVendor::findOrFail($agency->id);
+        }
 
         return view('user.profile-settings.markup-settings')
             ->with('title', 'Markup Settings')
             ->with([
                 'user' => $user,
                 'agency' => $agency,
-                'agencyFlightMarkup' => $this->formatPricingRuleLabel(
-                    $agency?->flight_markup_type,
-                    $agency?->flight_markup_value,
-                    (bool) ($agency?->vendor_markups_enabled ?? false),
-                ),
-                'agencyHotelMarkup' => $this->formatPricingRuleLabel(
-                    $agency?->hotel_markup_type,
-                    $agency?->hotel_markup_value,
-                    (bool) ($agency?->vendor_markups_enabled ?? false),
-                ),
+                'agencyMarkupsEnabled' => (bool) ($agency->vendor_markups_enabled ?? false),
             ]);
     }
 
@@ -193,26 +187,6 @@ class ProfileSettingsController extends Controller
         ]);
 
         return redirect()->back()->with('notify_success', 'Password updated successfully');
-    }
-
-    private function formatPricingRuleLabel(?string $type, mixed $value, bool $enabled): string
-    {
-        if (! $enabled) {
-            return 'Disabled';
-        }
-
-        $type = strtolower(trim((string) $type));
-        $numeric = round((float) $value, 2);
-
-        if (! in_array($type, ['percent', 'fixed'], true) || $numeric <= 0) {
-            return 'Not set';
-        }
-
-        if ($type === 'percent') {
-            return rtrim(rtrim(number_format($numeric, 2), '0'), '.') . '%';
-        }
-
-        return 'AED ' . number_format($numeric, 2);
     }
 
     private function normalizeAgentMarkupType(?string $type, float $value): ?string
