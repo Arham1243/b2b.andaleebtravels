@@ -12,7 +12,6 @@
     <div class="vs-wallet-form">
         <div class="vs-wallet-form__title"><i class="bx bx-plus-circle"></i> Add manual transaction</div>
         <p class="vs-wallet-form__hint">
-            Record an admin credit or debit (e.g. hotel payment taken from wallet offline). Use <strong>Edit</strong> or <strong>Void</strong> on any row below to correct mistakes — the wallet balance is recalculated automatically.
             @include('partials.wallet-balance-metrics', ['vendor' => $vendor, 'compact' => true])
         </p>
         <form action="{{ route('admin.vendors.wallet-transactions.store', $vendor) }}" method="POST"
