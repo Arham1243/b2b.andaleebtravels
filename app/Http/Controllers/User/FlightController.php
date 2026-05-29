@@ -4,7 +4,9 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Config;
+use App\Support\SabreBaggagePresenter;
 use App\Support\SabreFareBrandPresenter;
+use App\Support\SabreFareRulesPresenter;
 use Carbon\Carbon;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Request;
@@ -355,13 +357,14 @@ class FlightController extends Controller
 
         $travelPreferences = [
             'MaxStopsQuantity' => !empty($data['direct_flight']) ? 0 : 1,
+            'Baggage' => [
+                'RequestType' => 'A',
+                'Description' => true,
+            ],
         ];
 
         if ($children > 0 && $infants === 0) {
-            $travelPreferences['Baggage'] = [
-                'RequestType' => 'C',
-                'Description' => true,
-            ];
+            $travelPreferences['Baggage']['RequestType'] = 'C';
         }
 
         $travelerInfoSummary = [
@@ -375,6 +378,10 @@ class FlightController extends Controller
                     'BrandedFareIndicators' => [
                         'SingleBrandedFare' => true,
                         'MultipleBrandedFares' => true,
+                    ],
+                    'Indicators' => [
+                        'RefundPenalty' => ['Ind' => true],
+                        'ResTicketing' => ['Ind' => true],
                     ],
                 ],
             ],
@@ -438,10 +445,13 @@ class FlightController extends Controller
             $pricingTags = $this->inferFareTagsFromPricingBlock($pricingBlock);
             $fareBrand = SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped);
             $passengerFare = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo');
+            $baggageDetails = SabreBaggagePresenter::fromPricingBlock($pricingBlock, $grouped);
+            $fareRules = SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped);
             $bagsSummary = $this->summarizeBaggageAllowances(
                 data_get($passengerFare, 'baggageInformation', []),
                 $baggageAllowanceById,
             );
+            $bagSummaryLabel = $baggageDetails['summary'] ?? $bagsSummary['label'];
 
             $fareCursor = 0;
             $legs = [];
@@ -482,7 +492,9 @@ class FlightController extends Controller
                 'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
                 'non_refundable' => (bool) data_get($passengerFare, 'nonRefundable', false),
                 'fare_brand' => $fareBrand,
-                'baggage_notes' => $bagsSummary['label'],
+                'baggage_notes' => $bagSummaryLabel,
+                'baggage_details' => $baggageDetails,
+                'fare_rules' => $fareRules,
                 'fare_tags' => $pricingTags['tags'],
                 'listing_meta' => $this->buildListingMeta($legs, $fare ? (float) $fare['totalPrice'] : 0.0, $pricingTags),
             ];
