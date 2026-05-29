@@ -76,6 +76,35 @@
     }
     .vs-stat__value.is-currency { font-size: 1.25rem; }
 
+    .vs-vendor-head__title-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.65rem 0.85rem;
+        margin-bottom: 0.45rem;
+    }
+    .vs-vendor-head__title-row h1 {
+        font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+        font-weight: 700;
+        color: #18181b;
+        letter-spacing: -.02em;
+        margin: 0;
+    }
+    .vs-vendor-head__status {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.35rem 0.65rem;
+    }
+    .vs-vendor-head__meta {
+        font-size: 0.88rem;
+        color: #6b6573;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.75rem;
+        align-items: center;
+    }
+
     /* ── Key-value info grid ────────────────────────────────────── */
     .vs-info-grid {
         display: grid;
@@ -283,22 +312,18 @@
         <header class="mb-4">
             <div class="d-flex align-items-flex-start justify-content-between gap-3 flex-wrap">
                 <div>
-                    <h1 style="font-size:clamp(1.5rem,2.4vw,1.9rem); font-weight:700; color:#18181b; letter-spacing:-.02em; margin:0 0 .3rem;">
-                        {{ $vendor->display_agency_name ?: $vendor->name }}
-                    </h1>
-                    @if ($vendor->contact_name)
-                        <p style="font-size:.9rem; color:#6b6573; margin:0 0 .35rem;">{{ $vendor->contact_name }}{{ $vendor->designation ? ' · ' . $vendor->designation : '' }}</p>
-                    @endif
-                    <p style="font-size:.88rem; color:#6b6573; margin:0; display:flex; flex-wrap:wrap; gap:.4rem .75rem; align-items:center;">
+                    <div class="vs-vendor-head__title-row">
+                        <h1>{{ $vendor->display_agency_name ?: $vendor->name }}</h1>
+                        <span class="badge rounded-pill vs-vendor-head__status {{ $vendor->status === 'active' ? 'bg-success' : ($vendor->status === 'pending' ? 'bg-warning text-dark' : 'bg-danger') }}">
+                            {{ ucfirst($vendor->status) }}
+                        </span>
+                    </div>
+                    <p class="vs-vendor-head__meta">
                         <span><i class="bx bx-envelope" style="vertical-align:middle;"></i> {{ $vendor->email }}</span>
                         <span style="color:#d0d0d8;">·</span>
                         <span><i class="bx bx-user" style="vertical-align:middle;"></i> {{ $vendor->username }}</span>
                         <span style="color:#d0d0d8;">·</span>
                         <span><i class="bx bx-id-card" style="vertical-align:middle;"></i> <code style="font-size:.85em; color:var(--color-primary);">{{ $vendor->agent_code }}</code></span>
-                        <span style="color:#d0d0d8;">·</span>
-                        <span class="badge rounded-pill {{ $vendor->status === 'active' ? 'bg-success' : 'bg-danger' }}" style="font-size:.72rem;">
-                            {{ ucfirst($vendor->status) }}
-                        </span>
                     </p>
                 </div>
                 <div class="flex-shrink-0 d-flex gap-2">
