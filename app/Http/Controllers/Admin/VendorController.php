@@ -374,7 +374,16 @@ class VendorController extends Controller
                     $request->input('flight_search_providers'),
                     ['sabre']
                 ),
+                'credit_limit' => round((float) ($validated['credit_limit'] ?? 0), 2),
             ];
+
+            $creditUsed = $vendor->creditUsedAmount();
+            if ($data['credit_limit'] < $creditUsed) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['credit_limit' => 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).'])
+                    ->with('notify_error', 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).');
+            }
 
             if ($request->hasFile('agency_logo')) {
                 $data['agency_logo'] = $this->uploadImage(
@@ -530,6 +539,7 @@ class VendorController extends Controller
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
             'flight_search_providers' => 'nullable|array',
             'flight_search_providers.*' => 'in:sabre',
+            'credit_limit' => 'nullable|numeric|min:0|max:99999999.99',
         ]);
 
         return $request->validate($rules, B2bVendorValidation::messages());
