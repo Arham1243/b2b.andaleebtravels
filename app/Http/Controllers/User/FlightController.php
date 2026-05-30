@@ -322,15 +322,20 @@ class FlightController extends Controller
             $passengerTypes[] = ['Code' => 'INF', 'Quantity' => $infants];
         }
 
-        $passengerTypes = array_map(static function (array $entry): array {
-            $entry['TPA_Extensions'] = [
-                'VoluntaryChanges' => [
-                    'Match' => 'Info',
-                ],
-            ];
+        if ($infants > 0) {
+            $passengerTypes = array_map(function ($entry) {
+                $entry['TPA_Extensions'] = [
+                    'VoluntaryChanges' => [
+                        'Match' => 'All',
+                        'Penalty' => [
+                            ['Type' => 'Refund'],
+                        ],
+                    ],
+                ];
 
-            return $entry;
-        }, $passengerTypes);
+                return $entry;
+            }, $passengerTypes);
+        }
 
         $originDestinations = [];
 
@@ -387,7 +392,6 @@ class FlightController extends Controller
                     ],
                     'Indicators' => [
                         'RefundPenalty' => ['Ind' => true],
-                        'ExchangePenalty' => ['Ind' => true],
                         'ResTicketing' => ['Ind' => true],
                     ],
                 ],
@@ -526,34 +530,76 @@ class FlightController extends Controller
     }
 
     /**
-     * @param  list<array<string, mixed>>  $pricingInformation
+     * @param  mixed  $pricingInformation
      *
-     * @return list<array{index: int, block: array<string, mixed>, price: float}>
+     * @return list<array{index: int, block: array<string, mixed>}>
      */
-    private function collectSabrePricingBlocks(array $pricingInformation): array
+    private function normalizePricingInformation(mixed $pricingInformation): array
     {
-        $blocks = [];
+        if (! is_array($pricingInformation) || $pricingInformation === []) {
+            return [];
+        }
+
+        if (array_key_exists('fare', $pricingInformation)) {
+            return [['index' => 0, 'block' => $pricingInformation]];
+        }
+
+        $entries = [];
 
         foreach ($pricingInformation as $index => $block) {
-            if (! is_array($block)) {
+            if (! is_array($block) || ! array_key_exists('fare', $block)) {
                 continue;
             }
 
-            $price = $this->extractSabreTotalPrice($block);
+            $entries[] = [
+                'index' => (int) $index,
+                'block' => $block,
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param  mixed  $pricingInformation
+     *
+     * @return list<array{index: int, block: array<string, mixed>, price: float}>
+     */
+    private function collectSabrePricingBlocks(mixed $pricingInformation): array
+    {
+        $entries = $this->normalizePricingInformation($pricingInformation);
+        if ($entries === []) {
+            return [];
+        }
+
+        $blocks = [];
+
+        foreach ($entries as $entry) {
+            $price = $this->extractSabreTotalPrice($entry['block']);
             if ($price === null) {
                 continue;
             }
 
             $blocks[] = [
-                'index' => (int) $index,
-                'block' => $block,
+                'index' => $entry['index'],
+                'block' => $entry['block'],
                 'price' => $price,
             ];
         }
 
-        usort($blocks, static fn (array $a, array $b): int => $a['price'] <=> $b['price']);
+        if ($blocks !== []) {
+            usort($blocks, static fn (array $a, array $b): int => $a['price'] <=> $b['price']);
 
-        return $blocks;
+            return $blocks;
+        }
+
+        $fallback = $entries[0];
+
+        return [[
+            'index' => $fallback['index'],
+            'block' => $fallback['block'],
+            'price' => $this->extractSabreTotalPrice($fallback['block']) ?? 0.0,
+        ]];
     }
 
     /**

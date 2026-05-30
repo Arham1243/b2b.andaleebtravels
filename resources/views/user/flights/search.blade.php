@@ -351,10 +351,7 @@
                                 'fare_tags' => $result['fare_tags'] ?? [],
                             ]];
                             $cardCur    = strtoupper((string) ($fareOptions[0]['currency'] ?? $result['currency'] ?? $currencyCode));
-                            $totalPrice = min(array_map(
-                                static fn ($fare) => (float) ($fare['totalPrice'] ?? INF),
-                                $fareOptions,
-                            ));
+                            $totalPrice = (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0));
                             $cabinTop   = $firstSeg['cabin_code'] ?? 'Y';
                             $rbdTop     = $firstSeg['booking_code'] ?? '';
 
@@ -384,7 +381,7 @@
                         <div class="rc"
                              data-rp-meta='@json($meta)'
                              data-rp-stops="{{ $rpStops }}"
-                             data-rp-refund="{{ collect($fareOptions)->contains(fn($f) => !($f['non_refundable'] ?? false)) ? '1' : '0' }}"
+                             data-rp-refund="{{ ($result['non_refundable'] ?? false) ? '0' : '1' }}"
                              data-rp-price="{{ $totalPrice }}"
                              data-rp-dep-h="{{ $rpDepH }}"
                              data-rp-arr-h="{{ $rpArrH }}"
