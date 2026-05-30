@@ -152,33 +152,81 @@ final class SabreBaggagePresenter
             return 'Not included';
         }
 
-        foreach (['description1', 'description2'] as $key) {
-            $description = trim((string) ($desc[$key] ?? ''));
-            if ($description !== '') {
-                return self::normalizeDescription($description);
-            }
-        }
-
         $pieces = (int) ($desc['pieceCount'] ?? 0);
         $weight = (int) ($desc['weight'] ?? 0);
-        $unit = strtolower(trim((string) ($desc['unit'] ?? 'kg')));
+        $unit = self::normalizeUnit((string) ($desc['unit'] ?? ''));
 
-        if ($pieces > 0 && $weight > 0) {
-            return $pieces . ' pc up to ' . $weight . ' ' . $unit;
+        $structured = self::formatStructuredAllowance($pieces, $weight, $unit);
+        if ($structured !== null) {
+            return $structured;
         }
 
-        if ($pieces > 0) {
-            return $pieces . ' pc';
+        foreach (['description1', 'description2'] as $key) {
+            $description = trim((string) ($desc[$key] ?? ''));
+            if ($description === '') {
+                continue;
+            }
+
+            $parsed = self::parseDescriptionAllowance($description);
+            if ($parsed !== null) {
+                return $parsed;
+            }
+
+            return self::compactDescription($description);
+        }
+
+        return '0 kg';
+    }
+
+    private static function formatStructuredAllowance(int $pieces, int $weight, string $unit): ?string
+    {
+        if ($pieces > 0 && $weight > 0) {
+            return $pieces . ' pc · ' . $weight . ' ' . $unit;
         }
 
         if ($weight > 0) {
             return $weight . ' ' . $unit;
         }
 
-        return '0 kg';
+        if ($pieces > 0) {
+            return $pieces . ' pc';
+        }
+
+        return null;
     }
 
-    private static function normalizeDescription(string $description): string
+    private static function parseDescriptionAllowance(string $description): ?string
+    {
+        $normalized = trim(preg_replace('/\s+/', ' ', $description) ?? '');
+
+        if (preg_match('/up\s*to\s*\d+\s*(?:pounds?|lbs?)\s*\/\s*(\d+)\s*(?:kilograms?|kgs?)/i', $normalized, $matches)) {
+            return $matches[1] . ' kg';
+        }
+
+        if (preg_match('/up\s*to\s*(\d+)\s*(?:kilograms?|kgs?)/i', $normalized, $matches)) {
+            return $matches[1] . ' kg';
+        }
+
+        if (preg_match('/(\d+)\s*(?:kilograms?|kgs?)/i', $normalized, $matches)) {
+            return $matches[1] . ' kg';
+        }
+
+        if (preg_match('/up\s*to\s*(\d+)\s*(?:pounds?|lbs?)/i', $normalized, $matches)) {
+            return $matches[1] . ' lb';
+        }
+
+        if (preg_match('/(\d+)\s*(?:pounds?|lbs?)/i', $normalized, $matches)) {
+            return $matches[1] . ' lb';
+        }
+
+        if (preg_match('/(\d+)\s*(?:pieces?|pcs?)/i', $normalized, $matches)) {
+            return $matches[1] . ' pc';
+        }
+
+        return null;
+    }
+
+    private static function compactDescription(string $description): string
     {
         $description = trim(preg_replace('/\s+/', ' ', $description) ?? '');
 
@@ -186,11 +234,36 @@ final class SabreBaggagePresenter
             return 'Not included';
         }
 
+        $parsed = self::parseDescriptionAllowance($description);
+        if ($parsed !== null) {
+            return $parsed;
+        }
+
+        $description = preg_replace('/\bkilograms?\b/i', 'kg', $description) ?? $description;
+        $description = preg_replace('/\bpounds?\b/i', 'lb', $description) ?? $description;
+        $description = preg_replace('/\bup to\b/i', 'Up to', $description) ?? $description;
+
         if (strtoupper($description) === $description) {
             return ucwords(strtolower($description));
         }
 
         return $description;
+    }
+
+    private static function normalizeUnit(string $unit): string
+    {
+        $unit = strtolower(trim($unit));
+
+        return match ($unit) {
+            'kg', 'kgs', 'kilogram', 'kilograms' => 'kg',
+            'lb', 'lbs', 'pound', 'pounds' => 'lb',
+            default => $unit !== '' ? $unit : 'kg',
+        };
+    }
+
+    private static function normalizeDescription(string $description): string
+    {
+        return self::compactDescription($description);
     }
 
     /**
