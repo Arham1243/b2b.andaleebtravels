@@ -484,69 +484,83 @@
                                 </button>
                             </div>
 
-                            {{-- ── fare rows (all branded options) ── --}}
-                            @foreach ($fareOptions as $fi => $fare)
-                                @php
-                                    $fareBrand  = trim((string) ($fare['fare_brand'] ?? ''));
-                                    $nonRefund  = (bool) ($fare['non_refundable'] ?? false);
-                                    $bagNote    = $fare['baggage_notes'] ?? '';
-                                    $farePrice  = (float) ($fare['totalPrice'] ?? 0);
-                                    $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
-                                @endphp
-                                <div class="rc__fare {{ $fi > 0 ? 'rc__fare--alt' : '' }}">
-                                    <div class="rc__fare-left">
-                                        @if($fareBrand !== '')
-                                            <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
-                                        @endif
-                                        @if($nonRefund)
-                                            <span class="rc__fbadge rc__fbadge--nr">Non-Refundable</span>
-                                        @else
-                                            <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
-                                        @endif
-                                        @if(!empty($cabinTop))
-                                            <span class="rc__ftag">{{ $cabinTop }}</span>
-                                        @endif
-                                        @if(!empty($rbdTop))
-                                            <span class="rc__ftag">Class {{ $rbdTop }}</span>
-                                        @endif
-                                        @if(!empty($bagNote))
-                                            <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>
-                                        @endif
-                                        @if(!is_null($seatMin))
-                                            <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $seatMin }} seats</span>
-                                        @endif
-                                    </div>
-
-                                    <div class="rc__fare-right">
-                                        <div class="rc__price">
-                                            <div class="rc__price-label">NET FARE</div>
-                                            <div class="rc__price-amount">
-                                                @if($fareCur === 'AED')
-                                                    <span class="dirham">AED</span>
-                                                @else
-                                                    <span class="rc__price-cur">{{ $fareCur }}</span>
-                                                @endif
-                                                {{ number_format($farePrice, 2) }}
-                                            </div>
+                            {{-- ── fare rows (first visible, rest expandable) ── --}}
+                            @php $extraFareCount = max(0, count($fareOptions) - 1); @endphp
+                            <div class="rc__fares" data-rc-fares>
+                                @foreach ($fareOptions as $fi => $fare)
+                                    @php
+                                        $fareBrand  = trim((string) ($fare['fare_brand'] ?? ''));
+                                        $nonRefund  = (bool) ($fare['non_refundable'] ?? false);
+                                        $bagNote    = $fare['baggage_notes'] ?? '';
+                                        $farePrice  = (float) ($fare['totalPrice'] ?? 0);
+                                        $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
+                                    @endphp
+                                    <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
+                                        data-rc-fare-row="{{ $fi }}">
+                                        <div class="rc__fare-left">
+                                            @if($fareBrand !== '')
+                                                <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
+                                            @endif
+                                            @if($nonRefund)
+                                                <span class="rc__fbadge rc__fbadge--nr">Non-Refundable</span>
+                                            @else
+                                                <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
+                                            @endif
+                                            @if(!empty($cabinTop))
+                                                <span class="rc__ftag">{{ $cabinTop }}</span>
+                                            @endif
+                                            @if(!empty($rbdTop))
+                                                <span class="rc__ftag">Class {{ $rbdTop }}</span>
+                                            @endif
+                                            @if(!empty($bagNote))
+                                                <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>
+                                            @endif
+                                            @if(!is_null($seatMin))
+                                                <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $seatMin }} seats</span>
+                                            @endif
                                         </div>
-                                        <button type="button"
-                                            class="rc__details-mini"
-                                            data-fd-open="fd-{{ $lid }}"
-                                            data-fd-open-tab="baggage"
-                                            data-fd-fare="{{ $fi }}">
-                                            Details
-                                        </button>
-                                        <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                            class="rc__hold">
-                                            <i class="bx bx-time-five"></i> Hold
-                                        </a>
-                                        <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                            class="rc__cta">
-                                            Book Now <i class="bx bx-right-arrow-alt"></i>
-                                        </a>
+
+                                        <div class="rc__fare-right">
+                                            <div class="rc__price">
+                                                <div class="rc__price-label">NET FARE</div>
+                                                <div class="rc__price-amount">
+                                                    @if($fareCur === 'AED')
+                                                        <span class="dirham">AED</span>
+                                                    @else
+                                                        <span class="rc__price-cur">{{ $fareCur }}</span>
+                                                    @endif
+                                                    {{ number_format($farePrice, 2) }}
+                                                </div>
+                                            </div>
+                                            <button type="button"
+                                                class="rc__details-mini"
+                                                data-fd-open="fd-{{ $lid }}"
+                                                data-fd-open-tab="baggage"
+                                                data-fd-fare="{{ $fi }}">
+                                                Details
+                                            </button>
+                                            <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                class="rc__hold">
+                                                <i class="bx bx-time-five"></i> Hold
+                                            </a>
+                                            <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                class="rc__cta">
+                                                Book Now <i class="bx bx-right-arrow-alt"></i>
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
-                            @endforeach
+                                @endforeach
+
+                                @if($extraFareCount > 0)
+                                    <button type="button"
+                                        class="rc__more-fares"
+                                        data-rc-more-fares
+                                        aria-expanded="false">
+                                        <span class="rc__more-fares__label">+{{ $extraFareCount }} More Fare{{ $extraFareCount === 1 ? '' : 's' }}</span>
+                                        <i class="bx bx-chevron-down"></i>
+                                    </button>
+                                @endif
+                            </div>
 
                         </div>{{-- /.rc --}}
 
@@ -1120,6 +1134,7 @@
 .rc__redeyecol { display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #6366f1; }
 
 /* fare row */
+.rc__fares { border-top: 1px solid var(--c-line-inner); }
 .rc__fare {
     display: flex; align-items: center; justify-content: space-between;
     flex-wrap: wrap; gap: .5rem 1rem;
@@ -1127,9 +1142,28 @@
     background: linear-gradient(180deg, #f6f8fc 0%, #f0f3f9 100%);
     border-top: 1px solid var(--c-line-inner);
 }
+.rc__fares .rc__fare:first-child { border-top: none; }
+.rc__fare--collapsed { display: none; }
+.rc__fares.is-expanded .rc__fare--collapsed {
+    display: flex;
+    border-top: 1px dashed var(--c-line-inner);
+}
+.rc__more-fares {
+    display: flex; align-items: center; justify-content: center; gap: .35rem;
+    width: 100%; border: none; background: var(--c-blue-soft);
+    color: var(--c-blue); font: inherit; font-size: .78rem; font-weight: 700;
+    padding: .55rem 1rem; cursor: pointer;
+    border-top: 1px solid var(--c-line-inner);
+    transition: background .14s, color .14s;
+}
+.rc__more-fares:hover { background: #dbeafe; color: #1d4ed8; }
+.rc__more-fares i {
+    font-size: 1rem;
+    transition: transform .18s ease;
+}
+.rc__fares.is-expanded .rc__more-fares i { transform: rotate(180deg); }
 .rc__fare-left  { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
 .rc__fare-right { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
-.rc__fare--alt  { border-top: 1px dashed var(--c-line-inner); }
 .rc__details-mini {
     border: 1px solid var(--c-line); background: #fff; color: var(--c-slate);
     font: inherit; font-size: .68rem; font-weight: 700; border-radius: 999px;
@@ -2373,6 +2407,24 @@
             tab.addEventListener('click', ()=>{
                 setModalFareIndex(modal, tab.dataset.fdFareTab);
             });
+        });
+    });
+
+    document.querySelectorAll('[data-rc-more-fares]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            const wrap = btn.closest('[data-rc-fares]');
+            if (!wrap) return;
+
+            const expanded = wrap.classList.toggle('is-expanded');
+            btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+
+            const hiddenCount = wrap.querySelectorAll('.rc__fare--collapsed').length;
+            const label = btn.querySelector('.rc__more-fares__label');
+            if (label) {
+                label.textContent = expanded
+                    ? 'Show fewer fares'
+                    : `+${hiddenCount} More Fare${hiddenCount === 1 ? '' : 's'}`;
+            }
         });
     });
 
