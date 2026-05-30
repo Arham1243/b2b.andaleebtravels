@@ -1136,9 +1136,12 @@
 /* fare row */
 .rc__fares { border-top: 1px solid var(--c-line-inner); }
 .rc__fare {
-    display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: .5rem 1rem;
-    padding: .6rem 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: .75rem 1.25rem;
+    padding: .65rem 1.1rem;
     background: linear-gradient(180deg, #f6f8fc 0%, #f0f3f9 100%);
     border-top: 1px solid var(--c-line-inner);
 }
@@ -1162,8 +1165,29 @@
     transition: transform .18s ease;
 }
 .rc__fares.is-expanded .rc__more-fares i { transform: rotate(180deg); }
-.rc__fare-left  { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
-.rc__fare-right { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.rc__fare-left {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+.rc__fare-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .6rem;
+    flex: 0 0 auto;
+    margin-left: auto;
+    flex-wrap: nowrap;
+}
+.rc__fare-left .rc__ftag {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .rc__details-mini {
     border: 1px solid var(--c-line); background: #fff; color: var(--c-slate);
     font: inherit; font-size: .68rem; font-weight: 700; border-radius: 999px;
@@ -2135,8 +2159,17 @@
     .rc__btrack  { flex: 1; }
     .rc__redeyecol { display: none; }
     .rc__point--arr { text-align: left; }
-    .rc__fare { flex-direction: column; align-items: stretch; }
-    .rc__fare-right { justify-content: space-between; }
+    .rc__fare {
+        flex-direction: column;
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+    .rc__fare-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
     .fd-seg__route { grid-template-columns: 1fr; }
     .fd-seg__pt--arr { align-items: flex-start; text-align: left; }
     .fd-box { max-height: 95vh; border-radius: 12px; }
