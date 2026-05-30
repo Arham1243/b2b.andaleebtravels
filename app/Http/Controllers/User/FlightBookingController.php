@@ -21,8 +21,9 @@ class FlightBookingController extends Controller
     {
         $results = session('flight_search_results', []);
         $params = session('flight_search_params', []);
+        $fareIndex = max(0, (int) $request->query('fare', 0));
 
-        $itineraryData = $results[$itinerary] ?? null;
+        $itineraryData = $this->resolveItineraryFare($results, $itinerary, $fareIndex);
 
         if (!$itineraryData || empty($params)) {
             return redirect()->route('user.flights.index')
@@ -45,6 +46,7 @@ class FlightBookingController extends Controller
 
         return view('user.flights.checkout', $this->passengerPageData([
             'itineraryId' => $itinerary,
+            'selectedFareIndex' => $fareIndex,
             'itinerary' => $itineraryData,
             'searchParams' => $params,
             'totalAmount' => $totalAmount,
@@ -77,6 +79,7 @@ class FlightBookingController extends Controller
             'payment_method' => 'required|in:payby,tabby,tamara,wallet',
             'use_wallet' => 'nullable|in:1',
             'wallet_amount' => 'nullable|numeric|min:0',
+            'fare_option' => 'nullable|integer|min:0',
         ]);
 
         $validated = $this->normalizePassengerCountries($validated);
@@ -101,7 +104,8 @@ class FlightBookingController extends Controller
         $params = session('flight_search_params', []);
 
         $itineraryId = (int) $validated['itinerary_id'];
-        $itineraryData = $results[$itineraryId] ?? null;
+        $fareIndex = max(0, (int) ($validated['fare_option'] ?? 0));
+        $itineraryData = $this->resolveItineraryFare($results, $itineraryId, $fareIndex);
 
         if (!$itineraryData || empty($params)) {
             return redirect()->route('user.flights.index')
@@ -117,6 +121,7 @@ class FlightBookingController extends Controller
             (int) ($params['children'] ?? 0),
             (int) ($params['infants'] ?? 0),
             $sabreGroupIndex,
+            (int) ($itineraryData['sabre_pricing_index'] ?? 0),
         );
 
         if (!($revalidate['success'] ?? false)) {
@@ -395,8 +400,9 @@ class FlightBookingController extends Controller
     {
         $results = session('flight_search_results', []);
         $params  = session('flight_search_params', []);
+        $fareIndex = max(0, (int) $request->query('fare', 0));
 
-        $itineraryData = $results[$itinerary] ?? null;
+        $itineraryData = $this->resolveItineraryFare($results, $itinerary, $fareIndex);
 
         if (!$itineraryData || empty($params)) {
             return redirect()->route('user.flights.index')
@@ -415,6 +421,7 @@ class FlightBookingController extends Controller
 
         return view('user.flights.hold', $this->passengerPageData([
             'itineraryId'     => $itinerary,
+            'selectedFareIndex' => $fareIndex,
             'itinerary'       => $itineraryData,
             'searchParams'    => $params,
             'totalAmount'     => (float) ($itineraryData['totalPrice'] ?? 0),
@@ -444,6 +451,7 @@ class FlightBookingController extends Controller
             'passengers.*.passport_no'  => 'nullable|string|max:20',
             'passengers.*.passport_exp' => 'nullable|date',
             'passengers.*.save_profile' => 'nullable|in:1',
+            'fare_option' => 'nullable|integer|min:0',
         ]);
 
         $validated = $this->normalizePassengerCountries($validated);
@@ -451,7 +459,8 @@ class FlightBookingController extends Controller
         $results       = session('flight_search_results', []);
         $params        = session('flight_search_params', []);
         $itineraryId   = (int) $validated['itinerary_id'];
-        $itineraryData = $results[$itineraryId] ?? null;
+        $fareIndex     = max(0, (int) ($validated['fare_option'] ?? 0));
+        $itineraryData = $this->resolveItineraryFare($results, $itineraryId, $fareIndex);
 
         if (!$itineraryData || empty($params)) {
             return redirect()->route('user.flights.index')
@@ -745,6 +754,46 @@ class FlightBookingController extends Controller
             : null;
 
         return [$sabreItineraryId, $groupIndex];
+    }
+
+    /**
+     * @param  array<int|string, array<string, mixed>>  $results
+     *
+     * @return array<string, mixed>|null
+     */
+    private function resolveItineraryFare(array $results, int $itineraryId, int $fareIndex): ?array
+    {
+        $card = $results[$itineraryId] ?? null;
+        if (! is_array($card)) {
+            return null;
+        }
+
+        $options = $card['fare_options'] ?? null;
+        if (! is_array($options) || $options === []) {
+            return $card;
+        }
+
+        $selected = $options[$fareIndex] ?? $options[0];
+        if (! is_array($selected)) {
+            return $card;
+        }
+
+        return array_merge($card, [
+            'totalPrice' => $selected['totalPrice'] ?? $card['totalPrice'] ?? null,
+            'supplierPrice' => $selected['totalPrice'] ?? $card['supplierPrice'] ?? null,
+            'currency' => $selected['currency'] ?? $card['currency'] ?? null,
+            'fare_brand' => $selected['fare_brand'] ?? $card['fare_brand'] ?? null,
+            'non_refundable' => $selected['non_refundable'] ?? $card['non_refundable'] ?? false,
+            'baggage_notes' => $selected['baggage_notes'] ?? $card['baggage_notes'] ?? null,
+            'baggage_details' => $selected['baggage_details'] ?? $card['baggage_details'] ?? [],
+            'fare_rules' => $selected['fare_rules'] ?? $card['fare_rules'] ?? [],
+            'fare_tags' => $selected['fare_tags'] ?? $card['fare_tags'] ?? [],
+            'pricing_subsource' => $selected['pricing_subsource'] ?? $card['pricing_subsource'] ?? '',
+            'validating_carrier' => $selected['validating_carrier'] ?? $card['validating_carrier'] ?? null,
+            'governing_carriers' => $selected['governing_carriers'] ?? $card['governing_carriers'] ?? null,
+            'sabre_pricing_index' => $selected['sabre_pricing_index'] ?? 0,
+            'selected_fare_index' => $fareIndex,
+        ]);
     }
 
     protected function getSourceMarketFromIP(): string

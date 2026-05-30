@@ -76,6 +76,7 @@
             <form id="flightCheckoutForm" action="{{ route('user.flights.payment.process') }}" method="POST" novalidate>
                 @csrf
                 <input type="hidden" name="itinerary_id" value="{{ $itineraryId }}">
+                <input type="hidden" name="fare_option" value="{{ $selectedFareIndex ?? 0 }}">
 
                 <div class="row g-4">
 

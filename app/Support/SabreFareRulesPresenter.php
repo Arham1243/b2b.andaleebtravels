@@ -31,6 +31,17 @@ final class SabreFareRulesPresenter
      *         valid_from_display: ?string,
      *         valid_to_display: ?string
      *     }>,
+     *     penalties: list<array{
+     *         type: string,
+     *         type_label: string,
+     *         applicability: string,
+     *         amount: ?float,
+     *         currency: ?string,
+     *         refundable: ?bool,
+     *         changeable: ?bool,
+     *         summary: string
+     *     }>,
+     *     policy_sections: list<array{title: string, items: list<string>}>,
      *     notes: list<string>
      * }
      */
@@ -78,6 +89,7 @@ final class SabreFareRulesPresenter
         $lastTicketDate = self::stringOrNull(data_get($pricingBlock, 'fare.lastTicketDate'));
         $lastTicketTime = self::stringOrNull(data_get($pricingBlock, 'fare.lastTicketTime'));
         $lastTicketDisplay = self::formatDisplayDateTime($lastTicketDate, $lastTicketTime);
+        $penalties = self::extractPenalties($passengerFare, $grouped);
 
         return [
             'refundable' => !$nonRefundable,
@@ -90,8 +102,120 @@ final class SabreFareRulesPresenter
             'last_ticket_time' => $lastTicketTime,
             'last_ticket_display' => $lastTicketDisplay,
             'components' => $components,
-            'notes' => self::buildNotes($nonRefundable, $lastTicketDisplay),
+            'penalties' => $penalties,
+            'policy_sections' => self::buildPolicySections($penalties, $nonRefundable, $lastTicketDisplay),
+            'notes' => self::buildNotes($nonRefundable, $lastTicketDisplay, $penalties),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $passengerFare
+     * @param array<string, mixed> $grouped
+     *
+     * @return list<array{
+     *     type: string,
+     *     type_label: string,
+     *     applicability: string,
+     *     amount: ?float,
+     *     currency: ?string,
+     *     refundable: ?bool,
+     *     changeable: ?bool,
+     *     summary: string
+     * }>
+     */
+    private static function extractPenalties(array $passengerFare, array $grouped): array
+    {
+        $penaltyById = collect($grouped['penaltyDescs'] ?? [])->keyBy('id');
+        $rawPenalties = $passengerFare['penalties']
+            ?? data_get($passengerFare, 'penaltiesInformation.penalties', [])
+            ?? data_get($passengerFare, 'penaltyInformation.penalties', []);
+
+        if (!is_array($rawPenalties)) {
+            return [];
+        }
+
+        $penalties = [];
+
+        foreach ($rawPenalties as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $desc = null;
+            $ref = $row['ref'] ?? null;
+
+            if ($ref !== null) {
+                $desc = $penaltyById->get($ref);
+            }
+
+            $merged = is_array($desc) ? array_merge($desc, $row) : $row;
+            $type = strtoupper(trim((string) ($merged['type'] ?? '')));
+            $applicability = self::formatApplicability((string) ($merged['applicability'] ?? ''));
+            $amount = self::normalizeAmount($merged['amount'] ?? null);
+            $currency = self::stringOrNull($merged['currency'] ?? ($merged['currencyCode'] ?? null));
+            $refundable = array_key_exists('refundable', $merged) ? (bool) $merged['refundable'] : null;
+            $changeable = array_key_exists('changeable', $merged) ? (bool) $merged['changeable'] : null;
+
+            $penalties[] = [
+                'type' => $type,
+                'type_label' => self::penaltyTypeLabel($type),
+                'applicability' => $applicability,
+                'amount' => $amount,
+                'currency' => $currency,
+                'refundable' => $refundable,
+                'changeable' => $changeable,
+                'summary' => self::formatPenaltySummary($type, $applicability, $amount, $currency, $refundable, $changeable),
+            ];
+        }
+
+        return self::uniquePenalties($penalties);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $penalties
+     *
+     * @return list<array{title: string, items: list<string>}>
+     */
+    private static function buildPolicySections(array $penalties, bool $nonRefundable, ?string $lastTicketDisplay): array
+    {
+        $sections = [];
+        $grouped = [];
+
+        foreach ($penalties as $penalty) {
+            $label = (string) ($penalty['type_label'] ?? 'Policy');
+            $grouped[$label][] = (string) ($penalty['summary'] ?? '');
+        }
+
+        foreach ($grouped as $title => $items) {
+            $items = array_values(array_filter(array_unique($items)));
+            if ($items !== []) {
+                $sections[] = [
+                    'title' => $title,
+                    'items' => $items,
+                ];
+            }
+        }
+
+        if ($sections === [] && $nonRefundable) {
+            $sections[] = [
+                'title' => 'Refund Policy',
+                'items' => ['This fare is non-refundable.'],
+            ];
+        } elseif ($sections === [] && !$nonRefundable) {
+            $sections[] = [
+                'title' => 'Refund Policy',
+                'items' => ['This fare is refundable. Airline penalties may apply.'],
+            ];
+        }
+
+        if ($lastTicketDisplay !== null) {
+            $sections[] = [
+                'title' => 'Ticketing',
+                'items' => ['Ticket must be issued by ' . $lastTicketDisplay . '.'],
+            ];
+        }
+
+        return $sections;
     }
 
     /**
@@ -129,25 +253,108 @@ final class SabreFareRulesPresenter
     }
 
     /**
+     * @param list<array<string, mixed>> $penalties
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function uniquePenalties(array $penalties): array
+    {
+        $unique = [];
+
+        foreach ($penalties as $penalty) {
+            $key = strtolower(json_encode($penalty) ?: '');
+
+            if (!isset($unique[$key])) {
+                $unique[$key] = $penalty;
+            }
+        }
+
+        return array_values($unique);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $penalties
+     *
      * @return list<string>
      */
-    private static function buildNotes(bool $nonRefundable, ?string $lastTicketDisplay): array
+    private static function buildNotes(bool $nonRefundable, ?string $lastTicketDisplay, array $penalties): array
     {
-        $notes = [];
-
-        if ($nonRefundable) {
-            $notes[] = 'This fare is marked non-refundable. Airline change and cancellation penalties may apply.';
-        } else {
-            $notes[] = 'This fare is marked refundable. Airline penalties and fare difference may still apply on changes or cancellations.';
+        if ($penalties !== [] || $lastTicketDisplay !== null) {
+            return [];
         }
 
-        if ($lastTicketDisplay !== null) {
-            $notes[] = 'Ticket must be issued by ' . $lastTicketDisplay . ' (local agency time).';
+        return [
+            $nonRefundable
+                ? 'This fare is marked non-refundable.'
+                : 'This fare is marked refundable.',
+        ];
+    }
+
+    private static function penaltyTypeLabel(string $type): string
+    {
+        return match ($type) {
+            'REFUND', 'REF', 'CANCEL', 'CANCELLATION' => 'Cancellations',
+            'EXCHANGE', 'REISSUE', 'REVALIDATION', 'CHANGE' => 'Changes',
+            'NOSHOW', 'NO-SHOW', 'NO SHOW' => 'No-show',
+            default => $type !== '' ? ucwords(strtolower(str_replace('_', ' ', $type))) : 'Policy',
+        };
+    }
+
+    private static function formatApplicability(string $value): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return 'Any time';
         }
 
-        $notes[] = 'Full fare rule details are governed by the validating carrier and may change before ticketing.';
+        return match (strtoupper($value)) {
+            'BEFORE' => 'Before departure',
+            'AFTER' => 'After departure',
+            default => ucwords(strtolower($value)),
+        };
+    }
 
-        return $notes;
+    private static function formatPenaltySummary(
+        string $type,
+        string $applicability,
+        ?float $amount,
+        ?string $currency,
+        ?bool $refundable,
+        ?bool $changeable,
+    ): string {
+        if ($refundable === false || $changeable === false) {
+            $label = self::penaltyTypeLabel($type);
+
+            return $applicability . ' — ' . $label . ' not permitted.';
+        }
+
+        if ($amount !== null && $amount > 0 && $currency !== null) {
+            return $applicability . ' — ' . strtoupper($currency) . ' ' . number_format($amount, 2) . ' per ticket.';
+        }
+
+        if ($amount === 0.0) {
+            return $applicability . ' — No penalty.';
+        }
+
+        if ($refundable === true || $changeable === true) {
+            return $applicability . ' — Permitted.';
+        }
+
+        return $applicability . ' — See airline fare rules.';
+    }
+
+    private static function normalizeAmount(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        return round((float) $value, 2);
     }
 
     private static function formatDisplayDate(?string $date): ?string

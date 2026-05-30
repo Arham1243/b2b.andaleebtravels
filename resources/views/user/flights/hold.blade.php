@@ -43,6 +43,7 @@
             <form id="holdForm" action="{{ route('user.flights.hold.process') }}" method="POST" novalidate>
                 @csrf
                 <input type="hidden" name="itinerary_id" value="{{ $itineraryId }}">
+                <input type="hidden" name="fare_option" value="{{ $selectedFareIndex ?? 0 }}">
 
                 {{-- hidden lead fields mirrored from passenger[0] via JS --}}
                 <input type="hidden" name="lead[title]"      id="lead-title-hidden"  value="Mr">

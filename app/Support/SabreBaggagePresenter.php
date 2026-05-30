@@ -11,7 +11,8 @@ final class SabreBaggagePresenter
      * @return array{
      *     summary: ?string,
      *     checked: list<array{route: string, airline: string, allowance: string, provision_type: string}>,
-     *     cabin: list<array{route: string, airline: string, allowance: string, provision_type: string}>
+     *     cabin: list<array{route: string, airline: string, allowance: string, provision_type: string}>,
+     *     pax_table: list<array{pax_type: string, checked: string, cabin: string}>
      * }
      */
     public static function fromPricingBlock(array $pricingBlock, array $grouped = []): array
@@ -62,7 +63,59 @@ final class SabreBaggagePresenter
             'summary' => self::buildSummary($checked, $cabin),
             'checked' => $checked,
             'cabin' => $cabin,
+            'pax_table' => self::paxAllowanceTable($pricingBlock, $grouped),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $pricingBlock
+     * @param array<string, mixed> $grouped
+     *
+     * @return list<array{pax_type: string, checked: string, cabin: string}>
+     */
+    public static function paxAllowanceTable(array $pricingBlock, array $grouped = []): array
+    {
+        $allowanceById = collect($grouped['baggageAllowanceDescs'] ?? [])->keyBy('id');
+        $rows = [];
+
+        foreach (data_get($pricingBlock, 'fare.passengerInfoList', []) as $paxRow) {
+            if (!is_array($paxRow)) {
+                continue;
+            }
+
+            $paxInfo = $paxRow['passengerInfo'] ?? [];
+            if (!is_array($paxInfo)) {
+                continue;
+            }
+
+            $checkedAllowances = [];
+            $cabinAllowances = [];
+
+            foreach ($paxInfo['baggageInformation'] ?? [] as $bagRow) {
+                if (!is_array($bagRow)) {
+                    continue;
+                }
+
+                $provisionType = strtoupper(trim((string) ($bagRow['provisionType'] ?? 'A')));
+                $allowanceRef = data_get($bagRow, 'allowance.ref');
+                $allowanceDesc = $allowanceRef !== null ? $allowanceById->get($allowanceRef) : null;
+                $text = self::formatAllowance(is_array($allowanceDesc) ? $allowanceDesc : null);
+
+                if (self::isCabinProvision($provisionType)) {
+                    $cabinAllowances[] = $text;
+                } else {
+                    $checkedAllowances[] = $text;
+                }
+            }
+
+            $rows[] = [
+                'pax_type' => self::paxLabel((string) ($paxInfo['passengerType'] ?? 'ADT')),
+                'checked' => self::summarizeAllowanceList($checkedAllowances),
+                'cabin' => self::summarizeAllowanceList($cabinAllowances),
+            ];
+        }
+
+        return $rows;
     }
 
     /**
@@ -96,7 +149,14 @@ final class SabreBaggagePresenter
     private static function formatAllowance(?array $desc): string
     {
         if ($desc === null) {
-            return 'As per airline policy';
+            return 'Not included';
+        }
+
+        foreach (['description1', 'description2'] as $key) {
+            $description = trim((string) ($desc[$key] ?? ''));
+            if ($description !== '') {
+                return self::normalizeDescription($description);
+            }
         }
 
         $pieces = (int) ($desc['pieceCount'] ?? 0);
@@ -115,7 +175,49 @@ final class SabreBaggagePresenter
             return $weight . ' ' . $unit;
         }
 
-        return 'Included';
+        return '0 kg';
+    }
+
+    private static function normalizeDescription(string $description): string
+    {
+        $description = trim(preg_replace('/\s+/', ' ', $description) ?? '');
+
+        if ($description === '') {
+            return 'Not included';
+        }
+
+        if (strtoupper($description) === $description) {
+            return ucwords(strtolower($description));
+        }
+
+        return $description;
+    }
+
+    /**
+     * @param list<string> $allowances
+     */
+    private static function summarizeAllowanceList(array $allowances): string
+    {
+        $allowances = array_values(array_unique(array_filter(array_map(
+            static fn (string $value) => trim($value),
+            $allowances,
+        ))));
+
+        if ($allowances === []) {
+            return 'Not included';
+        }
+
+        return count($allowances) === 1 ? $allowances[0] : implode(' / ', $allowances);
+    }
+
+    private static function paxLabel(string $code): string
+    {
+        return match (strtoupper(trim($code))) {
+            'ADT' => 'Adult',
+            'CNN', 'C06', 'CHD' => 'Child',
+            'INF' => 'Infant',
+            default => strtoupper(trim($code)) !== '' ? strtoupper(trim($code)) : 'Passenger',
+        };
     }
 
     private static function isCabinProvision(string $provisionType): bool
@@ -171,7 +273,7 @@ final class SabreBaggagePresenter
     }
 
     /**
-     * @return array{summary: null, checked: list<empty>, cabin: list<empty>}
+     * @return array{summary: null, checked: list<empty>, cabin: list<empty>, pax_table: list<empty>}
      */
     private static function emptyResult(): array
     {
@@ -179,6 +281,7 @@ final class SabreBaggagePresenter
             'summary' => null,
             'checked' => [],
             'cabin' => [],
+            'pax_table' => [],
         ];
     }
 }

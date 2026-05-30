@@ -1014,6 +1014,7 @@ class FlightService
         int $children,
         int $infants,
         ?int $groupIndex = null,
+        int $pricingIndex = 0,
     ): array {
         try {
             $token = $this->getSabreToken();
@@ -1023,7 +1024,7 @@ class FlightService
                 throw new \Exception('Unable to locate itinerary for revalidation.');
             }
 
-            $payload = $this->buildRevalidatePayload($searchResponse, $itineraryRaw, $adults, $children, $infants);
+            $payload = $this->buildRevalidatePayload($searchResponse, $itineraryRaw, $adults, $children, $infants, $pricingIndex);
             if (empty($payload['OTA_AirLowFareSearchRQ']['OriginDestinationInformation'])) {
                 throw new \Exception('Unable to build revalidation payload.');
             }
@@ -1178,9 +1179,9 @@ class FlightService
         ];
     }
 
-    private function buildRevalidatePayload(array $grouped, array $itineraryRaw, int $adults, int $children, int $infants): array
+    private function buildRevalidatePayload(array $grouped, array $itineraryRaw, int $adults, int $children, int $infants, int $pricingIndex = 0): array
     {
-        $originDestinations = $this->buildRevalidateOriginDestinations($grouped, $itineraryRaw);
+        $originDestinations = $this->buildRevalidateOriginDestinations($grouped, $itineraryRaw, $pricingIndex);
         $passengerTypes = $this->buildRevalidatePassengerTypes($adults, $children, $infants);
         $totalPassengers = max(1, $adults + $children + $infants);
 
@@ -1277,7 +1278,7 @@ class FlightService
         return $types;
     }
 
-    private function buildRevalidateOriginDestinations(array $grouped, array $itineraryRaw): array
+    private function buildRevalidateOriginDestinations(array $grouped, array $itineraryRaw, int $pricingIndex = 0): array
     {
         $scheduleById = collect($grouped['scheduleDescs'] ?? [])->keyBy('id');
         $legById = collect($grouped['legDescs'] ?? [])->keyBy('id');
@@ -1285,7 +1286,7 @@ class FlightService
         $group = $grouped['itineraryGroups'][0] ?? [];
         $legDescriptions = $group['groupDescription']['legDescriptions'] ?? [];
 
-        $bookingCodes = $this->extractBookingCodes($itineraryRaw);
+        $bookingCodes = $this->extractBookingCodes($itineraryRaw, $pricingIndex);
         $bookingCodeIndex = 0;
 
         $originDestinations = [];
@@ -1405,7 +1406,10 @@ class FlightService
         $group = $grouped['itineraryGroups'][0] ?? [];
         $legDescriptions = $group['groupDescription']['legDescriptions'] ?? [];
 
-        $bookingCodes = $this->extractBookingCodes($itineraryRaw);
+        $bookingCodes = $this->extractBookingCodes(
+            $itineraryRaw,
+            (int) data_get($booking->itinerary_data, 'sabre_pricing_index', 0),
+        );
         $bookingCodeIndex = 0;
 
         $segments = [];
@@ -1455,10 +1459,14 @@ class FlightService
         return $segments;
     }
 
-    private function extractBookingCodes(array $itineraryRaw): array
+    private function extractBookingCodes(array $itineraryRaw, int $pricingIndex = 0): array
     {
         $codes = [];
-        $fareComponents = $itineraryRaw['pricingInformation'][0]['fare']['passengerInfoList'][0]['passengerInfo']['fareComponents'] ?? [];
+        $pricingInformation = $itineraryRaw['pricingInformation'] ?? [];
+        $pricingBlock = is_array($pricingInformation[$pricingIndex] ?? null)
+            ? $pricingInformation[$pricingIndex]
+            : ($pricingInformation[0] ?? []);
+        $fareComponents = $pricingBlock['fare']['passengerInfoList'][0]['passengerInfo']['fareComponents'] ?? [];
 
         foreach ($fareComponents as $component) {
             foreach (($component['segments'] ?? []) as $segment) {

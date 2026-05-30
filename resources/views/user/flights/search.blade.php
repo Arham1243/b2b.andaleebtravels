@@ -340,13 +340,21 @@
                                 }
                             }
                             $seatMin    = !empty($seatList) ? min($seatList) : null;
-                            $nonRefund  = (bool) ($result['non_refundable'] ?? false);
-                            $fareBrand  = trim((string) ($result['fare_brand'] ?? ''));
-                            $bagNote    = $result['baggage_notes'] ?? '';
-                            $bagDetails = $result['baggage_details'] ?? [];
-                            $fareRules  = $result['fare_rules'] ?? [];
-                            $totalPrice = (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0));
-                            $cardCur    = strtoupper((string) ($result['currency'] ?? $currencyCode));
+                            $fareOptions = $result['fare_options'] ?? [[
+                                'fare_brand' => trim((string) ($result['fare_brand'] ?? '')),
+                                'totalPrice' => (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0)),
+                                'currency' => strtoupper((string) ($result['currency'] ?? $currencyCode)),
+                                'non_refundable' => (bool) ($result['non_refundable'] ?? false),
+                                'baggage_notes' => $result['baggage_notes'] ?? '',
+                                'baggage_details' => $result['baggage_details'] ?? [],
+                                'fare_rules' => $result['fare_rules'] ?? [],
+                                'fare_tags' => $result['fare_tags'] ?? [],
+                            ]];
+                            $cardCur    = strtoupper((string) ($fareOptions[0]['currency'] ?? $result['currency'] ?? $currencyCode));
+                            $totalPrice = min(array_map(
+                                static fn ($fare) => (float) ($fare['totalPrice'] ?? INF),
+                                $fareOptions,
+                            ));
                             $cabinTop   = $firstSeg['cabin_code'] ?? 'Y';
                             $rbdTop     = $firstSeg['booking_code'] ?? '';
 
@@ -376,7 +384,7 @@
                         <div class="rc"
                              data-rp-meta='@json($meta)'
                              data-rp-stops="{{ $rpStops }}"
-                             data-rp-refund="{{ $nonRefund ? '0' : '1' }}"
+                             data-rp-refund="{{ collect($fareOptions)->contains(fn($f) => !($f['non_refundable'] ?? false)) ? '1' : '0' }}"
                              data-rp-price="{{ $totalPrice }}"
                              data-rp-dep-h="{{ $rpDepH }}"
                              data-rp-arr-h="{{ $rpArrH }}"
@@ -419,9 +427,6 @@
                                         </div>
                                         <div>
                                             <div class="rc__aname">{{ $s0['carrier_display'] ?? ($s0['carrier'] ?? '') }}</div>
-                                            @if($li === 0 && $fareBrand !== '')
-                                                <div class="rc__brand">{{ $fareBrand }}</div>
-                                            @endif
                                             <div class="rc__aflight">{{ strtoupper((string)($s0['carrier']??'')) }}{{ $s0['flight_number']??'' }}</div>
                                         </div>
                                     </div>
@@ -482,53 +487,69 @@
                                 </button>
                             </div>
 
-                            {{-- ── fare row ── --}}
-                            <div class="rc__fare">
-                                <div class="rc__fare-left">
-                                    @if($fareBrand !== '')
-                                        <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
-                                    @endif
-                                    @if($nonRefund)
-                                        <span class="rc__fbadge rc__fbadge--nr">Non-Refundable</span>
-                                    @else
-                                        <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
-                                    @endif
-                                    @if(!empty($cabinTop))
-                                        <span class="rc__ftag">{{ $cabinTop }}</span>
-                                    @endif
-                                    @if(!empty($rbdTop))
-                                        <span class="rc__ftag">Class {{ $rbdTop }}</span>
-                                    @endif
-                                    @if(!empty($bagNote))
-                                        <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>
-                                    @endif
-                                    @if(!is_null($seatMin))
-                                        <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $seatMin }} seats</span>
-                                    @endif
-                                </div>
-
-                                <div class="rc__fare-right">
-                                    <div class="rc__price">
-                                        <div class="rc__price-label">NET FARE</div>
-                                        <div class="rc__price-amount">
-                                            @if($cardCur === 'AED')
-                                                <span class="dirham">AED</span>
-                                            @else
-                                                <span class="rc__price-cur">{{ $cardCur }}</span>
-                                            @endif
-                                            {{ number_format($totalPrice, 2) }}
-                                        </div>
+                            {{-- ── fare rows (all branded options) ── --}}
+                            @foreach ($fareOptions as $fi => $fare)
+                                @php
+                                    $fareBrand  = trim((string) ($fare['fare_brand'] ?? ''));
+                                    $nonRefund  = (bool) ($fare['non_refundable'] ?? false);
+                                    $bagNote    = $fare['baggage_notes'] ?? '';
+                                    $farePrice  = (float) ($fare['totalPrice'] ?? 0);
+                                    $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
+                                @endphp
+                                <div class="rc__fare {{ $fi > 0 ? 'rc__fare--alt' : '' }}">
+                                    <div class="rc__fare-left">
+                                        @if($fareBrand !== '')
+                                            <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
+                                        @endif
+                                        @if($nonRefund)
+                                            <span class="rc__fbadge rc__fbadge--nr">Non-Refundable</span>
+                                        @else
+                                            <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
+                                        @endif
+                                        @if(!empty($cabinTop))
+                                            <span class="rc__ftag">{{ $cabinTop }}</span>
+                                        @endif
+                                        @if(!empty($rbdTop))
+                                            <span class="rc__ftag">Class {{ $rbdTop }}</span>
+                                        @endif
+                                        @if(!empty($bagNote))
+                                            <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>
+                                        @endif
+                                        @if(!is_null($seatMin))
+                                            <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $seatMin }} seats</span>
+                                        @endif
                                     </div>
-                                    <a href="{{ route('user.flights.hold', ['itinerary' => $lid] + $query) }}"
-                                        class="rc__hold">
-                                        <i class="bx bx-time-five"></i> Hold
-                                    </a>
-                                    <a href="{{ route('user.flights.checkout', ['itinerary' => $lid] + $query) }}"
-                                        class="rc__cta">
-                                        Book Now <i class="bx bx-right-arrow-alt"></i>
-                                    </a>
+
+                                    <div class="rc__fare-right">
+                                        <div class="rc__price">
+                                            <div class="rc__price-label">NET FARE</div>
+                                            <div class="rc__price-amount">
+                                                @if($fareCur === 'AED')
+                                                    <span class="dirham">AED</span>
+                                                @else
+                                                    <span class="rc__price-cur">{{ $fareCur }}</span>
+                                                @endif
+                                                {{ number_format($farePrice, 2) }}
+                                            </div>
+                                        </div>
+                                        <button type="button"
+                                            class="rc__details-mini"
+                                            data-fd-open="fd-{{ $lid }}"
+                                            data-fd-open-tab="baggage"
+                                            data-fd-fare="{{ $fi }}">
+                                            Details
+                                        </button>
+                                        <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                            class="rc__hold">
+                                            <i class="bx bx-time-five"></i> Hold
+                                        </a>
+                                        <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                            class="rc__cta">
+                                            Book Now <i class="bx bx-right-arrow-alt"></i>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
+                            @endforeach
 
                         </div>{{-- /.rc --}}
 
@@ -657,170 +678,234 @@
                                         </div>
                                     @endforeach
 
-                                    {{-- baggage panel --}}
-                                    <div class="fd-panel fd-panel--hidden" data-fd-panel="baggage">
-                                        <div class="fd-bag">
-                                            @php
-                                                $checkedRows = $bagDetails['checked'] ?? [];
-                                                $cabinRows = $bagDetails['cabin'] ?? [];
-                                            @endphp
-
-                                            @if(!empty($checkedRows))
-                                                <div class="fd-bag__section">
-                                                    <div class="fd-bag__section-title">Checked Baggage</div>
-                                                    @foreach($checkedRows as $bagRow)
-                                                        <div class="fd-bag__row">
-                                                            <i class="bx bx-briefcase-alt-2 fd-bag__icon"></i>
-                                                            <div>
-                                                                <div class="fd-bag__label">{{ $bagRow['route'] ?? 'Segment' }}</div>
-                                                                <div class="fd-bag__val">
-                                                                    {{ $bagRow['allowance'] ?? 'As per airline policy' }}
-                                                                    @if(!empty($bagRow['airline']))
-                                                                        <span class="fd-bag__meta">· {{ $bagRow['airline'] }}</span>
-                                                                    @endif
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <div class="fd-bag__row">
-                                                    <i class="bx bx-briefcase-alt-2 fd-bag__icon"></i>
-                                                    <div>
-                                                        <div class="fd-bag__label">Checked Baggage</div>
-                                                        <div class="fd-bag__val">{{ !empty($bagNote) ? $bagNote : 'As per airline policy' }}</div>
-                                                    </div>
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($cabinRows))
-                                                <div class="fd-bag__section">
-                                                    <div class="fd-bag__section-title">Cabin / Hand Baggage</div>
-                                                    @foreach($cabinRows as $bagRow)
-                                                        <div class="fd-bag__row">
-                                                            <i class="bx bx-shopping-bag fd-bag__icon"></i>
-                                                            <div>
-                                                                <div class="fd-bag__label">{{ $bagRow['route'] ?? 'Segment' }}</div>
-                                                                <div class="fd-bag__val">
-                                                                    {{ $bagRow['allowance'] ?? 'As per airline policy' }}
-                                                                    @if(!empty($bagRow['airline']))
-                                                                        <span class="fd-bag__meta">· {{ $bagRow['airline'] }}</span>
-                                                                    @endif
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <div class="fd-bag__row">
-                                                    <i class="bx bx-shopping-bag fd-bag__icon"></i>
-                                                    <div>
-                                                        <div class="fd-bag__label">Cabin / Hand Baggage</div>
-                                                        <div class="fd-bag__val">As per airline policy</div>
-                                                    </div>
-                                                </div>
-                                            @endif
+                                    @if(count($fareOptions) > 1)
+                                        <div class="fd-fare-tabs" hidden>
+                                            @foreach($fareOptions as $fi => $fare)
+                                                @php $tabBrand = trim((string) ($fare['fare_brand'] ?? ('Fare ' . ($fi + 1)))); @endphp
+                                                <button type="button"
+                                                    class="fd-fare-tab {{ $fi === 0 ? 'fd-fare-tab--active' : '' }}"
+                                                    data-fd-fare-tab="{{ $fi }}">
+                                                    {{ $tabBrand }}
+                                                </button>
+                                            @endforeach
                                         </div>
-                                    </div>
+                                    @endif
 
-                                    {{-- fare rules panel --}}
-                                    <div class="fd-panel fd-panel--hidden" data-fd-panel="fare-rules">
-                                        <div class="fd-rules">
-                                            <div class="fd-rules__summary">
-                                                <div class="fd-rules__row">
-                                                    <span class="fd-rules__key">Refundability</span>
-                                                    <span class="fd-rules__val fd-rules__val--{{ ($fareRules['refundable'] ?? !$nonRefund) ? 'ref' : 'nr' }}">
-                                                        {{ $fareRules['refund_label'] ?? ($nonRefund ? 'Non-Refundable' : 'Refundable') }}
-                                                    </span>
-                                                </div>
-                                                @if(!empty($fareRules['fare_brand']) || !empty($fareBrand))
-                                                    <div class="fd-rules__row">
-                                                        <span class="fd-rules__key">Fare Brand</span>
-                                                        <span class="fd-rules__val">{{ $fareRules['fare_brand'] ?? $fareBrand }}</span>
+                                    @foreach($fareOptions as $fi => $fare)
+                                        @php
+                                            $bagDetails = $fare['baggage_details'] ?? [];
+                                            $fareRules  = $fare['fare_rules'] ?? [];
+                                            $nonRefund  = (bool) ($fare['non_refundable'] ?? false);
+                                            $fareBrand  = trim((string) ($fare['fare_brand'] ?? ''));
+                                            $bagNote    = $fare['baggage_notes'] ?? '';
+                                            $farePrice  = (float) ($fare['totalPrice'] ?? 0);
+                                            $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
+                                            $checkedRows = $bagDetails['checked'] ?? [];
+                                            $cabinRows = $bagDetails['cabin'] ?? [];
+                                            $paxTable = $bagDetails['pax_table'] ?? [];
+                                        @endphp
+
+                                        {{-- baggage panel --}}
+                                        <div class="fd-panel fd-panel--hidden fd-fare-panel {{ $fi === 0 ? 'fd-fare-panel--active' : '' }}"
+                                            data-fd-panel="baggage"
+                                            data-fd-fare-panel="{{ $fi }}">
+                                            <div class="fd-bag">
+                                                @if(!empty($paxTable))
+                                                    <div class="fd-bag__section">
+                                                        <div class="fd-bag__section-title">Baggage Allowance</div>
+                                                        <div class="fd-bag__table-wrap">
+                                                            <table class="fd-bag__table">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Pax Type</th>
+                                                                        <th>Check-in Baggage</th>
+                                                                        <th>Cabin Baggage</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach($paxTable as $paxRow)
+                                                                        <tr>
+                                                                            <td>{{ $paxRow['pax_type'] ?? 'Passenger' }}</td>
+                                                                            <td>{{ $paxRow['checked'] ?? 'Not included' }}</td>
+                                                                            <td>{{ $paxRow['cabin'] ?? 'Not included' }}</td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
                                                     </div>
                                                 @endif
-                                                @if(!empty($fareRules['validating_carrier']))
-                                                    <div class="fd-rules__row">
-                                                        <span class="fd-rules__key">Validating Carrier</span>
-                                                        <span class="fd-rules__val">{{ $fareRules['validating_carrier'] }}</span>
+
+                                                @if(!empty($checkedRows))
+                                                    <div class="fd-bag__section">
+                                                        <div class="fd-bag__section-title">Checked Baggage</div>
+                                                        @foreach($checkedRows as $bagRow)
+                                                            <div class="fd-bag__row">
+                                                                <i class="bx bx-briefcase-alt-2 fd-bag__icon"></i>
+                                                                <div>
+                                                                    <div class="fd-bag__label">{{ $bagRow['route'] ?? 'Segment' }}</div>
+                                                                    <div class="fd-bag__val">
+                                                                        {{ $bagRow['allowance'] ?? 'Not included' }}
+                                                                        @if(!empty($bagRow['airline']))
+                                                                            <span class="fd-bag__meta">· {{ $bagRow['airline'] }}</span>
+                                                                        @endif
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @elseif(!empty($bagNote))
+                                                    <div class="fd-bag__row">
+                                                        <i class="bx bx-briefcase-alt-2 fd-bag__icon"></i>
+                                                        <div>
+                                                            <div class="fd-bag__label">Checked Baggage</div>
+                                                            <div class="fd-bag__val">{{ $bagNote }}</div>
+                                                        </div>
                                                     </div>
                                                 @endif
-                                                @if(!empty($fareRules['passenger_type']))
-                                                    <div class="fd-rules__row">
-                                                        <span class="fd-rules__key">Passenger Type</span>
-                                                        <span class="fd-rules__val">{{ $fareRules['passenger_type'] }}</span>
-                                                    </div>
-                                                @endif
-                                                @if(!empty($fareRules['last_ticket_display']))
-                                                    <div class="fd-rules__row">
-                                                        <span class="fd-rules__key">Last Ticket Date</span>
-                                                        <span class="fd-rules__val">{{ $fareRules['last_ticket_display'] }}</span>
+
+                                                @if(!empty($cabinRows))
+                                                    <div class="fd-bag__section">
+                                                        <div class="fd-bag__section-title">Cabin / Hand Baggage</div>
+                                                        @foreach($cabinRows as $bagRow)
+                                                            <div class="fd-bag__row">
+                                                                <i class="bx bx-shopping-bag fd-bag__icon"></i>
+                                                                <div>
+                                                                    <div class="fd-bag__label">{{ $bagRow['route'] ?? 'Segment' }}</div>
+                                                                    <div class="fd-bag__val">
+                                                                        {{ $bagRow['allowance'] ?? 'Not included' }}
+                                                                        @if(!empty($bagRow['airline']))
+                                                                            <span class="fd-bag__meta">· {{ $bagRow['airline'] }}</span>
+                                                                        @endif
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
                                                     </div>
                                                 @endif
                                             </div>
-
-                                            @if(!empty($fareRules['components']))
-                                                <div class="fd-rules__section">
-                                                    <div class="fd-rules__section-title">Fare Components</div>
-                                                    @foreach($fareRules['components'] as $component)
-                                                        <div class="fd-rules__component">
-                                                            <div class="fd-rules__component-route">{{ $component['route'] ?? 'Segment' }}</div>
-                                                            <div class="fd-rules__component-grid">
-                                                                @if(!empty($component['brand']))
-                                                                    <div><span>Brand</span><strong>{{ $component['brand'] }}</strong></div>
-                                                                @endif
-                                                                @if(!empty($component['fare_basis']))
-                                                                    <div><span>Fare Basis</span><strong>{{ $component['fare_basis'] }}</strong></div>
-                                                                @endif
-                                                                @if(!empty($component['fare_rule']))
-                                                                    <div><span>Fare Rule</span><strong>{{ $component['fare_rule'] }}</strong></div>
-                                                                @endif
-                                                                @if(!empty($component['cabin']))
-                                                                    <div><span>Cabin</span><strong>{{ $component['cabin'] }}</strong></div>
-                                                                @endif
-                                                                @if(!empty($component['valid_from_display']) || !empty($component['valid_to_display']))
-                                                                    <div><span>Travel Validity</span><strong>{{ $component['valid_from_display'] ?? '—' }} to {{ $component['valid_to_display'] ?? '—' }}</strong></div>
-                                                                @endif
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            @endif
-
-                                            @if(!empty($fareRules['notes']))
-                                                <div class="fd-rules__notes">
-                                                    @foreach($fareRules['notes'] as $note)
-                                                        <p><i class="bx bx-info-circle"></i> {{ $note }}</p>
-                                                    @endforeach
-                                                </div>
-                                            @endif
                                         </div>
-                                    </div>
+
+                                        {{-- fare rules panel --}}
+                                        <div class="fd-panel fd-panel--hidden fd-fare-panel {{ $fi === 0 ? 'fd-fare-panel--active' : '' }}"
+                                            data-fd-panel="fare-rules"
+                                            data-fd-fare-panel="{{ $fi }}">
+                                            <div class="fd-rules">
+                                                <div class="fd-rules__route">
+                                                    {{ $legRoutes[0]['from'] ?? '' }} → {{ $legRoutes[0]['to'] ?? '' }}
+                                                </div>
+
+                                                <div class="fd-rules__summary">
+                                                    <div class="fd-rules__row">
+                                                        <span class="fd-rules__key">Refundability</span>
+                                                        <span class="fd-rules__val fd-rules__val--{{ ($fareRules['refundable'] ?? !$nonRefund) ? 'ref' : 'nr' }}">
+                                                            {{ $fareRules['refund_label'] ?? ($nonRefund ? 'Non-Refundable' : 'Refundable') }}
+                                                        </span>
+                                                    </div>
+                                                    @if(!empty($fareRules['fare_brand']) || !empty($fareBrand))
+                                                        <div class="fd-rules__row">
+                                                            <span class="fd-rules__key">Fare Brand</span>
+                                                            <span class="fd-rules__val">{{ $fareRules['fare_brand'] ?? $fareBrand }}</span>
+                                                        </div>
+                                                    @endif
+                                                    @if(!empty($fareRules['validating_carrier']))
+                                                        <div class="fd-rules__row">
+                                                            <span class="fd-rules__key">Validating Carrier</span>
+                                                            <span class="fd-rules__val">{{ $fareRules['validating_carrier'] }}</span>
+                                                        </div>
+                                                    @endif
+                                                    @if(!empty($fareRules['last_ticket_display']))
+                                                        <div class="fd-rules__row">
+                                                            <span class="fd-rules__key">Last Ticket Date</span>
+                                                            <span class="fd-rules__val">{{ $fareRules['last_ticket_display'] }}</span>
+                                                        </div>
+                                                    @endif
+                                                </div>
+
+                                                @if(!empty($fareRules['policy_sections']))
+                                                    <div class="fd-rules__section">
+                                                        @foreach($fareRules['policy_sections'] as $section)
+                                                            <div class="fd-rules__policy">
+                                                                <div class="fd-rules__section-title">{{ $section['title'] ?? 'Policy' }}</div>
+                                                                <ul class="fd-rules__list">
+                                                                    @foreach($section['items'] ?? [] as $item)
+                                                                        <li>{{ $item }}</li>
+                                                                    @endforeach
+                                                                </ul>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
+                                                @if(!empty($fareRules['components']))
+                                                    <div class="fd-rules__section">
+                                                        <div class="fd-rules__section-title">Fare Components</div>
+                                                        @foreach($fareRules['components'] as $component)
+                                                            <div class="fd-rules__component">
+                                                                <div class="fd-rules__component-route">{{ $component['route'] ?? 'Segment' }}</div>
+                                                                <div class="fd-rules__component-grid">
+                                                                    @if(!empty($component['brand']))
+                                                                        <div><span>Brand</span><strong>{{ $component['brand'] }}</strong></div>
+                                                                    @endif
+                                                                    @if(!empty($component['fare_basis']))
+                                                                        <div><span>Fare Basis</span><strong>{{ $component['fare_basis'] }}</strong></div>
+                                                                    @endif
+                                                                    @if(!empty($component['fare_rule']))
+                                                                        <div><span>Fare Rule</span><strong>{{ $component['fare_rule'] }}</strong></div>
+                                                                    @endif
+                                                                    @if(!empty($component['cabin']))
+                                                                        <div><span>Cabin</span><strong>{{ $component['cabin'] }}</strong></div>
+                                                                    @endif
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+
+                                                @if(!empty($fareRules['notes']))
+                                                    <div class="fd-rules__notes">
+                                                        @foreach($fareRules['notes'] as $note)
+                                                            <p><i class="bx bx-info-circle"></i> {{ $note }}</p>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
 
                                 </div>{{-- /.fd-body --}}
 
-                                <div class="fd-foot">
-                                    <div class="fd-foot__price">
-                                        <span class="fd-foot__label">Total</span>
-                                        <span class="fd-foot__amount">
-                                            @if($cardCur === 'AED')
-                                                <span class="dirham">AED</span>
-                                            @else
-                                                {{ $cardCur }}
-                                            @endif
-                                            {{ number_format($totalPrice, 2) }}
-                                        </span>
-                                    </div>
-                                    <div class="fd-foot__btns">
-                                        <a href="{{ route('user.flights.hold', ['itinerary' => $lid] + $query) }}"
-                                            class="fd-foot__hold">
-                                            <i class="bx bx-time-five"></i> Hold
-                                        </a>
-                                        <a href="{{ route('user.flights.checkout', ['itinerary' => $lid] + $query) }}"
-                                            class="fd-foot__book">
-                                            Book Now <i class="bx bx-right-arrow-alt"></i>
-                                        </a>
-                                    </div>
+                                <div class="fd-foot-wrap">
+                                    @foreach($fareOptions as $fi => $fare)
+                                        @php
+                                            $farePrice  = (float) ($fare['totalPrice'] ?? 0);
+                                            $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
+                                        @endphp
+                                        <div class="fd-foot fd-fare-foot {{ $fi === 0 ? 'fd-fare-foot--active' : '' }}"
+                                            data-fd-fare-foot="{{ $fi }}">
+                                            <div class="fd-foot__price">
+                                                <span class="fd-foot__label">Total</span>
+                                                <span class="fd-foot__amount">
+                                                    @if($fareCur === 'AED')
+                                                        <span class="dirham">AED</span>
+                                                    @else
+                                                        {{ $fareCur }}
+                                                    @endif
+                                                    {{ number_format($farePrice, 2) }}
+                                                </span>
+                                            </div>
+                                            <div class="fd-foot__btns">
+                                                <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                    class="fd-foot__hold">
+                                                    <i class="bx bx-time-five"></i> Hold
+                                                </a>
+                                                <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                    class="fd-foot__book">
+                                                    Book Now <i class="bx bx-right-arrow-alt"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
 
                             </div>
@@ -1046,7 +1131,14 @@
     border-top: 1px solid var(--c-line-inner);
 }
 .rc__fare-left  { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
-.rc__fare-right { display: flex; align-items: center; gap: .6rem; }
+.rc__fare-right { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.rc__fare--alt  { border-top: 1px dashed var(--c-line-inner); }
+.rc__details-mini {
+    border: 1px solid var(--c-line); background: #fff; color: var(--c-slate);
+    font: inherit; font-size: .68rem; font-weight: 700; border-radius: 999px;
+    padding: .28rem .62rem; cursor: pointer;
+}
+.rc__details-mini:hover { border-color: var(--c-brand); color: var(--c-brand); }
 
 .rc__fbadge {
     font-size: .6rem; font-weight: 700; padding: .17rem .52rem;
@@ -1323,9 +1415,44 @@
     font-size: .68rem; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: var(--c-muted);
 }
+.fd-bag__table-wrap { overflow-x: auto; }
+.fd-bag__table {
+    width: 100%; border-collapse: collapse; background: #fff;
+    border: 1px solid var(--c-line); border-radius: 10px; overflow: hidden;
+}
+.fd-bag__table th,
+.fd-bag__table td {
+    padding: .65rem .75rem; font-size: .82rem; text-align: left;
+    border-bottom: 1px solid var(--c-line-inner);
+}
+.fd-bag__table th {
+    background: #f3f6fb; color: var(--c-blue); font-size: .72rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+}
+.fd-bag__table tr:last-child td { border-bottom: none; }
+
+.fd-fare-tabs {
+    display: flex; gap: .45rem; flex-wrap: wrap;
+    padding: .75rem 1.25rem 0;
+}
+.fd-fare-tab {
+    border: 1px solid var(--c-line); background: #fff; color: var(--c-slate);
+    font: inherit; font-size: .72rem; font-weight: 700; border-radius: 999px;
+    padding: .35rem .75rem; cursor: pointer;
+}
+.fd-fare-tab--active {
+    background: var(--c-brand); border-color: var(--c-brand); color: #fff;
+}
+.fd-fare-panel:not(.fd-fare-panel--active) { display: none; }
+.fd-foot-wrap { position: relative; }
+.fd-fare-foot { display: none; }
+.fd-fare-foot--active { display: flex; }
 
 /* fare rules panel */
 .fd-rules { display: flex; flex-direction: column; gap: .85rem; }
+.fd-rules__route {
+    font-size: .95rem; font-weight: 700; color: var(--c-ink);
+}
 .fd-rules__summary,
 .fd-rules__component {
     background: var(--c-bg);
@@ -1368,6 +1495,13 @@
     margin: 0; font-size: .78rem; color: #7a5b00; line-height: 1.45;
     display: flex; gap: .35rem; align-items: flex-start;
 }
+.fd-rules__list {
+    margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .35rem;
+}
+.fd-rules__list li {
+    font-size: .82rem; color: var(--c-ink); line-height: 1.45;
+}
+.fd-rules__policy + .fd-rules__policy { margin-top: .65rem; }
 .fd-rules__notes p + p { margin-top: .45rem; }
 .fd-rules__notes i { font-size: .95rem; margin-top: .05rem; flex-shrink: 0; }
 
@@ -2145,21 +2279,69 @@
     /* ─────────────────────────────────────────────────────
        MODAL
     ───────────────────────────────────────────────────── */
-    function activateModalTab(modal, panelKey){
-        if (!modal || !panelKey) return;
-        modal.querySelectorAll('.fd-tab').forEach(tab=>{
-            tab.classList.toggle('fd-tab--active', tab.dataset.fdTab === panelKey);
-        });
-        modal.querySelectorAll('.fd-panel').forEach(panel=>{
-            panel.classList.toggle('fd-panel--hidden', panel.dataset.fdPanel !== panelKey);
-        });
+    function getModalFareIndex(modal) {
+        return modal?.dataset.activeFare ?? '0';
     }
-    function openModal(id, tabKey){
+
+    function setModalFareIndex(modal, fareIndex) {
+        if (!modal) return;
+        modal.dataset.activeFare = String(fareIndex);
+
+        modal.querySelectorAll('.fd-fare-tab').forEach(tab => {
+            tab.classList.toggle('fd-fare-tab--active', tab.dataset.fdFareTab === String(fareIndex));
+        });
+
+        modal.querySelectorAll('.fd-fare-foot').forEach(foot => {
+            foot.classList.toggle('fd-fare-foot--active', foot.dataset.fdFareFoot === String(fareIndex));
+        });
+
+        const activePanel = modal.dataset.activePanel;
+        if (activePanel) {
+            activateModalTab(modal, activePanel);
+        }
+    }
+
+    function activateModalTab(modal, panelKey){
+        if (!modal || panelKey === undefined || panelKey === null) return;
+        modal.dataset.activePanel = String(panelKey);
+        const fareIndex = getModalFareIndex(modal);
+
+        modal.querySelectorAll('.fd-tab').forEach(tab=>{
+            tab.classList.toggle('fd-tab--active', tab.dataset.fdTab === String(panelKey));
+        });
+
+        modal.querySelectorAll('.fd-panel').forEach(panel=>{
+            const panelType = panel.dataset.fdPanel;
+            const isLegPanel = panelType === '0' || panelType === '1' || /^\d+$/.test(panelType || '');
+
+            if (panel.classList.contains('fd-fare-panel')) {
+                const matchesFare = panel.dataset.fdFarePanel === fareIndex;
+                const matchesTab = panelType === String(panelKey);
+                panel.classList.toggle('fd-panel--hidden', !(matchesFare && matchesTab));
+                panel.classList.toggle('fd-fare-panel--active', matchesFare && matchesTab);
+                return;
+            }
+
+            if (isLegPanel) {
+                panel.classList.toggle('fd-panel--hidden', panelType !== String(panelKey));
+            }
+        });
+
+        const fareTabs = modal.querySelector('.fd-fare-tabs');
+        if (fareTabs) {
+            const showFareTabs = panelKey === 'baggage' || panelKey === 'fare-rules';
+            fareTabs.hidden = !showFareTabs;
+        }
+    }
+
+    function openModal(id, tabKey, fareIndex){
         const m = document.getElementById(id);
         if(!m) return;
         m.hidden = false;
         document.body.style.overflow = 'hidden';
+        setModalFareIndex(m, fareIndex ?? getModalFareIndex(m));
         if (tabKey) activateModalTab(m, tabKey);
+        else activateModalTab(m, m.dataset.activePanel || '0');
     }
     function closeModal(id){
         const m = document.getElementById(id);
@@ -2168,7 +2350,13 @@
         document.body.style.overflow = '';
     }
     document.querySelectorAll('[data-fd-open]').forEach(btn=>{
-        btn.addEventListener('click', ()=> openModal(btn.dataset.fdOpen, btn.dataset.fdOpenTab || null));
+        btn.addEventListener('click', ()=> {
+            openModal(
+                btn.dataset.fdOpen,
+                btn.dataset.fdOpenTab || null,
+                btn.dataset.fdFare ?? null,
+            );
+        });
     });
     document.querySelectorAll('[data-fd-close]').forEach(el=>{
         el.addEventListener('click', ()=> closeModal(el.dataset.fdClose));
@@ -2182,6 +2370,11 @@
         modal.querySelectorAll('.fd-tab').forEach(tab=>{
             tab.addEventListener('click', ()=>{
                 activateModalTab(modal, tab.dataset.fdTab);
+            });
+        });
+        modal.querySelectorAll('.fd-fare-tab').forEach(tab=>{
+            tab.addEventListener('click', ()=>{
+                setModalFareIndex(modal, tab.dataset.fdFareTab);
             });
         });
     });

@@ -322,19 +322,15 @@ class FlightController extends Controller
             $passengerTypes[] = ['Code' => 'INF', 'Quantity' => $infants];
         }
 
-        if ($infants > 0) {
-            $passengerTypes = array_map(function ($entry) {
-                $entry['TPA_Extensions'] = [
-                    'VoluntaryChanges' => [
-                        'Match' => 'All',
-                        'Penalty' => [
-                            ['Type' => 'Refund'],
-                        ],
-                    ],
-                ];
-                return $entry;
-            }, $passengerTypes);
-        }
+        $passengerTypes = array_map(static function (array $entry): array {
+            $entry['TPA_Extensions'] = [
+                'VoluntaryChanges' => [
+                    'Match' => 'Info',
+                ],
+            ];
+
+            return $entry;
+        }, $passengerTypes);
 
         $originDestinations = [];
 
@@ -391,6 +387,7 @@ class FlightController extends Controller
                     ],
                     'Indicators' => [
                         'RefundPenalty' => ['Ind' => true],
+                        'ExchangePenalty' => ['Ind' => true],
                         'ResTicketing' => ['Ind' => true],
                     ],
                 ],
@@ -452,19 +449,26 @@ class FlightController extends Controller
             $itineraries = $groupRow['itineraries'] ?? [];
 
             foreach ($itineraries as $itinerary) {
+                $pricingBlocks = $this->collectSabrePricingBlocks($itinerary['pricingInformation'] ?? []);
+                if ($pricingBlocks === []) {
+                    continue;
+                }
+
                 $sessionKey++;
-                $pricingBlock = $this->selectSabrePricingBlock($itinerary['pricingInformation'] ?? []);
-                $fareSeatMeta = $this->extractFareSeatMeta($pricingBlock);
-                $pricingTags = $this->inferFareTagsFromPricingBlock($pricingBlock);
-                $fareBrand = SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped);
-                $passengerFare = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo');
-                $baggageDetails = SabreBaggagePresenter::fromPricingBlock($pricingBlock, $grouped);
-                $fareRules = SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped);
-                $bagsSummary = $this->summarizeBaggageAllowances(
-                    data_get($passengerFare, 'baggageInformation', []),
-                    $baggageAllowanceById,
-                );
-                $bagSummaryLabel = $baggageDetails['summary'] ?? $bagsSummary['label'];
+                $fareOptions = [];
+
+                foreach ($pricingBlocks as $pricingEntry) {
+                    $fareOptions[] = $this->buildFareOptionData(
+                        $pricingEntry['block'],
+                        $grouped,
+                        $pricingEntry['index'],
+                        $baggageAllowanceById,
+                    );
+                }
+
+                $primaryFare = $fareOptions[0];
+                $fareSeatMeta = $primaryFare['fare_seat_meta'];
+                $pricingTags = ['tags' => $primaryFare['fare_tags']];
 
                 $fareCursor = 0;
                 $legs = [];
@@ -491,8 +495,7 @@ class FlightController extends Controller
                     );
                 }
 
-                $totalFare = data_get($pricingBlock, 'fare.totalFare');
-                $totalPrice = $this->extractSabreTotalPrice($pricingBlock);
+                $totalPrice = (float) ($primaryFare['totalPrice'] ?? 0.0);
 
                 $results[] = [
                     'id' => $sessionKey,
@@ -500,20 +503,21 @@ class FlightController extends Controller
                     'sabre_group_index' => (int) $groupIndex,
                     'supplierPrice' => $totalPrice,
                     'totalPrice' => $totalPrice,
-                    'currency' => data_get($totalFare, 'currency'),
+                    'currency' => $primaryFare['currency'],
                     'legs' => $legs,
                     'supplier' => 'sabre',
-                    'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
-                    'pricing_subsource' => (string) ($pricingBlock['pricingSubsource'] ?? ''),
+                    'validating_carrier' => $primaryFare['validating_carrier'],
+                    'pricing_subsource' => $primaryFare['pricing_subsource'],
                     'pricing_source' => (string) ($itinerary['pricingSource'] ?? ''),
-                    'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
-                    'non_refundable' => (bool) data_get($passengerFare, 'nonRefundable', false),
-                    'fare_brand' => $fareBrand,
-                    'baggage_notes' => $bagSummaryLabel,
-                    'baggage_details' => $baggageDetails,
-                    'fare_rules' => $fareRules,
-                    'fare_tags' => $pricingTags['tags'],
-                    'listing_meta' => $this->buildListingMeta($legs, (float) ($totalPrice ?? 0.0), $pricingTags),
+                    'governing_carriers' => $primaryFare['governing_carriers'],
+                    'non_refundable' => $primaryFare['non_refundable'],
+                    'fare_brand' => $primaryFare['fare_brand'],
+                    'baggage_notes' => $primaryFare['baggage_notes'],
+                    'baggage_details' => $primaryFare['baggage_details'],
+                    'fare_rules' => $primaryFare['fare_rules'],
+                    'fare_tags' => $primaryFare['fare_tags'],
+                    'fare_options' => $fareOptions,
+                    'listing_meta' => $this->buildListingMeta($legs, $totalPrice, $pricingTags),
                 ];
             }
         }
@@ -523,14 +527,14 @@ class FlightController extends Controller
 
     /**
      * @param  list<array<string, mixed>>  $pricingInformation
-     * @return array<string, mixed>
+     *
+     * @return list<array{index: int, block: array<string, mixed>, price: float}>
      */
-    private function selectSabrePricingBlock(array $pricingInformation): array
+    private function collectSabrePricingBlocks(array $pricingInformation): array
     {
-        $bestBlock = [];
-        $bestPrice = null;
+        $blocks = [];
 
-        foreach ($pricingInformation as $block) {
+        foreach ($pricingInformation as $index => $block) {
             if (! is_array($block)) {
                 continue;
             }
@@ -540,17 +544,51 @@ class FlightController extends Controller
                 continue;
             }
 
-            if ($bestPrice === null || $price < $bestPrice) {
-                $bestPrice = $price;
-                $bestBlock = $block;
-            }
+            $blocks[] = [
+                'index' => (int) $index,
+                'block' => $block,
+                'price' => $price,
+            ];
         }
 
-        if ($bestBlock !== []) {
-            return $bestBlock;
-        }
+        usort($blocks, static fn (array $a, array $b): int => $a['price'] <=> $b['price']);
 
-        return is_array($pricingInformation[0] ?? null) ? $pricingInformation[0] : [];
+        return $blocks;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int|string, mixed>  $baggageAllowanceById
+     *
+     * @return array<string, mixed>
+     */
+    private function buildFareOptionData(
+        array $pricingBlock,
+        array $grouped,
+        int $pricingIndex,
+        $baggageAllowanceById,
+    ): array {
+        $passengerFare = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo', []);
+        $baggageDetails = SabreBaggagePresenter::fromPricingBlock($pricingBlock, $grouped);
+        $bagsSummary = $this->summarizeBaggageAllowances(
+            is_array($passengerFare) ? ($passengerFare['baggageInformation'] ?? []) : [],
+            $baggageAllowanceById,
+        );
+
+        return [
+            'sabre_pricing_index' => $pricingIndex,
+            'totalPrice' => $this->extractSabreTotalPrice($pricingBlock),
+            'currency' => data_get($pricingBlock, 'fare.totalFare.currency'),
+            'fare_brand' => SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped),
+            'non_refundable' => (bool) data_get($passengerFare, 'nonRefundable', false),
+            'baggage_notes' => $baggageDetails['summary'] ?? $bagsSummary['label'],
+            'baggage_details' => $baggageDetails,
+            'fare_rules' => SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped),
+            'fare_tags' => $this->inferFareTagsFromPricingBlock($pricingBlock)['tags'],
+            'pricing_subsource' => (string) ($pricingBlock['pricingSubsource'] ?? ''),
+            'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
+            'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
+            'fare_seat_meta' => $this->extractFareSeatMeta($pricingBlock),
+        ];
     }
 
     /**
