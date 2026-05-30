@@ -1322,7 +1322,7 @@
     animation: fd-in .22s ease;
 }
 /* only the body panel scrolls */
-.fd-head, .fd-tabs, .fd-foot { flex-shrink: 0; overflow: hidden; }
+.fd-head, .fd-tabs, .fd-foot-wrap, .fd-foot { flex-shrink: 0; overflow: hidden; }
 @keyframes fd-in {
     from { opacity: 0; transform: translateY(18px) scale(.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -1499,9 +1499,13 @@
     background: var(--c-brand); border-color: var(--c-brand); color: #fff;
 }
 .fd-fare-panel:not(.fd-fare-panel--active) { display: none; }
-.fd-foot-wrap { position: relative; }
-.fd-fare-foot { display: none; }
-.fd-fare-foot--active { display: flex; }
+.fd-foot-wrap {
+    position: relative;
+    border-top: 1px solid var(--c-line);
+    background: var(--c-bg);
+}
+.fd-foot.fd-fare-foot:not(.fd-fare-foot--active) { display: none; }
+.fd-foot.fd-fare-foot--active { display: flex; }
 
 /* fare rules panel */
 .fd-rules { display: flex; flex-direction: column; gap: .85rem; }
