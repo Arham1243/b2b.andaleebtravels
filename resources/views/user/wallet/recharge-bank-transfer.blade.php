@@ -46,8 +46,6 @@
             <div class="recharge-section">
                 <h3 class="heading fw-bold mb-3">Direct Bank Transfer</h3>
 
-                @include('user.wallet.partials._recharge-limit')
-
                 <div class="recharge-section__title recharge-section__title--bank-details">
                     <i class='bx bxs-bank'></i> Bank details
                 </div>
@@ -62,7 +60,6 @@
                     </div>
                 @endif
 
-                @if ($canRecharge ?? true)
                 <form action="{{ route('user.wallet.recharge.bank-transfer.submit') }}" method="POST" enctype="multipart/form-data" id="bankTransferForm">
                     @csrf
 
@@ -81,7 +78,7 @@
                                 <label class="form-label mb-1" style="font-size: 12px; color: #666;">Enter Amount *</label>
                                 <input type="number" name="amount" id="amountInput" class="custom-amount-input"
                                     value="{{ old('amount') }}"
-                                    placeholder="1000" min="100" max="{{ min(50000, max(100, $maxRechargeAmount ?? 50000)) }}" step="0.01" required>
+                                    placeholder="1000" min="100" max="50000" step="0.01" required>
                             </div>
                         </div>
                         @error('amount')
@@ -110,7 +107,6 @@
                         <i class='bx bx-upload'></i> Submit for verification
                     </button>
                 </form>
-                @endif
             </div>
 
             @include('user.wallet.partials._recharge-history')
@@ -126,7 +122,7 @@
             const quickBtns = document.querySelectorAll('.quick-amount-btn');
             const amountInput = document.getElementById('amountInput');
             const form = document.getElementById('bankTransferForm');
-            const maxRecharge = @json((float) ($maxRechargeAmount ?? 50000));
+            const maxRecharge = 50000;
 
             if (!form || !amountInput) return;
 

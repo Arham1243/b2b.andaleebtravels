@@ -123,12 +123,7 @@ class WalletRechargeController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
-        return array_merge(compact('recharges'), [
-            'walletUser' => $user,
-            'maxRechargeAmount' => $user->maxRechargeAmount(),
-            'canRecharge' => $user->canRecharge(),
-            'rechargeBlockedMessage' => $user->rechargeBlockedMessage(),
-        ]);
+        return compact('recharges');
     }
 
     protected function rechargeListRoute(string $paymentMethod): string

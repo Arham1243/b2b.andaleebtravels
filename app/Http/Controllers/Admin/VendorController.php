@@ -369,30 +369,6 @@ class VendorController extends Controller
                 'status' => $validated['status'],
             ];
         } else {
-            $removeLimit = $request->boolean('remove_credit_limit');
-
-            if ($removeLimit) {
-                $proposedLimit = 0;
-            } elseif ($request->input('credit_limit') === null || $request->input('credit_limit') === '') {
-                $proposedLimit = round((float) ($vendor->credit_limit ?? 0), 2);
-            } else {
-                $proposedLimit = round((float) $validated['credit_limit'], 2);
-            }
-
-            if ($proposedLimit > 0) {
-                $originalLimit = $vendor->credit_limit;
-                $vendor->credit_limit = $proposedLimit;
-                $creditUsed = max(0, round(VendorWalletCredit::poolsFromLedger($vendor)['credit_used'], 2));
-                $vendor->credit_limit = $originalLimit;
-
-                if ($proposedLimit < $creditUsed) {
-                    return redirect()->back()
-                        ->withInput()
-                        ->withErrors(['credit_limit' => 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).'])
-                        ->with('notify_error', 'Credit limit cannot be less than the credit already in use (' . number_format($creditUsed, 2) . ' AED).');
-                }
-            }
-
             $data = [
                 'name' => $validated['travel_agency'],
                 'travel_agency' => $validated['travel_agency'],
@@ -412,7 +388,6 @@ class VendorController extends Controller
                     $request->input('flight_search_providers'),
                     ['sabre']
                 ),
-                'credit_limit' => $proposedLimit,
                 'vendor_discounts_enabled' => $request->boolean('vendor_discounts_enabled'),
                 'flight_discount_type' => $request->boolean('vendor_discounts_enabled')
                     ? $this->normalizeDiscountType($validated['flight_discount_type'] ?? null, (float) ($validated['flight_discount_value'] ?? 0))
@@ -602,8 +577,6 @@ class VendorController extends Controller
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
             'flight_search_providers' => 'nullable|array',
             'flight_search_providers.*' => 'in:sabre',
-            'credit_limit' => 'nullable|numeric|min:0|max:99999999.99',
-            'remove_credit_limit' => 'nullable|boolean',
             'vendor_discounts_enabled' => 'nullable|boolean',
             'flight_discount_type' => 'nullable|in:percent,fixed',
             'flight_discount_value' => 'nullable|numeric|min:0|max:99999999.99',

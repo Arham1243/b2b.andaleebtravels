@@ -37,14 +37,6 @@
                 AED {{ number_format($vendor->usedBalanceAmount(), 2) }}
             </td>
         </tr>
-        @if ($vendor->hasCreditLimit())
-            <tr>
-                <td style="padding:10px 12px;color:#666666;">Credit limit</td>
-                <td style="padding:10px 12px;">
-                    AED {{ number_format($vendor->creditLimitAmount(), 2) }}
-                </td>
-            </tr>
-        @endif
     </table>
 
     <p style="margin:16px 0 0;font-size:12px;">

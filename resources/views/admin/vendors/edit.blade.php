@@ -26,8 +26,6 @@
                         </div>
 
                         @if (!$vendor->parent_vendor_id)
-                            @include('admin.vendors.partials._form-credit-limit', ['vendor' => $vendor])
-
                             @include('admin.vendors.partials._form-providers', [
                                 'vendor' => $vendor,
                                 'adminProviders' => $adminProviders,

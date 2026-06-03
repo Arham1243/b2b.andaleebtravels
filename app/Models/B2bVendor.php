@@ -161,12 +161,12 @@ class B2bVendor extends Authenticatable
 
     public function creditLimitAmount(): float
     {
-        return max(0, (float) ($this->walletAgency()->credit_limit ?? 0));
+        return 0.0;
     }
 
     public function hasCreditLimit(): bool
     {
-        return $this->creditLimitAmount() > 0;
+        return false;
     }
 
     /**
@@ -285,74 +285,27 @@ class B2bVendor extends Authenticatable
         return round((float) $this->walletRecharges()->where('status', 'pending')->sum('amount'), 2);
     }
 
-    /** Max single recharge allowed (respects credit limit prepaid cap). */
+    /** Max single recharge allowed (AED). */
     public function maxRechargeAmount(): float
     {
-        if (! $this->hasCreditLimit()) {
-            return 50000;
-        }
-
-        $pools = $this->creditPools();
-        $prepaid = max(0, round($pools['prepaid'], 2));
-        $creditUsed = max(0, round($pools['credit_used'], 2));
-        $limit = $this->creditLimitAmount();
-        $pending = $this->pendingRechargeAmount();
-
-        // Prepaid already above the cap — no further top-ups (even if net/available looks lower).
-        if ($prepaid + $pending > $limit + 0.001) {
-            return 0;
-        }
-
-        $prepaidHeadroom = max(0, round($limit - $prepaid - $pending, 2));
-
-        // Recharges pay credit used first, then add prepaid up to the limit.
-        return min(50000, round($creditUsed + $prepaidHeadroom, 2));
+        return 50000;
     }
 
     public function canRechargeAmount(float $amount): bool
     {
         $amount = round($amount, 2);
 
-        if ($amount < 100 || $amount > 50000) {
-            return false;
-        }
-
-        if (! $this->hasCreditLimit()) {
-            return true;
-        }
-
-        $pools = $this->creditPools();
-        $prepaid = max(0, round($pools['prepaid'], 2));
-
-        if ($prepaid + $this->pendingRechargeAmount() > $this->creditLimitAmount() + 0.001) {
-            return false;
-        }
-
-        [$newPrepaid] = VendorWalletCredit::applyCredit(
-            $prepaid,
-            $creditUsed = max(0, round($pools['credit_used'], 2)),
-            $amount
-        );
-
-        return round($newPrepaid + $this->pendingRechargeAmount(), 2) <= round($this->creditLimitAmount(), 2) + 0.001;
+        return $amount >= 100 && $amount <= 50000;
     }
 
     public function canRecharge(): bool
     {
-        return $this->maxRechargeAmount() >= 100;
+        return true;
     }
 
     public function rechargeBlockedMessage(): ?string
     {
-        if ($this->canRecharge()) {
-            return null;
-        }
-
-        if (! $this->hasCreditLimit()) {
-            return null;
-        }
-
-        return 'You have reached your wallet recharge limit. To add more funds, please contact your system administrator.';
+        return null;
     }
 
     public function savedPassengers(): HasMany

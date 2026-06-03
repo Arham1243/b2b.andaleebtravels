@@ -21,24 +21,8 @@ final class VendorRechargeGuard
             return;
         }
 
-        if (! $vendor->hasCreditLimit()) {
-            throw ValidationException::withMessages([
-                'amount' => 'This recharge amount is not allowed.',
-            ]);
-        }
-
-        $max = $vendor->maxRechargeAmount();
-
-        if ($max < 100) {
-            throw ValidationException::withMessages([
-                'amount' => $vendor->rechargeBlockedMessage()
-                    ?? 'You have reached your wallet recharge limit. To add more funds, please contact system administrator.',
-            ]);
-        }
-
         throw ValidationException::withMessages([
-            'amount' => $vendor->rechargeBlockedMessage()
-                ?? 'You have reached your wallet recharge limit. To add more funds, please contact your system administrator.',
+            'amount' => 'This recharge amount is not allowed.',
         ]);
     }
 }

@@ -458,10 +458,6 @@
                         <span class="vs-info-label">Used Balance</span>
                         <span class="vs-info-value">{!! formatPrice($vendor->usedBalanceAmount()) !!}</span>
                     </div>
-                    <div class="vs-info-item">
-                        <span class="vs-info-label">Credit Limit</span>
-                        <span class="vs-info-value">{!! formatCreditLimitDisplay($vendor) !!}</span>
-                    </div>
                 @endif
                 <div class="vs-info-item">
                     <span class="vs-info-label">Registered</span>
