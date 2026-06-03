@@ -21,7 +21,7 @@ final class WalletLedgerResolver
     {
         $ledgerFilters = self::resolveFilters($request);
 
-        $ledgerQuery = $vendor->walletLedger()->with('reference')->latest();
+        $ledgerQuery = $vendor->walletLedger()->with(['reference', 'settlementEntries'])->latest();
 
         if ($ledgerFilters['from'] !== null) {
             $ledgerQuery->whereDate('created_at', '>=', $ledgerFilters['from']);

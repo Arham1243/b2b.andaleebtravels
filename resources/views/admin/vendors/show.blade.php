@@ -512,6 +512,7 @@
                     'showManualForm' => $canWalletManage,
                     'readOnly' => ! $canWalletManage,
                     'ledgerContext' => 'admin',
+                    'openUnpaidCredits' => $openUnpaidCredits ?? collect(),
                 ])
             </div>
 
@@ -853,12 +854,20 @@
 document.querySelectorAll('.btn-edit-ledger').forEach(function(btn) {
     btn.addEventListener('click', function() {
         const form = document.getElementById('edit-ledger-form');
+        const manualKind = btn.dataset.manualKind || '';
+        const typeField = document.getElementById('el_type');
+        const amountField = document.getElementById('el_amount');
         form.action = btn.dataset.updateUrl || '';
-        document.getElementById('el_type').value = btn.dataset.type || 'credit';
-        document.getElementById('el_amount').value = btn.dataset.amount || '';
+        typeField.value = btn.dataset.type || 'credit';
+        amountField.value = btn.dataset.amount || '';
         document.getElementById('el_description').value = btn.dataset.description || '';
         document.getElementById('el_date').value = btn.dataset.date || '';
         document.getElementById('el_time').value = btn.dataset.time || '';
+
+        const lockFields = manualKind === 'unpaid_credit' || manualKind === 'unpaid_credit_settlement';
+        typeField.disabled = lockFields;
+        amountField.readOnly = lockFields;
+
         const attCurrent = document.getElementById('el_attachment_current');
         const attLink = document.getElementById('el_attachment_link');
         const removeAtt = document.getElementById('el_remove_attachment');
@@ -892,8 +901,13 @@ document.querySelectorAll('.btn-edit-ledger').forEach(function(btn) {
 });
 
 document.getElementById('edit-ledger-form')?.addEventListener('submit', function(e) {
-    const type = document.getElementById('el_type')?.value || 'credit';
-    const amount = document.getElementById('el_amount')?.value || '0';
+    const typeField = document.getElementById('el_type');
+    const amountField = document.getElementById('el_amount');
+    if (typeField?.disabled) {
+        typeField.disabled = false;
+    }
+    const type = typeField?.value || 'credit';
+    const amount = amountField?.value || '0';
     const message =
         'Update this wallet transaction?\n\n' +
         'Type: ' + type + '\n' +
@@ -917,20 +931,70 @@ document.querySelectorAll('.ledger-void-form').forEach(function(form) {
     });
 });
 
+(function initManualWalletForm() {
+    const typeSelect = document.getElementById('mw_type');
+    const settlesWrap = document.getElementById('mw_settles_wrap');
+    const settlesSelect = document.getElementById('mw_settles_ledger_id');
+    const amountInput = document.getElementById('mw_amount');
+    if (!typeSelect) return;
+
+    function syncManualWalletForm() {
+        const type = typeSelect.value;
+        const isSettlement = type === 'unpaid_credit_settlement';
+
+        if (settlesWrap) {
+            settlesWrap.style.display = isSettlement ? '' : 'none';
+        }
+        if (settlesSelect) {
+            settlesSelect.required = isSettlement;
+            if (!isSettlement) {
+                settlesSelect.value = '';
+            }
+        }
+        if (amountInput) {
+            if (isSettlement) {
+                const selected = settlesSelect?.selectedOptions?.[0];
+                const linkedAmount = selected?.dataset?.amount || '';
+                if (linkedAmount) {
+                    amountInput.value = linkedAmount;
+                }
+                amountInput.readOnly = true;
+            } else {
+                amountInput.readOnly = false;
+            }
+        }
+    }
+
+    typeSelect.addEventListener('change', syncManualWalletForm);
+    settlesSelect?.addEventListener('change', syncManualWalletForm);
+    syncManualWalletForm();
+})();
+
 document.getElementById('manual-wallet-form')?.addEventListener('submit', function(e) {
     const type = document.getElementById('mw_type')?.value || 'credit';
     const amount = document.getElementById('mw_amount')?.value || '0';
     const description = document.getElementById('mw_description')?.value || '';
     const vendor = @json($vendor->display_agency_name ?: $vendor->name);
-    const action = type === 'debit' ? 'debit' : 'credit';
+    let impact = 'This will increase the vendor wallet balance.';
+    let actionLabel = 'credit';
+
+    if (type === 'debit') {
+        actionLabel = 'debit';
+        impact = 'This will reduce the vendor wallet balance.';
+    } else if (type === 'unpaid_credit') {
+        actionLabel = 'unpaid credit';
+        impact = 'This will increase the vendor balance and mark the entry as pending settlement.';
+    } else if (type === 'unpaid_credit_settlement') {
+        actionLabel = 'payment received';
+        impact = 'This is a bookkeeping entry only. The wallet balance will not change.';
+    }
+
     const message =
-        'Add manual wallet ' + action + '?\n\n' +
+        'Add manual wallet ' + actionLabel + '?\n\n' +
         'Vendor: ' + vendor + '\n' +
         'Amount: ' + amount + ' AED\n' +
         'Description: ' + description + '\n\n' +
-        (type === 'debit'
-            ? 'This will reduce the vendor wallet balance.'
-            : 'This will increase the vendor wallet balance.') +
+        impact +
         '\n\nContinue?';
     if (!confirm(message)) {
         e.preventDefault();

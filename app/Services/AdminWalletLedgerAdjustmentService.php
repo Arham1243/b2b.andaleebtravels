@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\B2bVendor;
 use App\Models\B2bWalletLedger;
 use App\Support\VendorWalletCredit;
+use App\Support\WalletLedgerBalanceEffect;
 use App\Support\WalletLedgerDescription;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,20 @@ class AdminWalletLedgerAdjustmentService
             ]);
         }
 
+        if ($entry->isUnpaidCreditSettlement()) {
+            if ($type !== 'debit' || $amount !== round((float) $entry->amount, 2)) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Settlement transactions cannot change type or amount.',
+                ]);
+            }
+        } elseif ($entry->isUnpaidCredit()) {
+            if ($type !== 'credit' || $amount !== round((float) $entry->amount, 2)) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Unpaid credit transactions cannot change type or amount.',
+                ]);
+            }
+        }
+
         $transactionAt = $this->parseTransactionAt(
             (string) $data['transaction_date'],
             $data['transaction_time'] ?? null
@@ -45,11 +60,14 @@ class AdminWalletLedgerAdjustmentService
                 : trim((string) $data['description']);
 
             $updateData = [
-                'type' => $type,
-                'amount' => $amount,
                 'description' => $description,
                 'modified_by_b2b_admin_id' => $adminId,
             ];
+
+            if (! $entry->isUnpaidCredit() && ! $entry->isUnpaidCreditSettlement()) {
+                $updateData['type'] = $type;
+                $updateData['amount'] = $amount;
+            }
 
             if (array_key_exists('attachment_path', $data)) {
                 $updateData['attachment_path'] = $data['attachment_path'];
@@ -72,6 +90,12 @@ class AdminWalletLedgerAdjustmentService
         if ($entry->isVoided()) {
             throw ValidationException::withMessages([
                 'ledger' => 'This transaction is already voided.',
+            ]);
+        }
+
+        if ($entry->isUnpaidCredit() && $entry->isSettled()) {
+            throw ValidationException::withMessages([
+                'ledger' => 'Void the payment received entry first before voiding this unpaid credit.',
             ]);
         }
 
@@ -110,27 +134,24 @@ class AdminWalletLedgerAdjustmentService
 
         foreach ($entries as $ledgerEntry) {
             $amount = round((float) $ledgerEntry->amount, 2);
-            $netBefore = $creditLimit > 0
-                ? VendorWalletCredit::netBalance($prepaid, $creditUsed)
-                : round($runningNet, 2);
 
-            if ($ledgerEntry->isCredit()) {
-                if ($creditLimit > 0) {
-                    [$prepaid, $creditUsed] = VendorWalletCredit::applyCredit($prepaid, $creditUsed, $amount);
-                } else {
-                    $runningNet = round($runningNet + $amount, 2);
+            if ($creditLimit > 0) {
+                $netBefore = VendorWalletCredit::netBalance($prepaid, $creditUsed);
+
+                if (WalletLedgerBalanceEffect::affectsWalletBalance($ledgerEntry)) {
+                    if ($ledgerEntry->isCredit()) {
+                        [$prepaid, $creditUsed] = VendorWalletCredit::applyCredit($prepaid, $creditUsed, $amount);
+                    } else {
+                        [$prepaid, $creditUsed] = VendorWalletCredit::applyDebit($prepaid, $creditUsed, $amount, $creditLimit);
+                    }
                 }
+
+                $netAfter = VendorWalletCredit::netBalance($prepaid, $creditUsed);
             } else {
-                if ($creditLimit > 0) {
-                    [$prepaid, $creditUsed] = VendorWalletCredit::applyDebit($prepaid, $creditUsed, $amount, $creditLimit);
-                } else {
-                    $runningNet = round($runningNet - $amount, 2);
-                }
+                $netBefore = round($runningNet, 2);
+                $runningNet = WalletLedgerBalanceEffect::apply($ledgerEntry, $runningNet);
+                $netAfter = round($runningNet, 2);
             }
-
-            $netAfter = $creditLimit > 0
-                ? VendorWalletCredit::netBalance($prepaid, $creditUsed)
-                : round($runningNet, 2);
 
             if (
                 (float) $ledgerEntry->balance_before !== $netBefore

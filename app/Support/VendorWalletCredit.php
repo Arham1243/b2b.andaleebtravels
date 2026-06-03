@@ -35,10 +35,7 @@ final class VendorWalletCredit
             $net = 0.0;
 
             foreach ($entries as $entry) {
-                $amount = round((float) $entry->amount, 2);
-                $net = $entry->isCredit()
-                    ? round($net + $amount, 2)
-                    : round($net - $amount, 2);
+                $net = WalletLedgerBalanceEffect::apply($entry, $net);
             }
 
             return [
@@ -52,6 +49,10 @@ final class VendorWalletCredit
         $creditUsed = 0.0;
 
         foreach ($entries as $entry) {
+            if (! WalletLedgerBalanceEffect::affectsWalletBalance($entry)) {
+                continue;
+            }
+
             $amount = round((float) $entry->amount, 2);
 
             if ($entry->isCredit()) {

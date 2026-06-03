@@ -28,7 +28,7 @@
         <tr>
             <td style="padding:10px 12px;width:38%;border-bottom:1px solid #eeeeee;color:#666666;">Type</td>
             <td style="padding:10px 12px;border-bottom:1px solid #eeeeee;font-weight:600;">
-                {{ $entry->isCredit() ? 'Credit added' : 'Debit deducted' }}
+                {{ \App\Support\WalletLedgerDescription::emailTransactionTypeLabel($entry) }}
             </td>
         </tr>
         <tr>

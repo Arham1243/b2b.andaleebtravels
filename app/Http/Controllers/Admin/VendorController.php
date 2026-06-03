@@ -164,6 +164,10 @@ class VendorController extends Controller
             'sub_agents'      => $subAgents->count(),
         ];
 
+        $openUnpaidCredits = $vendor->isAgencyAccount()
+            ? $vendor->openUnpaidCredits()
+            : collect();
+
         return view('admin.vendors.show', compact(
             'vendor',
             'walletLedger',
@@ -172,7 +176,8 @@ class VendorController extends Controller
             'subAgents',
             'stats',
             'ledgerFilters',
-            'ledgerTotalCount'
+            'ledgerTotalCount',
+            'openUnpaidCredits'
         ));
     }
 
@@ -217,12 +222,13 @@ class VendorController extends Controller
         }
 
         $validated = $request->validate([
-            'type' => 'required|in:credit,debit',
+            'type' => 'required|in:credit,debit,unpaid_credit,unpaid_credit_settlement',
             'amount' => 'required|numeric|min:0.01|max:99999999.99',
             'transaction_date' => 'required|date|before_or_equal:today',
             'transaction_time' => 'nullable|date_format:H:i',
             'description' => 'required|string|min:3|max:500',
             'attachment' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,pdf|max:5120',
+            'settles_ledger_id' => 'nullable|integer|exists:b2b_wallet_ledger,id',
         ]);
 
         $adminId = (int) auth('admin')->id();
@@ -240,10 +246,16 @@ class VendorController extends Controller
                 ->with('notify_error', collect($e->errors())->flatten()->first());
         }
 
-        $verb = $entry->isCredit() ? 'credited' : 'debited';
+        if ($entry->isUnpaidCreditSettlement()) {
+            $message = 'Payment received recorded for ' . number_format((float) $entry->amount, 2) . ' AED (wallet balance unchanged: ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED).';
+        } elseif ($entry->isUnpaidCredit()) {
+            $message = 'Unpaid credit of ' . number_format((float) $entry->amount, 2) . ' AED added. New balance: ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED.';
+        } else {
+            $verb = $entry->isCredit() ? 'credited' : 'debited';
+            $message = 'Wallet ' . $verb . ' ' . number_format((float) $entry->amount, 2) . ' AED. New balance: ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED.';
+        }
 
-        return redirect()->back()
-            ->with('notify_success', 'Wallet ' . $verb . ' ' . number_format((float) $entry->amount, 2) . ' AED. New balance: ' . number_format((float) $vendor->fresh()->main_balance, 2) . ' AED.');
+        return redirect()->back()->with('notify_success', $message);
     }
 
     public function updateWalletTransaction(Request $request, B2bVendor $vendor, B2bWalletLedger $ledger)

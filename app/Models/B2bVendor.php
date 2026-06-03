@@ -147,6 +147,18 @@ class B2bVendor extends Authenticatable
         return $this->hasMany(B2bWalletLedger::class, 'b2b_vendor_id');
     }
 
+    /** Active unpaid credit entries that have not yet been settled. */
+    public function openUnpaidCredits()
+    {
+        return $this->walletLedger()
+            ->active()
+            ->where('manual_kind', B2bWalletLedger::KIND_UNPAID_CREDIT)
+            ->whereDoesntHave('settlementEntries', fn ($query) => $query->active())
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+    }
+
     /** Agency account that owns credit limit (parent for sub-agents). */
     public function walletAgency(): self
     {

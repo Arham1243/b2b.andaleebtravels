@@ -145,6 +145,14 @@ final class WalletLedgerDescription
             return 'VOIDED';
         }
 
+        if ($entry->isUnpaidCreditSettlement()) {
+            return 'Unpaid credit – payment received';
+        }
+
+        if ($entry->isUnpaidCredit()) {
+            return 'Unpaid credit';
+        }
+
         if ($entry->is_manual || str_contains(strtolower((string) $entry->description), 'manual adjustment')) {
             return $entry->isCredit() ? 'Manual credit' : 'Manual debit';
         }
@@ -229,12 +237,40 @@ final class WalletLedgerDescription
 
         return match ($label) {
             'VOIDED' => 'pm-void',
+            'Unpaid credit' => 'pm-unpaid-credit',
+            'Unpaid credit – payment received' => 'pm-unpaid-settlement',
             'Hotel booking payment', 'Flight booking payment', 'Wallet debit' => 'pm-debit-booking',
             'Hotel booking refund', 'Flight booking refund', 'Booking refund' => 'pm-refund',
             'Wallet recharge', 'Wallet credit' => 'pm-recharge',
             'Manual credit', 'Manual debit' => 'pm-manual',
             default => 'pm-system',
         };
+    }
+
+    public static function emailTransactionTypeLabel(B2bWalletLedger $entry): string
+    {
+        if ($entry->isUnpaidCreditSettlement()) {
+            return 'Unpaid credit – payment received (no balance change)';
+        }
+
+        if ($entry->isUnpaidCredit()) {
+            return 'Unpaid credit added';
+        }
+
+        return $entry->isCredit() ? 'Credit added' : 'Debit deducted';
+    }
+
+    public static function emailSubjectPrefix(B2bWalletLedger $entry): string
+    {
+        if ($entry->isUnpaidCreditSettlement()) {
+            return 'Wallet payment received';
+        }
+
+        if ($entry->isUnpaidCredit()) {
+            return 'Unpaid wallet credit';
+        }
+
+        return $entry->isCredit() ? 'Wallet credit' : 'Wallet debit';
     }
 
     /** @return array{label: string, url: string|null} */

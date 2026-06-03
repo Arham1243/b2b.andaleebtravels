@@ -2,16 +2,22 @@
 
 namespace App\Models;
 
+use App\Support\WalletLedgerBalanceEffect;
 use App\Support\WalletLedgerDescription;
 use App\Support\VendorWalletCredit;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\DB;
 
 class B2bWalletLedger extends Model
 {
+    public const KIND_UNPAID_CREDIT = 'unpaid_credit';
+
+    public const KIND_UNPAID_CREDIT_SETTLEMENT = 'unpaid_credit_settlement';
+
     protected $table = 'b2b_wallet_ledger';
 
     protected $fillable = [
@@ -23,6 +29,8 @@ class B2bWalletLedger extends Model
         'description',
         'attachment_path',
         'is_manual',
+        'manual_kind',
+        'settles_ledger_id',
         'recorded_by_b2b_admin_id',
         'voided_at',
         'voided_by_b2b_admin_id',
@@ -64,6 +72,16 @@ class B2bWalletLedger extends Model
         return $this->belongsTo(B2bAdmin::class, 'modified_by_b2b_admin_id');
     }
 
+    public function settlesLedger(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'settles_ledger_id');
+    }
+
+    public function settlementEntries(): HasMany
+    {
+        return $this->hasMany(self::class, 'settles_ledger_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->whereNull('voided_at');
@@ -74,6 +92,34 @@ class B2bWalletLedger extends Model
         return $this->voided_at !== null;
     }
 
+    public function isUnpaidCredit(): bool
+    {
+        return $this->manual_kind === self::KIND_UNPAID_CREDIT;
+    }
+
+    public function isUnpaidCreditSettlement(): bool
+    {
+        return $this->manual_kind === self::KIND_UNPAID_CREDIT_SETTLEMENT;
+    }
+
+    public function isSettled(): bool
+    {
+        if (! $this->isUnpaidCredit()) {
+            return false;
+        }
+
+        if ($this->relationLoaded('settlementEntries')) {
+            return $this->settlementEntries->contains(fn (self $entry) => $entry->voided_at === null);
+        }
+
+        return $this->settlementEntries()->active()->exists();
+    }
+
+    public function affectsWalletBalance(): bool
+    {
+        return WalletLedgerBalanceEffect::affectsWalletBalance($this);
+    }
+
     public static function recordManual(
         int $vendorId,
         string $type,
@@ -82,48 +128,37 @@ class B2bWalletLedger extends Model
         Carbon $transactionAt,
         int $adminId,
         ?string $attachmentPath = null,
+        ?string $manualKind = null,
+        ?int $settlesLedgerId = null,
     ): self {
-        return DB::transaction(function () use ($vendorId, $type, $amount, $description, $transactionAt, $adminId, $attachmentPath) {
+        return DB::transaction(function () use ($vendorId, $type, $amount, $description, $transactionAt, $adminId, $attachmentPath, $manualKind, $settlesLedgerId) {
             $vendor = B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
-            $creditLimit = $vendor->creditLimitAmount();
-            $prepaid = VendorWalletCredit::currentPrepaid($vendor);
-            $creditUsed = (float) ($vendor->credit_used ?? 0);
             $netBefore = round((float) $vendor->main_balance, 2);
+            $isSettlement = $manualKind === self::KIND_UNPAID_CREDIT_SETTLEMENT;
 
-            if ($type === 'credit') {
-                if ($creditLimit > 0) {
-                    [$prepaid, $creditUsed] = VendorWalletCredit::applyCredit($prepaid, $creditUsed, $amount);
-                } else {
-                    $netBefore = round($prepaid, 2);
-                    $prepaid = round($prepaid + $amount, 2);
-                }
+            if ($isSettlement) {
+                $netAfter = $netBefore;
             } else {
-                if ($creditLimit > 0) {
-                    [$prepaid, $creditUsed] = VendorWalletCredit::applyDebit($prepaid, $creditUsed, $amount, $creditLimit);
-                } else {
-                    $netBefore = round($prepaid, 2);
-                    $prepaid = round($prepaid - $amount, 2);
-                }
+                $delta = $type === 'credit' ? round($amount, 2) : -round($amount, 2);
+                $netAfter = round($netBefore + $delta, 2);
+
+                $vendor->update([
+                    'main_balance' => $netAfter,
+                    'credit_used' => 0,
+                ]);
             }
-
-            $netAfter = $creditLimit > 0
-                ? VendorWalletCredit::netBalance($prepaid, $creditUsed)
-                : round($prepaid, 2);
-
-            $vendor->update([
-                'main_balance' => round($netAfter, 2),
-                'credit_used' => round($creditUsed, 2),
-            ]);
 
             $entry = self::create([
                 'b2b_vendor_id' => $vendorId,
                 'type' => $type,
                 'amount' => $amount,
-                'balance_before' => round($netBefore, 2),
-                'balance_after' => round($netAfter, 2),
+                'balance_before' => $netBefore,
+                'balance_after' => $netAfter,
                 'description' => WalletLedgerDescription::manualAdjustment($description),
                 'attachment_path' => $attachmentPath,
                 'is_manual' => true,
+                'manual_kind' => $manualKind,
+                'settles_ledger_id' => $settlesLedgerId,
                 'recorded_by_b2b_admin_id' => $adminId,
             ]);
 

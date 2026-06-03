@@ -13,6 +13,8 @@
     .pm-refund { background:#e3f2fd; color:#1565c0; }
     .pm-recharge { background:#e8f5e9; color:#2e7d32; }
     .pm-manual { background:#fff8e1; color:#f57f17; }
+    .pm-unpaid-credit { background:#fff3e0; color:#e65100; }
+    .pm-unpaid-settlement { background:#eceff1; color:#455a64; }
     .pm-system { background:#f3f4f6; color:#4b5563; }
     .pm-void {
         background: #fee2e2;
@@ -124,6 +126,27 @@
         white-space: nowrap;
         cursor: default;
         letter-spacing: .02em;
+    }
+    .vs-ledger-status-tag {
+        display: inline-block;
+        font-size: 0.66rem;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 999px;
+        line-height: 1.2;
+        white-space: nowrap;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+    }
+    .vs-ledger-status-tag--pending {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .vs-ledger-status-tag--settled {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
     }
 
     /* Reason pills inside ledger table */

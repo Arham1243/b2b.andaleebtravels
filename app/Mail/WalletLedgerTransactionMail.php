@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\B2bWalletLedger;
+use App\Support\WalletLedgerDescription;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -18,7 +19,7 @@ class WalletLedgerTransactionMail extends Mailable
     public function envelope(): Envelope
     {
         $amount = number_format((float) $this->entry->amount, 2);
-        $prefix = $this->entry->isCredit() ? 'Wallet credit' : 'Wallet debit';
+        $prefix = WalletLedgerDescription::emailSubjectPrefix($this->entry);
 
         return new Envelope(
             subject: "{$prefix}: AED {$amount} - " . config('app.name'),
