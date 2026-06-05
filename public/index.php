@@ -3,6 +3,12 @@
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
+// Shared hosts may report 1024M in phpinfo but still hit a ~12M process cap on heavy
+// requests; raise before autoload (Dubai TBO city lists decode large JSON payloads).
+if (function_exists('ini_set')) {
+    @ini_set('memory_limit', '512M');
+}
+
 define('LARAVEL_START', microtime(true));
 
 /*

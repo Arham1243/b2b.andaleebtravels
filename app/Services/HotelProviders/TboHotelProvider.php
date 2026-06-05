@@ -22,6 +22,12 @@ class TboHotelProvider implements HotelProviderInterface
     private const API_PASSWORD = 'And@30524459';
     private const SEARCH_CHUNK_SIZE = 100;
 
+    /**
+     * TBO returns the full city catalogue in one response (e.g. thousands for Dubai).
+     * Keep only this many catalogue rows in memory after decode to avoid OOM on small caps.
+     */
+    private const MAX_CATALOGUE_HOTELS = 400;
+
     /** Concurrent HotelDetails calls when enriching listing cards missing photos. */
     private const DETAILS_IMAGE_POOL_SIZE = 10;
 
@@ -47,18 +53,15 @@ class TboHotelProvider implements HotelProviderInterface
             return collect();
         }
 
-        $hotels = $this->fetchByCity($destination->tbo_code);
-        if ($hotels->isEmpty()) {
+        // Page-aware budget — see HotelProviderManager.
+        $budget = (int) $request->attributes->get('hotel_search_budget', PHP_INT_MAX);
+        if ($budget <= 0) {
             return collect();
         }
 
-        // Page-aware budget — see HotelProviderManager. The city catalogue can
-        // contain thousands of hotels for places like Dubai; checking availability
-        // for all of them is what makes the page take forever to load. When the
-        // earlier providers (Yalago, TripInDeal) already brought enough hotels to
-        // cover the page, we only need to top up the remainder.
-        $budget = (int) $request->attributes->get('hotel_search_budget', PHP_INT_MAX);
-        if ($budget <= 0) {
+        $catalogueLimit = $this->catalogueLimitForBudget($budget);
+        $hotels = $this->fetchByCity($destination->tbo_code, $catalogueLimit);
+        if ($hotels->isEmpty()) {
             return collect();
         }
 
@@ -86,7 +89,20 @@ class TboHotelProvider implements HotelProviderInterface
         return $this->mergeListingImagesFromHotelDetails($formatted);
     }
 
-    private function fetchByCity(string $cityCode): Collection
+    /**
+     * How many catalogue rows to retain after TBO HotelCodeList decode.
+     */
+    private function catalogueLimitForBudget(int $budget): int
+    {
+        if ($budget >= PHP_INT_MAX) {
+            return self::MAX_CATALOGUE_HOTELS;
+        }
+
+        // Availability checks often miss on the first slice; allow extra catalogue rows.
+        return min(self::MAX_CATALOGUE_HOTELS, max(80, $budget * 8));
+    }
+
+    private function fetchByCity(string $cityCode, int $catalogueLimit = 0): Collection
     {
         try {
             $response = Http::timeout(30)
@@ -107,6 +123,8 @@ class TboHotelProvider implements HotelProviderInterface
             }
 
             $payload = $response->json();
+            unset($response);
+
             $statusCode = $payload['Status']['Code'] ?? null;
             if ($statusCode !== 200) {
                 Log::error('TBO HotelCodeList API status not ok', [
@@ -116,7 +134,15 @@ class TboHotelProvider implements HotelProviderInterface
                 return collect();
             }
 
-            return collect($payload['Hotels'] ?? []);
+            $rows = $payload['Hotels'] ?? [];
+            unset($payload);
+
+            $limit = $catalogueLimit > 0 ? $catalogueLimit : self::MAX_CATALOGUE_HOTELS;
+            if (count($rows) > $limit) {
+                $rows = array_slice($rows, 0, $limit);
+            }
+
+            return collect($rows);
         } catch (\Exception $e) {
             Log::error('TBO HotelCodeList API error', [
                 'city_code' => $cityCode,
