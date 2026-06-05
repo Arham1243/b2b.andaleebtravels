@@ -104,7 +104,10 @@ if (! function_exists('formatFlightCabinLabel')) {
 }
 
 if (! function_exists('formatFlightBookingClassLabel')) {
-    /** Label for fare booking class (RBD) — full words except Q, K, X, O, I. */
+    /**
+     * Label for fare booking class (RBD).
+     * Economy codes use full words; letter RBDs use "Class X" so cabin is not repeated.
+     */
     function formatFlightBookingClassLabel(?string $code): string
     {
         $code = trim((string) ($code ?? ''));
@@ -113,14 +116,24 @@ if (! function_exists('formatFlightBookingClassLabel')) {
             return '';
         }
 
-        $label = formatFlightCabinLabel($code);
         $upper = strtoupper($code);
 
-        if (in_array($upper, ['Q', 'K', 'X', 'O', 'I'], true)) {
-            return 'Class ' . $label;
+        if (strlen($code) === 1) {
+            $economyWords = ['Y', 'B', 'M', 'H', 'V', 'L', 'G', 'N', 'T', 'E', 'R', 'U'];
+            $premiumWords = ['W', 'S'];
+
+            if (in_array($upper, $economyWords, true)) {
+                return 'Economy';
+            }
+
+            if (in_array($upper, $premiumWords, true)) {
+                return 'Premium Economy';
+            }
+
+            return 'Class ' . $upper;
         }
 
-        return $label;
+        return formatFlightCabinLabel($code);
     }
 }
 

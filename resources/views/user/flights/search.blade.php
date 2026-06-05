@@ -508,11 +508,15 @@
                                             @else
                                                 <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
                                             @endif
-                                            @if($fareCabin !== '')
-                                                <span class="rc__ftag">{{ formatFlightCabinLabel($fareCabin) }}</span>
+                                            @php
+                                                $fareCabinLabel = $fareCabin !== '' ? formatFlightCabinLabel($fareCabin) : '';
+                                                $fareRbdLabel = $fareRbd !== '' ? formatFlightBookingClassLabel($fareRbd) : '';
+                                            @endphp
+                                            @if($fareCabinLabel !== '')
+                                                <span class="rc__ftag">{{ $fareCabinLabel }}</span>
                                             @endif
-                                            @if($fareRbd !== '')
-                                                <span class="rc__ftag">{{ formatFlightBookingClassLabel($fareRbd) }}</span>
+                                            @if($fareRbdLabel !== '' && $fareRbdLabel !== $fareCabinLabel)
+                                                <span class="rc__ftag">{{ $fareRbdLabel }}</span>
                                             @endif
                                             @if(!empty($bagNote))
                                                 <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>
