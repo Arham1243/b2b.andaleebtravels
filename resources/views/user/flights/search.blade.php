@@ -333,13 +333,6 @@
                             $legs       = $result['legs'] ?? [];
                             $firstSeg   = $legs[0]['segments'][0] ?? [];
 
-                            $seatList = [];
-                            foreach ($legs as $lg) {
-                                foreach ($lg['segments'] ?? [] as $sx) {
-                                    if (isset($sx['seats_available'])) $seatList[] = (int) $sx['seats_available'];
-                                }
-                            }
-                            $seatMin    = !empty($seatList) ? min($seatList) : null;
                             $fareOptions = $result['fare_options'] ?? [[
                                 'fare_brand' => trim((string) ($result['fare_brand'] ?? '')),
                                 'totalPrice' => (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0)),
@@ -496,6 +489,9 @@
                                         $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
                                         $fareCabin  = trim((string) ($fare['cabin_code'] ?? ''));
                                         $fareRbd    = trim((string) ($fare['booking_code'] ?? ''));
+                                        $fareSeats  = isset($fare['seats_available']) && is_numeric($fare['seats_available'])
+                                            ? (int) $fare['seats_available']
+                                            : null;
                                     @endphp
                                     <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
                                         data-rc-fare-row="{{ $fi }}">
@@ -521,8 +517,8 @@
                                             @if(!empty($bagNote))
                                                 <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>
                                             @endif
-                                            @if(!is_null($seatMin))
-                                                <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $seatMin }} seats</span>
+                                            @if(!is_null($fareSeats))
+                                                <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $fareSeats }} {{ $fareSeats === 1 ? 'seat' : 'seats' }}</span>
                                             @endif
                                         </div>
 

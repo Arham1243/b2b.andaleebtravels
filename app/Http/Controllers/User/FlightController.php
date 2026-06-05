@@ -443,12 +443,15 @@ class FlightController extends Controller
             $travelPreferences['Baggage']['RequestType'] = 'C';
         }
 
+        $seatsRequested = max(1, $adults + $children);
+
         $travelerInfoSummary = [
             'AirTravelerAvail' => [
                 [
                     'PassengerTypeQuantity' => $passengerTypes,
                 ],
             ],
+            'SeatsRequested' => [$seatsRequested],
             'PriceRequestInformation' => [
                 'TPA_Extensions' => [
                     'BrandedFareIndicators' => [
@@ -702,9 +705,30 @@ class FlightController extends Controller
             'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
             'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
             'fare_seat_meta' => $fareSeatMeta,
+            'seats_available' => $this->summarizeSeatsAvailable($fareSeatMeta),
             'cabin_code' => $cabinMeta['cabin_code'],
             'booking_code' => $cabinMeta['booking_code'],
         ];
+    }
+
+    /**
+     * Minimum seatsAvailable across all segments in a fare (Sabre caps at 9 when availabilityBreak is true).
+     *
+     * @param  list<array<string, mixed>>  $fareSeatMeta
+     */
+    private function summarizeSeatsAvailable(array $fareSeatMeta): ?int
+    {
+        $counts = [];
+
+        foreach ($fareSeatMeta as $segment) {
+            $raw = data_get($segment, 'seatsAvailable');
+
+            if ($raw !== null && $raw !== '' && is_numeric($raw)) {
+                $counts[] = (int) $raw;
+            }
+        }
+
+        return $counts !== [] ? min($counts) : null;
     }
 
     /**
