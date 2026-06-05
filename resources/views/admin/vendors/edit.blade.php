@@ -77,7 +77,6 @@
                                     </div>
                                     <div class="form-box__body">
                                         <div class="form-fields mb-2">
-                                            <label class="title">Credit Limit (AED)</label>
                                             <input type="number" name="credit_limit" class="field" step="0.01" min="0"
                                                 max="99999999.99"
                                                 value="{{ old('credit_limit', number_format((float) $vendor->credit_limit, 2, '.', '')) }}"
