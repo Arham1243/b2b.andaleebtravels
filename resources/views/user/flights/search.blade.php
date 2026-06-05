@@ -2397,16 +2397,18 @@
 
         const fareTabs = modal.querySelector('.fd-fare-tabs');
         if (fareTabs) {
-            const showFareTabs = panelKey === 'baggage' || panelKey === 'fare-rules';
+            const singleFareMode = modal.dataset.singleFareMode === '1';
+            const showFareTabs = !singleFareMode && (panelKey === 'baggage' || panelKey === 'fare-rules');
             fareTabs.hidden = !showFareTabs;
         }
     }
 
-    function openModal(id, tabKey, fareIndex){
+    function openModal(id, tabKey, fareIndex, singleFareMode = false){
         const m = document.getElementById(id);
         if(!m) return;
         m.hidden = false;
         document.body.style.overflow = 'hidden';
+        m.dataset.singleFareMode = singleFareMode ? '1' : '0';
         setModalFareIndex(m, fareIndex ?? getModalFareIndex(m));
         if (tabKey) activateModalTab(m, tabKey);
         else activateModalTab(m, m.dataset.activePanel || '0');
@@ -2419,10 +2421,12 @@
     }
     document.querySelectorAll('[data-fd-open]').forEach(btn=>{
         btn.addEventListener('click', ()=> {
+            const singleFare = btn.dataset.fdFare !== undefined && btn.dataset.fdFare !== '';
             openModal(
                 btn.dataset.fdOpen,
                 btn.dataset.fdOpenTab || null,
-                btn.dataset.fdFare ?? null,
+                singleFare ? btn.dataset.fdFare : null,
+                singleFare,
             );
         });
     });
