@@ -370,7 +370,8 @@
                         <span class="vs-stat__label">Available Balance</span>
                         <span class="vs-stat__icon"><i class="bx bx-wallet"></i></span>
                     </div>
-                    <div class="vs-stat__value is-currency">{!! formatPrice($vendor->availableBalanceAmount()) !!}</div>
+                    @php $adminAvailableBalance = $vendor->availableBalanceAmount(); @endphp
+                    <div class="vs-stat__value is-currency{{ $adminAvailableBalance < 0 ? ' text-danger' : '' }}">{!! formatPrice($adminAvailableBalance) !!}</div>
                 </div>
             </div>
             <div class="col-6 col-xl-3">
@@ -452,7 +453,8 @@
                 @if ($vendor->isAgencyAccount())
                     <div class="vs-info-item">
                         <span class="vs-info-label">Available Balance</span>
-                        <span class="vs-info-value fw-bold" style="color:var(--color-primary);">{!! formatPrice($vendor->availableBalanceAmount()) !!}</span>
+                        @php $adminDetailBalance = $vendor->availableBalanceAmount(); @endphp
+                        <span class="vs-info-value fw-bold" style="color:{{ $adminDetailBalance < 0 ? '#dc2626' : 'var(--color-primary)' }};">{!! formatPrice($adminDetailBalance) !!}</span>
                     </div>
                     <div class="vs-info-item">
                         <span class="vs-info-label">Credit Limit</span>

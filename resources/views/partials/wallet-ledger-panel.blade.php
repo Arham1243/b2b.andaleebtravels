@@ -184,8 +184,8 @@
                         <td class="fw-bold vs-ledger-amount vs-ledger-col-amount {{ $isVoided ? 'text-muted' : ($entry->isCredit() ? 'text-success' : 'text-danger') }}">
                             {{ $entry->isCredit() ? '+' : '-' }}{!! formatPrice($entry->amount) !!}
                         </td>
-                        <td class="vs-ledger-col-balance">{!! formatPrice($entry->balance_before) !!}</td>
-                        <td class="fw-semibold vs-ledger-col-balance">{!! formatPrice($entry->balance_after) !!}</td>
+                        <td class="vs-ledger-col-balance{{ (float) $entry->balance_before < 0 ? ' text-danger' : '' }}">{!! formatPrice($entry->balance_before) !!}</td>
+                        <td class="fw-semibold vs-ledger-col-balance{{ (float) $entry->balance_after < 0 ? ' text-danger' : '' }}">{!! formatPrice($entry->balance_after) !!}</td>
                         <td class="vs-ledger-desc">
                             <div class="vs-ledger-desc__text">{{ $entry->description }}</div>
                             @if (!empty($refLink['label']))

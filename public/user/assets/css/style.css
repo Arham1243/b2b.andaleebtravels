@@ -2974,6 +2974,10 @@ ol.breadcrumb {
     color: #0f1728;
 }
 
+.topbar-balance-value--negative {
+    color: #dc2626;
+}
+
 .topbar-divider-vertical {
     width: 1px;
     align-self: stretch;

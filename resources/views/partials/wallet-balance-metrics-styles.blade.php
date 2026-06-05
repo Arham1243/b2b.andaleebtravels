@@ -31,6 +31,9 @@
     .wallet-balance-metrics__value--used {
         color: #b45309;
     }
+    .wallet-balance-metrics__value--negative {
+        color: #dc2626;
+    }
     .wallet-balance-metrics--compact .wallet-balance-metrics__value {
         font-size: 0.92rem;
     }

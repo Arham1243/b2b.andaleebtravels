@@ -239,7 +239,13 @@ class B2bVendor extends Authenticatable
     /** Maximum spend allowed on checkout / new debits. */
     public function totalSpendableBalance(): float
     {
-        return $this->availableBalanceAmount();
+        $pools = $this->creditPools();
+
+        return VendorWalletCredit::maxSpendable(
+            $pools['prepaid'],
+            $pools['credit_used'],
+            $this->creditLimitAmount()
+        );
     }
 
     public function minimumAllowedBalance(): float

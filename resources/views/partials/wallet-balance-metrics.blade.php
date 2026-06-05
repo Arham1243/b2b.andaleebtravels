@@ -10,7 +10,7 @@
 <div class="wallet-balance-metrics{{ $compact ? ' wallet-balance-metrics--compact' : '' }}">
     <span class="wallet-balance-metrics__item">
         <span class="wallet-balance-metrics__label">Available Balance</span>
-        <strong class="wallet-balance-metrics__value">{!! formatPrice($availableBalance) !!}</strong>
+        <strong class="wallet-balance-metrics__value{{ $availableBalance < 0 ? ' wallet-balance-metrics__value--negative' : '' }}">{!! formatPrice($availableBalance) !!}</strong>
     </span>
     <span class="wallet-balance-metrics__item">
         <span class="wallet-balance-metrics__label">Credit Limit</span>

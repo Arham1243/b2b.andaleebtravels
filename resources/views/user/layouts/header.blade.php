@@ -22,7 +22,8 @@
                                 <span class="topbar-balance-label">Available Balance</span>
                                 <i class='bx bx-chevron-down'></i>
                             </div>
-                            <span class="topbar-balance-value">{!! formatPrice($walletAgency->availableBalanceAmount()) !!}</span>
+                            @php $headerAvailableBalance = $walletAgency->availableBalanceAmount(); @endphp
+                            <span class="topbar-balance-value{{ $headerAvailableBalance < 0 ? ' topbar-balance-value--negative' : '' }}">{!! formatPrice($headerAvailableBalance) !!}</span>
                         </a>
                     </div>
 

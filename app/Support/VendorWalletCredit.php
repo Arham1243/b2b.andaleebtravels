@@ -30,21 +30,7 @@ final class VendorWalletCredit
     public static function replayEntries(B2bVendor $vendor, Collection $entries): array
     {
         $creditLimit = $vendor->creditLimitAmount();
-
-        if ($creditLimit <= 0) {
-            $net = 0.0;
-
-            foreach ($entries as $entry) {
-                $net = WalletLedgerBalanceEffect::apply($entry, $net);
-            }
-
-            return [
-                'prepaid' => round(max(0, $net), 2),
-                'credit_used' => round(max(0, -$net), 2),
-                'net' => round($net, 2),
-            ];
-        }
-
+        $effectiveCreditLimit = self::effectiveCreditLimit($vendor);
         $prepaid = 0.0;
         $creditUsed = 0.0;
 
@@ -60,7 +46,7 @@ final class VendorWalletCredit
                 continue;
             }
 
-            [$prepaid, $creditUsed] = self::applyDebit($prepaid, $creditUsed, $amount, $creditLimit);
+            [$prepaid, $creditUsed] = self::applyDebit($prepaid, $creditUsed, $amount, $effectiveCreditLimit);
         }
 
         return [
@@ -68,6 +54,14 @@ final class VendorWalletCredit
             'credit_used' => round($creditUsed, 2),
             'net' => self::totalWalletBalance($prepaid, $creditUsed, $creditLimit),
         ];
+    }
+
+    /**
+     * Credit cap used when replaying ledger debits (preserves draws after limit is removed).
+     */
+    public static function effectiveCreditLimit(B2bVendor $vendor): float
+    {
+        return max($vendor->creditLimitAmount(), (float) ($vendor->credit_used ?? 0));
     }
 
     /**
@@ -118,19 +112,15 @@ final class VendorWalletCredit
     }
 
     /**
-     * Total wallet balance: real prepaid money plus unused credit allocation.
+     * Total wallet balance: prepaid + credit_limit - credit_used (may be negative).
      */
     public static function totalWalletBalance(float $prepaid, float $creditUsed, float $creditLimit): float
     {
-        if ($creditLimit <= 0) {
-            return round(max(0, $prepaid), 2);
-        }
-
-        return round(max(0, $prepaid + self::creditRemaining($creditUsed, $creditLimit)), 2);
+        return round($prepaid + $creditLimit - $creditUsed, 2);
     }
 
     /**
-     * Net wallet balance shown as "Available Balance".
+     * Net wallet balance shown as "Available Balance" (may be negative).
      */
     public static function availableBalance(float $prepaid, float $creditUsed, float $creditLimit): float
     {
@@ -138,11 +128,11 @@ final class VendorWalletCredit
     }
 
     /**
-     * Maximum the vendor can spend on a new debit.
+     * Maximum the vendor can spend on a new debit (never below zero).
      */
     public static function maxSpendable(float $prepaid, float $creditUsed, float $creditLimit): float
     {
-        return self::totalWalletBalance($prepaid, $creditUsed, $creditLimit);
+        return round(max(0, self::totalWalletBalance($prepaid, $creditUsed, $creditLimit)), 2);
     }
 
     /** @deprecated Use availableBalance() or maxSpendable() explicitly. */
@@ -164,6 +154,7 @@ final class VendorWalletCredit
     public static function syncVendorWallet(B2bVendor $vendor, bool $throwOnInvalid = false): array
     {
         $creditLimit = $vendor->creditLimitAmount();
+        $effectiveCreditLimit = self::effectiveCreditLimit($vendor);
 
         $entries = B2bWalletLedger::query()
             ->where('b2b_vendor_id', $vendor->id)
@@ -174,28 +165,20 @@ final class VendorWalletCredit
 
         $prepaid = 0.0;
         $creditUsed = 0.0;
-        $runningNet = 0.0;
 
         foreach ($entries as $ledgerEntry) {
             $amount = round((float) $ledgerEntry->amount, 2);
+            $totalBefore = self::totalWalletBalance($prepaid, $creditUsed, $creditLimit);
 
-            if ($creditLimit > 0) {
-                $totalBefore = self::totalWalletBalance($prepaid, $creditUsed, $creditLimit);
-
-                if (WalletLedgerBalanceEffect::affectsWalletBalance($ledgerEntry)) {
-                    if ($ledgerEntry->isCredit()) {
-                        [$prepaid, $creditUsed] = self::applyCredit($prepaid, $creditUsed, $amount);
-                    } else {
-                        [$prepaid, $creditUsed] = self::applyDebit($prepaid, $creditUsed, $amount, $creditLimit);
-                    }
+            if (WalletLedgerBalanceEffect::affectsWalletBalance($ledgerEntry)) {
+                if ($ledgerEntry->isCredit()) {
+                    [$prepaid, $creditUsed] = self::applyCredit($prepaid, $creditUsed, $amount);
+                } else {
+                    [$prepaid, $creditUsed] = self::applyDebit($prepaid, $creditUsed, $amount, $effectiveCreditLimit);
                 }
-
-                $totalAfter = self::totalWalletBalance($prepaid, $creditUsed, $creditLimit);
-            } else {
-                $totalBefore = round(max(0, $runningNet), 2);
-                $runningNet = WalletLedgerBalanceEffect::apply($ledgerEntry, $runningNet);
-                $totalAfter = round(max(0, $runningNet), 2);
             }
+
+            $totalAfter = self::totalWalletBalance($prepaid, $creditUsed, $creditLimit);
 
             if (
                 (float) $ledgerEntry->balance_before !== $totalBefore
@@ -207,50 +190,31 @@ final class VendorWalletCredit
             }
         }
 
-        if ($creditLimit > 0) {
-            if ($throwOnInvalid && $prepaid < -0.001) {
-                throw new \InvalidArgumentException(
-                    'This change would overdraw the wallet beyond the available balance.'
-                );
-            }
+        $net = self::totalWalletBalance($prepaid, $creditUsed, $creditLimit);
 
-            $net = self::totalWalletBalance($prepaid, $creditUsed, $creditLimit);
-
-            $vendor->update([
-                'main_balance' => $net,
-                'credit_used' => round($creditUsed, 2),
-            ]);
-
-            $vendor->refresh();
-            $vendor->creditPoolsCache = null;
-
-            return [
-                'prepaid' => round($prepaid, 2),
-                'credit_used' => round($creditUsed, 2),
-                'net' => $net,
-            ];
-        }
-
-        if ($throwOnInvalid && $runningNet < -0.001) {
+        if (
+            $throwOnInvalid
+            && $net < -0.001
+            && $creditUsed < 0.001
+            && $creditLimit < 0.001
+        ) {
             throw new \InvalidArgumentException(
-                'This change would make the wallet balance negative (' . number_format($runningNet, 2) . ' AED).'
+                'This change would make the wallet balance negative (' . number_format($net, 2) . ' AED).'
             );
         }
 
-        $finalBalance = round(max(0, $runningNet), 2);
-
         $vendor->update([
-            'main_balance' => $finalBalance,
-            'credit_used' => 0,
+            'main_balance' => $net,
+            'credit_used' => round($creditUsed, 2),
         ]);
 
         $vendor->refresh();
         $vendor->creditPoolsCache = null;
 
         return [
-            'prepaid' => $finalBalance,
-            'credit_used' => 0.0,
-            'net' => $finalBalance,
+            'prepaid' => round($prepaid, 2),
+            'credit_used' => round($creditUsed, 2),
+            'net' => $net,
         ];
     }
 
