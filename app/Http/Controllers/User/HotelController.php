@@ -124,6 +124,9 @@ class HotelController extends Controller
             $items = $items->forPage($page, $perPage)->values();
         }
 
+        // TBO catalogue/search often omit photos; fill from HotelDetails for visible cards only.
+        $items = $this->enrichTboListingImagesForPage($items);
+
         $this->storeTboSearchRates($items);
 
         $hotels = (new LengthAwarePaginator(
@@ -294,6 +297,36 @@ class HotelController extends Controller
         }
 
         return $hotels;
+    }
+
+    /**
+     * After pagination: fetch TBO HotelDetails thumbnails only for cards missing an image.
+     *
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $items
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function enrichTboListingImagesForPage(Collection $items): Collection
+    {
+        if ($items->isEmpty()) {
+            return $items;
+        }
+
+        $hasTboWithoutImage = $items->contains(function ($hotel) {
+            if (!is_array($hotel)) {
+                return false;
+            }
+            if (strtoupper((string) ($hotel['supplier'] ?? '')) !== 'TBO') {
+                return false;
+            }
+
+            return trim((string) ($hotel['image'] ?? '')) === '';
+        });
+
+        if (!$hasTboWithoutImage) {
+            return $items;
+        }
+
+        return (new TboHotelProvider($this->hotelCommissionPercentage))->enrichListingCardImages($items);
     }
 
     private function storeTboSearchRates(Collection $hotels): void

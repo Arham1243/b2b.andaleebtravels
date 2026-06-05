@@ -373,10 +373,12 @@ class TboHotelProvider implements HotelProviderInterface
     /**
      * Listing uses HotelCodeList + Search; details use HotelDetails. When both lack a usable URL,
      * fetch HotelDetails (same as details page) and use the first gallery image.
+     * Placeholder in the view is only used if this still finds nothing.
      *
+     * @param  Collection<int, array<string, mixed>>  $hotels
      * @return Collection<int, array<string, mixed>>
      */
-    private function mergeListingImagesFromHotelDetails(Collection $hotels): Collection
+    public function enrichListingCardImages(Collection $hotels): Collection
     {
         $codes = $hotels
             ->filter(function ($hotel) {
@@ -471,8 +473,18 @@ class TboHotelProvider implements HotelProviderInterface
     {
         $hotelCodes = array_values(array_unique(array_filter(array_map('strval', $hotelCodes))));
         $out = [];
+        $needsFetch = [];
 
-        foreach (array_chunk($hotelCodes, self::DETAILS_IMAGE_POOL_SIZE) as $chunk) {
+        foreach ($hotelCodes as $code) {
+            $cached = $this->readListingImageCache($code);
+            if ($cached !== null && $cached !== '') {
+                $out[$code] = $cached;
+            } else {
+                $needsFetch[] = $code;
+            }
+        }
+
+        foreach (array_chunk($needsFetch, self::DETAILS_IMAGE_POOL_SIZE) as $chunk) {
             try {
                 $responses = Http::pool(function (Pool $pool) use ($chunk) {
                     foreach ($chunk as $code) {
@@ -493,6 +505,7 @@ class TboHotelProvider implements HotelProviderInterface
                         $url = $this->parseFirstImageFromDetailsHttpResponse($res);
                         if ($url !== null && $url !== '') {
                             $out[$code] = $url;
+                            $this->writeListingImageCache($code, $url);
                         }
                     }
                 }
@@ -505,6 +518,35 @@ class TboHotelProvider implements HotelProviderInterface
         }
 
         return $out;
+    }
+
+    private function listingImageCacheFile(string $hotelCode): string
+    {
+        $safe = preg_replace('/[^a-zA-Z0-9_-]/', '_', $hotelCode) ?: 'unknown';
+
+        return storage_path("app/tbo-listing-images/{$safe}.url");
+    }
+
+    private function readListingImageCache(string $hotelCode): ?string
+    {
+        $path = $this->listingImageCacheFile($hotelCode);
+        if (!is_readable($path) || filemtime($path) < time() - self::CATALOGUE_CACHE_TTL_SECONDS) {
+            return null;
+        }
+
+        $url = trim((string) file_get_contents($path));
+
+        return $url !== '' ? $url : null;
+    }
+
+    private function writeListingImageCache(string $hotelCode, string $url): void
+    {
+        $dir = storage_path('app/tbo-listing-images');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        file_put_contents($this->listingImageCacheFile($hotelCode), $url, LOCK_EX);
     }
 
     private function fetchAvailability(

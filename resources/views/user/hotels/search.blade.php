@@ -264,8 +264,11 @@
                         @endphp
                             <div class="hl-card">
                                 <div class="hl-card__img">
-                                    <img src="{{ $hotel['image'] ?? asset('user/assets/images/placeholder.png') }}"
-                                        alt="{{ $hotel['name'] }}" />
+                                    @php
+                                        $listingImage = trim((string) ($hotel['image'] ?? ''));
+                                    @endphp
+                                    <img src="{{ $listingImage !== '' ? $listingImage : asset('user/assets/images/placeholder.png') }}"
+                                        alt="{{ $hotel['name'] }}" loading="lazy" />
                                 </div>
                                 <div class="hl-card__body">
                                     <div class="hl-card__info">
