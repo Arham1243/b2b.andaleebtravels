@@ -3,7 +3,6 @@
     $readOnly = $readOnly ?? true;
     $ledgerContext = $ledgerContext ?? 'admin';
     $filterApplyClass = $filterApplyClass ?? 'themeBtn';
-    $openUnpaidCredits = $openUnpaidCredits ?? collect();
     $referenceLink = $ledgerContext === 'user'
         ? fn ($entry) => $entry->userReferenceLink()
         : fn ($entry) => $entry->adminReferenceLink();
@@ -23,28 +22,7 @@
                 <select name="type" id="mw_type" class="field" required>
                     <option value="credit" {{ old('type', 'credit') === 'credit' ? 'selected' : '' }}>Credit</option>
                     <option value="debit" {{ old('type') === 'debit' ? 'selected' : '' }}>Debit</option>
-                    <option value="unpaid_credit" {{ old('type') === 'unpaid_credit' ? 'selected' : '' }}>Unpaid Credit</option>
-                    <option value="unpaid_credit_settlement" {{ old('type') === 'unpaid_credit_settlement' ? 'selected' : '' }}>Unpaid Credit – Payment Received</option>
                 </select>
-            </div>
-            <div class="col-md-3" id="mw_settles_wrap" style="display:none;">
-                <label for="mw_settles_ledger_id">Settles unpaid credit</label>
-                <select name="settles_ledger_id" id="mw_settles_ledger_id" class="field">
-                    <option value="">Select unpaid credit…</option>
-                    @foreach ($openUnpaidCredits as $openCredit)
-                        <option value="{{ $openCredit->id }}"
-                            data-amount="{{ number_format((float) $openCredit->amount, 2, '.', '') }}"
-                            {{ (string) old('settles_ledger_id') === (string) $openCredit->id ? 'selected' : '' }}>
-                            {{ $openCredit->created_at->format('d M Y') }} — AED {{ number_format((float) $openCredit->amount, 2) }}
-                            @if ($openCredit->description)
-                                — {{ \Illuminate\Support\Str::limit($openCredit->description, 40) }}
-                            @endif
-                        </option>
-                    @endforeach
-                </select>
-                @error('settles_ledger_id')
-                    <div class="text-danger small mt-1">{{ $message }}</div>
-                @enderror
             </div>
             <div class="col-md-2">
                 <label for="mw_amount">Amount (AED)</label>
