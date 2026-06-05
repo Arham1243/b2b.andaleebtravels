@@ -195,6 +195,14 @@ class HotelService
     }
 
     /**
+     * When true, hotel PayBy checkout skips the gateway and payment verification (testing only).
+     */
+    public function shouldSkipPayByPayment(): bool
+    {
+        return (bool) config('services.hotel.payby_skip_payment', false);
+    }
+
+    /**
      * Get redirect URL based on payment method
      */
     public function getRedirectUrl(B2bHotelBooking $booking, string $paymentMethod): string

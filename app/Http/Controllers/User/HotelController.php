@@ -1195,6 +1195,13 @@ class HotelController extends Controller
                     return redirect()->route('user.hotels.index')
                         ->with('notify_error', $availabilityCheck['error']);
                 }
+            } elseif (
+                ($validated['payment_method'] ?? '') === 'payby'
+                && $hotelService->shouldSkipPayByPayment()
+            ) {
+                Log::warning('TBO hotel PayBy payment skipped (test mode)', ['booking_id' => $booking->id]);
+
+                return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
             }
 
             // Store wallet intent on booking (do NOT deduct yet  -  only on verified success)
@@ -1239,12 +1246,6 @@ class HotelController extends Controller
             }
 
             $paymentMethod = $validated['payment_method'];
-
-            if ($paymentMethod === 'payby' && $hotelService->shouldSkipPayByPayment()) {
-                Log::warning('Hotel PayBy payment skipped (test mode)', ['booking_id' => $booking->id]);
-
-                return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
-            }
 
             try {
                 $redirectUrl = $hotelService->getRedirectUrl($booking, $paymentMethod);
@@ -1307,8 +1308,11 @@ class HotelController extends Controller
                 }
                 $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
             } elseif ($booking->payment_method === 'payby') {
-                if ($hotelService->shouldSkipPayByPayment()) {
-                    Log::warning('Hotel PayBy verification skipped (test mode)', ['booking_id' => $booking->id]);
+                if (
+                    strtolower((string) $booking->supplier) === 'tbo'
+                    && $hotelService->shouldSkipPayByPayment()
+                ) {
+                    Log::warning('TBO hotel PayBy verification skipped (test mode)', ['booking_id' => $booking->id]);
                     $verificationResult = ['success' => true, 'data' => ['skipped' => true, 'reason' => 'test_mode']];
                 } else {
                     $verificationResult = $hotelService->verifyPayByPayment($booking);

@@ -54,6 +54,14 @@ return [
     ],
 
     /*
+    | Temporary testing: skip PayBy gateway + verification for hotel checkout.
+    | Set payby_skip_payment to false before production.
+    */
+    'hotel' => [
+        'payby_skip_payment' => true,
+    ],
+
+    /*
     | Sabre REST/SOAP can exceed default Guzzle timeouts (often ~10s). Raise for shop, revalidate, PNR, ticket.
     */
     'sabre' => [
