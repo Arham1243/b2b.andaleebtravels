@@ -76,11 +76,6 @@
                                         <div class="title">Credit Limit</div>
                                     </div>
                                     <div class="form-box__body">
-                                        <p class="text-muted small mb-3">
-                                            Assign wallet credit (AED) without a ledger entry. This is separate from real
-                                            recharge money (Tabby, bank transfer, etc.). Changing this value sets the total
-                                            credit allocation — it is not cumulative.
-                                        </p>
                                         <div class="form-fields mb-2">
                                             <label class="title">Credit Limit (AED)</label>
                                             <input type="number" name="credit_limit" class="field" step="0.01" min="0"
@@ -94,9 +89,6 @@
                                         <p class="small mb-0 text-muted">
                                             Available balance:
                                             <strong>{!! formatPrice($vendor->availableBalanceAmount()) !!}</strong>
-                                            · Real money (ledger):
-                                            <strong>{!! formatPrice($vendor->prepaidWalletBalance()) !!}</strong>
-                                        </p>
                                     </div>
                                 </div>
                             @endif
