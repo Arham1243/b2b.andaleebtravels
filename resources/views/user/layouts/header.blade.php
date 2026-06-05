@@ -1,5 +1,6 @@
 @php
     $vendor = Auth::user();
+    $walletAgency = $vendor->walletAgency();
     $agencyTitle = $vendor->display_agency_name ?: config('app.name');
 @endphp
 <nav class="topbar" id="userTopbar">
@@ -21,7 +22,7 @@
                                 <span class="topbar-balance-label">Available Balance</span>
                                 <i class='bx bx-chevron-down'></i>
                             </div>
-                            <span class="topbar-balance-value">{!! formatPrice($vendor->availableBalanceAmount()) !!}</span>
+                            <span class="topbar-balance-value">{!! formatPrice($walletAgency->availableBalanceAmount()) !!}</span>
                         </a>
                     </div>
 

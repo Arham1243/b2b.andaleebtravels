@@ -161,12 +161,18 @@ class B2bVendor extends Authenticatable
 
     public function creditLimitAmount(): float
     {
-        return 0.0;
+        return max(0, round((float) $this->credit_limit, 2));
     }
 
     public function hasCreditLimit(): bool
     {
-        return false;
+        return $this->creditLimitAmount() > 0;
+    }
+
+    /** Unused portion of the admin-assigned credit limit. */
+    public function creditLimitRemainingAmount(): float
+    {
+        return VendorWalletCredit::creditRemaining($this->creditUsedAmount(), $this->creditLimitAmount());
     }
 
     /**
@@ -193,10 +199,6 @@ class B2bVendor extends Authenticatable
     /** Outstanding amount drawn from the agency credit line. */
     public function creditUsedAmount(): float
     {
-        if ($this->hasCreditLimit()) {
-            return max(0, round($this->creditPools()['credit_used'], 2));
-        }
-
         return max(0, round($this->creditPools()['credit_used'], 2));
     }
 
@@ -208,70 +210,40 @@ class B2bVendor extends Authenticatable
 
     public function creditAvailableAmount(): float
     {
-        if (! $this->hasCreditLimit()) {
-            return 0;
-        }
-
-        return max(0, round($this->creditLimitAmount() - $this->creditUsedAmount(), 2));
+        return $this->creditLimitRemainingAmount();
     }
 
-    /** Prepaid wallet funds (excludes credit line). */
+    /** Prepaid wallet funds from real money (recharges, manual credits, etc.). */
     public function prepaidWalletBalance(): float
     {
-        if ($this->hasCreditLimit()) {
-            return max(0, round($this->creditPools()['prepaid'], 2));
-        }
-
-        return max(0, round((float) $this->main_balance, 2));
+        return max(0, round($this->creditPools()['prepaid'], 2));
     }
 
     public function netWalletBalance(): float
     {
-        if ($this->hasCreditLimit()) {
-            return round($this->creditPools()['net'], 2);
-        }
-
-        return round((float) $this->main_balance, 2);
+        return round($this->creditPools()['net'], 2);
     }
 
     /** Net wallet balance — what the vendor actually has (shown as Available Balance). */
     public function availableBalanceAmount(): float
     {
-        if ($this->hasCreditLimit()) {
-            $pools = $this->creditPools();
+        $pools = $this->creditPools();
 
-            return VendorWalletCredit::availableBalance(
-                $pools['prepaid'],
-                $pools['credit_used'],
-                $this->creditLimitAmount()
-            );
-        }
-
-        return max(0, round((float) $this->main_balance, 2));
+        return VendorWalletCredit::availableBalance(
+            $pools['prepaid'],
+            $pools['credit_used'],
+            $this->creditLimitAmount()
+        );
     }
 
-    /** Maximum spend allowed on checkout / new debits (may include unused credit line). */
+    /** Maximum spend allowed on checkout / new debits. */
     public function totalSpendableBalance(): float
     {
-        if ($this->hasCreditLimit()) {
-            $pools = $this->creditPools();
-
-            return VendorWalletCredit::maxSpendable(
-                $pools['prepaid'],
-                $pools['credit_used'],
-                $this->creditLimitAmount()
-            );
-        }
-
-        return max(0, round((float) $this->main_balance, 2));
+        return $this->availableBalanceAmount();
     }
 
     public function minimumAllowedBalance(): float
     {
-        if ($this->hasCreditLimit()) {
-            return round(-$this->creditLimitAmount(), 2);
-        }
-
         return 0.0;
     }
 

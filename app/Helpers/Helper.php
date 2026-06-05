@@ -55,7 +55,7 @@ if (! function_exists('formatPrice')) {
 if (! function_exists('formatCreditLimitDisplay')) {
     function formatCreditLimitDisplay(?\App\Models\B2bVendor $vendor, string $emptyLabel = 'Not set'): HtmlString
     {
-        if ($vendor === null || ! $vendor->hasCreditLimit()) {
+        if ($vendor === null) {
             return new HtmlString('<span class="text-muted">' . e($emptyLabel) . '</span>');
         }
 

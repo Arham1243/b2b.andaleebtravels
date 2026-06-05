@@ -414,6 +414,7 @@ class VendorController extends Controller
                 'hotel_markup_value' => $request->boolean('vendor_markups_enabled')
                     ? $this->normalizeMarkupValue($validated['hotel_markup_type'] ?? null, $validated['hotel_markup_value'] ?? 0)
                     : 0,
+                'credit_limit' => round((float) ($validated['credit_limit'] ?? 0), 2),
             ];
 
             if ($request->hasFile('agency_logo')) {
@@ -587,6 +588,7 @@ class VendorController extends Controller
             'flight_markup_value' => 'nullable|numeric|min:0|max:99999999.99',
             'hotel_markup_type' => 'nullable|in:percent,fixed',
             'hotel_markup_value' => 'nullable|numeric|min:0|max:99999999.99',
+            'credit_limit' => 'nullable|numeric|min:0|max:99999999.99',
         ]);
 
         return $request->validate($rules, B2bVendorValidation::messages());

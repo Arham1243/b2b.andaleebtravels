@@ -69,6 +69,38 @@
                                     </div>
                                 </div>
                             </div>
+
+                            @if ($vendor->isAgencyAccount())
+                                <div class="form-box mt-3">
+                                    <div class="form-box__header">
+                                        <div class="title">Credit Limit</div>
+                                    </div>
+                                    <div class="form-box__body">
+                                        <p class="text-muted small mb-3">
+                                            Assign wallet credit (AED) without a ledger entry. This is separate from real
+                                            recharge money (Tabby, bank transfer, etc.). Changing this value sets the total
+                                            credit allocation — it is not cumulative.
+                                        </p>
+                                        <div class="form-fields mb-2">
+                                            <label class="title">Credit Limit (AED)</label>
+                                            <input type="number" name="credit_limit" class="field" step="0.01" min="0"
+                                                max="99999999.99"
+                                                value="{{ old('credit_limit', number_format((float) $vendor->credit_limit, 2, '.', '')) }}"
+                                                @if ($readOnly ?? false) readonly @endif>
+                                            @error('credit_limit')
+                                                <div class="text-danger">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <p class="small mb-0 text-muted">
+                                            Available balance:
+                                            <strong>{!! formatPrice($vendor->availableBalanceAmount()) !!}</strong>
+                                            · Real money (ledger):
+                                            <strong>{!! formatPrice($vendor->prepaidWalletBalance()) !!}</strong>
+                                        </p>
+                                    </div>
+                                </div>
+                            @endif
+
                             <div class="text-end mt-3">
                                 @if ($vendor->isPendingApproval() && $vendor->isAgencyAccount())
                                     <a href="{{ route('admin.vendors.pending.show', $vendor) }}" class="text-muted" style="font-size:13px;">← Back to signup request</a>

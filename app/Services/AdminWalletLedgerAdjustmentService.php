@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\B2bVendor;
 use App\Models\B2bWalletLedger;
 use App\Support\VendorWalletCredit;
-use App\Support\WalletLedgerBalanceEffect;
 use App\Support\WalletLedgerDescription;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -119,87 +118,16 @@ class AdminWalletLedgerAdjustmentService
     public function syncVendorBalanceFromLedger(int $vendorId): float
     {
         $vendor = B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
-        $creditLimit = $vendor->creditLimitAmount();
 
-        $entries = B2bWalletLedger::query()
-            ->where('b2b_vendor_id', $vendorId)
-            ->active()
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->get();
-
-        $prepaid = 0.0;
-        $creditUsed = 0.0;
-        $runningNet = 0.0;
-
-        foreach ($entries as $ledgerEntry) {
-            $amount = round((float) $ledgerEntry->amount, 2);
-
-            if ($creditLimit > 0) {
-                $netBefore = VendorWalletCredit::netBalance($prepaid, $creditUsed);
-
-                if (WalletLedgerBalanceEffect::affectsWalletBalance($ledgerEntry)) {
-                    if ($ledgerEntry->isCredit()) {
-                        [$prepaid, $creditUsed] = VendorWalletCredit::applyCredit($prepaid, $creditUsed, $amount);
-                    } else {
-                        [$prepaid, $creditUsed] = VendorWalletCredit::applyDebit($prepaid, $creditUsed, $amount, $creditLimit);
-                    }
-                }
-
-                $netAfter = VendorWalletCredit::netBalance($prepaid, $creditUsed);
-            } else {
-                $netBefore = round($runningNet, 2);
-                $runningNet = WalletLedgerBalanceEffect::apply($ledgerEntry, $runningNet);
-                $netAfter = round($runningNet, 2);
-            }
-
-            if (
-                (float) $ledgerEntry->balance_before !== $netBefore
-                || (float) $ledgerEntry->balance_after !== $netAfter
-            ) {
-                $ledgerEntry->balance_before = $netBefore;
-                $ledgerEntry->balance_after = $netAfter;
-                $ledgerEntry->saveQuietly();
-            }
-        }
-
-        if ($creditLimit > 0) {
-            if ($creditUsed > $creditLimit + 0.001) {
-                throw ValidationException::withMessages([
-                    'amount' => 'This change would exceed the credit limit. Credit used would be ' . number_format($creditUsed, 2) . ' AED.',
-                ]);
-            }
-
-            if ($prepaid < -0.001) {
-                throw ValidationException::withMessages([
-                    'amount' => 'This change would overdraw the wallet beyond the available credit line.',
-                ]);
-            }
-
-            $net = VendorWalletCredit::netBalance($prepaid, $creditUsed);
-
-            $vendor->update([
-                'main_balance' => round($net, 2),
-                'credit_used' => round($creditUsed, 2),
-            ]);
-
-            return round($net, 2);
-        }
-
-        $finalBalance = round($runningNet, 2);
-
-        if ($finalBalance < 0) {
+        try {
+            $pools = VendorWalletCredit::syncVendorWallet($vendor, true);
+        } catch (\InvalidArgumentException $e) {
             throw ValidationException::withMessages([
-                'amount' => 'This change would make the wallet balance negative (' . number_format($finalBalance, 2) . ' AED). Adjust the transaction or void other entries first.',
+                'amount' => $e->getMessage(),
             ]);
         }
 
-        $vendor->update([
-            'main_balance' => $finalBalance,
-            'credit_used' => 0,
-        ]);
-
-        return $finalBalance;
+        return $pools['net'];
     }
 
     private function parseTransactionAt(string $date, ?string $time): Carbon

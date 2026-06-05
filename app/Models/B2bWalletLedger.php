@@ -132,21 +132,10 @@ class B2bWalletLedger extends Model
         ?int $settlesLedgerId = null,
     ): self {
         return DB::transaction(function () use ($vendorId, $type, $amount, $description, $transactionAt, $adminId, $attachmentPath, $manualKind, $settlesLedgerId) {
-            $vendor = B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
-            $netBefore = round((float) $vendor->main_balance, 2);
+            B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
             $isSettlement = $manualKind === self::KIND_UNPAID_CREDIT_SETTLEMENT;
-
-            if ($isSettlement) {
-                $netAfter = $netBefore;
-            } else {
-                $delta = $type === 'credit' ? round($amount, 2) : -round($amount, 2);
-                $netAfter = round($netBefore + $delta, 2);
-
-                $vendor->update([
-                    'main_balance' => $netAfter,
-                    'credit_used' => 0,
-                ]);
-            }
+            $netBefore = 0.0;
+            $netAfter = 0.0;
 
             $entry = self::create([
                 'b2b_vendor_id' => $vendorId,
@@ -166,7 +155,12 @@ class B2bWalletLedger extends Model
             $entry->updated_at = $transactionAt;
             $entry->saveQuietly();
 
-            return $entry;
+            if (! $isSettlement) {
+                $vendor = B2bVendor::query()->whereKey($vendorId)->firstOrFail();
+                VendorWalletCredit::syncVendorWallet($vendor, true);
+            }
+
+            return $entry->fresh();
         });
     }
 
@@ -208,74 +202,46 @@ class B2bWalletLedger extends Model
     public static function recordCredit(int $vendorId, float $amount, string $description, ?string $referenceType = null, ?int $referenceId = null): self
     {
         return DB::transaction(function () use ($vendorId, $amount, $description, $referenceType, $referenceId) {
-            $vendor = B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
-            $creditLimit = $vendor->creditLimitAmount();
-            $prepaid = VendorWalletCredit::currentPrepaid($vendor);
-            $creditUsed = (float) ($vendor->credit_used ?? 0);
-            $netBefore = round((float) $vendor->main_balance, 2);
+            B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
 
-            if ($creditLimit > 0) {
-                [$prepaid, $creditUsed] = VendorWalletCredit::applyCredit($prepaid, $creditUsed, $amount);
-            } else {
-                $prepaid = round($prepaid + $amount, 2);
-            }
-
-            $netAfter = $creditLimit > 0
-                ? VendorWalletCredit::netBalance($prepaid, $creditUsed)
-                : round($prepaid, 2);
-
-            $vendor->update([
-                'main_balance' => round($netAfter, 2),
-                'credit_used' => round($creditUsed, 2),
-            ]);
-
-            return self::create([
+            $entry = self::create([
                 'b2b_vendor_id' => $vendorId,
                 'type' => 'credit',
                 'amount' => $amount,
-                'balance_before' => round($netBefore, 2),
-                'balance_after' => round($netAfter, 2),
+                'balance_before' => 0,
+                'balance_after' => 0,
                 'description' => $description,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,
             ]);
+
+            $vendor = B2bVendor::query()->whereKey($vendorId)->firstOrFail();
+            VendorWalletCredit::syncVendorWallet($vendor, true);
+
+            return $entry->fresh();
         });
     }
 
     public static function recordDebit(int $vendorId, float $amount, string $description, ?string $referenceType = null, ?int $referenceId = null): self
     {
         return DB::transaction(function () use ($vendorId, $amount, $description, $referenceType, $referenceId) {
-            $vendor = B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
-            $creditLimit = $vendor->creditLimitAmount();
-            $prepaid = VendorWalletCredit::currentPrepaid($vendor);
-            $creditUsed = (float) ($vendor->credit_used ?? 0);
-            $netBefore = round((float) $vendor->main_balance, 2);
+            B2bVendor::query()->whereKey($vendorId)->lockForUpdate()->firstOrFail();
 
-            if ($creditLimit > 0) {
-                [$prepaid, $creditUsed] = VendorWalletCredit::applyDebit($prepaid, $creditUsed, $amount, $creditLimit);
-            } else {
-                $prepaid = round($prepaid - $amount, 2);
-            }
-
-            $netAfter = $creditLimit > 0
-                ? VendorWalletCredit::netBalance($prepaid, $creditUsed)
-                : round($prepaid, 2);
-
-            $vendor->update([
-                'main_balance' => round($netAfter, 2),
-                'credit_used' => round($creditUsed, 2),
-            ]);
-
-            return self::create([
+            $entry = self::create([
                 'b2b_vendor_id' => $vendorId,
                 'type' => 'debit',
                 'amount' => $amount,
-                'balance_before' => round($netBefore, 2),
-                'balance_after' => round($netAfter, 2),
+                'balance_before' => 0,
+                'balance_after' => 0,
                 'description' => $description,
                 'reference_type' => $referenceType,
                 'reference_id' => $referenceId,
             ]);
+
+            $vendor = B2bVendor::query()->whereKey($vendorId)->firstOrFail();
+            VendorWalletCredit::syncVendorWallet($vendor, true);
+
+            return $entry->fresh();
         });
     }
 

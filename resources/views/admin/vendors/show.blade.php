@@ -455,6 +455,10 @@
                         <span class="vs-info-value fw-bold" style="color:var(--color-primary);">{!! formatPrice($vendor->availableBalanceAmount()) !!}</span>
                     </div>
                     <div class="vs-info-item">
+                        <span class="vs-info-label">Credit Limit</span>
+                        <span class="vs-info-value">{!! formatCreditLimitDisplay($vendor, 'AED 0.00') !!}</span>
+                    </div>
+                    <div class="vs-info-item">
                         <span class="vs-info-label">Used Balance</span>
                         <span class="vs-info-value">{!! formatPrice($vendor->usedBalanceAmount()) !!}</span>
                     </div>
