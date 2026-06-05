@@ -1,3 +1,13 @@
+# LiteSpeed / cPanel: enforce memory for Laravel (Selector may show 1024M but web can stay at 12M).
+<IfModule mod_php.c>
+    php_value memory_limit 512M
+    php_value max_execution_time 180
+</IfModule>
+<IfModule lsapi_module>
+    php_value memory_limit 512M
+    php_value max_execution_time 180
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
