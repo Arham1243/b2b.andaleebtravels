@@ -80,6 +80,8 @@
                 <input type="hidden" name="direct_flight" :value="directFlight ? 1 : 0">
                 <input type="hidden" name="nearby_airports" :value="nearbyAirports ? 1 : 0">
                 <input type="hidden" name="student_fare" :value="studentFare ? 1 : 0">
+                <input type="hidden" name="onward_cabin_class" :value="onwardCabin">
+                <input type="hidden" name="return_cabin_class" :value="returnCabin" v-if="tripType === 'round_trip'">
 
                 <template v-if="tripType !== 'multi_city'">
                     <div class="fs-pro-route-sheet">

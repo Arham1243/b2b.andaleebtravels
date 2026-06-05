@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Config;
 use App\Services\FlightService;
+use App\Support\FlightCabinPreference;
 use App\Support\FlightPromoConfig;
 use App\Support\SabreBaggagePresenter;
 use App\Support\SabreFareBrandPresenter;
@@ -74,6 +75,8 @@ class FlightController extends Controller
             'direct_flight' => 'nullable',
             'nearby_airports' => 'nullable',
             'student_fare' => 'nullable',
+            'onward_cabin_class' => 'nullable|string|in:Economy,Premium Economy,Business,First',
+            'return_cabin_class' => 'nullable|string|in:Economy,Premium Economy,Business,First',
             'segments' => 'nullable|array|min:2|max:5',
             'segments.*.from' => 'nullable|string|size:3',
             'segments.*.to' => 'nullable|string|size:3',
@@ -184,7 +187,7 @@ class FlightController extends Controller
         $messages = $grouped['messages'] ?? [];
         $itineraryCount = (int) ($grouped['statistics']['itineraryCount'] ?? 0);
 
-        $results = $this->extractItineraries($grouped);
+        $results = $this->extractItineraries($grouped, $searchData);
 
         if (vendorPricing()->pricingAdjustmentsEnabled(Auth::user())) {
             $results = applyFlightSearchPricing($results);
@@ -302,6 +305,10 @@ class FlightController extends Controller
             'direct_flight' => filter_var($data['direct_flight'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'nearby_airports' => filter_var($data['nearby_airports'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'student_fare' => filter_var($data['student_fare'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'onward_cabin_class' => FlightCabinPreference::normalizeUiLabel($data['onward_cabin_class'] ?? 'Economy'),
+            'return_cabin_class' => FlightCabinPreference::normalizeUiLabel(
+                $data['return_cabin_class'] ?? ($data['onward_cabin_class'] ?? 'Economy')
+            ),
         ];
 
         if ($tripType === 'multi_city') {
@@ -404,35 +411,53 @@ class FlightController extends Controller
 
         $originDestinations = [];
 
+        $onwardCabin = FlightCabinPreference::normalizeUiLabel($data['onward_cabin_class'] ?? 'Economy');
+        $returnCabin = FlightCabinPreference::normalizeUiLabel($data['return_cabin_class'] ?? $onwardCabin);
+
         if ($tripType === 'multi_city') {
             foreach ($data['segments'] ?? [] as $segment) {
-                $originDestinations[] = [
-                    'DepartureDateTime' => $this->formatSabreDateTime($segment['departure_date']),
-                    'OriginLocation' => ['LocationCode' => strtoupper($segment['from'])],
-                    'DestinationLocation' => ['LocationCode' => strtoupper($segment['to'])],
-                ];
+                $originDestinations[] = array_merge(
+                    [
+                        'DepartureDateTime' => $this->formatSabreDateTime($segment['departure_date']),
+                        'OriginLocation' => ['LocationCode' => strtoupper($segment['from'])],
+                        'DestinationLocation' => ['LocationCode' => strtoupper($segment['to'])],
+                    ],
+                    ['TPA_Extensions' => FlightCabinPreference::sabreTpaExtension($onwardCabin)],
+                );
             }
         } else {
             $departureDate = $this->formatSabreDateTime($data['departure_date']);
             $returnDate = !empty($data['return_date']) ? $this->formatSabreDateTime($data['return_date']) : null;
 
-            $originDestinations[] = [
-                'DepartureDateTime' => $departureDate,
-                'OriginLocation' => ['LocationCode' => $origin],
-                'DestinationLocation' => ['LocationCode' => $destination],
-            ];
+            $originDestinations[] = array_merge(
+                [
+                    'DepartureDateTime' => $departureDate,
+                    'OriginLocation' => ['LocationCode' => $origin],
+                    'DestinationLocation' => ['LocationCode' => $destination],
+                ],
+                ['TPA_Extensions' => FlightCabinPreference::sabreTpaExtension($onwardCabin)],
+            );
 
             if ($tripType === 'round_trip' && $returnDate) {
-                $originDestinations[] = [
-                    'DepartureDateTime' => $returnDate,
-                    'OriginLocation' => ['LocationCode' => $destination],
-                    'DestinationLocation' => ['LocationCode' => $origin],
-                ];
+                $originDestinations[] = array_merge(
+                    [
+                        'DepartureDateTime' => $returnDate,
+                        'OriginLocation' => ['LocationCode' => $destination],
+                        'DestinationLocation' => ['LocationCode' => $origin],
+                    ],
+                    ['TPA_Extensions' => FlightCabinPreference::sabreTpaExtension($returnCabin)],
+                );
             }
         }
 
         $travelPreferences = [
             'MaxStopsQuantity' => !empty($data['direct_flight']) ? 0 : 1,
+            'CabinPref' => [
+                [
+                    'Cabin' => FlightCabinPreference::toSabreCode($onwardCabin),
+                    'PreferLevel' => 'Only',
+                ],
+            ],
             'Baggage' => [
                 'RequestType' => 'A',
                 'Description' => true,
@@ -502,8 +527,12 @@ class FlightController extends Controller
         return $parsed->format('Y-m-d\TH:i:s');
     }
 
-    private function extractItineraries(array $grouped): array
+    private function extractItineraries(array $grouped, array $searchData = []): array
     {
+        $tripType = (string) ($searchData['trip_type'] ?? 'one_way');
+        $onwardCabin = FlightCabinPreference::normalizeUiLabel($searchData['onward_cabin_class'] ?? 'Economy');
+        $returnCabin = FlightCabinPreference::normalizeUiLabel($searchData['return_cabin_class'] ?? $onwardCabin);
+
         $scheduleById = collect($grouped['scheduleDescs'] ?? [])->keyBy('id');
         $legById = collect($grouped['legDescs'] ?? [])->keyBy('id');
         $baggageAllowanceById = collect($grouped['baggageAllowanceDescs'] ?? [])->keyBy('id');
@@ -536,6 +565,17 @@ class FlightController extends Controller
                         $pricingEntry['index'],
                         $baggageAllowanceById,
                     );
+                }
+
+                $fareOptions = $this->filterFareOptionsByCabin(
+                    $fareOptions,
+                    $onwardCabin,
+                    $returnCabin,
+                    $tripType,
+                );
+
+                if ($fareOptions === []) {
+                    continue;
                 }
 
                 $primaryFare = $fareOptions[0];
@@ -595,6 +635,27 @@ class FlightController extends Controller
         }
 
         return $results;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $fareOptions
+     * @return list<array<string, mixed>>
+     */
+    private function filterFareOptionsByCabin(
+        array $fareOptions,
+        string $onwardCabin,
+        string $returnCabin,
+        string $tripType,
+    ): array {
+        return array_values(array_filter(
+            $fareOptions,
+            static fn (array $fare): bool => FlightCabinPreference::fareMatchesSearch(
+                $fare,
+                $onwardCabin,
+                $returnCabin,
+                $tripType,
+            ),
+        ));
     }
 
     /**

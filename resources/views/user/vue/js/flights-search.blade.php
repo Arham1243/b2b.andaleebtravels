@@ -694,6 +694,16 @@
                 nearbyAirports.value = ['1', 'true', 'on'].includes((params.get('nearby_airports') || '').toLowerCase());
                 studentFare.value = ['1', 'true', 'on'].includes((params.get('student_fare') || '').toLowerCase());
 
+                const onwardCabinParam = params.get('onward_cabin_class');
+                if (onwardCabinParam && cabinOptions.includes(onwardCabinParam)) {
+                    onwardCabin.value = onwardCabinParam;
+                }
+
+                const returnCabinParam = params.get('return_cabin_class');
+                if (returnCabinParam && cabinOptions.includes(returnCabinParam)) {
+                    returnCabin.value = returnCabinParam;
+                }
+
                 const fromCode = (params.get('from') || '').toUpperCase();
                 const toCode = (params.get('to') || '').toUpperCase();
 
