@@ -42,7 +42,7 @@ class HotelProviderManager
         // how many hotels it still needs to deliver to fill the current page, so
         // expensive APIs (e.g. TBO) can avoid pulling thousands of hotels when a
         // cheaper provider already covered the page.
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = (int) $request->input('per_page', 5);
         $page    = max(1, (int) $request->input('page', 1));
 
         // Bypass budget when the user is searching for a specific hotel by name
@@ -55,13 +55,12 @@ class HotelProviderManager
             || $request->filled('property_type')
             || $request->filled('min_price')
             || $request->filled('max_price')
-            || $request->filled('board_type');
+            || $request->filled('board_type')
+            || $request->filled('supplier');
 
-        // Aim a bit higher than the page itself so post-filter losses still
-        // leave us with a full page (3x by default, 6x when filtering on
-        // attributes that may remove a large portion of the set).
-        $multiplier = $hasNarrowingFilter ? 6 : 3;
-        $target     = max(30, $perPage * $page * $multiplier);
+        // Keep provider fetch budget small (shared hosts can cap PHP at ~12M).
+        $multiplier = $hasNarrowingFilter ? 3 : 2;
+        $target     = min(20, max($perPage, $perPage * $page * $multiplier));
 
         // When the user has explicitly filtered by supplier, only run the
         // requested providers. Otherwise the budget is consumed by earlier

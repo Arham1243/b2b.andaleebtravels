@@ -80,7 +80,8 @@ class HotelController extends Controller
         [$province, $country] = $this->resolveDestination($request);
 
         $hotels = collect();
-        $perPage = max(5, min(50, (int) $request->input('per_page', 10)));
+        // Default 5 per page — keeps TBO/search memory low on shared hosting (~12M caps).
+        $perPage = max(5, min(20, (int) $request->input('per_page', 5)));
         $request->merge(['per_page' => $perPage]);
 
         $tripInDealOnly = is_array($this->enabledHotelProviders)
@@ -107,8 +108,6 @@ class HotelController extends Controller
             $hotels = $this->applySorting($hotels, $request);
         }
 
-        $this->storeTboSearchRates($hotels);
-
         $page = max(1, (int) $request->input('page', 1));
         $tripInDealPaginated = (bool) $request->attributes->get('tripindeal_paginated', false);
         $total = $hotels->count();
@@ -124,6 +123,8 @@ class HotelController extends Controller
             $page = min($page, $lastPage);
             $items = $items->forPage($page, $perPage)->values();
         }
+
+        $this->storeTboSearchRates($items);
 
         $hotels = (new LengthAwarePaginator(
             $items,
@@ -1239,6 +1240,12 @@ class HotelController extends Controller
 
             $paymentMethod = $validated['payment_method'];
 
+            if ($paymentMethod === 'payby' && $hotelService->shouldSkipPayByPayment()) {
+                Log::warning('Hotel PayBy payment skipped (test mode)', ['booking_id' => $booking->id]);
+
+                return redirect()->route('user.hotels.payment.success', ['booking' => $booking->id]);
+            }
+
             try {
                 $redirectUrl = $hotelService->getRedirectUrl($booking, $paymentMethod);
                 return redirect($redirectUrl);
@@ -1300,7 +1307,12 @@ class HotelController extends Controller
                 }
                 $verificationResult = ['success' => true, 'data' => ['method' => 'wallet']];
             } elseif ($booking->payment_method === 'payby') {
-                $verificationResult = $hotelService->verifyPayByPayment($booking);
+                if ($hotelService->shouldSkipPayByPayment()) {
+                    Log::warning('Hotel PayBy verification skipped (test mode)', ['booking_id' => $booking->id]);
+                    $verificationResult = ['success' => true, 'data' => ['skipped' => true, 'reason' => 'test_mode']];
+                } else {
+                    $verificationResult = $hotelService->verifyPayByPayment($booking);
+                }
             } elseif ($booking->payment_method === 'tabby') {
                 $verificationResult = $hotelService->verifyTabbyPayment($booking);
             } elseif ($booking->payment_method === 'tamara') {

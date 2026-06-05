@@ -20,13 +20,15 @@ class TboHotelProvider implements HotelProviderInterface
     private const API_DETAILS_URL = 'http://api.tbotechnology.in/TBOHolidays_HotelAPI/HotelDetails';
     private const API_USERNAME = 'andaleebTest';
     private const API_PASSWORD = 'And@30524459';
-    private const SEARCH_CHUNK_SIZE = 100;
+    private const SEARCH_CHUNK_SIZE = 50;
 
     /**
      * TBO returns the full city catalogue in one response (e.g. thousands for Dubai).
      * Keep only this many catalogue rows in memory after decode to avoid OOM on small caps.
      */
-    private const MAX_CATALOGUE_HOTELS = 400;
+    private const MAX_CATALOGUE_HOTELS = 60;
+
+    private const CATALOGUE_CACHE_TTL_SECONDS = 86400;
 
     /** Concurrent HotelDetails calls when enriching listing cards missing photos. */
     private const DETAILS_IMAGE_POOL_SIZE = 10;
@@ -76,17 +78,13 @@ class TboHotelProvider implements HotelProviderInterface
         $checkOutDate = $checkOut ? \Carbon\Carbon::parse($checkOut)->format('Y-m-d') : null;
 
         if (!$checkInDate || !$checkOutDate) {
-            $formatted = $this->formatHotels($hotels, $destination, collect());
-
-            return $this->mergeListingImagesFromHotelDetails($formatted);
+            return $this->formatHotels($hotels, $destination, collect());
         }
 
         $guestNationality = (string) $request->input('guest_nationality', 'AE');
         $rates = $this->fetchAvailability($hotels, $rooms, $checkInDate, $checkOutDate, $guestNationality);
 
-        $formatted = $this->formatHotels($hotels, $destination, $rates);
-
-        return $this->mergeListingImagesFromHotelDetails($formatted);
+        return $this->formatHotels($hotels, $destination, $rates);
     }
 
     /**
@@ -98,48 +96,47 @@ class TboHotelProvider implements HotelProviderInterface
             return self::MAX_CATALOGUE_HOTELS;
         }
 
-        // Availability checks often miss on the first slice; allow extra catalogue rows.
-        return min(self::MAX_CATALOGUE_HOTELS, max(80, $budget * 8));
+        // Availability checks often miss on the first slice; allow a small extra slice only.
+        return min(self::MAX_CATALOGUE_HOTELS, max(15, $budget * 2));
+    }
+
+    /**
+     * Pre-build catalogue cache via SSH/cron (web requests may be capped at ~12MB on shared hosting).
+     */
+    public function warmCatalogueCache(string $cityCode, ?int $limit = null): int
+    {
+        if (function_exists('ini_set')) {
+            @ini_set('memory_limit', '512M');
+        }
+
+        $limit = $limit ?? self::MAX_CATALOGUE_HOTELS;
+        $rows = $this->fetchCatalogueRowsFromApi($cityCode, $limit);
+        if ($rows === []) {
+            return 0;
+        }
+
+        $this->writeCatalogueCache($cityCode, $rows);
+
+        return count($rows);
     }
 
     private function fetchByCity(string $cityCode, int $catalogueLimit = 0): Collection
     {
+        $limit = $catalogueLimit > 0 ? $catalogueLimit : self::MAX_CATALOGUE_HOTELS;
+
+        $cached = $this->readCatalogueCache($cityCode);
+        if ($cached !== null) {
+            if (count($cached) > $limit) {
+                $cached = array_slice($cached, 0, $limit);
+            }
+
+            return collect($cached);
+        }
+
         try {
-            $response = Http::timeout(30)
-                ->connectTimeout(10)
-                ->retry(2, 2000)
-                ->withBasicAuth(self::API_USERNAME, self::API_PASSWORD)
-                ->post(self::API_URL, [
-                    'CityCode' => $cityCode,
-                ]);
-
-            if ($response->failed()) {
-                Log::error('TBO HotelCodeList API failed', [
-                    'city_code' => $cityCode,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-                return collect();
-            }
-
-            $payload = $response->json();
-            unset($response);
-
-            $statusCode = $payload['Status']['Code'] ?? null;
-            if ($statusCode !== 200) {
-                Log::error('TBO HotelCodeList API status not ok', [
-                    'city_code' => $cityCode,
-                    'status' => $payload['Status'] ?? null,
-                ]);
-                return collect();
-            }
-
-            $rows = $payload['Hotels'] ?? [];
-            unset($payload);
-
-            $limit = $catalogueLimit > 0 ? $catalogueLimit : self::MAX_CATALOGUE_HOTELS;
-            if (count($rows) > $limit) {
-                $rows = array_slice($rows, 0, $limit);
+            $rows = $this->fetchCatalogueRowsFromApi($cityCode, $limit);
+            if ($rows !== []) {
+                $this->writeCatalogueCache($cityCode, $rows);
             }
 
             return collect($rows);
@@ -148,8 +145,103 @@ class TboHotelProvider implements HotelProviderInterface
                 'city_code' => $cityCode,
                 'message' => $e->getMessage(),
             ]);
+
             return collect();
         }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchCatalogueRowsFromApi(string $cityCode, int $limit): array
+    {
+        $response = Http::timeout(30)
+            ->connectTimeout(10)
+            ->retry(2, 2000)
+            ->withBasicAuth(self::API_USERNAME, self::API_PASSWORD)
+            ->post(self::API_URL, [
+                'CityCode' => $cityCode,
+            ]);
+
+        if ($response->failed()) {
+            Log::error('TBO HotelCodeList API failed', [
+                'city_code' => $cityCode,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return [];
+        }
+
+        $payload = $response->json();
+        unset($response);
+
+        $statusCode = $payload['Status']['Code'] ?? null;
+        if ($statusCode !== 200) {
+            Log::error('TBO HotelCodeList API status not ok', [
+                'city_code' => $cityCode,
+                'status' => $payload['Status'] ?? null,
+            ]);
+
+            return [];
+        }
+
+        $rows = $payload['Hotels'] ?? [];
+        unset($payload);
+
+        if (count($rows) > $limit) {
+            $rows = array_slice($rows, 0, $limit);
+        }
+
+        return $rows;
+    }
+
+    private function catalogueCacheFile(string $cityCode): string
+    {
+        $safe = preg_replace('/[^a-zA-Z0-9_-]/', '_', $cityCode) ?: 'unknown';
+
+        return storage_path("app/tbo-catalogues/{$safe}.json");
+    }
+
+    /**
+     * @return list<array<string, mixed>>|null
+     */
+    private function readCatalogueCache(string $cityCode): ?array
+    {
+        $path = $this->catalogueCacheFile($cityCode);
+        if (!is_readable($path)) {
+            return null;
+        }
+
+        if (filemtime($path) < time() - self::CATALOGUE_CACHE_TTL_SECONDS) {
+            return null;
+        }
+
+        $raw = file_get_contents($path);
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+
+        $data = json_decode($raw, true);
+
+        return is_array($data) ? $data : null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    private function writeCatalogueCache(string $cityCode, array $rows): void
+    {
+        $dir = storage_path('app/tbo-catalogues');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        file_put_contents(
+            $this->catalogueCacheFile($cityCode),
+            json_encode($rows, JSON_UNESCAPED_UNICODE),
+            LOCK_EX
+        );
     }
 
     /**
