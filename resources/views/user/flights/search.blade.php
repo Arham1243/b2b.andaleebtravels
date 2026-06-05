@@ -349,11 +349,11 @@
                                 'baggage_details' => $result['baggage_details'] ?? [],
                                 'fare_rules' => $result['fare_rules'] ?? [],
                                 'fare_tags' => $result['fare_tags'] ?? [],
+                                'cabin_code' => $firstSeg['cabin_code'] ?? null,
+                                'booking_code' => $firstSeg['booking_code'] ?? null,
                             ]];
                             $cardCur    = strtoupper((string) ($fareOptions[0]['currency'] ?? $result['currency'] ?? $currencyCode));
                             $totalPrice = (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0));
-                            $cabinTop   = $firstSeg['cabin_code'] ?? 'Y';
-                            $rbdTop     = $firstSeg['booking_code'] ?? '';
 
                             // Modal tab labels: "DXB → KHI" per leg
                             $legRoutes = [];
@@ -494,6 +494,8 @@
                                         $bagNote    = $fare['baggage_notes'] ?? '';
                                         $farePrice  = (float) ($fare['totalPrice'] ?? 0);
                                         $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
+                                        $fareCabin  = trim((string) ($fare['cabin_code'] ?? ''));
+                                        $fareRbd    = trim((string) ($fare['booking_code'] ?? ''));
                                     @endphp
                                     <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
                                         data-rc-fare-row="{{ $fi }}">
@@ -506,11 +508,11 @@
                                             @else
                                                 <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
                                             @endif
-                                            @if(!empty($cabinTop))
-                                                <span class="rc__ftag">{{ $cabinTop }}</span>
+                                            @if($fareCabin !== '')
+                                                <span class="rc__ftag">{{ $fareCabin }}</span>
                                             @endif
-                                            @if(!empty($rbdTop))
-                                                <span class="rc__ftag">Class {{ $rbdTop }}</span>
+                                            @if($fareRbd !== '')
+                                                <span class="rc__ftag">Class {{ $fareRbd }}</span>
                                             @endif
                                             @if(!empty($bagNote))
                                                 <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>

@@ -619,6 +619,9 @@ class FlightController extends Controller
             is_array($passengerFare) ? ($passengerFare['baggageInformation'] ?? []) : [],
             $baggageAllowanceById,
         );
+        $fareSeatMeta = $this->extractFareSeatMeta($pricingBlock);
+        $fareRules = SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped);
+        $cabinMeta = $this->extractFareCabinMeta($fareSeatMeta, $fareRules);
 
         return [
             'sabre_pricing_index' => $pricingIndex,
@@ -628,13 +631,55 @@ class FlightController extends Controller
             'non_refundable' => (bool) data_get($passengerFare, 'nonRefundable', false),
             'baggage_notes' => $baggageDetails['summary'] ?? $bagsSummary['label'],
             'baggage_details' => $baggageDetails,
-            'fare_rules' => SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped),
+            'fare_rules' => $fareRules,
             'fare_tags' => $this->inferFareTagsFromPricingBlock($pricingBlock)['tags'],
             'pricing_subsource' => (string) ($pricingBlock['pricingSubsource'] ?? ''),
             'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
             'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
-            'fare_seat_meta' => $this->extractFareSeatMeta($pricingBlock),
+            'fare_seat_meta' => $fareSeatMeta,
+            'cabin_code' => $cabinMeta['cabin_code'],
+            'booking_code' => $cabinMeta['booking_code'],
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $fareSeatMeta
+     * @param  array<string, mixed>  $fareRules
+     *
+     * @return array{cabin_code: ?string, booking_code: ?string}
+     */
+    private function extractFareCabinMeta(array $fareSeatMeta, array $fareRules): array
+    {
+        $firstSeatSegment = $fareSeatMeta[0] ?? [];
+        $cabinCode = null;
+
+        foreach ($fareRules['components'] ?? [] as $component) {
+            if (! is_array($component)) {
+                continue;
+            }
+
+            $cabinCode = self::stringOrNull($component['cabin'] ?? null);
+
+            if ($cabinCode !== null) {
+                break;
+            }
+        }
+
+        if ($cabinCode === null) {
+            $cabinCode = self::stringOrNull(data_get($firstSeatSegment, 'cabinCode'));
+        }
+
+        return [
+            'cabin_code' => $cabinCode,
+            'booking_code' => self::stringOrNull(data_get($firstSeatSegment, 'bookingCode')),
+        ];
+    }
+
+    private static function stringOrNull(mixed $value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        return $value !== '' ? $value : null;
     }
 
     /**
