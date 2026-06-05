@@ -4,10 +4,13 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Config;
+use App\Services\FlightService;
 use App\Support\FlightPromoConfig;
 use App\Support\SabreBaggagePresenter;
 use App\Support\SabreFareBrandPresenter;
 use App\Support\SabreFareRulesPresenter;
+use App\Support\SabreFareRulesRequestBuilder;
+use App\Support\SabrePricingResolver;
 use Carbon\Carbon;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Request;
@@ -204,6 +207,68 @@ class FlightController extends Controller
             'priceRange' => $this->buildPriceRange($results),
             'filterCatalog' => $this->buildFilterCatalog($results),
         ]);
+    }
+
+    public function fareRulesText(Request $request, FlightService $flightService)
+    {
+        if (! $this->isProviderEnabled('sabre')) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Sabre is disabled for your account.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'itinerary' => 'required|integer|min:1',
+            'fare' => 'required|integer|min:0',
+        ]);
+
+        $itineraryId = (int) $validated['itinerary'];
+        $fareIndex = (int) $validated['fare'];
+        $resultCard = session('flight_search_results')[$itineraryId] ?? null;
+        $grouped = session('flight_search_response');
+
+        if (! is_array($resultCard) || ! is_array($grouped)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Search session expired. Please search again.',
+            ], 422);
+        }
+
+        $pricingBlock = SabrePricingResolver::pricingBlockForFare($resultCard, $grouped, $fareIndex);
+        if ($pricingBlock === null) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Fare not found for this itinerary.',
+            ], 404);
+        }
+
+        $searchParams = session('flight_search_params', []);
+        $departureDate = is_array($searchParams) ? ($searchParams['departure_date'] ?? null) : null;
+        $ruleRequests = SabreFareRulesRequestBuilder::fromPricingBlock($pricingBlock, $grouped, $departureDate);
+
+        if ($ruleRequests === []) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Fare rule details are not available for this fare.',
+            ], 422);
+        }
+
+        try {
+            $components = $flightService->fetchFareRulesText($ruleRequests);
+
+            return response()->json([
+                'success' => true,
+                'components' => $components,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to load full fare rules right now. Please try again.',
+            ], 500);
+        }
     }
 
     /** @param list<array<string,mixed>> $results */

@@ -886,6 +886,17 @@
                                                         @endforeach
                                                     </div>
                                                 @endif
+
+                                                <div class="fd-rules__full" data-fd-rules-full>
+                                                    <div class="fd-rules__section-title">Full Fare Rules</div>
+                                                    <div class="fd-rules__full-status" data-fd-rules-status>
+                                                        <span class="fd-rules__full-loading">
+                                                            <i class="bx bx-loader-alt bx-spin"></i>
+                                                            Loading full fare rules from airline…
+                                                        </span>
+                                                    </div>
+                                                    <div class="fd-rules__full-body" data-fd-rules-body hidden></div>
+                                                </div>
                                             </div>
                                         </div>
                                     @endforeach
@@ -1569,6 +1580,64 @@
 .fd-rules__policy + .fd-rules__policy { margin-top: .65rem; }
 .fd-rules__notes p + p { margin-top: .45rem; }
 .fd-rules__notes i { font-size: .95rem; margin-top: .05rem; flex-shrink: 0; }
+.fd-rules__full {
+    margin-top: .35rem;
+    border-top: 1px solid var(--c-line-inner);
+    padding-top: .75rem;
+}
+.fd-rules__full-status {
+    color: var(--c-muted);
+    font-size: .88rem;
+    padding: .5rem 0;
+}
+.fd-rules__full-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+}
+.fd-rules__full-body {
+    max-height: min(52vh, 420px);
+    overflow: auto;
+    border: 1px solid var(--c-line-inner);
+    border-radius: 10px;
+    background: #fafbfc;
+    padding: .85rem 1rem;
+    font-size: .78rem;
+    line-height: 1.55;
+    color: #2a3142;
+}
+.fd-rules__full-route {
+    font-weight: 700;
+    font-size: .82rem;
+    color: var(--c-ink);
+    margin-bottom: .55rem;
+    padding-bottom: .45rem;
+    border-bottom: 1px dashed var(--c-line-inner);
+}
+.fd-rules__full-component + .fd-rules__full-component {
+    margin-top: 1rem;
+    padding-top: .85rem;
+    border-top: 1px solid var(--c-line-inner);
+}
+.fd-rules__full-section h4 {
+    margin: .65rem 0 .35rem;
+    font-size: .8rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #5a6478;
+}
+.fd-rules__full-section h4:first-child { margin-top: 0; }
+.fd-rules__full-section p {
+    margin: 0 0 .55rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.fd-rules__full-error,
+.fd-rules__full-empty {
+    color: #8a3b12;
+    margin: 0;
+}
 
 /* modal footer */
 .fd-foot {
@@ -2375,6 +2444,104 @@
         }
     }
 
+    const FARE_RULES_URL = @json(route('user.flights.fare-rules'));
+
+    function itineraryIdFromModal(modal) {
+        return (modal?.id || '').replace(/^fd-/, '');
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function renderFullFareRules(components) {
+        if (!Array.isArray(components) || components.length === 0) {
+            return '<p class="fd-rules__full-empty">No detailed fare rules returned for this fare.</p>';
+        }
+
+        return components.map((component) => {
+            let html = '';
+
+            if (component.route) {
+                const basis = component.fare_basis ? ` · ${component.fare_basis}` : '';
+                html += `<div class="fd-rules__full-route">${escapeHtml(component.route)}${escapeHtml(basis)}</div>`;
+            }
+
+            const sections = Array.isArray(component.sections) ? component.sections : [];
+            if (sections.length > 0) {
+                sections.forEach((section) => {
+                    html += '<div class="fd-rules__full-section">';
+                    if (section.title) {
+                        html += `<h4>${escapeHtml(section.title)}</h4>`;
+                    }
+                    (section.paragraphs || []).forEach((paragraph) => {
+                        html += `<p>${escapeHtml(paragraph)}</p>`;
+                    });
+                    html += '</div>';
+                });
+            } else if (component.text) {
+                html += `<div class="fd-rules__full-section"><p>${escapeHtml(component.text)}</p></div>`;
+            }
+
+            return `<div class="fd-rules__full-component">${html}</div>`;
+        }).join('');
+    }
+
+    async function loadFullFareRules(modal) {
+        if (!modal) return;
+
+        const fareIndex = getModalFareIndex(modal);
+        const panel = modal.querySelector(`.fd-fare-panel[data-fd-panel="fare-rules"][data-fd-fare-panel="${fareIndex}"]`);
+        const fullWrap = panel?.querySelector('[data-fd-rules-full]');
+        if (!fullWrap) return;
+
+        if (fullWrap.dataset.loaded === '1' || fullWrap.dataset.loaded === 'loading') {
+            return;
+        }
+
+        fullWrap.dataset.loaded = 'loading';
+
+        const status = fullWrap.querySelector('[data-fd-rules-status]');
+        const body = fullWrap.querySelector('[data-fd-rules-body]');
+        const url = new URL(FARE_RULES_URL, window.location.origin);
+        url.searchParams.set('itinerary', itineraryIdFromModal(modal));
+        url.searchParams.set('fare', fareIndex);
+
+        try {
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                if (status) {
+                    status.innerHTML = `<p class="fd-rules__full-error">${escapeHtml(data.error || 'Unable to load fare rules.')}</p>`;
+                }
+                fullWrap.dataset.loaded = 'error';
+                return;
+            }
+
+            if (status) status.hidden = true;
+            if (body) {
+                body.hidden = false;
+                body.innerHTML = renderFullFareRules(data.components || []);
+            }
+            fullWrap.dataset.loaded = '1';
+        } catch (error) {
+            if (status) {
+                status.innerHTML = '<p class="fd-rules__full-error">Unable to load fare rules. Please try again.</p>';
+            }
+            fullWrap.dataset.loaded = 'error';
+        }
+    }
+
     function activateModalTab(modal, panelKey){
         if (!modal || panelKey === undefined || panelKey === null) return;
         modal.dataset.activePanel = String(panelKey);
@@ -2406,6 +2573,10 @@
             const singleFareMode = modal.dataset.singleFareMode === '1';
             const showFareTabs = !singleFareMode && (panelKey === 'baggage' || panelKey === 'fare-rules');
             fareTabs.hidden = !showFareTabs;
+        }
+
+        if (String(panelKey) === 'fare-rules') {
+            loadFullFareRules(modal);
         }
     }
 
