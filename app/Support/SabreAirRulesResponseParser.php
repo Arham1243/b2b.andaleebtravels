@@ -10,8 +10,15 @@ final class SabreAirRulesResponseParser
     public static function parse(string $xml): array
     {
         $sections = [];
+        $rulesBlock = '';
 
-        if (preg_match_all('/<Paragraph\b([^>]*)>(.*?)<\/Paragraph>/is', $xml, $matches, PREG_SET_ORDER)) {
+        if (preg_match('/<Rules\b[^>]*>(.*?)<\/Rules>/is', $xml, $rulesMatch)) {
+            $rulesBlock = $rulesMatch[1];
+        }
+
+        $paragraphSource = $rulesBlock !== '' ? $rulesBlock : $xml;
+
+        if (preg_match_all('/<Paragraph\b([^>]*)>(.*?)<\/Paragraph>/is', $paragraphSource, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $title = self::attributeValue($match[1], 'Title') ?? 'Fare Rules';
                 $body = self::extractTextBlock($match[2]);
@@ -27,7 +34,14 @@ final class SabreAirRulesResponseParser
             }
         }
 
-        if ($sections === [] && preg_match_all('/<Text\b[^>]*>(.*?)<\/Text>/is', $xml, $textMatches)) {
+        if ($sections === [] && preg_match('/<Header\b[^>]*>(.*?)<\/Header>/is', $xml, $headerMatch)) {
+            $headerSections = self::parseHeaderLines($headerMatch[1]);
+            if ($headerSections !== []) {
+                return $headerSections;
+            }
+        }
+
+        if ($sections === [] && preg_match_all('/<Text\b[^>]*>(.*?)<\/Text>/is', $paragraphSource, $textMatches)) {
             $lines = [];
 
             foreach ($textMatches[1] as $rawLine) {
@@ -44,6 +58,34 @@ final class SabreAirRulesResponseParser
                     'paragraphs' => $lines,
                 ];
             }
+        }
+
+        return $sections;
+    }
+
+    /**
+     * @return list<array{title: string, paragraphs: list<string>}>
+     */
+    private static function parseHeaderLines(string $headerXml): array
+    {
+        if (! preg_match_all('/<Line\b([^>]*)>(.*?)<\/Line>/is', $headerXml, $matches, PREG_SET_ORDER)) {
+            return [];
+        }
+
+        $sections = [];
+
+        foreach ($matches as $match) {
+            $title = self::attributeValue($match[1], 'Type') ?? 'Details';
+            $text = self::extractTextBlock($match[2]);
+
+            if ($text === '') {
+                continue;
+            }
+
+            $sections[] = [
+                'title' => trim(html_entity_decode($title, ENT_QUOTES | ENT_HTML5, 'UTF-8')),
+                'paragraphs' => self::splitParagraphs($text),
+            ];
         }
 
         return $sections;

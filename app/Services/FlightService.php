@@ -1820,13 +1820,7 @@ XML;
         $origin = htmlspecialchars((string) $request['origin'], ENT_XML1);
         $destination = htmlspecialchars((string) $request['destination'], ENT_XML1);
         $airline = htmlspecialchars((string) $request['airline'], ENT_XML1);
-        $departureDate = htmlspecialchars((string) $request['departure_date'], ENT_XML1);
-        $rulesXml = '';
-
-        if (! empty($request['fare_rule'])) {
-            $fareRule = htmlspecialchars((string) $request['fare_rule'], ENT_XML1);
-            $rulesXml = "<Rules><Rule>{$fareRule}</Rule></Rules>";
-        }
+        $departureMmDd = htmlspecialchars($this->formatAirRulesDepartureDate((string) $request['departure_date']), ENT_XML1);
 
         $xml = <<<XML
 <soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:eb="http://www.ebxml.org/namespaces/messageHeader" xmlns:wsse="http://schemas.xmlsoap.org/ws/2002/12/secext">
@@ -1848,14 +1842,16 @@ XML;
         </wsse:Security>
     </soap-env:Header>
     <soap-env:Body>
-        <OTA_AirRulesRQ Version="2.3.0" xmlns="http://www.sabre.com/ns/Trip/Search/AirRules">
+        <OTA_AirRulesRQ ReturnHostCommand="true" Version="2.3.0" xmlns="http://webservices.sabre.com/sabreXML/2011/10">
+            <OriginDestinationInformation>
+                <FlightSegment DepartureDateTime="{$departureMmDd}">
+                    <DestinationLocation LocationCode="{$destination}"/>
+                    <MarketingCarrier Code="{$airline}"/>
+                    <OriginLocation LocationCode="{$origin}"/>
+                </FlightSegment>
+            </OriginDestinationInformation>
             <RuleReqInfo>
                 <FareBasis Code="{$fareBasis}"/>
-                {$rulesXml}
-                <DepartureDate>{$departureDate}</DepartureDate>
-                <OriginLocation LocationCode="{$origin}"/>
-                <DestinationLocation LocationCode="{$destination}"/>
-                <MarketingAirline Code="{$airline}"/>
             </RuleReqInfo>
         </OTA_AirRulesRQ>
     </soap-env:Body>
@@ -1886,8 +1882,18 @@ XML;
             throw new \Exception('Sabre fare rules request failed.');
         }
 
+        $applicationError = $this->extractAirRulesApplicationError($body);
+        if ($applicationError !== null) {
+            Log::error('Sabre OTA_AirRulesLLS application error', [
+                'error' => $applicationError,
+                'route' => $request['route_label'] ?? null,
+                'body' => mb_substr($body, 0, 4000),
+            ]);
+            throw new \Exception('Sabre fare rules request failed: ' . $applicationError);
+        }
+
         $fault = $this->extractSoapFault($body);
-        if ($fault !== null && str_contains(strtolower($body), 'fault')) {
+        if ($fault !== null) {
             Log::error('Sabre OTA_AirRulesLLS SOAP fault', [
                 'fault' => $fault,
                 'route' => $request['route_label'] ?? null,
@@ -1897,6 +1903,41 @@ XML;
         }
 
         return $body;
+    }
+
+    private function formatAirRulesDepartureDate(string $departureDate): string
+    {
+        try {
+            return \Carbon\Carbon::parse($departureDate)->format('m-d');
+        } catch (\Throwable) {
+            return '01-01';
+        }
+    }
+
+    private function extractAirRulesApplicationError(string $xml): ?string
+    {
+        if (preg_match('/<(?:\w+:)?ApplicationResults\b[^>]*\bstatus="([^"]+)"/i', $xml, $statusMatch)) {
+            $status = strtolower(trim($statusMatch[1]));
+            if ($status !== '' && $status !== 'complete') {
+                return 'Application status: ' . $statusMatch[1];
+            }
+        }
+
+        if (! preg_match('/<(?:\w+:)?Error\b/i', $xml)) {
+            return null;
+        }
+
+        if (preg_match('/<(?:\w+:)?Error\b[^>]*>(.*?)<\/(?:\w+:)?Error>/is', $xml, $errorBlock)) {
+            if (preg_match('/<(?:\w+:)?Message[^>]*>([^<]+)<\/(?:\w+:)?Message>/i', $errorBlock[1], $messageMatch)) {
+                return trim(html_entity_decode($messageMatch[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            }
+        }
+
+        if (preg_match('/<(?:\w+:)?ShortText[^>]*>([^<]+)<\/(?:\w+:)?ShortText>/i', $xml, $shortTextMatch)) {
+            return trim(html_entity_decode($shortTextMatch[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        }
+
+        return 'Sabre returned an application error for fare rules.';
     }
 
     /**
@@ -2016,15 +2057,20 @@ XML;
 
     private function extractSoapFault(string $xml): ?string
     {
-        if (preg_match('/<[^>]*faultstring[^>]*>([^<]+)<\/[^>]*faultstring>/i', $xml, $m)) {
-            return trim($m[1]);
+        if (! preg_match('/<(?:\w+:)?Fault\b/i', $xml)) {
+            return null;
         }
-        if (preg_match('/<[^>]*ErrorMessage[^>]*>([^<]+)<\/[^>]*ErrorMessage>/i', $xml, $m)) {
-            return trim($m[1]);
+
+        if (preg_match('/<(?:\w+:)?faultstring[^>]*>([^<]+)<\/(?:\w+:)?faultstring>/i', $xml, $m)) {
+            return trim(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         }
-        if (preg_match('/<[^>]*Message[^>]*>([^<]+)<\/[^>]*Message>/i', $xml, $m)) {
-            return trim($m[1]);
+
+        if (preg_match('/<(?:\w+:)?Fault\b[^>]*>(.*?)<\/(?:\w+:)?Fault>/is', $xml, $faultBlock)) {
+            if (preg_match('/<(?:\w+:)?faultstring[^>]*>([^<]+)<\/(?:\w+:)?faultstring>/i', $faultBlock[1], $m)) {
+                return trim(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            }
         }
-        return null;
+
+        return 'SOAP fault returned by Sabre.';
     }
 }
