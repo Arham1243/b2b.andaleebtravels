@@ -509,10 +509,10 @@
                                                 <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
                                             @endif
                                             @if($fareCabin !== '')
-                                                <span class="rc__ftag">{{ $fareCabin }}</span>
+                                                <span class="rc__ftag">{{ formatFlightCabinLabel($fareCabin) }}</span>
                                             @endif
                                             @if($fareRbd !== '')
-                                                <span class="rc__ftag">Class {{ $fareRbd }}</span>
+                                                <span class="rc__ftag">{{ formatFlightBookingClassLabel($fareRbd) }}</span>
                                             @endif
                                             @if(!empty($bagNote))
                                                 <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>
@@ -644,8 +644,8 @@
                                                             </div>
                                                         </div>
                                                         <div class="fd-seg__chips">
-                                                            @if(!empty($sx['cabin_code']))<span class="fd-chip fd-chip--cab">{{ $sx['cabin_code'] }}</span>@endif
-                                                            @if(!empty($sx['booking_code']))<span class="fd-chip">Class {{ $sx['booking_code'] }}</span>@endif
+                                                            @if(!empty($sx['cabin_code']))<span class="fd-chip fd-chip--cab">{{ formatFlightCabinLabel($sx['cabin_code']) }}</span>@endif
+                                                            @if(!empty($sx['booking_code']))<span class="fd-chip">{{ formatFlightBookingClassLabel($sx['booking_code']) }}</span>@endif
                                                             @if(isset($sx['seats_available']))<span class="fd-chip fd-chip--seat"><i class="bx bx-group"></i> {{ (int)$sx['seats_available'] }} left</span>@endif
                                                         </div>
                                                     </div>
@@ -867,7 +867,7 @@
                                                                         <div><span>Fare Rule</span><strong>{{ $component['fare_rule'] }}</strong></div>
                                                                     @endif
                                                                     @if(!empty($component['cabin']))
-                                                                        <div><span>Cabin</span><strong>{{ $component['cabin'] }}</strong></div>
+                                                                        <div><span>Cabin</span><strong>{{ formatFlightCabinLabel($component['cabin']) }}</strong></div>
                                                                     @endif
                                                                 </div>
                                                             </div>

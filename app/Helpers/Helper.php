@@ -52,6 +52,78 @@ if (! function_exists('formatPrice')) {
     }
 }
 
+if (! function_exists('formatFlightCabinLabel')) {
+    /**
+     * Map Sabre/IATA cabin / class codes to readable labels.
+     * Q, K, X, O, I stay as single letters; other known codes use full words.
+     */
+    function formatFlightCabinLabel(?string $code): string
+    {
+        $code = trim((string) ($code ?? ''));
+
+        if ($code === '') {
+            return '';
+        }
+
+        if (strlen($code) > 2) {
+            return ucwords(strtolower($code));
+        }
+
+        $upper = strtoupper($code);
+
+        if (in_array($upper, ['Q', 'K', 'X', 'O', 'I'], true)) {
+            return $upper;
+        }
+
+        $labels = [
+            'Y' => 'Economy',
+            'B' => 'Economy',
+            'M' => 'Economy',
+            'H' => 'Economy',
+            'V' => 'Economy',
+            'L' => 'Economy',
+            'G' => 'Economy',
+            'N' => 'Economy',
+            'T' => 'Economy',
+            'E' => 'Economy',
+            'R' => 'Economy',
+            'U' => 'Economy',
+            'W' => 'Premium Economy',
+            'S' => 'Premium Economy',
+            'C' => 'Business',
+            'J' => 'Business',
+            'D' => 'Business',
+            'Z' => 'Business',
+            'F' => 'First',
+            'A' => 'First',
+            'P' => 'First',
+        ];
+
+        return $labels[$upper] ?? $code;
+    }
+}
+
+if (! function_exists('formatFlightBookingClassLabel')) {
+    /** Label for fare booking class (RBD) — full words except Q, K, X, O, I. */
+    function formatFlightBookingClassLabel(?string $code): string
+    {
+        $code = trim((string) ($code ?? ''));
+
+        if ($code === '') {
+            return '';
+        }
+
+        $label = formatFlightCabinLabel($code);
+        $upper = strtoupper($code);
+
+        if (in_array($upper, ['Q', 'K', 'X', 'O', 'I'], true)) {
+            return 'Class ' . $label;
+        }
+
+        return $label;
+    }
+}
+
 if (! function_exists('formatCreditLimitDisplay')) {
     function formatCreditLimitDisplay(?\App\Models\B2bVendor $vendor, string $emptyLabel = 'Not set'): HtmlString
     {
