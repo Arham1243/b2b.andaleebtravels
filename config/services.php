@@ -54,11 +54,11 @@ return [
     ],
 
     /*
-    | Temporary testing: skip PayBy gateway + verification for hotel checkout.
-    | Set payby_skip_payment to false before production.
+    | Temporary testing: skip PayBy gateway + verification for TBO hotel checkout.
+    | Set HOTEL_PAYBY_SKIP_PAYMENT=true in .env to enable test bypass; leave false for live PayBy.
     */
     'hotel' => [
-        'payby_skip_payment' => true,
+        'payby_skip_payment' => env('HOTEL_PAYBY_SKIP_PAYMENT', false),
     ],
 
     /*
