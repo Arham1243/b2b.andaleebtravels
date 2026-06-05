@@ -483,7 +483,10 @@
                                 @foreach ($fareOptions as $fi => $fare)
                                     @php
                                         $fareBrand  = trim((string) ($fare['fare_brand'] ?? ''));
-                                        $nonRefund  = (bool) ($fare['non_refundable'] ?? false);
+                                        $fareRulesRow = $fare['fare_rules'] ?? [];
+                                        $nonRefund  = array_key_exists('refundable', $fareRulesRow)
+                                            ? ! (bool) $fareRulesRow['refundable']
+                                            : (bool) ($fare['non_refundable'] ?? false);
                                         $bagNote    = $fare['baggage_notes'] ?? '';
                                         $farePrice  = (float) ($fare['totalPrice'] ?? 0);
                                         $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));

@@ -68,6 +68,8 @@ final class FlightCabinPreference
         $components = $fare['fare_rules']['components'] ?? [];
 
         if ($components !== []) {
+            $hasResolvableCabin = false;
+
             foreach ($components as $index => $component) {
                 if (! is_array($component)) {
                     continue;
@@ -79,17 +81,71 @@ final class FlightCabinPreference
 
                 $componentFamily = self::familyFromSabreCode($component['cabin'] ?? null);
 
+                if ($componentFamily === null) {
+                    continue;
+                }
+
+                $hasResolvableCabin = true;
+
                 if ($componentFamily !== $requiredCabin) {
                     return false;
                 }
             }
 
-            return true;
+            if ($hasResolvableCabin) {
+                return true;
+            }
         }
 
         $fareFamily = self::familyFromSabreCode($fare['cabin_code'] ?? null);
 
-        return $fareFamily === $onwardCabin;
+        if ($fareFamily === $onwardCabin) {
+            return true;
+        }
+
+        if ($fareFamily === null && $onwardCabin === 'Economy' && ! self::isClearlyPremiumCabinCode($fare['cabin_code'] ?? null)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{MultipleBrandedFares: bool, UpsellLimit: int, ReturnBrandAncillaries: bool}
+     */
+    public static function sabreBrandedFareIndicators(): array
+    {
+        return [
+            'MultipleBrandedFares' => true,
+            'UpsellLimit' => 8,
+            'ReturnBrandAncillaries' => true,
+        ];
+    }
+
+    /**
+     * Ask Sabre for multiple economy fare families per itinerary (Etihad Light/Value/Comfort/etc.).
+     *
+     * @return array{FlexibleFares: array{FareParameters: list<array<string, mixed>>}}
+     */
+    public static function sabreFlexibleFaresExtension(string $uiCabin): array
+    {
+        return [
+            'FlexibleFares' => [
+                'FareParameters' => [
+                    [
+                        'PassengerType' => ['Code' => 'ADT'],
+                        'Cabin' => ['Type' => self::toSabreCode($uiCabin)],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public static function isClearlyPremiumCabinCode(?string $code): bool
+    {
+        $code = strtoupper(trim((string) ($code ?? '')));
+
+        return in_array($code, ['C', 'J', 'D', 'Z', 'F', 'A', 'P'], true);
     }
 
     /**

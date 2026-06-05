@@ -462,6 +462,7 @@ class FlightController extends Controller
                 'RequestType' => 'A',
                 'Description' => true,
             ],
+            'TPA_Extensions' => FlightCabinPreference::sabreFlexibleFaresExtension($onwardCabin),
         ];
 
         if ($children > 0 && $infants === 0) {
@@ -479,10 +480,7 @@ class FlightController extends Controller
             'SeatsRequested' => [$seatsRequested],
             'PriceRequestInformation' => [
                 'TPA_Extensions' => [
-                    'BrandedFareIndicators' => [
-                        'SingleBrandedFare' => true,
-                        'MultipleBrandedFares' => true,
-                    ],
+                    'BrandedFareIndicators' => FlightCabinPreference::sabreBrandedFareIndicators(),
                     'Indicators' => [
                         'RefundPenalty' => ['Ind' => true],
                         'ResTicketing' => ['Ind' => true],
@@ -757,7 +755,7 @@ class FlightController extends Controller
             'totalPrice' => $this->extractSabreTotalPrice($pricingBlock),
             'currency' => data_get($pricingBlock, 'fare.totalFare.currency'),
             'fare_brand' => SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped),
-            'non_refundable' => (bool) data_get($passengerFare, 'nonRefundable', false),
+            'non_refundable' => ! ($fareRules['refundable'] ?? true),
             'baggage_notes' => $baggageDetails['summary'] ?? $bagsSummary['label'],
             'baggage_details' => $baggageDetails,
             'fare_rules' => $fareRules,

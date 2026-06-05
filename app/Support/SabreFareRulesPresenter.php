@@ -48,7 +48,6 @@ final class SabreFareRulesPresenter
     public static function fromPricingBlock(array $pricingBlock, array $grouped = []): array
     {
         $passengerFare = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo', []);
-        $nonRefundable = (bool) ($passengerFare['nonRefundable'] ?? false);
         $fareComponentById = collect($grouped['fareComponentDescs'] ?? [])->keyBy('id');
         $components = [];
 
@@ -68,7 +67,7 @@ final class SabreFareRulesPresenter
                 'route' => $route,
                 'fare_basis' => self::stringOrNull($desc['fareBasisCode'] ?? null),
                 'fare_rule' => self::stringOrNull($desc['fareRule'] ?? null),
-                'cabin' => self::stringOrNull($desc['cabinCode'] ?? null),
+                'cabin' => self::resolveComponentCabin($component, is_array($desc) ? $desc : null),
                 'brand' => self::componentBrand(is_array($desc) ? $desc : null),
                 'valid_from' => $validFrom,
                 'valid_to' => $validTo,
@@ -90,10 +89,16 @@ final class SabreFareRulesPresenter
         $lastTicketTime = self::stringOrNull(data_get($pricingBlock, 'fare.lastTicketTime'));
         $lastTicketDisplay = self::formatDisplayDateTime($lastTicketDate, $lastTicketTime);
         $penalties = self::extractPenalties($passengerFare, $grouped);
+        $refundable = self::resolveRefundable(
+            $passengerFare,
+            $penalties,
+            $fareComponentById,
+        );
+        $nonRefundable = ! $refundable;
 
         return [
-            'refundable' => !$nonRefundable,
-            'refund_label' => $nonRefundable ? 'Non-Refundable' : 'Refundable',
+            'refundable' => $refundable,
+            'refund_label' => $refundable ? 'Refundable' : 'Non-Refundable',
             'fare_brand' => $brand,
             'validating_carrier' => strtoupper(trim((string) data_get($pricingBlock, 'fare.validatingCarrierCode', ''))),
             'passenger_type' => strtoupper(trim((string) ($passengerFare['passengerType'] ?? 'ADT'))),
@@ -128,7 +133,8 @@ final class SabreFareRulesPresenter
         $penaltyById = collect($grouped['penaltyDescs'] ?? [])->keyBy('id');
         $rawPenalties = $passengerFare['penalties']
             ?? data_get($passengerFare, 'penaltiesInformation.penalties', [])
-            ?? data_get($passengerFare, 'penaltyInformation.penalties', []);
+            ?? data_get($passengerFare, 'penaltyInformation.penalties', [])
+            ?? data_get($passengerFare, 'penalty.penalties', []);
 
         if (!is_array($rawPenalties)) {
             return [];
@@ -169,6 +175,103 @@ final class SabreFareRulesPresenter
         }
 
         return self::uniquePenalties($penalties);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $penalties
+     * @param  \Illuminate\Support\Collection<int|string, mixed>  $fareComponentById
+     */
+    private static function resolveRefundable(
+        array $passengerFare,
+        array $penalties,
+        $fareComponentById,
+    ): bool {
+        $nonRefundableFlag = (bool) ($passengerFare['nonRefundable'] ?? false);
+        $refundPermitted = self::refundPermittedFromPenalties($penalties);
+
+        if ($refundPermitted === true) {
+            return true;
+        }
+
+        if ($refundPermitted === false) {
+            return false;
+        }
+
+        if (! $nonRefundableFlag) {
+            return true;
+        }
+
+        // Sabre often sets nonRefundable on premium "Saver/Basic" brands even when the
+        // provider portal still treats them as refundable with airline penalties.
+        return self::isPremiumCabinFare($passengerFare, $fareComponentById);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $penalties
+     */
+    private static function refundPermittedFromPenalties(array $penalties): ?bool
+    {
+        $refundPenalties = array_values(array_filter($penalties, static function (array $penalty): bool {
+            $type = strtoupper((string) ($penalty['type'] ?? ''));
+
+            return in_array($type, ['REFUND', 'REF', 'CANCEL', 'CANCELLATION'], true);
+        }));
+
+        if ($refundPenalties === []) {
+            return null;
+        }
+
+        $allowed = false;
+        $denied = false;
+
+        foreach ($refundPenalties as $penalty) {
+            if (($penalty['refundable'] ?? null) === true) {
+                $allowed = true;
+            }
+
+            if (($penalty['refundable'] ?? null) === false) {
+                $denied = true;
+            }
+
+            if (($penalty['amount'] ?? null) !== null && ($penalty['refundable'] ?? null) !== false) {
+                $allowed = true;
+            }
+        }
+
+        if ($allowed) {
+            return true;
+        }
+
+        if ($denied) {
+            return false;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int|string, mixed>  $fareComponentById
+     */
+    private static function isPremiumCabinFare(array $passengerFare, $fareComponentById): bool
+    {
+        foreach (($passengerFare['fareComponents'] ?? []) as $component) {
+            if (! is_array($component)) {
+                continue;
+            }
+
+            $desc = $fareComponentById->get($component['ref'] ?? null);
+            if (! is_array($desc)) {
+                continue;
+            }
+
+            $family = FlightCabinPreference::familyFromSabreCode($desc['cabinCode'] ?? null);
+
+            if (in_array($family, ['Business', 'First', 'Premium Economy'], true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -216,6 +319,29 @@ final class SabreFareRulesPresenter
         }
 
         return $sections;
+    }
+
+    /**
+     * @param  array<string, mixed>  $component
+     * @param  array<string, mixed>|null  $desc
+     */
+    private static function resolveComponentCabin(array $component, ?array $desc): ?string
+    {
+        $cabin = self::stringOrNull(is_array($desc) ? ($desc['cabinCode'] ?? null) : null);
+
+        if ($cabin !== null) {
+            return $cabin;
+        }
+
+        foreach (($component['segments'] ?? []) as $segmentWrap) {
+            $segmentCabin = self::stringOrNull(data_get($segmentWrap, 'segment.cabinCode'));
+
+            if ($segmentCabin !== null) {
+                return $segmentCabin;
+            }
+        }
+
+        return null;
     }
 
     /**
