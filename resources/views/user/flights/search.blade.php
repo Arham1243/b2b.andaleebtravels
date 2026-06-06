@@ -264,6 +264,7 @@
                     </aside>{{-- /.sf--filter-rest --}}
                 </div>{{-- /.rp-stack__lead --}}
 
+                <div class="rp-stack__body">
                 <div class="rp-stack__tools">
                     {{-- ── Airline filter slider (results column width, aligned with filter header row) ── --}}
                     <div class="as-wrap" id="as-wrap">
@@ -483,6 +484,7 @@
                                 @foreach ($fareOptions as $fi => $fare)
                                     @php
                                         $fareBrand  = trim((string) ($fare['fare_brand'] ?? ''));
+                                        $fareBasis  = trim((string) ($fare['fare_basis'] ?? ''));
                                         $fareRulesRow = $fare['fare_rules'] ?? [];
                                         $nonRefund  = array_key_exists('refundable', $fareRulesRow)
                                             ? ! (bool) $fareRulesRow['refundable']
@@ -501,6 +503,9 @@
                                         <div class="rc__fare-left">
                                             @if($fareBrand !== '')
                                                 <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
+                                            @endif
+                                            @if($fareBasis !== '')
+                                                <span class="rc__ftag rc__ftag--basis">({{ $fareBasis }})</span>
                                             @endif
                                             @if($nonRefund)
                                                 <span class="rc__fbadge rc__fbadge--nr">Non-Refundable</span>
@@ -941,6 +946,7 @@
                     @endforeach
                 </div>{{-- /#rp-list --}}
                 </div>{{-- /.rp-stack__main --}}
+                </div>{{-- /.rp-stack__body --}}
                 </div>{{-- /.rp-stack --}}
 
             @elseif($hasSearch && empty($results))
@@ -1230,6 +1236,14 @@
     color: var(--c-slate); padding: .13rem .45rem; border-radius: 4px;
 }
 .rc__ftag i { font-size: .8rem; }
+.rc__ftag--basis {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    background: #f8fafc;
+    color: #475569;
+}
 .rc__ftag--seat { background: var(--c-amber-soft); color: var(--c-amber); }
 
 /* flight details centered link */
@@ -1699,7 +1713,6 @@
 }
 .rp-stack__lead {
     grid-column: 1;
-    grid-row: 1 / span 2;
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -1708,14 +1721,19 @@
     top: 1rem;
     align-self: start;
 }
-.rp-stack__tools {
+.rp-stack__body {
     grid-column: 2;
-    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+}
+.rp-stack__tools {
+    flex-shrink: 0;
     min-width: 0;
 }
 .rp-stack__main {
-    grid-column: 2;
-    grid-row: 2;
+    flex: 1 1 auto;
     min-width: 0;
 }
 
@@ -2216,7 +2234,8 @@
         flex-direction: column;
         gap: 1rem;
     }
-    .rp-stack__lead {
+    .rp-stack__lead,
+    .rp-stack__body {
         grid-column: unset;
         grid-row: unset;
         position: static;

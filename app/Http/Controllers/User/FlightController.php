@@ -754,6 +754,7 @@ class FlightController extends Controller
             'totalPrice' => $this->extractSabreTotalPrice($pricingBlock),
             'currency' => data_get($pricingBlock, 'fare.totalFare.currency'),
             'fare_brand' => SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped),
+            'fare_basis' => $this->summarizeFareBasis($fareRules),
             'non_refundable' => ! ($fareRules['refundable'] ?? true),
             'baggage_notes' => $baggageDetails['summary'] ?? $bagsSummary['label'],
             'baggage_details' => $baggageDetails,
@@ -767,6 +768,28 @@ class FlightController extends Controller
             'cabin_code' => $cabinMeta['cabin_code'],
             'booking_code' => $cabinMeta['booking_code'],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $fareRules
+     */
+    private function summarizeFareBasis(array $fareRules): ?string
+    {
+        $codes = [];
+
+        foreach ($fareRules['components'] ?? [] as $component) {
+            if (! is_array($component)) {
+                continue;
+            }
+
+            $code = self::stringOrNull($component['fare_basis'] ?? null);
+
+            if ($code !== null && ! in_array($code, $codes, true)) {
+                $codes[] = $code;
+            }
+        }
+
+        return $codes !== [] ? implode(' / ', $codes) : null;
     }
 
     /**
