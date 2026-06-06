@@ -93,8 +93,6 @@ final class SabreFareRulesPresenter
             $passengerFare,
             $penalties,
             $fareComponentById,
-            $pricingBlock,
-            $grouped,
         );
         $nonRefundable = ! $refundable;
 
@@ -187,66 +185,25 @@ final class SabreFareRulesPresenter
         array $passengerFare,
         array $penalties,
         $fareComponentById,
-        array $pricingBlock = [],
-        array $grouped = [],
     ): bool {
         $nonRefundableFlag = (bool) ($passengerFare['nonRefundable'] ?? false);
         $refundPermitted = self::refundPermittedFromPenalties($penalties);
-
-        if ($refundPermitted === false) {
-            return false;
-        }
 
         if ($refundPermitted === true) {
             return true;
         }
 
-        if ($nonRefundableFlag) {
-            return self::shouldTrustRefundableDespiteNonRefundableFlag(
-                $passengerFare,
-                $fareComponentById,
-                $pricingBlock,
-                $grouped,
-            );
-        }
-
-        if (self::shouldTreatAsNonRefundableBrand($pricingBlock, $grouped)) {
+        if ($refundPermitted === false) {
             return false;
         }
 
-        return true;
-    }
-
-    /**
-     * @param  \Illuminate\Support\Collection<int|string, mixed>  $fareComponentById
-     */
-    private static function shouldTrustRefundableDespiteNonRefundableFlag(
-        array $passengerFare,
-        $fareComponentById,
-        array $pricingBlock,
-        array $grouped,
-    ): bool {
-        $carrier = strtoupper(trim((string) data_get($pricingBlock, 'fare.validatingCarrierCode', '')));
-        $brand = strtolower(SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped) ?? '');
-
-        // Emirates Business Saver: Sabre nonRefundable flag is often wrong; penalties still apply.
-        if ($carrier === 'EK' && str_contains($brand, 'saver') && self::isPremiumCabinFare($passengerFare, $fareComponentById)) {
+        if (! $nonRefundableFlag) {
             return true;
         }
 
-        return false;
-    }
-
-    private static function shouldTreatAsNonRefundableBrand(array $pricingBlock, array $grouped): bool
-    {
-        $carrier = strtoupper(trim((string) data_get($pricingBlock, 'fare.validatingCarrierCode', '')));
-        $brand = strtolower(SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped) ?? '');
-
-        if ($carrier === 'EY' && str_contains($brand, 'comfort')) {
-            return true;
-        }
-
-        return false;
+        // Sabre often sets nonRefundable on premium "Saver/Basic" brands even when the
+        // provider portal still treats them as refundable with airline penalties.
+        return self::isPremiumCabinFare($passengerFare, $fareComponentById);
     }
 
     /**
@@ -281,12 +238,12 @@ final class SabreFareRulesPresenter
             }
         }
 
-        if ($denied) {
-            return false;
-        }
-
         if ($allowed) {
             return true;
+        }
+
+        if ($denied) {
+            return false;
         }
 
         return null;

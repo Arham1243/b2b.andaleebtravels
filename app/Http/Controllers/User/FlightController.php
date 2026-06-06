@@ -10,7 +10,6 @@ use App\Support\FlightPromoConfig;
 use App\Support\SabreBaggagePresenter;
 use App\Support\SabreFareAmountPresenter;
 use App\Support\SabreFareBrandPresenter;
-use App\Support\SabreFareRulesPolicyReader;
 use App\Support\SabreFareRulesPresenter;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
@@ -265,7 +264,6 @@ class FlightController extends Controller
             return response()->json([
                 'success' => true,
                 'components' => $components,
-                'refundable' => SabreFareRulesPolicyReader::refundabilityFromComponents($components),
             ]);
         } catch (\Throwable $e) {
             report($e);
