@@ -38,7 +38,8 @@ final class SabreBaggagePresenter
             $segmentId = (int) data_get($row, 'segments.0.id', -1);
             $route = $segmentRoutes[$segmentId] ?? 'All segments';
             $airline = strtoupper(trim((string) ($row['airlineCode'] ?? '')));
-            $allowanceText = self::formatAllowance(self::resolveAllowanceDesc($row, $allowanceById));
+            $isCabin = self::isCabinProvision($provisionType);
+            $allowanceText = self::formatAllowance(self::resolveAllowanceDesc($row, $allowanceById), $isCabin);
 
             $entry = [
                 'route' => $route,
@@ -95,9 +96,10 @@ final class SabreBaggagePresenter
                 }
 
                 $provisionType = strtoupper(trim((string) ($bagRow['provisionType'] ?? 'A')));
-                $text = self::formatAllowance(self::resolveAllowanceDesc($bagRow, $allowanceById));
+                $isCabin = self::isCabinProvision($provisionType);
+                $text = self::formatAllowance(self::resolveAllowanceDesc($bagRow, $allowanceById), $isCabin);
 
-                if (self::isCabinProvision($provisionType)) {
+                if ($isCabin) {
                     $cabinAllowances[] = $text;
                 } else {
                     $checkedAllowances[] = $text;
@@ -171,10 +173,19 @@ final class SabreBaggagePresenter
     /**
      * @param array<string, mixed>|null $desc
      */
-    private static function formatAllowance(?array $desc): string
+    private static function formatAllowance(?array $desc, bool $cabinBaggage = false): string
     {
         if ($desc === null) {
             return 'Not included';
+        }
+
+        $descriptionText = self::collectDescriptionText($desc);
+
+        if ($cabinBaggage) {
+            $cabinLabel = self::formatCabinAllowanceLabel($desc, $descriptionText);
+            if ($cabinLabel !== null) {
+                return $cabinLabel;
+            }
         }
 
         $pieces = (int) ($desc['pieceCount'] ?? 0);
@@ -215,6 +226,83 @@ final class SabreBaggagePresenter
         }
 
         return '0 kg';
+    }
+
+    /**
+     * @param  array<string, mixed>  $desc
+     */
+    private static function collectDescriptionText(array $desc): string
+    {
+        $chunks = [];
+
+        foreach (['description1', 'description2', 'description', 'Description'] as $key) {
+            $text = trim((string) ($desc[$key] ?? ''));
+            if ($text !== '') {
+                $chunks[] = $text;
+            }
+        }
+
+        return implode(' ', $chunks);
+    }
+
+    /**
+     * Cabin/carry-on — pieces from API plus kg only (no lb or dimension text).
+     *
+     * @param  array<string, mixed>  $desc
+     */
+    private static function formatCabinAllowanceLabel(array $desc, string $descriptionText): ?string
+    {
+        $pieces = (int) ($desc['pieceCount'] ?? 0);
+
+        if ($pieces <= 0 && preg_match('/(\d+)\s*PC\b/i', $descriptionText, $matches)) {
+            $pieces = (int) $matches[1];
+        }
+
+        $kg = self::extractKilogramsFromText($descriptionText);
+
+        if ($kg === null) {
+            $weight = (int) ($desc['weight'] ?? 0);
+            $unit = self::normalizeUnit((string) ($desc['unit'] ?? ''));
+
+            if ($weight > 0 && $unit === 'kg') {
+                $kg = $weight;
+            }
+        }
+
+        $parts = [];
+
+        if ($pieces > 0) {
+            $parts[] = $pieces . ' pc';
+        }
+
+        if ($kg !== null && $kg > 0) {
+            $parts[] = $kg . ' kg';
+        }
+
+        return $parts !== [] ? implode(' · ', $parts) : null;
+    }
+
+    private static function extractKilogramsFromText(string $text): ?int
+    {
+        $upper = strtoupper(trim(preg_replace('/\s+/', ' ', $text) ?? ''));
+
+        if ($upper === '') {
+            return null;
+        }
+
+        if (preg_match('/\d+\s*LB\s*\/\s*(\d+)\s*KG\b/', $upper, $matches)) {
+            return (int) $matches[1];
+        }
+
+        if (preg_match('/(?:UPTO|UP TO)\s*(\d+)\s*KG\b/', $upper, $matches)) {
+            return (int) $matches[1];
+        }
+
+        if (preg_match('/(\d+)\s*KG\b/', $upper, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
     }
 
     private static function formatStructuredAllowance(int $pieces, int $weight, string $unit): ?string
