@@ -1785,12 +1785,14 @@ XML;
                 }
 
                 $sections = $this->resolveAirRulesSections($binaryToken, $request, $bearerToken);
+                $text = $this->flattenFareRuleSections($sections);
 
                 $components[] = [
                     'route' => (string) ($request['route_label'] ?? ''),
                     'fare_basis' => (string) ($request['fare_basis'] ?? ''),
                     'sections' => $sections,
-                    'text' => $this->flattenFareRuleSections($sections),
+                    'text' => $text,
+                    'refundable' => \App\Support\SabreFareRulesPolicyReader::refundabilityFromRuleText($text),
                 ];
             }
         } finally {

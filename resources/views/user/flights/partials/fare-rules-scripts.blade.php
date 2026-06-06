@@ -43,7 +43,38 @@ window.FlightFareRules = (function () {
         }).join('');
     }
 
-    async function loadIntoWrap(fullWrap, itineraryId, fareIndex) {
+    function syncRefundability(modal, fareIndex, refundable) {
+        if (typeof refundable !== 'boolean') return;
+
+        const nonRefund = !refundable;
+        const label = nonRefund ? 'Non-Refundable' : 'Refundable';
+        const refClass = 'fd-rules__val--ref';
+        const nrClass = 'fd-rules__val--nr';
+
+        const panel = modal
+            ? modal.querySelector(`.fd-fare-panel[data-fd-panel="fare-rules"][data-fd-fare-panel="${fareIndex}"]`)
+            : null;
+        const summaryVal = panel?.querySelector('.fd-rules__key + .fd-rules__val');
+
+        if (summaryVal) {
+            summaryVal.textContent = label;
+            summaryVal.classList.toggle(refClass, !nonRefund);
+            summaryVal.classList.toggle(nrClass, nonRefund);
+        }
+
+        if (!modal) return;
+
+        const fareRow = modal.closest('.rc')?.querySelector(`[data-rc-fare-row="${fareIndex}"]`);
+        const badge = fareRow?.querySelector('.rc__fbadge--ref, .rc__fbadge--nr');
+
+        if (badge) {
+            badge.textContent = label;
+            badge.classList.toggle('rc__fbadge--ref', !nonRefund);
+            badge.classList.toggle('rc__fbadge--nr', nonRefund);
+        }
+    }
+
+    async function loadIntoWrap(fullWrap, itineraryId, fareIndex, modal) {
         if (!fullWrap) return;
 
         if (fullWrap.dataset.loaded === '1' || fullWrap.dataset.loaded === 'loading') {
@@ -80,6 +111,7 @@ window.FlightFareRules = (function () {
                 body.hidden = false;
                 body.innerHTML = renderFullFareRules(data.components || []);
             }
+            syncRefundability(modal, fareIndex, data.refundable);
             fullWrap.dataset.loaded = '1';
         } catch (error) {
             if (status) {
@@ -98,7 +130,7 @@ window.FlightFareRules = (function () {
 
         if (!itineraryId) return;
 
-        return loadIntoWrap(fullWrap, itineraryId, fareIndex);
+        return loadIntoWrap(fullWrap, itineraryId, fareIndex, null);
     }
 
     function loadForModal(modal) {
@@ -111,7 +143,7 @@ window.FlightFareRules = (function () {
 
         if (!fullWrap || !itineraryId) return;
 
-        return loadIntoWrap(fullWrap, itineraryId, fareIndex);
+        return loadIntoWrap(fullWrap, itineraryId, fareIndex, modal);
     }
 
     function initPageBoxes() {
