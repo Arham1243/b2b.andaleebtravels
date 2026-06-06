@@ -812,95 +812,13 @@
                                             data-fd-panel="fare-rules"
                                             data-fd-fare-panel="{{ $fi }}">
                                             <div class="fd-rules">
-                                                <div class="fd-rules__route">
-                                                    {{ $legRoutes[0]['from'] ?? '' }} → {{ $legRoutes[0]['to'] ?? '' }}
-                                                </div>
-
-                                                <div class="fd-rules__summary">
-                                                    <div class="fd-rules__row">
-                                                        <span class="fd-rules__key">Refundability</span>
-                                                        <span class="fd-rules__val fd-rules__val--{{ ($fareRules['refundable'] ?? !$nonRefund) ? 'ref' : 'nr' }}">
-                                                            {{ $fareRules['refund_label'] ?? ($nonRefund ? 'Non-Refundable' : 'Refundable') }}
-                                                        </span>
-                                                    </div>
-                                                    @if(!empty($fareRules['fare_brand']) || !empty($fareBrand))
-                                                        <div class="fd-rules__row">
-                                                            <span class="fd-rules__key">Fare Brand</span>
-                                                            <span class="fd-rules__val">{{ $fareRules['fare_brand'] ?? $fareBrand }}</span>
-                                                        </div>
-                                                    @endif
-                                                    @if(!empty($fareRules['validating_carrier']))
-                                                        <div class="fd-rules__row">
-                                                            <span class="fd-rules__key">Validating Carrier</span>
-                                                            <span class="fd-rules__val">{{ $fareRules['validating_carrier'] }}</span>
-                                                        </div>
-                                                    @endif
-                                                    @if(!empty($fareRules['last_ticket_display']))
-                                                        <div class="fd-rules__row">
-                                                            <span class="fd-rules__key">Last Ticket Date</span>
-                                                            <span class="fd-rules__val">{{ $fareRules['last_ticket_display'] }}</span>
-                                                        </div>
-                                                    @endif
-                                                </div>
-
-                                                @if(!empty($fareRules['policy_sections']))
-                                                    <div class="fd-rules__section">
-                                                        @foreach($fareRules['policy_sections'] as $section)
-                                                            <div class="fd-rules__policy">
-                                                                <div class="fd-rules__section-title">{{ $section['title'] ?? 'Policy' }}</div>
-                                                                <ul class="fd-rules__list">
-                                                                    @foreach($section['items'] ?? [] as $item)
-                                                                        <li>{{ $item }}</li>
-                                                                    @endforeach
-                                                                </ul>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @endif
-
-                                                @if(!empty($fareRules['components']))
-                                                    <div class="fd-rules__section">
-                                                        <div class="fd-rules__section-title">Fare Components</div>
-                                                        @foreach($fareRules['components'] as $component)
-                                                            <div class="fd-rules__component">
-                                                                <div class="fd-rules__component-route">{{ $component['route'] ?? 'Segment' }}</div>
-                                                                <div class="fd-rules__component-grid">
-                                                                    @if(!empty($component['brand']))
-                                                                        <div><span>Brand</span><strong>{{ $component['brand'] }}</strong></div>
-                                                                    @endif
-                                                                    @if(!empty($component['fare_basis']))
-                                                                        <div><span>Fare Basis</span><strong>{{ $component['fare_basis'] }}</strong></div>
-                                                                    @endif
-                                                                    @if(!empty($component['fare_rule']))
-                                                                        <div><span>Fare Rule</span><strong>{{ $component['fare_rule'] }}</strong></div>
-                                                                    @endif
-                                                                    @if(!empty($component['cabin']))
-                                                                        <div><span>Cabin</span><strong>{{ formatFlightCabinLabel($component['cabin']) }}</strong></div>
-                                                                    @endif
-                                                                </div>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @endif
-
-                                                @if(!empty($fareRules['notes']))
-                                                    <div class="fd-rules__notes">
-                                                        @foreach($fareRules['notes'] as $note)
-                                                            <p><i class="bx bx-info-circle"></i> {{ $note }}</p>
-                                                        @endforeach
-                                                    </div>
-                                                @endif
-
-                                                <div class="fd-rules__full" data-fd-rules-full>
-                                                    <div class="fd-rules__section-title">Full Fare Rules</div>
-                                                    <div class="fd-rules__full-status" data-fd-rules-status>
-                                                        <span class="fd-rules__full-loading">
-                                                            <i class="bx bx-loader-alt bx-spin"></i>
-                                                            Loading full fare rules from airline…
-                                                        </span>
-                                                    </div>
-                                                    <div class="fd-rules__full-body" data-fd-rules-body hidden></div>
-                                                </div>
+                                                @include('user.flights.partials.fare-rules-summary', [
+                                                    'fareRules' => $fareRules,
+                                                    'fareBrand' => $fareBrand,
+                                                    'nonRefund' => $nonRefund,
+                                                    'routeLabel' => ($legRoutes[0]['from'] ?? '') . ' → ' . ($legRoutes[0]['to'] ?? ''),
+                                                ])
+                                                @include('user.flights.partials.fare-rules-full')
                                             </div>
                                         </div>
                                     @endforeach
@@ -1537,120 +1455,7 @@
 .fd-foot.fd-fare-foot:not(.fd-fare-foot--active) { display: none; }
 .fd-foot.fd-fare-foot--active { display: flex; }
 
-/* fare rules panel */
-.fd-rules { display: flex; flex-direction: column; gap: .85rem; }
-.fd-rules__route {
-    font-size: .95rem; font-weight: 700; color: var(--c-ink);
-}
-.fd-rules__summary,
-.fd-rules__component {
-    background: var(--c-bg);
-    border: 1px solid var(--c-line);
-    border-radius: 10px;
-    padding: .75rem .9rem;
-}
-.fd-rules__row {
-    display: flex; justify-content: space-between; gap: .75rem;
-    padding: .28rem 0; font-size: .82rem;
-}
-.fd-rules__row + .fd-rules__row { border-top: 1px dashed var(--c-line-inner); margin-top: .15rem; padding-top: .45rem; }
-.fd-rules__key { color: var(--c-muted); font-weight: 600; }
-.fd-rules__val { color: var(--c-ink); font-weight: 700; text-align: right; }
-.fd-rules__val--ref { color: var(--c-green); }
-.fd-rules__val--nr { color: #c0143c; }
-.fd-rules__section-title,
-.fd-rules__component-route {
-    font-size: .72rem; font-weight: 700; letter-spacing: .07em;
-    text-transform: uppercase; color: var(--c-muted); margin-bottom: .55rem;
-}
-.fd-rules__component + .fd-rules__component { margin-top: .55rem; }
-.fd-rules__component-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .55rem .75rem;
-}
-.fd-rules__component-grid div span {
-    display: block; font-size: .64rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .06em; color: var(--c-muted);
-}
-.fd-rules__component-grid div strong {
-    display: block; margin-top: .12rem; font-size: .82rem; color: var(--c-ink);
-}
-.fd-rules__notes {
-    background: #fff8eb; border: 1px solid #fde6b3; border-radius: 10px;
-    padding: .7rem .85rem;
-}
-.fd-rules__notes p {
-    margin: 0; font-size: .78rem; color: #7a5b00; line-height: 1.45;
-    display: flex; gap: .35rem; align-items: flex-start;
-}
-.fd-rules__list {
-    margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .35rem;
-}
-.fd-rules__list li {
-    font-size: .82rem; color: var(--c-ink); line-height: 1.45;
-}
-.fd-rules__policy + .fd-rules__policy { margin-top: .65rem; }
-.fd-rules__notes p + p { margin-top: .45rem; }
-.fd-rules__notes i { font-size: .95rem; margin-top: .05rem; flex-shrink: 0; }
-.fd-rules__full {
-    margin-top: .35rem;
-    border-top: 1px solid var(--c-line-inner);
-    padding-top: .75rem;
-}
-.fd-rules__full-status {
-    color: var(--c-muted);
-    font-size: .88rem;
-    padding: .5rem 0;
-}
-.fd-rules__full-loading {
-    display: inline-flex;
-    align-items: center;
-    gap: .45rem;
-}
-.fd-rules__full-body {
-    max-height: min(52vh, 420px);
-    overflow: auto;
-    border: 1px solid var(--c-line-inner);
-    border-radius: 10px;
-    background: #fafbfc;
-    padding: .85rem 1rem;
-    font-size: .78rem;
-    line-height: 1.55;
-    color: #2a3142;
-}
-.fd-rules__full-route {
-    font-weight: 700;
-    font-size: .82rem;
-    color: var(--c-ink);
-    margin-bottom: .55rem;
-    padding-bottom: .45rem;
-    border-bottom: 1px dashed var(--c-line-inner);
-}
-.fd-rules__full-component + .fd-rules__full-component {
-    margin-top: 1rem;
-    padding-top: .85rem;
-    border-top: 1px solid var(--c-line-inner);
-}
-.fd-rules__full-section h4 {
-    margin: .65rem 0 .35rem;
-    font-size: .8rem;
-    font-weight: 800;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: #5a6478;
-}
-.fd-rules__full-section h4:first-child { margin-top: 0; }
-.fd-rules__full-section p {
-    margin: 0 0 .55rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-.fd-rules__full-error,
-.fd-rules__full-empty {
-    color: #8a3b12;
-    margin: 0;
-}
+@include('user.flights.partials.fare-rules-styles')
 
 /* modal footer */
 .fd-foot {
@@ -2281,6 +2086,7 @@
 @endpush
 
 @push('js')
+@include('user.flights.partials.fare-rules-scripts')
 <script>
 (function(){
     const list = document.getElementById('rp-list');
@@ -2462,101 +2268,9 @@
         }
     }
 
-    const FARE_RULES_URL = @json(route('user.flights.fare-rules'));
-
-    function itineraryIdFromModal(modal) {
-        return (modal?.id || '').replace(/^fd-/, '');
-    }
-
-    function escapeHtml(value) {
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    function renderFullFareRules(components) {
-        if (!Array.isArray(components) || components.length === 0) {
-            return '<p class="fd-rules__full-empty">No detailed fare rules returned for this fare.</p>';
-        }
-
-        return components.map((component) => {
-            let html = '';
-
-            if (component.route) {
-                const basis = component.fare_basis ? ` · ${component.fare_basis}` : '';
-                html += `<div class="fd-rules__full-route">${escapeHtml(component.route)}${escapeHtml(basis)}</div>`;
-            }
-
-            const sections = Array.isArray(component.sections) ? component.sections : [];
-            if (sections.length > 0) {
-                sections.forEach((section) => {
-                    html += '<div class="fd-rules__full-section">';
-                    if (section.title) {
-                        html += `<h4>${escapeHtml(section.title)}</h4>`;
-                    }
-                    (section.paragraphs || []).forEach((paragraph) => {
-                        html += `<p>${escapeHtml(paragraph)}</p>`;
-                    });
-                    html += '</div>';
-                });
-            } else if (component.text) {
-                html += `<div class="fd-rules__full-section"><p>${escapeHtml(component.text)}</p></div>`;
-            }
-
-            return `<div class="fd-rules__full-component">${html}</div>`;
-        }).join('');
-    }
-
-    async function loadFullFareRules(modal) {
-        if (!modal) return;
-
-        const fareIndex = getModalFareIndex(modal);
-        const panel = modal.querySelector(`.fd-fare-panel[data-fd-panel="fare-rules"][data-fd-fare-panel="${fareIndex}"]`);
-        const fullWrap = panel?.querySelector('[data-fd-rules-full]');
-        if (!fullWrap) return;
-
-        if (fullWrap.dataset.loaded === '1' || fullWrap.dataset.loaded === 'loading') {
-            return;
-        }
-
-        fullWrap.dataset.loaded = 'loading';
-
-        const status = fullWrap.querySelector('[data-fd-rules-status]');
-        const body = fullWrap.querySelector('[data-fd-rules-body]');
-        const url = new URL(FARE_RULES_URL, window.location.origin);
-        url.searchParams.set('itinerary', itineraryIdFromModal(modal));
-        url.searchParams.set('fare', fareIndex);
-
-        try {
-            const response = await fetch(url.toString(), {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                if (status) {
-                    status.innerHTML = `<p class="fd-rules__full-error">${escapeHtml(data.error || 'Unable to load fare rules.')}</p>`;
-                }
-                fullWrap.dataset.loaded = 'error';
-                return;
-            }
-
-            if (status) status.hidden = true;
-            if (body) {
-                body.hidden = false;
-                body.innerHTML = renderFullFareRules(data.components || []);
-            }
-            fullWrap.dataset.loaded = '1';
-        } catch (error) {
-            if (status) {
-                status.innerHTML = '<p class="fd-rules__full-error">Unable to load fare rules. Please try again.</p>';
-            }
-            fullWrap.dataset.loaded = 'error';
+    function loadFullFareRules(modal) {
+        if (window.FlightFareRules) {
+            window.FlightFareRules.loadForModal(modal);
         }
     }
 

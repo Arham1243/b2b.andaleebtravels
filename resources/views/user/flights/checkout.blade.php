@@ -313,6 +313,13 @@
                             </div>
                         </div>
 
+                        @include('user.flights.partials.fare-rules-box', [
+                            'itineraryId' => $itineraryId,
+                            'selectedFareIndex' => $selectedFareIndex ?? 0,
+                            'itinerary' => $itinerary,
+                            'searchParams' => $searchParams ?? [],
+                        ])
+
                         {{-- Payment --}}
                         <div class="hp-card mb-3">
                             <div class="hp-card__head">
@@ -559,10 +566,12 @@
         .hp-select:focus { border-color:var(--c-brand); box-shadow:0 0 0 3px rgba(205,27,79,.1); }
 
         @include('user.flights.partials.hp-pax-autocomplete-styles')
+        @include('user.flights.partials.fare-rules-styles')
     </style>
 @endpush
 
 @push('js')
+    @include('user.flights.partials.fare-rules-scripts')
     @include('user.flights.partials.hp-pax-autocomplete-scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {

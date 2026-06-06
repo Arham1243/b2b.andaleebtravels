@@ -374,6 +374,13 @@
                             </div>
                         </div>
 
+                        @include('user.flights.partials.fare-rules-box', [
+                            'itineraryId' => $itineraryId,
+                            'selectedFareIndex' => $selectedFareIndex ?? 0,
+                            'itinerary' => $itinerary,
+                            'searchParams' => $searchParams ?? [],
+                        ])
+
                     </div>{{-- /.col-lg-8 --}}
 
                     {{-- ===================================================
@@ -865,10 +872,12 @@
 }
 
 @include('user.flights.partials.hp-pax-autocomplete-styles')
+@include('user.flights.partials.fare-rules-styles')
 </style>
 @endpush
 
 @push('js')
+    @include('user.flights.partials.fare-rules-scripts')
     @include('user.flights.partials.hp-pax-autocomplete-scripts')
 <script>
 (function () {
