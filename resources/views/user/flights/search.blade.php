@@ -497,9 +497,18 @@
                                             ? ! (bool) $fareRulesRow['refundable']
                                             : (bool) ($fare['non_refundable'] ?? false);
                                         $bagNote    = $fare['baggage_notes'] ?? '';
-                                        $bagItems   = $fare['baggage_details']['summary_items'] ?? [];
-                                        if ($bagItems === [] && $bagNote !== '') {
-                                            $bagItems = preg_split('/\s*·\s*/', $bagNote) ?: [$bagNote];
+                                        $bagLines   = flightFareBaggageDisplayLines(
+                                            $fare['baggage_details'] ?? [],
+                                            $isRoundTrip,
+                                            $query['from'] ?? '',
+                                            $query['to'] ?? '',
+                                        );
+                                        if (($bagLines['outbound'] ?? []) === [] && ($bagLines['return'] ?? []) === [] && $bagNote !== '') {
+                                            $fallback = array_values(array_unique(array_filter(array_map(
+                                                static fn ($item) => compactFlightBaggagePillText((string) $item),
+                                                preg_split('/\s*·\s*/', $bagNote) ?: [$bagNote],
+                                            ))));
+                                            $bagLines['outbound'] = $fallback;
                                         }
                                         $farePrice  = (float) ($fare['totalPrice'] ?? 0);
                                         $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
@@ -512,6 +521,7 @@
                                     <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
                                         data-rc-fare-row="{{ $fi }}">
                                         <div class="rc__fare-left">
+                                            <div class="rc__fare-line">
                                             @if($fareBrand !== '')
                                                 <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
                                             @endif
@@ -532,14 +542,19 @@
                                             @if($fareCabinTags['booking'] !== '')
                                                 <span class="rc__ftag">{{ $fareCabinTags['booking'] }}</span>
                                             @endif
-                                            @foreach($bagItems as $bagItem)
-                                                @php $bagItem = trim((string) $bagItem); @endphp
-                                                @if($bagItem !== '')
-                                                    <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagItem }}</span>
-                                                @endif
+                                            @foreach($bagLines['outbound'] ?? [] as $bagPill)
+                                                <span class="rc__ftag rc__ftag--bag" title="Baggage allowance"><i class="bx bx-briefcase-alt-2"></i> {{ $bagPill }}</span>
                                             @endforeach
                                             @if(!is_null($fareSeats))
-                                                <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $fareSeats }} {{ $fareSeats === 1 ? 'seat' : 'seats' }}</span>
+                                                <span class="rc__ftag rc__ftag--seat" title="{{ $fareSeats }} {{ $fareSeats === 1 ? 'seat' : 'seats' }} available"><i class="bx bx-user"></i> {{ $fareSeats }}</span>
+                                            @endif
+                                            </div>
+                                            @if($isRoundTrip && !empty($bagLines['return']))
+                                                <div class="rc__fare-line rc__fare-line--return">
+                                                    @foreach($bagLines['return'] as $bagPill)
+                                                        <span class="rc__ftag rc__ftag--bag" title="Return baggage allowance"><i class="bx bx-briefcase-alt-2"></i> {{ $bagPill }}</span>
+                                                    @endforeach
+                                                </div>
                                             @endif
                                         </div>
 
@@ -1182,11 +1197,22 @@
 .rc__fares.is-expanded .rc__more-fares i { transform: rotate(180deg); }
 .rc__fare-left {
     display: flex;
-    align-items: center;
-    gap: .35rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .22rem;
     flex: 1 1 auto;
     min-width: 0;
+}
+.rc__fare-line {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
     flex-wrap: wrap;
+    width: 100%;
+    min-width: 0;
+}
+.rc__fare-line--return {
+    padding-left: .1rem;
 }
 .rc__fare-right {
     display: flex;
@@ -1224,11 +1250,13 @@
 }
 
 .rc__ftag {
-    display: inline-flex; align-items: center; gap: .18rem;
-    font-size: .68rem; font-weight: 600; background: #edf0f7;
-    color: var(--c-slate); padding: .13rem .45rem; border-radius: 4px;
+    display: inline-flex; align-items: center; gap: .15rem;
+    font-size: .64rem; font-weight: 600; background: #edf0f7;
+    color: var(--c-slate); padding: .1rem .38rem; border-radius: 4px;
+    line-height: 1.2;
 }
-.rc__ftag i { font-size: .8rem; }
+.rc__ftag i { font-size: .74rem; flex-shrink: 0; }
+.rc__ftag--bag { background: #f1f5f9; }
 .rc__ftag--basis {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: .65rem;
@@ -1237,7 +1265,7 @@
     background: #f8fafc;
     color: #475569;
 }
-.rc__ftag--seat { background: var(--c-amber-soft); color: var(--c-amber); }
+.rc__ftag--seat { background: var(--c-amber-soft); color: var(--c-amber); min-width: 1.65rem; justify-content: center; }
 
 /* flight details centered link */
 .rc__details-center {

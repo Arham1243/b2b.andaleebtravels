@@ -435,6 +435,108 @@ if (! function_exists('formatFlightAircraftLabel')) {
     }
 }
 
+if (! function_exists('compactFlightBaggagePillText')) {
+    function compactFlightBaggagePillText(?string $text): string
+    {
+        $text = trim((string) ($text ?? ''));
+        if ($text === '') {
+            return '';
+        }
+
+        $text = preg_replace('/\s+checked\b/i', '', $text);
+        $text = preg_replace('/\s+cabin\b/i', '', $text);
+
+        return trim(preg_replace('/\s{2,}/', ' ', $text));
+    }
+}
+
+if (! function_exists('flightFareBaggagePillFromRow')) {
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    function flightFareBaggagePillFromRow(array $row, bool $isCabin): ?string
+    {
+        $amount = trim((string) data_get($row, 'friendly.amount', ''));
+
+        if ($amount === '' || strcasecmp($amount, 'Not included') === 0) {
+            $amount = trim((string) ($row['allowance'] ?? ''));
+        }
+
+        if ($amount === '' || strcasecmp($amount, 'Not included') === 0) {
+            return null;
+        }
+
+        return compactFlightBaggagePillText($amount);
+    }
+}
+
+if (! function_exists('flightFareBaggageDisplayLines')) {
+    /**
+     * Group compact baggage pills by outbound / return leg.
+     *
+     * @param  array<string, mixed>  $baggageDetails
+     * @return array{outbound: list<string>, return: list<string>}
+     */
+    function flightFareBaggageDisplayLines(array $baggageDetails, bool $isRoundTrip, ?string $from, ?string $to): array
+    {
+        $from = strtoupper(trim((string) ($from ?? '')));
+        $to = strtoupper(trim((string) ($to ?? '')));
+        $legPills = [0 => [], 1 => []];
+
+        foreach (['checked', 'cabin'] as $section) {
+            $isCabin = $section === 'cabin';
+
+            foreach ($baggageDetails[$section] ?? [] as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+
+                $pill = flightFareBaggagePillFromRow($row, $isCabin);
+                if ($pill === null || $pill === '') {
+                    continue;
+                }
+
+                $route = strtoupper(trim((string) ($row['route'] ?? '')));
+                $leg = 0;
+
+                if ($isRoundTrip && $to !== '' && preg_match('/^' . preg_quote($to, '/') . '\s*→/', $route)) {
+                    $leg = 1;
+                } elseif ($from !== '' && preg_match('/^' . preg_quote($from, '/') . '\s*→/', $route)) {
+                    $leg = 0;
+                }
+
+                if (! in_array($pill, $legPills[$leg], true)) {
+                    $legPills[$leg][] = $pill;
+                }
+            }
+        }
+
+        if ($legPills[0] === [] && $legPills[1] === []) {
+            $compact = [];
+
+            foreach ($baggageDetails['summary_items'] ?? [] as $item) {
+                $pill = compactFlightBaggagePillText((string) $item);
+                if ($pill !== '' && ! in_array($pill, $compact, true)) {
+                    $compact[] = $pill;
+                }
+            }
+
+            return ['outbound' => $compact, 'return' => []];
+        }
+
+        if (! $isRoundTrip) {
+            $merged = array_values(array_unique(array_merge($legPills[0], $legPills[1])));
+
+            return ['outbound' => $merged, 'return' => []];
+        }
+
+        return [
+            'outbound' => $legPills[0],
+            'return' => $legPills[1],
+        ];
+    }
+}
+
 if (! function_exists('formatDateTime')) {
     function formatDateTime($date)
     {
