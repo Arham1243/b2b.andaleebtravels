@@ -39,12 +39,14 @@ final class SabreBaggagePresenter
             $route = $segmentRoutes[$segmentId] ?? 'All segments';
             $airline = strtoupper(trim((string) ($row['airlineCode'] ?? '')));
             $isCabin = self::isCabinProvision($provisionType);
-            $allowanceText = self::formatAllowance(self::resolveAllowanceDesc($row, $allowanceById), $isCabin);
+            $desc = self::resolveAllowanceDesc($row, $allowanceById);
+            $friendly = self::parseAllowanceFriendly($desc, $isCabin);
 
             $entry = [
                 'route' => $route,
                 'airline' => $airline,
-                'allowance' => $allowanceText,
+                'allowance' => $friendly['display'],
+                'friendly' => $friendly,
                 'provision_type' => $provisionType,
             ];
 
@@ -57,12 +59,14 @@ final class SabreBaggagePresenter
 
         $checked = self::uniqueRows($checked);
         $cabin = self::uniqueRows($cabin);
+        $paxTable = self::paxAllowanceTable($pricingBlock, $grouped);
 
         return [
             'summary' => self::buildSummary($checked, $cabin),
             'checked' => $checked,
             'cabin' => $cabin,
-            'pax_table' => self::paxAllowanceTable($pricingBlock, $grouped),
+            'pax_table' => $paxTable,
+            'cabin_notes' => self::collectCabinNotes($cabin, $paxTable),
         ];
     }
 
@@ -87,8 +91,8 @@ final class SabreBaggagePresenter
                 continue;
             }
 
-            $checkedAllowances = [];
-            $cabinAllowances = [];
+            $checkedFriendly = [];
+            $cabinFriendly = [];
 
             foreach ($paxInfo['baggageInformation'] ?? [] as $bagRow) {
                 if (!is_array($bagRow)) {
@@ -97,19 +101,24 @@ final class SabreBaggagePresenter
 
                 $provisionType = strtoupper(trim((string) ($bagRow['provisionType'] ?? 'A')));
                 $isCabin = self::isCabinProvision($provisionType);
-                $text = self::formatAllowance(self::resolveAllowanceDesc($bagRow, $allowanceById), $isCabin);
+                $friendly = self::parseAllowanceFriendly(self::resolveAllowanceDesc($bagRow, $allowanceById), $isCabin);
 
                 if ($isCabin) {
-                    $cabinAllowances[] = $text;
+                    $cabinFriendly[] = $friendly;
                 } else {
-                    $checkedAllowances[] = $text;
+                    $checkedFriendly[] = $friendly;
                 }
             }
 
+            $checkedSummary = self::summarizeFriendlyList($checkedFriendly);
+            $cabinSummary = self::summarizeFriendlyList($cabinFriendly);
+
             $rows[] = [
                 'pax_type' => self::paxLabel((string) ($paxInfo['passengerType'] ?? 'ADT')),
-                'checked' => self::summarizeAllowanceList($checkedAllowances),
-                'cabin' => self::summarizeAllowanceList($cabinAllowances),
+                'checked' => $checkedSummary['display'],
+                'cabin' => $cabinSummary['display'],
+                'checked_friendly' => $checkedSummary,
+                'cabin_friendly' => $cabinSummary,
             ];
         }
 
@@ -168,6 +177,179 @@ final class SabreBaggagePresenter
         }
 
         return null;
+    }
+
+    /**
+     * User-facing baggage line: amount, type label, optional piece→kg note.
+     *
+     * @param  array<string, mixed>|null  $desc
+     * @return array{amount: string, label: string, note: ?string, display: string}
+     */
+    private static function parseAllowanceFriendly(?array $desc, bool $cabinBaggage): array
+    {
+        $typeLabel = $cabinBaggage ? 'Cabin Baggage' : 'Check-in Baggage';
+
+        if ($desc === null) {
+            return [
+                'amount' => 'Not included',
+                'label' => $typeLabel,
+                'note' => null,
+                'display' => 'Not included',
+            ];
+        }
+
+        $descriptionText = self::collectDescriptionText($desc);
+        $pieces = self::extractPieceCount($desc, $descriptionText);
+        $kg = self::extractKilogramsFromText($descriptionText);
+
+        if ($kg === null) {
+            $weight = (int) ($desc['weight'] ?? 0);
+            $unit = self::normalizeUnit((string) ($desc['unit'] ?? ''));
+
+            if ($weight > 0 && $unit === 'kg') {
+                $kg = $weight;
+            }
+        }
+
+        if ($cabinBaggage) {
+            if ($pieces > 0) {
+                $amount = $pieces . ' PC';
+                $note = ($kg !== null && $kg > 0)
+                    ? self::pieceEquivalentNote($pieces, $kg)
+                    : null;
+
+                return self::friendlyResult($amount, $typeLabel, $note);
+            }
+
+            if ($kg !== null && $kg > 0) {
+                return self::friendlyResult($kg . ' kg', $typeLabel, null);
+            }
+
+            $fallback = self::formatAllowance($desc, true);
+
+            return self::friendlyResult(
+                $fallback === 'Not included' ? 'Not included' : $fallback,
+                $typeLabel,
+                null,
+            );
+        }
+
+        if ($kg !== null && $kg > 0) {
+            return self::friendlyResult($kg . ' kg', $typeLabel, null);
+        }
+
+        if ($pieces > 0) {
+            return self::friendlyResult($pieces . ' PC', $typeLabel, null);
+        }
+
+        $fallback = self::formatAllowance($desc, false);
+
+        return self::friendlyResult(
+            $fallback === 'Not included' ? 'Not included' : $fallback,
+            $typeLabel,
+            null,
+        );
+    }
+
+    /**
+     * @return array{amount: string, label: string, note: ?string, display: string}
+     */
+    private static function friendlyResult(string $amount, string $label, ?string $note): array
+    {
+        $amount = trim($amount);
+
+        if ($amount === '' || strcasecmp($amount, 'Not included') === 0) {
+            return [
+                'amount' => 'Not included',
+                'label' => $label,
+                'note' => null,
+                'display' => 'Not included',
+            ];
+        }
+
+        return [
+            'amount' => $amount,
+            'label' => $label,
+            'note' => $note,
+            'display' => $amount . ' (' . $label . ')',
+        ];
+    }
+
+    private static function pieceEquivalentNote(int $pieces, int $kg): string
+    {
+        if ($pieces === 1) {
+            return '1 piece baggage is equivalent to ' . $kg . ' kg';
+        }
+
+        return $pieces . ' pieces baggage are equivalent to ' . $kg . ' kg each';
+    }
+
+    /**
+     * @param  array<string, mixed>  $desc
+     */
+    private static function extractPieceCount(array $desc, string $descriptionText): int
+    {
+        $pieces = (int) ($desc['pieceCount'] ?? 0);
+
+        if ($pieces <= 0 && preg_match('/(\d+)\s*PC\b/i', $descriptionText, $matches)) {
+            $pieces = (int) $matches[1];
+        }
+
+        return max(0, $pieces);
+    }
+
+    /**
+     * @param  list<array{amount: string, label: string, note: ?string, display: string}>  $friendlyRows
+     * @return array{amount: string, label: string, note: ?string, display: string}
+     */
+    private static function summarizeFriendlyList(array $friendlyRows): array
+    {
+        $friendlyRows = array_values(array_filter($friendlyRows, static fn (array $row): bool => ($row['amount'] ?? '') !== 'Not included'));
+
+        if ($friendlyRows === []) {
+            return self::friendlyResult('Not included', '', null);
+        }
+
+        if (count($friendlyRows) === 1) {
+            return $friendlyRows[0];
+        }
+
+        $amounts = array_values(array_unique(array_map(static fn (array $row): string => (string) ($row['amount'] ?? ''), $friendlyRows)));
+
+        return [
+            'amount' => implode(' / ', $amounts),
+            'label' => (string) ($friendlyRows[0]['label'] ?? ''),
+            'note' => $friendlyRows[0]['note'] ?? null,
+            'display' => implode(' / ', array_map(static fn (array $row): string => (string) ($row['display'] ?? ''), $friendlyRows)),
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $cabinRows
+     * @param  list<array<string, mixed>>  $paxTable
+     * @return list<string>
+     */
+    private static function collectCabinNotes(array $cabinRows, array $paxTable): array
+    {
+        $notes = [];
+
+        foreach ($cabinRows as $row) {
+            $note = trim((string) data_get($row, 'friendly.note', ''));
+
+            if ($note !== '' && ! in_array($note, $notes, true)) {
+                $notes[] = $note;
+            }
+        }
+
+        foreach ($paxTable as $paxRow) {
+            $note = trim((string) data_get($paxRow, 'cabin_friendly.note', ''));
+
+            if ($note !== '' && ! in_array($note, $notes, true)) {
+                $notes[] = $note;
+            }
+        }
+
+        return $notes;
     }
 
     /**
@@ -482,6 +664,7 @@ final class SabreBaggagePresenter
             'checked' => [],
             'cabin' => [],
             'pax_table' => [],
+            'cabin_notes' => [],
         ];
     }
 }

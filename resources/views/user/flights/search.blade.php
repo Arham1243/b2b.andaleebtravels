@@ -723,6 +723,7 @@
                                             $checkedRows = $bagDetails['checked'] ?? [];
                                             $cabinRows = $bagDetails['cabin'] ?? [];
                                             $paxTable = $bagDetails['pax_table'] ?? [];
+                                            $cabinNotes = $bagDetails['cabin_notes'] ?? [];
                                         @endphp
 
                                         {{-- baggage panel --}}
@@ -746,13 +747,29 @@
                                                                     @foreach($paxTable as $paxRow)
                                                                         <tr>
                                                                             <td>{{ $paxRow['pax_type'] ?? 'Passenger' }}</td>
-                                                                            <td>{{ $paxRow['checked'] ?? 'Not included' }}</td>
-                                                                            <td>{{ $paxRow['cabin'] ?? 'Not included' }}</td>
+                                                                            <td>
+                                                                                @include('user.flights.partials.baggage-allowance-display', [
+                                                                                    'friendly' => $paxRow['checked_friendly'] ?? null,
+                                                                                    'fallback' => $paxRow['checked'] ?? 'Not included',
+                                                                                ])
+                                                                            </td>
+                                                                            <td>
+                                                                                @include('user.flights.partials.baggage-allowance-display', [
+                                                                                    'friendly' => $paxRow['cabin_friendly'] ?? null,
+                                                                                    'fallback' => $paxRow['cabin'] ?? 'Not included',
+                                                                                ])
+                                                                            </td>
                                                                         </tr>
                                                                     @endforeach
                                                                 </tbody>
                                                             </table>
                                                         </div>
+                                                        @if(!empty($cabinNotes))
+                                                            <div class="fd-bag__footnote">
+                                                                <i class="bx bx-info-circle"></i>
+                                                                <span>{{ implode(' · ', $cabinNotes) }}</span>
+                                                            </div>
+                                                        @endif
                                                     </div>
                                                 @endif
 
@@ -765,7 +782,10 @@
                                                                 <div>
                                                                     <div class="fd-bag__label">{{ $bagRow['route'] ?? 'Segment' }}</div>
                                                                     <div class="fd-bag__val">
-                                                                        {{ $bagRow['allowance'] ?? 'Not included' }}
+                                                                        @include('user.flights.partials.baggage-allowance-display', [
+                                                                            'friendly' => $bagRow['friendly'] ?? null,
+                                                                            'fallback' => $bagRow['allowance'] ?? 'Not included',
+                                                                        ])
                                                                         @if(!empty($bagRow['airline']))
                                                                             <span class="fd-bag__meta">· {{ $bagRow['airline'] }}</span>
                                                                         @endif
@@ -793,7 +813,10 @@
                                                                 <div>
                                                                     <div class="fd-bag__label">{{ $bagRow['route'] ?? 'Segment' }}</div>
                                                                     <div class="fd-bag__val">
-                                                                        {{ $bagRow['allowance'] ?? 'Not included' }}
+                                                                        @include('user.flights.partials.baggage-allowance-display', [
+                                                                            'friendly' => $bagRow['friendly'] ?? null,
+                                                                            'fallback' => $bagRow['allowance'] ?? 'Not included',
+                                                                        ])
                                                                         @if(!empty($bagRow['airline']))
                                                                             <span class="fd-bag__meta">· {{ $bagRow['airline'] }}</span>
                                                                         @endif
@@ -1432,6 +1455,16 @@
     font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
 }
 .fd-bag__table tr:last-child td { border-bottom: none; }
+.fd-bag__amt { font-weight: 700; color: var(--c-ink); }
+.fd-bag__amt-label { font-weight: 500; color: var(--c-slate); margin-left: .2rem; }
+.fd-bag__amt--na { color: var(--c-muted); font-weight: 600; }
+.fd-bag__footnote {
+    display: flex; align-items: flex-start; gap: .4rem;
+    margin-top: .45rem; padding: .55rem .7rem;
+    background: #fff8ef; border: 1px solid #fde6c7; border-radius: 8px;
+    font-size: .76rem; color: #b45309; line-height: 1.45;
+}
+.fd-bag__footnote i { font-size: .95rem; flex-shrink: 0; margin-top: .05rem; }
 
 .fd-fare-tabs {
     display: flex; gap: .45rem; flex-wrap: wrap;
