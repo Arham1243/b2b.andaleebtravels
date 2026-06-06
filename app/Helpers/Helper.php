@@ -276,6 +276,76 @@ if (! function_exists('formatFlightSegmentDate')) {
         return Carbon::parse($date)->format('j F Y');
     }
 }
+
+if (! function_exists('flightAirportCityMap')) {
+    /** @return array<string, string> */
+    function flightAirportCityMap(): array
+    {
+        static $map = null;
+
+        if ($map !== null) {
+            return $map;
+        }
+
+        $path = public_path('user/mocks/airports.json');
+        if (! is_readable($path)) {
+            $map = [];
+
+            return $map;
+        }
+
+        $rows = json_decode((string) file_get_contents($path), true);
+        if (! is_array($rows)) {
+            $map = [];
+
+            return $map;
+        }
+
+        $map = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $city = trim((string) ($row['city'] ?? ''));
+            $code = strtoupper(trim((string) ($row['code'] ?? '')));
+            $cityCode = strtoupper(trim((string) ($row['cityCode'] ?? $code)));
+
+            if ($code !== '' && $city !== '') {
+                $map[$code] = $city;
+            }
+
+            if ($cityCode !== '' && $city !== '' && ! isset($map[$cityCode])) {
+                $map[$cityCode] = $city;
+            }
+        }
+
+        return $map;
+    }
+}
+
+if (! function_exists('resolveFlightCityLabel')) {
+    /**
+     * Prefer a human city name; Sabre often returns IATA codes like "DXB" in the city field.
+     */
+    function resolveFlightCityLabel(?string $cityName, ?string $airportCode): string
+    {
+        $cityName = trim((string) ($cityName ?? ''));
+        $airportCode = strtoupper(trim((string) ($airportCode ?? '')));
+
+        if ($cityName !== '' && ! preg_match('/^[A-Z0-9]{3}$/', strtoupper($cityName))) {
+            return $cityName;
+        }
+
+        $lookup = strtoupper($cityName !== '' ? $cityName : $airportCode);
+        if ($lookup === '') {
+            return '';
+        }
+
+        return flightAirportCityMap()[$lookup] ?? $lookup;
+    }
+}
+
 if (! function_exists('formatDateTime')) {
     function formatDateTime($date)
     {

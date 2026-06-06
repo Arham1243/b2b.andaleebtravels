@@ -49,10 +49,10 @@
 
         function fl_city_label(array $seg, bool $isDep = true): string
         {
-            $k = $isDep ? 'departure_city' : 'arrival_city';
-            $c = trim((string) ($seg[$k] ?? ''));
-            if ($c !== '') return $c;
-            return trim((string) ($isDep ? ($seg['from'] ?? '') : ($seg['to'] ?? '')));
+            $code = trim((string) ($isDep ? ($seg['from'] ?? '') : ($seg['to'] ?? '')));
+            $city = trim((string) ($seg[$isDep ? 'departure_city' : 'arrival_city'] ?? ''));
+
+            return resolveFlightCityLabel($city, $code);
         }
     @endphp
 
@@ -406,7 +406,7 @@
 
                                     $midApts = [];
                                     for ($mi = 0; $mi < count($segs) - 1; $mi++) {
-                                        $midApts[] = $segs[$mi]['to'] ?? '';
+                                        $midApts[] = resolveFlightCityLabel('', $segs[$mi]['to'] ?? '');
                                     }
                                 @endphp
 
@@ -640,8 +640,7 @@
                                                     <div class="fd-layover">
                                                         <i class="bx bx-time-five"></i>
                                                         <strong>{{ fl_format_hm($layover) }}</strong> layover at
-                                                        <strong>{{ $sx['from']??'' }}</strong>
-                                                        @if(!empty($sx['departure_city'])) · {{ $sx['departure_city'] }}@endif
+                                                        <strong>{{ resolveFlightCityLabel($sx['departure_city'] ?? '', $sx['from'] ?? '') }}</strong>
                                                     </div>
                                                 @endif
 
@@ -680,7 +679,7 @@
                                                             <strong class="fd-seg__time">{{ $sx['departure_clock']??' - ' }}</strong>
                                                             <span class="fd-seg__code">{{ $sx['from']??'' }}</span>
                                                             <span class="fd-seg__city">
-                                                                @if(!empty($sx['departure_city'])){{ $sx['departure_city'] }}@endif
+                                                                {{ resolveFlightCityLabel($sx['departure_city'] ?? '', $sx['from'] ?? '') }}
                                                                 @if(!empty($sx['departure_terminal']))<small>Terminal {{ $sx['departure_terminal'] }}</small>@endif
                                                             </span>
                                                             <span class="fd-seg__date">{{ $sx['departure_label']??'' }}</span>
@@ -705,7 +704,7 @@
                                                             <strong class="fd-seg__time">{{ $sx['arrival_clock']??' - ' }}</strong>
                                                             <span class="fd-seg__code">{{ $sx['to']??'' }}</span>
                                                             <span class="fd-seg__city">
-                                                                @if(!empty($sx['arrival_city'])){{ $sx['arrival_city'] }}@endif
+                                                                {{ resolveFlightCityLabel($sx['arrival_city'] ?? '', $sx['to'] ?? '') }}
                                                                 @if(!empty($sx['arrival_terminal']))<small>Terminal {{ $sx['arrival_terminal'] }}</small>@endif
                                                             </span>
                                                             <span class="fd-seg__date">{{ $sx['arrival_label']??'' }}</span>

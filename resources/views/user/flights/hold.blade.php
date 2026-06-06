@@ -117,7 +117,7 @@
 
                                         $midApts = [];
                                         for ($mi = 0; $mi < count($segs) - 1; $mi++) {
-                                            $midApts[] = $segs[$mi]['to'] ?? '';
+                                            $midApts[] = resolveFlightCityLabel('', $segs[$mi]['to'] ?? '');
                                         }
                                     @endphp
 
@@ -150,7 +150,7 @@
                                                 <div class="hp-leg__time">{{ $s0['departure_clock'] ?? ' - ' }}</div>
                                                 <div class="hp-leg__dt">{{ $s0['departure_weekday'] ?? '' }}, {{ $s0['departure_label'] ?? '' }}</div>
                                                 <div class="hp-leg__city">
-                                                    {{ $s0['from'] ?? '' }}@if(!empty($s0['departure_terminal'])), Terminal {{ $s0['departure_terminal'] }}@endif
+                                                    {{ resolveFlightCityLabel($s0['departure_city'] ?? '', $s0['from'] ?? '') }}@if(!empty($s0['departure_terminal'])), Terminal {{ $s0['departure_terminal'] }}@endif
                                                 </div>
                                             </div>
 
@@ -182,7 +182,7 @@
                                                 </div>
                                                 <div class="hp-leg__dt">{{ $sLast['arrival_weekday'] ?? '' }}, {{ $sLast['arrival_label'] ?? '' }}</div>
                                                 <div class="hp-leg__city">
-                                                    {{ $sLast['to'] ?? '' }}@if(!empty($sLast['arrival_terminal'])), Terminal {{ $sLast['arrival_terminal'] }}@endif
+                                                    {{ resolveFlightCityLabel($sLast['arrival_city'] ?? '', $sLast['to'] ?? '') }}@if(!empty($sLast['arrival_terminal'])), Terminal {{ $sLast['arrival_terminal'] }}@endif
                                                 </div>
                                             </div>
 

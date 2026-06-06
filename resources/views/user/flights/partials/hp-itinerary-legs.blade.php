@@ -14,7 +14,7 @@
         $nextDay = (bool)($sLast['next_day_hint'] ?? false);
         $midApts = [];
         for ($mi = 0; $mi < count($segs) - 1; $mi++) {
-            $midApts[] = $segs[$mi]['to'] ?? '';
+            $midApts[] = resolveFlightCityLabel('', $segs[$mi]['to'] ?? '');
         }
         $car = strtoupper(trim((string)($s0['carrier'] ?? 'XX')));
     @endphp
@@ -39,7 +39,7 @@
             <div class="hp-leg__pt">
                 <div class="hp-leg__time">{{ $s0['departure_clock'] ?? ($s0['departure_time'] ?? ' - ') }}</div>
                 <div class="hp-leg__dt">{{ $s0['departure_weekday'] ?? '' }}{{ !empty($s0['departure_weekday']) && !empty($s0['departure_label']) ? ', ' : '' }}{{ $s0['departure_label'] ?? '' }}</div>
-                <div class="hp-leg__city">{{ $s0['from'] ?? '' }}@if(!empty($s0['departure_terminal'])), Terminal {{ $s0['departure_terminal'] }}@endif</div>
+                <div class="hp-leg__city">{{ resolveFlightCityLabel($s0['departure_city'] ?? '', $s0['from'] ?? '') }}@if(!empty($s0['departure_terminal'])), Terminal {{ $s0['departure_terminal'] }}@endif</div>
             </div>
             <div class="hp-leg__bridge">
                 <div class="hp-leg__bridge-dur">{{ $dur }}</div>
@@ -63,7 +63,7 @@
                     @if($nextDay)<span class="hp-nextday">+1</span>@endif
                 </div>
                 <div class="hp-leg__dt">{{ $sLast['arrival_weekday'] ?? '' }}{{ !empty($sLast['arrival_weekday']) && !empty($sLast['arrival_label']) ? ', ' : '' }}{{ $sLast['arrival_label'] ?? '' }}</div>
-                <div class="hp-leg__city">{{ $sLast['to'] ?? '' }}@if(!empty($sLast['arrival_terminal'])), Terminal {{ $sLast['arrival_terminal'] }}@endif</div>
+                <div class="hp-leg__city">{{ resolveFlightCityLabel($sLast['arrival_city'] ?? '', $sLast['to'] ?? '') }}@if(!empty($sLast['arrival_terminal'])), Terminal {{ $sLast['arrival_terminal'] }}@endif</div>
             </div>
         </div>
     </div>
