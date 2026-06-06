@@ -38,9 +38,7 @@ final class SabreBaggagePresenter
             $segmentId = (int) data_get($row, 'segments.0.id', -1);
             $route = $segmentRoutes[$segmentId] ?? 'All segments';
             $airline = strtoupper(trim((string) ($row['airlineCode'] ?? '')));
-            $allowanceRef = data_get($row, 'allowance.ref');
-            $allowanceDesc = $allowanceRef !== null ? $allowanceById->get($allowanceRef) : null;
-            $allowanceText = self::formatAllowance(is_array($allowanceDesc) ? $allowanceDesc : null);
+            $allowanceText = self::formatAllowance(self::resolveAllowanceDesc($row, $allowanceById));
 
             $entry = [
                 'route' => $route,
@@ -97,9 +95,7 @@ final class SabreBaggagePresenter
                 }
 
                 $provisionType = strtoupper(trim((string) ($bagRow['provisionType'] ?? 'A')));
-                $allowanceRef = data_get($bagRow, 'allowance.ref');
-                $allowanceDesc = $allowanceRef !== null ? $allowanceById->get($allowanceRef) : null;
-                $text = self::formatAllowance(is_array($allowanceDesc) ? $allowanceDesc : null);
+                $text = self::formatAllowance(self::resolveAllowanceDesc($bagRow, $allowanceById));
 
                 if (self::isCabinProvision($provisionType)) {
                     $cabinAllowances[] = $text;
@@ -144,6 +140,35 @@ final class SabreBaggagePresenter
     }
 
     /**
+     * @param  array<string, mixed>  $bagRow
+     * @param  \Illuminate\Support\Collection<int|string, mixed>  $allowanceById
+     * @return array<string, mixed>|null
+     */
+    private static function resolveAllowanceDesc(array $bagRow, $allowanceById): ?array
+    {
+        $allowanceRef = data_get($bagRow, 'allowance.ref');
+
+        if ($allowanceRef !== null) {
+            $desc = $allowanceById->get($allowanceRef);
+
+            if (is_array($desc)) {
+                return $desc;
+            }
+        }
+
+        $inline = $bagRow['allowance'] ?? null;
+
+        if (is_array($inline) && (array_key_exists('pieceCount', $inline)
+            || array_key_exists('weight', $inline)
+            || array_key_exists('description1', $inline)
+            || array_key_exists('description2', $inline))) {
+            return $inline;
+        }
+
+        return null;
+    }
+
+    /**
      * @param array<string, mixed>|null $desc
      */
     private static function formatAllowance(?array $desc): string
@@ -159,6 +184,20 @@ final class SabreBaggagePresenter
         $structured = self::formatStructuredAllowance($pieces, $weight, $unit);
         if ($structured !== null) {
             return $structured;
+        }
+
+        foreach (['description', 'Description'] as $key) {
+            $description = trim((string) ($desc[$key] ?? ''));
+            if ($description === '') {
+                continue;
+            }
+
+            $parsed = self::parseDescriptionAllowance($description);
+            if ($parsed !== null) {
+                return $parsed;
+            }
+
+            return self::compactDescription($description);
         }
 
         foreach (['description1', 'description2'] as $key) {

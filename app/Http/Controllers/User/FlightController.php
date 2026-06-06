@@ -462,6 +462,7 @@ class FlightController extends Controller
             'Baggage' => [
                 'RequestType' => 'A',
                 'Description' => true,
+                'CarryOnInfo' => true,
             ],
         ];
 
