@@ -137,12 +137,14 @@ final class SabreBaggagePresenter
             }
         }
 
-        $checked = self::normalizeSegmentAllowanceRows($checked, $segmentRoutes, false);
-        $cabin = self::normalizeSegmentAllowanceRows($cabin, $segmentRoutes, true);
+        $checked = self::fillMissingSegmentAllowances($checked, $segmentRoutes, false);
+        $cabin = self::fillMissingSegmentAllowances($cabin, $segmentRoutes, true);
         $paxTable = self::paxAllowanceTable($pricingBlock, $grouped);
+        $summaryItems = self::buildSummaryItems($checked, $cabin);
 
         return [
-            'summary' => self::buildSummary($checked, $cabin),
+            'summary' => $summaryItems !== [] ? implode(' · ', $summaryItems) : null,
+            'summary_items' => $summaryItems,
             'checked' => $checked,
             'cabin' => $cabin,
             'pax_table' => $paxTable,
@@ -170,22 +172,24 @@ final class SabreBaggagePresenter
             return $baggageDetails;
         }
 
-        $baggageDetails['checked'] = self::normalizeSegmentAllowanceRows(
+        $baggageDetails['checked'] = self::fillMissingSegmentAllowances(
             $baggageDetails['checked'] ?? [],
             $segmentRoutes,
             false,
             $baggageDetails,
         );
-        $baggageDetails['cabin'] = self::normalizeSegmentAllowanceRows(
+        $baggageDetails['cabin'] = self::fillMissingSegmentAllowances(
             $baggageDetails['cabin'] ?? [],
             $segmentRoutes,
             true,
             $baggageDetails,
         );
-        $baggageDetails['summary'] = self::buildSummary(
+        $summaryItems = self::buildSummaryItems(
             $baggageDetails['checked'] ?? [],
             $baggageDetails['cabin'] ?? [],
         );
+        $baggageDetails['summary_items'] = $summaryItems;
+        $baggageDetails['summary'] = $summaryItems !== [] ? implode(' · ', $summaryItems) : null;
 
         return $baggageDetails;
     }
@@ -304,65 +308,70 @@ final class SabreBaggagePresenter
     }
 
     /**
+     * Keep every baggage row returned by Sabre and only fill routes that are missing allowance.
+     *
      * @param  list<array<string, mixed>>  $rows
      * @param  array<int, string>  $segmentRoutes
      * @param  array<string, mixed>|null  $fullBaggage
      * @return list<array<string, mixed>>
      */
-    private static function normalizeSegmentAllowanceRows(
+    private static function fillMissingSegmentAllowances(
         array $rows,
         array $segmentRoutes,
         bool $isCabin,
         ?array $fullBaggage = null,
     ): array {
+        $filled = array_values($rows);
         $routeList = array_values(array_unique(array_filter($segmentRoutes)));
 
         if ($routeList === []) {
-            return self::uniqueRowsPreferAllowance($rows);
+            return $filled;
         }
 
-        $byRoute = [];
+        $fallback = self::fallbackAllowanceForType($rows, $isCabin, $fullBaggage);
+        $routeBuckets = [];
 
-        foreach ($rows as $row) {
+        foreach ($filled as $index => $row) {
             $route = trim((string) ($row['route'] ?? ''));
 
             if ($route === '' || strcasecmp($route, 'All segments') === 0) {
                 continue;
             }
 
-            if (! isset($byRoute[$route])) {
-                $byRoute[$route] = $row;
+            $routeBuckets[$route][] = $index;
+        }
+
+        foreach ($routeList as $route) {
+            $indices = $routeBuckets[$route] ?? [];
+            $hasValid = false;
+
+            foreach ($indices as $index) {
+                if (! self::rowIsNotIncluded($filled[$index])) {
+                    $hasValid = true;
+                    break;
+                }
+            }
+
+            if ($hasValid) {
                 continue;
             }
 
-            if (self::rowIsNotIncluded($byRoute[$route]) && ! self::rowIsNotIncluded($row)) {
-                $byRoute[$route] = $row;
-            }
-        }
-
-        $fallback = self::fallbackAllowanceForType($rows, $isCabin, $fullBaggage);
-        $normalized = [];
-
-        foreach ($routeList as $route) {
-            if (isset($byRoute[$route])) {
-                $row = $byRoute[$route];
-                if (self::rowIsNotIncluded($row) && $fallback !== null) {
-                    $row = self::applyAllowanceToRow($row, $fallback);
+            if ($indices !== [] && $fallback !== null) {
+                foreach ($indices as $index) {
+                    if (self::rowIsNotIncluded($filled[$index])) {
+                        $filled[$index] = self::applyAllowanceToRow($filled[$index], $fallback);
+                    }
                 }
-                $normalized[] = $row;
+
                 continue;
             }
 
             if ($fallback !== null) {
-                $normalized[] = self::makeAllowanceRow($route, $fallback);
+                $filled[] = self::makeAllowanceRow($route, $fallback);
             }
         }
 
-        if ($normalized === []) {
-            return self::uniqueRowsPreferAllowance($rows);
-        }
-
-        return self::uniqueRowsPreferAllowance($normalized);
+        return $filled;
     }
 
     /**
@@ -540,6 +549,8 @@ final class SabreBaggagePresenter
                 'cabin' => $cabinSummary['display'],
                 'checked_friendly' => $checkedSummary,
                 'cabin_friendly' => $cabinSummary,
+                'checked_items' => $checkedFriendly,
+                'cabin_items' => $cabinFriendly,
             ];
         }
 
@@ -829,7 +840,7 @@ final class SabreBaggagePresenter
             return $friendlyRows[0];
         }
 
-        $amounts = array_values(array_unique(array_map(static fn (array $row): string => (string) ($row['amount'] ?? ''), $friendlyRows)));
+        $amounts = array_map(static fn (array $row): string => (string) ($row['amount'] ?? ''), $friendlyRows);
         $note = null;
 
         foreach ($friendlyRows as $row) {
@@ -842,10 +853,10 @@ final class SabreBaggagePresenter
         }
 
         return [
-            'amount' => implode(' / ', $amounts),
+            'amount' => implode(' · ', $amounts),
             'label' => (string) ($friendlyRows[0]['label'] ?? ''),
             'note' => $note,
-            'display' => implode(' / ', array_map(static fn (array $row): string => (string) ($row['display'] ?? ''), $friendlyRows)),
+            'display' => implode(' · ', $amounts),
         ];
     }
 
@@ -1147,32 +1158,68 @@ final class SabreBaggagePresenter
     }
 
     /**
+     * @param  list<array<string, mixed>>  $checked
+     * @param  list<array<string, mixed>>  $cabin
+     * @return list<string>
+     */
+    private static function buildSummaryItems(array $checked, array $cabin): array
+    {
+        $items = [];
+
+        foreach ($checked as $row) {
+            $label = self::summaryLabelForRow($row, false);
+
+            if ($label !== null) {
+                $items[] = $label;
+            }
+        }
+
+        foreach ($cabin as $row) {
+            $label = self::summaryLabelForRow($row, true);
+
+            if ($label !== null) {
+                $items[] = $label;
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function summaryLabelForRow(array $row, bool $isCabin): ?string
+    {
+        if (self::rowIsNotIncluded($row)) {
+            return null;
+        }
+
+        $amount = trim((string) data_get($row, 'friendly.amount', ''));
+
+        if ($amount === '' || strcasecmp($amount, 'Not included') === 0) {
+            $amount = trim((string) ($row['allowance'] ?? ''));
+        }
+
+        if ($amount === '' || strcasecmp($amount, 'Not included') === 0) {
+            return null;
+        }
+
+        if (preg_match('/\bchecked\b/i', $amount) || preg_match('/\bcabin\b/i', $amount)) {
+            return $amount;
+        }
+
+        return $amount . ($isCabin ? ' cabin' : ' checked');
+    }
+
+    /**
      * @param list<array{route: string, airline: string, allowance: string, provision_type: string}> $checked
      * @param list<array{route: string, airline: string, allowance: string, provision_type: string}> $cabin
      */
     private static function buildSummary(array $checked, array $cabin): ?string
     {
-        $checkedAmounts = [];
+        $items = self::buildSummaryItems($checked, $cabin);
 
-        foreach ($checked as $row) {
-            $amount = trim((string) data_get($row, 'friendly.amount', ''));
-
-            if ($amount === '' || strcasecmp($amount, 'Not included') === 0) {
-                $amount = trim((string) ($row['allowance'] ?? ''));
-            }
-
-            if ($amount !== '' && strcasecmp($amount, 'Not included') !== 0) {
-                $checkedAmounts[] = $amount;
-            }
-        }
-
-        $checkedAmounts = array_values(array_unique($checkedAmounts));
-
-        if ($checkedAmounts !== []) {
-            return $checkedAmounts[0] . ' checked';
-        }
-
-        return null;
+        return $items !== [] ? implode(' · ', $items) : null;
     }
 
     /**
@@ -1182,6 +1229,7 @@ final class SabreBaggagePresenter
     {
         return [
             'summary' => null,
+            'summary_items' => [],
             'checked' => [],
             'cabin' => [],
             'pax_table' => [],

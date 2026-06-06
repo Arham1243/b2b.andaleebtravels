@@ -490,6 +490,10 @@
                                             ? ! (bool) $fareRulesRow['refundable']
                                             : (bool) ($fare['non_refundable'] ?? false);
                                         $bagNote    = $fare['baggage_notes'] ?? '';
+                                        $bagItems   = $fare['baggage_details']['summary_items'] ?? [];
+                                        if ($bagItems === [] && $bagNote !== '') {
+                                            $bagItems = preg_split('/\s*·\s*/', $bagNote) ?: [$bagNote];
+                                        }
                                         $farePrice  = (float) ($fare['totalPrice'] ?? 0);
                                         $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
                                         $fareCabin  = trim((string) ($fare['cabin_code'] ?? ''));
@@ -521,9 +525,12 @@
                                             @if($fareCabinTags['booking'] !== '')
                                                 <span class="rc__ftag">{{ $fareCabinTags['booking'] }}</span>
                                             @endif
-                                            @if(!empty($bagNote))
-                                                <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>
-                                            @endif
+                                            @foreach($bagItems as $bagItem)
+                                                @php $bagItem = trim((string) $bagItem); @endphp
+                                                @if($bagItem !== '')
+                                                    <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagItem }}</span>
+                                                @endif
+                                            @endforeach
                                             @if(!is_null($fareSeats))
                                                 <span class="rc__ftag rc__ftag--seat"><i class="bx bx-user"></i> {{ $fareSeats }} {{ $fareSeats === 1 ? 'seat' : 'seats' }}</span>
                                             @endif
@@ -748,16 +755,52 @@
                                                                         <tr>
                                                                             <td>{{ $paxRow['pax_type'] ?? 'Passenger' }}</td>
                                                                             <td>
-                                                                                @include('user.flights.partials.baggage-allowance-display', [
-                                                                                    'friendly' => $paxRow['checked_friendly'] ?? null,
-                                                                                    'fallback' => $paxRow['checked'] ?? 'Not included',
-                                                                                ])
+                                                                                @if(!empty($paxRow['checked_items']) && is_array($paxRow['checked_items']))
+                                                                                    @php $shownChecked = 0; @endphp
+                                                                                    @foreach($paxRow['checked_items'] as $checkedItem)
+                                                                                        @php $checkedAmount = trim((string) ($checkedItem['amount'] ?? '')); @endphp
+                                                                                        @if($checkedAmount !== '' && strcasecmp($checkedAmount, 'Not included') !== 0)
+                                                                                            @if($shownChecked > 0)<span class="fd-bag__sep"> · </span>@endif
+                                                                                            <span class="fd-bag__amt">{{ $checkedAmount }}</span>
+                                                                                            @php $shownChecked++; @endphp
+                                                                                        @endif
+                                                                                    @endforeach
+                                                                                    @if($shownChecked === 0)
+                                                                                        @include('user.flights.partials.baggage-allowance-display', [
+                                                                                            'friendly' => $paxRow['checked_friendly'] ?? null,
+                                                                                            'fallback' => $paxRow['checked'] ?? 'Not included',
+                                                                                        ])
+                                                                                    @endif
+                                                                                @else
+                                                                                    @include('user.flights.partials.baggage-allowance-display', [
+                                                                                        'friendly' => $paxRow['checked_friendly'] ?? null,
+                                                                                        'fallback' => $paxRow['checked'] ?? 'Not included',
+                                                                                    ])
+                                                                                @endif
                                                                             </td>
                                                                             <td>
-                                                                                @include('user.flights.partials.baggage-allowance-display', [
-                                                                                    'friendly' => $paxRow['cabin_friendly'] ?? null,
-                                                                                    'fallback' => $paxRow['cabin'] ?? 'Not included',
-                                                                                ])
+                                                                                @if(!empty($paxRow['cabin_items']) && is_array($paxRow['cabin_items']))
+                                                                                    @php $shownCabin = 0; @endphp
+                                                                                    @foreach($paxRow['cabin_items'] as $cabinItem)
+                                                                                        @php $cabinAmount = trim((string) ($cabinItem['amount'] ?? '')); @endphp
+                                                                                        @if($cabinAmount !== '' && strcasecmp($cabinAmount, 'Not included') !== 0)
+                                                                                            @if($shownCabin > 0)<span class="fd-bag__sep"> · </span>@endif
+                                                                                            <span class="fd-bag__amt">{{ $cabinAmount }}</span>
+                                                                                            @php $shownCabin++; @endphp
+                                                                                        @endif
+                                                                                    @endforeach
+                                                                                    @if($shownCabin === 0)
+                                                                                        @include('user.flights.partials.baggage-allowance-display', [
+                                                                                            'friendly' => $paxRow['cabin_friendly'] ?? null,
+                                                                                            'fallback' => $paxRow['cabin'] ?? 'Not included',
+                                                                                        ])
+                                                                                    @endif
+                                                                                @else
+                                                                                    @include('user.flights.partials.baggage-allowance-display', [
+                                                                                        'friendly' => $paxRow['cabin_friendly'] ?? null,
+                                                                                        'fallback' => $paxRow['cabin'] ?? 'Not included',
+                                                                                    ])
+                                                                                @endif
                                                                             </td>
                                                                         </tr>
                                                                     @endforeach
