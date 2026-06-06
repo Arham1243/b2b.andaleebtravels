@@ -67,7 +67,7 @@ final class SabreFareRulesPresenter
                 'route' => $route,
                 'fare_basis' => self::stringOrNull($desc['fareBasisCode'] ?? null),
                 'fare_rule' => self::stringOrNull($desc['fareRule'] ?? null),
-                'cabin' => self::resolveComponentCabin($component, is_array($desc) ? $desc : null),
+                'cabin' => self::stringOrNull(is_array($desc) ? ($desc['cabinCode'] ?? null) : null),
                 'brand' => self::componentBrand(is_array($desc) ? $desc : null),
                 'valid_from' => $validFrom,
                 'valid_to' => $validTo,
@@ -319,29 +319,6 @@ final class SabreFareRulesPresenter
         }
 
         return $sections;
-    }
-
-    /**
-     * @param  array<string, mixed>  $component
-     * @param  array<string, mixed>|null  $desc
-     */
-    private static function resolveComponentCabin(array $component, ?array $desc): ?string
-    {
-        $cabin = self::stringOrNull(is_array($desc) ? ($desc['cabinCode'] ?? null) : null);
-
-        if ($cabin !== null) {
-            return $cabin;
-        }
-
-        foreach (($component['segments'] ?? []) as $segmentWrap) {
-            $segmentCabin = self::stringOrNull(data_get($segmentWrap, 'segment.cabinCode'));
-
-            if ($segmentCabin !== null) {
-                return $segmentCabin;
-            }
-        }
-
-        return null;
     }
 
     /**

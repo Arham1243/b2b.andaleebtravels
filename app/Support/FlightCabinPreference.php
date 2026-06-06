@@ -107,18 +107,23 @@ final class FlightCabinPreference
             return true;
         }
 
+        if ($fareFamily === null && in_array($onwardCabin, ['Business', 'First', 'Premium Economy'], true)) {
+            return ! self::isClearlyEconomyCabinCode($fare['cabin_code'] ?? null);
+        }
+
         return false;
     }
 
     /**
-     * @return array{MultipleBrandedFares: bool, UpsellLimit: int, ReturnBrandAncillaries: bool}
+     * Both flags are required: MultipleBrandedFares alone can cap each itinerary to one brand.
+     *
+     * @return array{SingleBrandedFare: bool, MultipleBrandedFares: bool}
      */
     public static function sabreBrandedFareIndicators(): array
     {
         return [
+            'SingleBrandedFare' => true,
             'MultipleBrandedFares' => true,
-            'UpsellLimit' => 8,
-            'ReturnBrandAncillaries' => true,
         ];
     }
 
@@ -127,6 +132,11 @@ final class FlightCabinPreference
         $code = strtoupper(trim((string) ($code ?? '')));
 
         return in_array($code, ['C', 'J', 'D', 'Z', 'F', 'A', 'P'], true);
+    }
+
+    public static function isClearlyEconomyCabinCode(?string $code): bool
+    {
+        return self::familyFromSabreCode($code) === 'Economy';
     }
 
     /**
