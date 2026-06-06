@@ -522,16 +522,14 @@
                                         data-rc-fare-row="{{ $fi }}">
                                         <div class="rc__fare-left">
                                             <div class="rc__fare-line">
+                                            @if($isRoundTrip)
+                                                <span class="rc__leg-tag rc__leg-tag--ow" title="Outbound">OW</span>
+                                            @endif
                                             @if($fareBrand !== '')
                                                 <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
                                             @endif
                                             @if($fareBasis !== '')
                                                 <span class="rc__ftag rc__ftag--basis">({{ $fareBasis }})</span>
-                                            @endif
-                                            @if($nonRefund)
-                                                <span class="rc__fbadge rc__fbadge--nr">Non-Refundable</span>
-                                            @else
-                                                <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
                                             @endif
                                             @php
                                                 $fareCabinTags = flightFareRowCabinLabels($fareCabin, $fareRbd);
@@ -548,12 +546,23 @@
                                             @if(!is_null($fareSeats))
                                                 <span class="rc__ftag rc__ftag--seat" title="{{ $fareSeats }} {{ $fareSeats === 1 ? 'seat' : 'seats' }} available"><i class="bx bx-user"></i> {{ $fareSeats }}</span>
                                             @endif
+                                            @if($nonRefund)
+                                                <span class="rc__fbadge rc__fbadge--nr rc__fbadge--tick" title="Non-Refundable">N</span>
+                                            @else
+                                                <span class="rc__fbadge rc__fbadge--ref rc__fbadge--tick" title="Refundable">R</span>
+                                            @endif
                                             </div>
                                             @if($isRoundTrip && !empty($bagLines['return']))
                                                 <div class="rc__fare-line rc__fare-line--return">
+                                                    <span class="rc__leg-tag rc__leg-tag--rt" title="Return">RT</span>
                                                     @foreach($bagLines['return'] as $bagPill)
                                                         <span class="rc__ftag rc__ftag--bag" title="Return baggage allowance"><i class="bx bx-briefcase-alt-2"></i> {{ $bagPill }}</span>
                                                     @endforeach
+                                                    @if($nonRefund)
+                                                        <span class="rc__fbadge rc__fbadge--nr rc__fbadge--tick" title="Non-Refundable">N</span>
+                                                    @else
+                                                        <span class="rc__fbadge rc__fbadge--ref rc__fbadge--tick" title="Refundable">R</span>
+                                                    @endif
                                                 </div>
                                             @endif
                                         </div>
@@ -1212,8 +1221,25 @@
     min-width: 0;
 }
 .rc__fare-line--return {
-    padding-left: .1rem;
+    padding-left: 0;
 }
+.rc__leg-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.55rem;
+    height: 1.35rem;
+    padding: 0 .34rem;
+    border-radius: 4px;
+    background: #334155;
+    color: #fff;
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.rc__leg-tag--rt { background: #475569; }
 .rc__fare-right {
     display: flex;
     align-items: center;
@@ -1239,6 +1265,17 @@
 .rc__fbadge {
     font-size: .6rem; font-weight: 700; padding: .17rem .52rem;
     border-radius: 4px; text-transform: uppercase; letter-spacing: .06em;
+}
+.rc__fbadge--tick {
+    min-width: 1.2rem;
+    height: 1.2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .62rem;
+    letter-spacing: 0;
+    cursor: help;
 }
 .rc__fbadge--ref { background: var(--c-green-soft); color: var(--c-green); }
 .rc__fbadge--nr  { background: #fff0f3; color: #c0143c; }
