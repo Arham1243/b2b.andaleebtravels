@@ -478,8 +478,7 @@
                                 </button>
                             </div>
 
-                            {{-- ── fare rows (first visible, rest expandable) ── --}}
-                            @php $extraFareCount = max(0, count($fareOptions) - 1); @endphp
+                            {{-- ── fare rows (all brands visible per flight) ── --}}
                             <div class="rc__fares" data-rc-fares>
                                 @foreach ($fareOptions as $fi => $fare)
                                     @php
@@ -498,7 +497,7 @@
                                             ? (int) $fare['seats_available']
                                             : null;
                                     @endphp
-                                    <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
+                                    <div class="rc__fare"
                                         data-rc-fare-row="{{ $fi }}">
                                         <div class="rc__fare-left">
                                             @if($fareBrand !== '')
@@ -560,15 +559,6 @@
                                     </div>
                                 @endforeach
 
-                                @if($extraFareCount > 0)
-                                    <button type="button"
-                                        class="rc__more-fares"
-                                        data-rc-more-fares
-                                        aria-expanded="false">
-                                        <span class="rc__more-fares__label">+{{ $extraFareCount }} More Fare{{ $extraFareCount === 1 ? '' : 's' }}</span>
-                                        <i class="bx bx-chevron-down"></i>
-                                    </button>
-                                @endif
                             </div>
 
                         </div>{{-- /.rc --}}

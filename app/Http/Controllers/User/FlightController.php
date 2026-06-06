@@ -1035,6 +1035,11 @@ class FlightController extends Controller
     {
         $pieces = [];
         foreach ($baggageInformation as $row) {
+            $provisionType = strtoupper(trim((string) ($row['provisionType'] ?? 'A')));
+            if (in_array($provisionType, ['B', 'CARRYON', 'CARRY-ON', 'C'], true)) {
+                continue;
+            }
+
             $refId = data_get($row, 'allowance.ref');
             if (!$refId) {
                 continue;

@@ -712,22 +712,24 @@ final class SabreBaggagePresenter
      */
     private static function buildSummary(array $checked, array $cabin): ?string
     {
-        $allowances = array_values(array_unique(array_filter(array_map(
-            fn (array $row) => trim($row['allowance']),
-            $checked,
-        ))));
+        $checkedAmounts = [];
 
-        if ($allowances !== []) {
-            return count($allowances) === 1 ? $allowances[0] . ' checked' : $allowances[0] . ' checked';
+        foreach ($checked as $row) {
+            $amount = trim((string) data_get($row, 'friendly.amount', ''));
+
+            if ($amount === '' || strcasecmp($amount, 'Not included') === 0) {
+                $amount = trim((string) ($row['allowance'] ?? ''));
+            }
+
+            if ($amount !== '' && strcasecmp($amount, 'Not included') !== 0) {
+                $checkedAmounts[] = $amount;
+            }
         }
 
-        $cabinAllowances = array_values(array_unique(array_filter(array_map(
-            fn (array $row) => trim($row['allowance']),
-            $cabin,
-        ))));
+        $checkedAmounts = array_values(array_unique($checkedAmounts));
 
-        if ($cabinAllowances !== []) {
-            return $cabinAllowances[0] . ' cabin';
+        if ($checkedAmounts !== []) {
+            return $checkedAmounts[0] . ' checked';
         }
 
         return null;
