@@ -347,6 +347,55 @@ if (! function_exists('flightBookingPricingFields')) {
 }
 
 /**
+ * Fare breakdown for hold/checkout — base and tax from API when available.
+ * Discount and markup apply to base fare only; taxes stay unchanged.
+ *
+ * @param  array<string, mixed>  $itinerary
+ * @return array<string, mixed>
+ */
+if (! function_exists('flightFareBreakdown')) {
+    function flightFareBreakdown(array $itinerary, float $fallbackTotal = 0): array
+    {
+        $currency = strtoupper((string) ($itinerary['currency'] ?? 'AED'));
+        $supplierBase = round((float) ($itinerary['supplierBasePrice'] ?? 0), 2);
+        $supplierTax = round((float) ($itinerary['supplierTaxes'] ?? 0), 2);
+        $baseFare = round((float) ($itinerary['basePrice'] ?? 0), 2);
+        $taxCharges = round((float) ($itinerary['taxes'] ?? 0), 2);
+        $totalAmount = round((float) ($itinerary['totalPrice'] ?? $fallbackTotal), 2);
+        $discount = round((float) ($itinerary['vendorDiscount'] ?? 0), 2);
+        $markup = round((float) ($itinerary['vendorMarkup'] ?? 0), 2);
+
+        $hasBreakdown = ($supplierBase > 0.001 || $baseFare > 0.001)
+            && ($supplierTax > 0.001 || $taxCharges > 0.001);
+
+        if ($hasBreakdown && $totalAmount <= 0) {
+            $totalAmount = round(($baseFare > 0 ? $baseFare : $supplierBase) + ($taxCharges > 0 ? $taxCharges : $supplierTax), 2);
+        }
+
+        $displayBase = $baseFare > 0 ? $baseFare : $supplierBase;
+        $displayTax = $taxCharges > 0 ? $taxCharges : $supplierTax;
+        $netFare = round(max(0, $totalAmount - $markup), 2);
+
+        return [
+            'currency' => $currency,
+            'has_breakdown' => $hasBreakdown,
+            'base_fare' => $displayBase,
+            'tax_charges' => $displayTax,
+            'supplier_base' => $supplierBase,
+            'supplier_tax' => $supplierTax,
+            'discount' => $discount,
+            'markup' => $markup,
+            'you_earn' => $markup,
+            'total_amount' => $totalAmount,
+            'net_fare' => $netFare,
+            'show_discount' => $discount > 0.001,
+            'show_you_earn' => $markup > 0.001,
+            'show_net_fare' => $markup > 0.001,
+        ];
+    }
+}
+
+/**
  * Unified hotel sell price — agency discount then agent/agency markup.
  * Pass list price (after any legacy commission step).
  */

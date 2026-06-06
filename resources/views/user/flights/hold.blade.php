@@ -7,9 +7,13 @@
         $currency = $currency ?? 'AED';
         $legs     = $itinerary['legs'] ?? [];
 
-        $baseAmount = (float) ($itinerary['basePrice'] ?? ($totalAmount ?? 0));
-        $taxAmount  = (float) ($itinerary['taxes']     ?? 0);
-        if ($baseAmount + $taxAmount < 0.01) { $baseAmount = $totalAmount; }
+        $fareBreakdown = flightFareBreakdown($itinerary, (float) ($totalAmount ?? 0));
+        $totalAmount = (float) ($fareBreakdown['total_amount'] ?? $totalAmount ?? 0);
+        $baseAmount = (float) ($fareBreakdown['base_fare'] ?? $totalAmount);
+        $taxAmount = (float) ($fareBreakdown['tax_charges'] ?? 0);
+        if (! ($fareBreakdown['has_breakdown'] ?? false) && $baseAmount + $taxAmount < 0.01) {
+            $baseAmount = $totalAmount;
+        }
         $paxCount = max(1, $adults + $children + $infants);
         $countries = $countries ?? [];
 
@@ -395,33 +399,14 @@
                             </div>
 
                             <div class="hp-summary__body">
-                                @php $adultBase = $adults > 0 ? round($baseAmount / $paxCount, 2) : 0; @endphp
-                                @if($adults > 0)
-                                    <div class="hp-sum-row">
-                                        <span>Adult × {{ $adults }}</span>
-                                        <span><span class="dirham">AED</span> {{ number_format($adultBase * $adults, 2) }}</span>
-                                    </div>
-                                @endif
-                                @if($children > 0)
-                                    @php $childBase = round($baseAmount / $paxCount, 2); @endphp
-                                    <div class="hp-sum-row">
-                                        <span>Child × {{ $children }}</span>
-                                        <span><span class="dirham">AED</span> {{ number_format($childBase * $children, 2) }}</span>
-                                    </div>
-                                @endif
-                                @if($infants > 0)
-                                    @php $infantBase = round($baseAmount / $paxCount * 0.1, 2); @endphp
-                                    <div class="hp-sum-row">
-                                        <span>Infant × {{ $infants }}</span>
-                                        <span><span class="dirham">AED</span> {{ number_format($infantBase * $infants, 2) }}</span>
-                                    </div>
-                                @endif
-                                @if($taxAmount > 0)
-                                    <div class="hp-sum-row">
-                                        <span>Taxes &amp; Fees</span>
-                                        <span><span class="dirham">AED</span> {{ number_format($taxAmount, 2) }}</span>
-                                    </div>
-                                @endif
+                                @include('user.flights.partials.fare-summary-breakdown', [
+                                    'itinerary' => $itinerary,
+                                    'breakdown' => $fareBreakdown,
+                                    'fallbackTotal' => $totalAmount,
+                                    'adults' => $adults,
+                                    'children' => $children,
+                                    'infants' => $infants,
+                                ])
                                 <div class="hp-sum-row hp-sum-row--sep">
                                     <span>Hold Deposit</span>
                                     <span class="hp-sum-free">FREE</span>
@@ -429,11 +414,17 @@
                             </div>
 
                             <div class="hp-summary__total">
-                                <span>Total Fare</span>
+                                <span>Total Amount</span>
                                 <span class="hp-summary__total-amount">
                                     <span class="dirham">AED</span>{{ number_format($totalAmount, 2) }}
                                 </span>
                             </div>
+                            @if ($fareBreakdown['show_net_fare'] ?? false)
+                                <div class="hp-summary__net">
+                                    Net Fare:
+                                    <span class="dirham">AED</span> {{ number_format($fareBreakdown['net_fare'], 2) }}
+                                </div>
+                            @endif
 
                             <div class="hp-summary__meta">
                                 <div class="hp-summary__meta-row">
@@ -770,6 +761,9 @@
     font-size: .8rem; color: var(--c-slate);
 }
 .hp-sum-row span:last-child { font-family: var(--mono); font-weight: 600; color: var(--c-ink); }
+.hp-sum-row--discount span:last-child,
+.hp-sum-row--earn span:last-child { color: #15803d; }
+.hp-sum-row__credit { color: #15803d !important; }
 .hp-sum-row--sep { border-top: 1px dashed var(--c-line); padding-top: .4rem; margin-top: .1rem; }
 .hp-sum-free {
     font-size: .68rem; font-weight: 700;
@@ -786,6 +780,14 @@
     font-family: var(--mono); font-size: 1.22rem; font-weight: 700; color: var(--c-brand);
     display: flex; align-items: baseline; gap: .05rem;
 }
+.hp-summary__net {
+    padding: 0 .9rem .75rem;
+    font-size: .74rem;
+    color: var(--c-slate);
+    text-align: right;
+    border-bottom: 1px solid var(--c-line);
+}
+.hp-summary__net .dirham { font-size: .7rem; }
 
 .hp-summary__meta {
     padding: .6rem 1.1rem; border-bottom: 1px solid var(--c-line);

@@ -89,29 +89,99 @@ class VendorPricingService
      */
     public function applyFlightItinerary(?B2bVendor $vendor, array $itinerary): array
     {
+        if (isset($itinerary['fare_options']) && is_array($itinerary['fare_options'])) {
+            foreach ($itinerary['fare_options'] as $index => $fareOption) {
+                if (! is_array($fareOption)) {
+                    continue;
+                }
+
+                $itinerary['fare_options'][$index] = $this->applyFlightFareRecord($vendor, $fareOption);
+            }
+        }
+
+        return $this->applyFlightFareRecord($vendor, $itinerary);
+    }
+
+    /**
+     * @param  array<string, mixed>  $record
+     * @return array<string, mixed>
+     */
+    public function applyFlightFareRecord(?B2bVendor $vendor, array $record): array
+    {
         if (! $this->pricingAdjustmentsEnabled($vendor)) {
-            return $itinerary;
+            return $record;
         }
 
-        $supplierPrice = $this->resolveItineraryAmount($itinerary);
+        $supplierBase = round((float) ($record['supplierBasePrice'] ?? $record['basePrice'] ?? 0), 2);
+        $supplierTax = round((float) ($record['supplierTaxes'] ?? $record['taxes'] ?? 0), 2);
+        $supplierTotal = $this->resolveItineraryAmount($record);
 
-        if ($supplierPrice <= 0) {
-            return $itinerary;
+        if ($supplierTotal <= 0) {
+            return $record;
         }
 
-        $priced = $this->applyFlight($vendor, $supplierPrice);
+        if ($this->hasTaxSplit($supplierBase, $supplierTax, $supplierTotal)) {
+            $pricedBase = $this->applyFlight($vendor, $supplierBase);
 
-        if ($priced->sellAmount <= 0 || ! $priced->hasAdjustment()) {
-            return $itinerary;
+            if ($pricedBase->sellAmount <= 0) {
+                return $record;
+            }
+
+            $sellBase = $pricedBase->sellAmount;
+            $sellTotal = round($sellBase + $supplierTax, 2);
+
+            if (! $pricedBase->hasAdjustment()) {
+                return array_merge($record, [
+                    'supplierBasePrice' => $supplierBase,
+                    'supplierTaxes' => $supplierTax,
+                    'supplierPrice' => $supplierTotal,
+                    'originalPrice' => $supplierTotal,
+                    'basePrice' => $supplierBase,
+                    'taxes' => $supplierTax,
+                    'totalPrice' => $sellTotal,
+                ]);
+            }
+
+            $record = array_merge($record, [
+                'supplierBasePrice' => $supplierBase,
+                'supplierTaxes' => $supplierTax,
+                'supplierPrice' => $supplierTotal,
+                'originalPrice' => $supplierTotal,
+                'basePrice' => $sellBase,
+                'taxes' => $supplierTax,
+                'totalPrice' => $sellTotal,
+                'vendorDiscount' => $pricedBase->discountAmount,
+                'vendorMarkup' => $pricedBase->markupAmount,
+                'amountAfterDiscount' => round($pricedBase->amountAfterDiscount + $supplierTax, 2),
+                'vendorPricing' => array_merge($pricedBase->toSnapshot(), [
+                    'taxes_unadjusted' => $supplierTax,
+                    'pricing_scope' => 'base_fare_only',
+                ]),
+            ]);
+        } else {
+            $priced = $this->applyFlight($vendor, $supplierTotal);
+
+            if ($priced->sellAmount <= 0 || ! $priced->hasAdjustment()) {
+                return $record;
+            }
+
+            $record = array_merge($record, $priced->toItineraryMeta());
         }
 
-        $itinerary = array_merge($itinerary, $priced->toItineraryMeta());
-
-        if (isset($itinerary['listing_meta']) && is_array($itinerary['listing_meta'])) {
-            $itinerary['listing_meta']['price'] = $priced->sellAmount;
+        if (isset($record['listing_meta']) && is_array($record['listing_meta'])) {
+            $record['listing_meta']['price'] = (float) ($record['totalPrice'] ?? 0);
         }
 
-        return $itinerary;
+        return $record;
+    }
+
+    private function hasTaxSplit(float $supplierBase, float $supplierTax, float $supplierTotal): bool
+    {
+        if ($supplierBase <= 0 || $supplierTax <= 0 || $supplierTotal <= 0) {
+            return false;
+        }
+
+        return abs(($supplierBase + $supplierTax) - $supplierTotal) <= 0.06;
     }
 
     /**
@@ -206,11 +276,19 @@ class VendorPricingService
     public function bookingFieldsFromFlightItinerary(array $itineraryData, float $fallbackSellAmount): array
     {
         $sellAmount = round((float) ($itineraryData['totalPrice'] ?? $fallbackSellAmount), 2);
-        $originalAmount = round((float) ($itineraryData['originalPrice'] ?? $itineraryData['supplierPrice'] ?? $sellAmount), 2);
+        $supplierBase = round((float) ($itineraryData['supplierBasePrice'] ?? $itineraryData['basePrice'] ?? 0), 2);
+        $supplierTax = round((float) ($itineraryData['supplierTaxes'] ?? $itineraryData['taxes'] ?? 0), 2);
+        $supplierTotal = round((float) ($itineraryData['supplierPrice'] ?? $itineraryData['originalPrice'] ?? $sellAmount), 2);
+        $originalAmount = $supplierTotal > 0 ? $supplierTotal : round((float) ($itineraryData['originalPrice'] ?? $itineraryData['supplierPrice'] ?? $sellAmount), 2);
         $amountAfterDiscount = round((float) ($itineraryData['amountAfterDiscount'] ?? $sellAmount), 2);
-        $discountAmount = round((float) ($itineraryData['vendorDiscount'] ?? max(0, $originalAmount - $amountAfterDiscount)), 2);
-        $markupAmount = round((float) ($itineraryData['vendorMarkup'] ?? max(0, $sellAmount - $amountAfterDiscount)), 2);
+        $discountAmount = round((float) ($itineraryData['vendorDiscount'] ?? 0), 2);
+        $markupAmount = round((float) ($itineraryData['vendorMarkup'] ?? 0), 2);
         $snapshot = $itineraryData['vendorPricing'] ?? null;
+
+        if ($discountAmount <= 0.001 && $markupAmount <= 0.001) {
+            $discountAmount = round(max(0, $originalAmount - $amountAfterDiscount), 2);
+            $markupAmount = round(max(0, $sellAmount - $amountAfterDiscount), 2);
+        }
 
         if ($discountAmount <= 0.001 && $markupAmount <= 0.001) {
             return [

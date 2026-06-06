@@ -8,6 +8,7 @@ use App\Services\FlightService;
 use App\Support\FlightCabinPreference;
 use App\Support\FlightPromoConfig;
 use App\Support\SabreBaggagePresenter;
+use App\Support\SabreFareAmountPresenter;
 use App\Support\SabreFareBrandPresenter;
 use App\Support\SabreFareRulesPresenter;
 use App\Support\SabreFareRulesRequestBuilder;
@@ -611,6 +612,10 @@ class FlightController extends Controller
                     'sabre_itinerary_id' => (int) ($itinerary['id'] ?? 0),
                     'sabre_group_index' => (int) $groupIndex,
                     'supplierPrice' => $totalPrice,
+                    'supplierBasePrice' => $primaryFare['supplierBasePrice'] ?? null,
+                    'supplierTaxes' => $primaryFare['supplierTaxes'] ?? null,
+                    'basePrice' => $primaryFare['basePrice'] ?? null,
+                    'taxes' => $primaryFare['taxes'] ?? null,
                     'totalPrice' => $totalPrice,
                     'currency' => $primaryFare['currency'],
                     'legs' => $legs,
@@ -748,10 +753,15 @@ class FlightController extends Controller
         $fareSeatMeta = $this->extractFareSeatMeta($pricingBlock);
         $fareRules = SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped);
         $cabinMeta = $this->extractFareCabinMeta($fareSeatMeta, $fareRules);
+        $fareAmounts = SabreFareAmountPresenter::fromPricingBlock($pricingBlock);
 
         return [
             'sabre_pricing_index' => $pricingIndex,
             'totalPrice' => $this->extractSabreTotalPrice($pricingBlock),
+            'supplierBasePrice' => $fareAmounts['base'] ?? null,
+            'supplierTaxes' => $fareAmounts['tax'] ?? null,
+            'basePrice' => $fareAmounts['base'] ?? null,
+            'taxes' => $fareAmounts['tax'] ?? null,
             'currency' => data_get($pricingBlock, 'fare.totalFare.currency'),
             'fare_brand' => SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped),
             'fare_basis' => $this->summarizeFareBasis($fareRules),
@@ -839,10 +849,55 @@ class FlightController extends Controller
             $cabinCode = self::stringOrNull(data_get($firstSeatSegment, 'cabinCode'));
         }
 
+        $bookingCode = $this->resolveFareBookingCode($fareRules, $fareSeatMeta);
+
         return [
             'cabin_code' => $cabinCode,
-            'booking_code' => self::stringOrNull(data_get($firstSeatSegment, 'bookingCode')),
+            'booking_code' => $bookingCode,
         ];
+    }
+
+    /**
+     * Fare-level RBD — prefer ATPCO fare basis (e.g. IJR3R1SI → I), not the first
+     * segment bookingCode which can differ on connecting itineraries (Qatar, etc.).
+     *
+     * @param  array<string, mixed>  $fareRules
+     * @param  list<array<string, mixed>>  $fareSeatMeta
+     */
+    private function resolveFareBookingCode(array $fareRules, array $fareSeatMeta): ?string
+    {
+        $fromBasis = [];
+
+        foreach ($fareRules['components'] ?? [] as $component) {
+            if (! is_array($component)) {
+                continue;
+            }
+
+            $rbd = self::bookingCodeFromFareBasis($component['fare_basis'] ?? null);
+
+            if ($rbd !== null) {
+                $fromBasis[] = $rbd;
+            }
+        }
+
+        if ($fromBasis !== []) {
+            return $fromBasis[0];
+        }
+
+        return self::stringOrNull(data_get($fareSeatMeta[0] ?? [], 'bookingCode'));
+    }
+
+    private static function bookingCodeFromFareBasis(mixed $fareBasis): ?string
+    {
+        $fareBasis = trim((string) ($fareBasis ?? ''));
+
+        if ($fareBasis === '') {
+            return null;
+        }
+
+        $first = strtoupper($fareBasis[0]);
+
+        return preg_match('/^[A-Z]$/', $first) ? $first : null;
     }
 
     private static function stringOrNull(mixed $value): ?string

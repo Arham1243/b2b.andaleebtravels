@@ -140,10 +140,15 @@
 .hp-summary__body { padding:.75rem 1.1rem; border-bottom:1px solid var(--c-line); display:flex; flex-direction:column; gap:.4rem; }
 .hp-sum-row { display:flex; justify-content:space-between; align-items:center; font-size:.8rem; color:var(--c-slate); }
 .hp-sum-row span:last-child { font-family:var(--mono); font-weight:600; color:var(--c-ink); }
+.hp-sum-row--discount span:last-child,
+.hp-sum-row--earn span:last-child { color:#15803d; }
+.hp-sum-row__credit { color:#15803d !important; }
 .hcf-sum-wallet { padding:.6rem 1.1rem; background:#f0fdf4; border-bottom:1px solid #bbf7d0; display:flex; flex-direction:column; gap:.35rem; }
 .hcf-sum-wallet__deduct .hcf-sum-wallet__amt { color:var(--c-green); font-weight:700; font-family:var(--mono); }
 .hp-summary__total { display:flex; justify-content:space-between; align-items:center; padding:.8rem 1.1rem; font-size:.86rem; font-weight:700; color:var(--c-ink); border-bottom:1px solid var(--c-line); }
 .hp-summary__total-amount { font-family:var(--mono); font-size:1.22rem; font-weight:700; color:var(--c-brand); display:flex; align-items:baseline; gap:.05rem; }
+.hp-summary__net { padding:0 .9rem .75rem; font-size:.74rem; color:var(--c-slate); text-align:right; border-bottom:1px solid var(--c-line); }
+.hp-summary__net .dirham { font-size:.7rem; }
 .hp-summary__meta { padding:.6rem 1.1rem; border-bottom:1px solid var(--c-line); display:flex; flex-direction:column; gap:.28rem; }
 .hp-summary__meta-row { display:flex; align-items:center; gap:.4rem; font-size:.74rem; color:var(--c-slate); }
 .hp-summary__meta-row i { color:var(--c-brand); font-size:.85rem; flex-shrink:0; }

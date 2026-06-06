@@ -780,7 +780,16 @@ class FlightBookingController extends Controller
 
         return array_merge($card, [
             'totalPrice' => $selected['totalPrice'] ?? $card['totalPrice'] ?? null,
-            'supplierPrice' => $selected['totalPrice'] ?? $card['supplierPrice'] ?? null,
+            'supplierPrice' => $selected['supplierPrice'] ?? $card['supplierPrice'] ?? ($selected['totalPrice'] ?? $card['totalPrice'] ?? null),
+            'originalPrice' => $selected['originalPrice'] ?? $card['originalPrice'] ?? null,
+            'supplierBasePrice' => $selected['supplierBasePrice'] ?? $card['supplierBasePrice'] ?? null,
+            'supplierTaxes' => $selected['supplierTaxes'] ?? $card['supplierTaxes'] ?? null,
+            'basePrice' => $selected['basePrice'] ?? $card['basePrice'] ?? null,
+            'taxes' => $selected['taxes'] ?? $card['taxes'] ?? null,
+            'vendorDiscount' => $selected['vendorDiscount'] ?? $card['vendorDiscount'] ?? null,
+            'vendorMarkup' => $selected['vendorMarkup'] ?? $card['vendorMarkup'] ?? null,
+            'amountAfterDiscount' => $selected['amountAfterDiscount'] ?? $card['amountAfterDiscount'] ?? null,
+            'vendorPricing' => $selected['vendorPricing'] ?? $card['vendorPricing'] ?? null,
             'currency' => $selected['currency'] ?? $card['currency'] ?? null,
             'fare_brand' => $selected['fare_brand'] ?? $card['fare_brand'] ?? null,
             'non_refundable' => $selected['non_refundable'] ?? $card['non_refundable'] ?? false,
