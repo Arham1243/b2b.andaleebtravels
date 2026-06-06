@@ -158,9 +158,16 @@ if (! function_exists('flightFareRowCabinLabels')) {
         $tierLabels = ['Economy', 'Premium Economy', 'Business', 'First'];
 
         if ($bookingCode !== '' && strlen($bookingCode) === 1) {
+            $upper = strtoupper($bookingCode);
             $bookingAsTier = formatFlightBookingClassLabel($bookingCode);
 
-            if ($bookingAsTier !== $cabinLabel && ! in_array($bookingAsTier, $tierLabels, true)) {
+            if ($bookingAsTier === $cabinLabel) {
+                // Same tier (e.g. LH economy K) — show the RBD letter, not a duplicate "Economy".
+                $bookingLabel = 'Class ' . $upper;
+            } elseif (in_array($bookingAsTier, $tierLabels, true)) {
+                // Conflicting tier (e.g. Y cabin + S → Premium Economy) — trust cabin_code only.
+                $bookingLabel = '';
+            } else {
                 $bookingLabel = $bookingAsTier;
             }
         }
