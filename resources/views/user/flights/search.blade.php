@@ -128,6 +128,16 @@
                             Showing <strong>{{ $itineraryCount }}</strong> of <strong>{{ $itineraryCount }}</strong> Fares found
                         </span>
                     </div>
+                    <div class="col-12">
+                        <div class="rp-agent-notice" role="note">
+                            <i class="bx bx-info-circle" aria-hidden="true"></i>
+                            <p>
+                                <strong>Note:</strong>
+                                Creating more than one booking for the same passenger on the same airline may result in an
+                                Airline Debit Memo (ADM). Any ADM issued will be debited to your agency account.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- ══ Grid: row1 [filter head | slider+sort], row2 [filter body | cards] ══ --}}
@@ -490,8 +500,6 @@
                             <div class="rc__fares" data-rc-fares>
                                 @foreach ($fareOptions as $fi => $fare)
                                     @php
-                                        $fareBrand  = trim((string) ($fare['fare_brand'] ?? ''));
-                                        $fareBasis  = trim((string) ($fare['fare_basis'] ?? ''));
                                         $fareRulesRow = $fare['fare_rules'] ?? [];
                                         $nonRefund  = array_key_exists('refundable', $fareRulesRow)
                                             ? ! (bool) $fareRulesRow['refundable']
@@ -512,81 +520,34 @@
                                         }
                                         $farePrice  = (float) ($fare['totalPrice'] ?? 0);
                                         $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
-                                        $fareCabin  = trim((string) ($fare['cabin_code'] ?? ''));
-                                        $fareRbd    = trim((string) ($fare['booking_code'] ?? ''));
-                                        $fareSeats  = isset($fare['seats_available']) && is_numeric($fare['seats_available'])
-                                            ? (int) $fare['seats_available']
-                                            : null;
+                                        $fareLegRows = flightFareLegDisplayRows(
+                                            $fare,
+                                            $legs,
+                                            $isRoundTrip,
+                                            $query['from'] ?? '',
+                                            $query['to'] ?? '',
+                                            $bagLines,
+                                            $nonRefund,
+                                        );
                                     @endphp
                                     <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
                                         data-rc-fare-row="{{ $fi }}">
-                                        <div class="rc__fare-left {{ $isRoundTrip && !empty($bagLines['return']) ? 'rc__fare-left--split' : '' }}">
-                                            @if($isRoundTrip && !empty($bagLines['return']))
+                                        <div class="rc__fare-left {{ $isRoundTrip && count($fareLegRows) > 1 ? 'rc__fare-left--split' : '' }}">
+                                            @if($isRoundTrip && count($fareLegRows) > 1)
                                                 <div class="rc__fare-leg-tags" aria-hidden="true">
-                                                    <span class="rc__leg-tag rc__leg-tag--ow" title="Outbound">OW</span>
-                                                    <span class="rc__leg-tag rc__leg-tag--rt" title="Return">RT</span>
+                                                    @foreach($fareLegRows as $legRow)
+                                                        @if(($legRow['tag'] ?? '') !== '')
+                                                            <span class="rc__leg-tag rc__leg-tag--{{ strtolower($legRow['tag']) }}" title="{{ $legRow['tag_title'] ?? '' }}">{{ $legRow['tag'] }}</span>
+                                                        @endif
+                                                    @endforeach
                                                 </div>
                                             @endif
                                             <div class="rc__fare-lines">
-                                            <div class="rc__fare-line">
-                                            @if($isRoundTrip && empty($bagLines['return']))
-                                                <span class="rc__leg-tag rc__leg-tag--ow" title="Outbound">OW</span>
-                                            @endif
-                                            @if($fareBrand !== '')
-                                                <span class="rc__fbadge rc__fbadge--brand">{{ $fareBrand }}</span>
-                                            @endif
-                                            @if($fareBasis !== '')
-                                                <span class="rc__ftag rc__ftag--basis">({{ $fareBasis }})</span>
-                                            @endif
-                                            @php
-                                                $fareCabinTags = flightFareRowCabinLabels($fareCabin, $fareRbd);
-                                            @endphp
-                                            @if($fareCabinTags['cabin'] !== '')
-                                                <span class="rc__ftag">{{ $fareCabinTags['cabin'] }}</span>
-                                            @endif
-                                            @if($fareCabinTags['booking'] !== '')
-                                                <span class="rc__ftag">{{ $fareCabinTags['booking'] }}</span>
-                                            @endif
-                                            @foreach($bagLines['outbound'] ?? [] as $bagPill)
-                                                <span class="rc__ftag rc__ftag--bag" title="Baggage allowance"><i class="bx bx-briefcase-alt-2"></i> {{ $bagPill }}</span>
-                                            @endforeach
-                                            @if(!is_null($fareSeats))
-                                                <span class="rc__ftag rc__ftag--seat" title="{{ $fareSeats }} {{ $fareSeats === 1 ? 'seat' : 'seats' }} available"><i class="bx bx-user"></i> {{ $fareSeats }}</span>
-                                            @endif
-                                            @if($nonRefund)
-                                                <span class="rc__fbadge rc__fbadge--nr rc__fbadge--tick"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="top"
-                                                    data-bs-custom-class="rc-fare-tip"
-                                                    data-bs-title="Non-Refundable">N</span>
-                                            @else
-                                                <span class="rc__fbadge rc__fbadge--ref rc__fbadge--tick"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="top"
-                                                    data-bs-custom-class="rc-fare-tip"
-                                                    data-bs-title="Refundable">R</span>
-                                            @endif
-                                            </div>
-                                            @if($isRoundTrip && !empty($bagLines['return']))
-                                                <div class="rc__fare-line rc__fare-line--return">
-                                                    @foreach($bagLines['return'] as $bagPill)
-                                                        <span class="rc__ftag rc__ftag--bag" title="Return baggage allowance"><i class="bx bx-briefcase-alt-2"></i> {{ $bagPill }}</span>
-                                                    @endforeach
-                                                    @if($nonRefund)
-                                                        <span class="rc__fbadge rc__fbadge--nr rc__fbadge--tick"
-                                                            data-bs-toggle="tooltip"
-                                                            data-bs-placement="top"
-                                                            data-bs-custom-class="rc-fare-tip"
-                                                            data-bs-title="Non-Refundable">N</span>
-                                                    @else
-                                                        <span class="rc__fbadge rc__fbadge--ref rc__fbadge--tick"
-                                                            data-bs-toggle="tooltip"
-                                                            data-bs-placement="top"
-                                                            data-bs-custom-class="rc-fare-tip"
-                                                            data-bs-title="Refundable">R</span>
-                                                    @endif
-                                                </div>
-                                            @endif
+                                                @foreach($fareLegRows as $legIndex => $legRow)
+                                                    <div class="rc__fare-line {{ $legIndex > 0 ? 'rc__fare-line--return' : '' }}">
+                                                        @include('user.flights.partials.fare-line-pills', ['legRow' => array_merge($legRow, ['tag' => $isRoundTrip && count($fareLegRows) > 1 ? '' : ($legRow['tag'] ?? '')])])
+                                                    </div>
+                                                @endforeach
                                             </div>
                                         </div>
 
@@ -1058,6 +1019,33 @@
 .rp-listing-prelude__count-wrap {
     padding: .45rem 0 .35rem;
 }
+.rp-agent-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: .55rem;
+    padding: .62rem .85rem;
+    border-radius: 8px;
+    border: 1px solid rgba(217, 119, 6, .28);
+    background: var(--c-amber-soft);
+    color: #92400e;
+}
+.rp-agent-notice i {
+    font-size: 1.05rem;
+    line-height: 1.35;
+    color: var(--c-amber);
+    flex-shrink: 0;
+    margin-top: .02rem;
+}
+.rp-agent-notice p {
+    margin: 0;
+    font-size: .78rem;
+    line-height: 1.45;
+    color: #78350f;
+}
+.rp-agent-notice strong {
+    font-weight: 700;
+    color: #92400e;
+}
 
 /* =========================================================
    TOOLBAR
@@ -1331,22 +1319,37 @@
     letter-spacing: 0;
     cursor: help;
 }
+.tooltip.rc-fare-tip {
+    z-index: 1085;
+    opacity: 1 !important;
+}
 .tooltip.rc-fare-tip .tooltip-inner {
-    background: var(--c-ink);
-    color: #fff;
+    background-color: #1a2540 !important;
+    color: #ffffff !important;
     font-size: .68rem;
     font-weight: 600;
-    padding: .3rem .55rem;
+    line-height: 1.3;
+    padding: .32rem .58rem;
     border-radius: 5px;
-    box-shadow: 0 4px 14px rgba(26, 37, 64, .18);
+    box-shadow: 0 4px 14px rgba(26, 37, 64, .22);
+    max-width: 220px;
+    text-align: center;
 }
 .tooltip.rc-fare-tip.bs-tooltip-top .tooltip-arrow::before,
 .tooltip.rc-fare-tip.bs-tooltip-auto[data-popper-placement^="top"] .tooltip-arrow::before {
-    border-top-color: var(--c-ink);
+    border-top-color: #1a2540 !important;
 }
 .tooltip.rc-fare-tip.bs-tooltip-bottom .tooltip-arrow::before,
 .tooltip.rc-fare-tip.bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before {
-    border-bottom-color: var(--c-ink);
+    border-bottom-color: #1a2540 !important;
+}
+.tooltip.rc-fare-tip.bs-tooltip-start .tooltip-arrow::before,
+.tooltip.rc-fare-tip.bs-tooltip-auto[data-popper-placement^="left"] .tooltip-arrow::before {
+    border-left-color: #1a2540 !important;
+}
+.tooltip.rc-fare-tip.bs-tooltip-end .tooltip-arrow::before,
+.tooltip.rc-fare-tip.bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before {
+    border-right-color: #1a2540 !important;
 }
 .rc__fbadge--ref { background: var(--c-green-soft); color: var(--c-green); }
 .rc__fbadge--nr  { background: #fff0f3; color: #c0143c; }
@@ -2350,7 +2353,13 @@
         (root || document).querySelectorAll('.rc__fare [data-bs-toggle="tooltip"]').forEach(el=>{
             const existing = bootstrap.Tooltip.getInstance(el);
             if (existing) existing.dispose();
-            new bootstrap.Tooltip(el, { trigger: 'hover focus', container: 'body' });
+            new bootstrap.Tooltip(el, {
+                trigger: 'hover focus',
+                container: 'body',
+                placement: 'top',
+                customClass: 'rc-fare-tip',
+                boundary: 'viewport',
+            });
         });
     }
 

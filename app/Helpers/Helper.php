@@ -537,6 +537,174 @@ if (! function_exists('flightFareBaggageDisplayLines')) {
     }
 }
 
+if (! function_exists('flightFareLegBookingCode')) {
+    /**
+     * @param  array<string, mixed>|null  $component
+     * @param  array<string, mixed>  $firstSeg
+     */
+    function flightFareLegBookingCode(?array $component, array $firstSeg, ?string $fareFallback): string
+    {
+        $basis = trim((string) ($component['fare_basis'] ?? ''));
+        if ($basis !== '' && preg_match('/^[A-Z]/i', $basis)) {
+            return strtoupper($basis[0]);
+        }
+
+        $fromSeg = strtoupper(trim((string) ($firstSeg['booking_code'] ?? '')));
+        if ($fromSeg !== '') {
+            return $fromSeg;
+        }
+
+        return strtoupper(trim((string) ($fareFallback ?? '')));
+    }
+}
+
+if (! function_exists('flightFareLegSeats')) {
+    /**
+     * @param  array<string, mixed>  $leg
+     */
+    function flightFareLegSeats(array $leg): ?int
+    {
+        $counts = [];
+
+        foreach ($leg['segments'] ?? [] as $seg) {
+            if (! is_array($seg)) {
+                continue;
+            }
+
+            if (isset($seg['seats_available']) && is_numeric($seg['seats_available'])) {
+                $counts[] = (int) $seg['seats_available'];
+            }
+        }
+
+        return $counts !== [] ? min($counts) : null;
+    }
+}
+
+if (! function_exists('flightFareRulesComponentForLeg')) {
+    /**
+     * @param  array<string, mixed>  $fareRules
+     * @return array<string, mixed>|null
+     */
+    function flightFareRulesComponentForLeg(array $fareRules, int $legIndex, string $from, string $to): ?array
+    {
+        $from = strtoupper(trim($from));
+        $to = strtoupper(trim($to));
+        $origin = $legIndex === 0 ? $from : $to;
+        $destination = $legIndex === 0 ? $to : $from;
+        $expected = $origin . ' → ' . $destination;
+        $components = $fareRules['components'] ?? [];
+
+        foreach ($components as $component) {
+            if (! is_array($component)) {
+                continue;
+            }
+
+            if (strtoupper(trim((string) ($component['route'] ?? ''))) === $expected) {
+                return $component;
+            }
+        }
+
+        $fallback = $components[$legIndex] ?? null;
+
+        return is_array($fallback) ? $fallback : null;
+    }
+}
+
+if (! function_exists('flightFareLegDisplayRows')) {
+    /**
+     * @param  array<string, mixed>  $fare
+     * @param  list<array<string, mixed>>  $legs
+     * @param  array{outbound: list<string>, return: list<string>}  $bagLines
+     * @return list<array{
+     *     tag: string,
+     *     tag_title: string,
+     *     brand: string,
+     *     basis: string,
+     *     cabin: string,
+     *     booking: string,
+     *     bag_pills: list<string>,
+     *     seats: ?int,
+     *     non_refundable: bool
+     * }>
+     */
+    function flightFareLegDisplayRows(
+        array $fare,
+        array $legs,
+        bool $isRoundTrip,
+        ?string $from,
+        ?string $to,
+        array $bagLines,
+        bool $nonRefundable,
+    ): array {
+        $from = strtoupper(trim((string) ($from ?? '')));
+        $to = strtoupper(trim((string) ($to ?? '')));
+        $fareRules = is_array($fare['fare_rules'] ?? null) ? $fare['fare_rules'] : [];
+        $fareBrand = trim((string) ($fare['fare_brand'] ?? ''));
+        $fareCabin = trim((string) ($fare['cabin_code'] ?? ''));
+        $fareBooking = trim((string) ($fare['booking_code'] ?? ''));
+        $fareSeats = isset($fare['seats_available']) && is_numeric($fare['seats_available'])
+            ? (int) $fare['seats_available']
+            : null;
+
+        $buildRow = function (int $legIndex, string $tag, string $tagTitle, array $bagPills) use (
+            $legs,
+            $fareRules,
+            $from,
+            $to,
+            $fareBrand,
+            $fareCabin,
+            $fareBooking,
+            $fareSeats,
+            $nonRefundable
+        ): array {
+            $leg = $legs[$legIndex] ?? [];
+            $firstSeg = ($leg['segments'] ?? [])[0] ?? [];
+            if (! is_array($firstSeg)) {
+                $firstSeg = [];
+            }
+
+            $component = flightFareRulesComponentForLeg($fareRules, $legIndex, $from, $to);
+            $brand = trim((string) ($component['brand'] ?? ''));
+            if ($brand === '') {
+                $brand = $fareBrand;
+            }
+
+            $basis = trim((string) ($component['fare_basis'] ?? ''));
+            $cabin = trim((string) ($component['cabin'] ?? ''));
+            if ($cabin === '') {
+                $cabin = trim((string) ($firstSeg['cabin_code'] ?? ''));
+            }
+            if ($cabin === '') {
+                $cabin = $fareCabin;
+            }
+
+            $booking = flightFareLegBookingCode($component, $firstSeg, $fareBooking);
+            $seats = flightFareLegSeats($leg) ?? $fareSeats;
+
+            return [
+                'tag' => $tag,
+                'tag_title' => $tagTitle,
+                'brand' => $brand,
+                'basis' => $basis,
+                'cabin' => $cabin,
+                'booking' => $booking,
+                'bag_pills' => $bagPills,
+                'seats' => $seats,
+                'non_refundable' => $nonRefundable,
+            ];
+        };
+
+        if (! $isRoundTrip) {
+            return [$buildRow(0, '', '', $bagLines['outbound'] ?? [])];
+        }
+
+        return [
+            $buildRow(0, 'OW', 'Outbound', $bagLines['outbound'] ?? []),
+            $buildRow(1, 'RT', 'Return', $bagLines['return'] ?? []),
+        ];
+    }
+}
+
 if (! function_exists('formatDateTime')) {
     function formatDateTime($date)
     {
