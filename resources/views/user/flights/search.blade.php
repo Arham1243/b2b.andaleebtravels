@@ -505,19 +505,6 @@
                                             ? ! (bool) $fareRulesRow['refundable']
                                             : (bool) ($fare['non_refundable'] ?? false);
                                         $bagNote    = $fare['baggage_notes'] ?? '';
-                                        $bagLines   = flightFareBaggageDisplayLines(
-                                            $fare['baggage_details'] ?? [],
-                                            $isRoundTrip,
-                                            $query['from'] ?? '',
-                                            $query['to'] ?? '',
-                                        );
-                                        if (($bagLines['outbound'] ?? []) === [] && ($bagLines['return'] ?? []) === [] && $bagNote !== '') {
-                                            $fallback = array_values(array_unique(array_filter(array_map(
-                                                static fn ($item) => compactFlightBaggagePillText((string) $item),
-                                                preg_split('/\s*·\s*/', $bagNote) ?: [$bagNote],
-                                            ))));
-                                            $bagLines['outbound'] = $fallback;
-                                        }
                                         $farePrice  = (float) ($fare['totalPrice'] ?? 0);
                                         $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
                                         $fareLegRows = flightFareLegDisplayRows(
@@ -526,8 +513,8 @@
                                             $isRoundTrip,
                                             $query['from'] ?? '',
                                             $query['to'] ?? '',
-                                            $bagLines,
                                             $nonRefund,
+                                            $bagNote,
                                         );
                                     @endphp
                                     <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"

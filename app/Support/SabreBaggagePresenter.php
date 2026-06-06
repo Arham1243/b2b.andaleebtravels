@@ -456,6 +456,7 @@ final class SabreBaggagePresenter
         if (($row['airline'] ?? '') === '' && $fallback['airline'] !== '') {
             $row['airline'] = $fallback['airline'];
         }
+        $row['inferred_allowance'] = true;
 
         return $row;
     }
@@ -472,6 +473,7 @@ final class SabreBaggagePresenter
             'allowance' => $fallback['display'],
             'friendly' => $fallback['friendly'],
             'provision_type' => $fallback['provision_type'],
+            'inferred_allowance' => true,
         ];
     }
 
