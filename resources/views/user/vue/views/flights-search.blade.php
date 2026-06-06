@@ -618,12 +618,6 @@
                     <span class="fs-pro-aside-card__label">Workspace</span>
                 </div>
                 <div class="fs-pro-tile-grid">
-                    <a href="#" class="fs-pro-tile fs-pro-tile--offline" @click.prevent>
-                        <span class="fs-pro-tile__icon"><i class='bx bx-file'></i></span>
-                        <span class="fs-pro-tile__meta">
-                            <span class="fs-pro-tile__title">Offline Request</span>
-                        </span>
-                    </a>
                     <a href="#" class="fs-pro-tile fs-pro-tile--import" @click.prevent>
                         <span class="fs-pro-tile__icon"><i class='bx bx-import'></i></span>
                         <span class="fs-pro-tile__meta">
