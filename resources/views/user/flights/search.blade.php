@@ -98,18 +98,37 @@
                     $sfPrMin  = !empty($_prices) ? (int)floor(min($_prices)) : 0;
                     $sfPrMax  = !empty($_prices) ? (int)ceil(max($_prices))  : 9999;
 
-                    $_durs    = array_map(fn($r) => (int)($r['legs'][0]['elapsedTime'] ?? 0), $results);
-                    $sfDurMax = !empty($_durs) ? max($_durs) : 1440;
-                    $sfDurMin = !empty($_durs) ? min($_durs) : 0;
+                    $_durs    = [];
+                    foreach ($results as $_r) {
+                        foreach ($_r['legs'] ?? [] as $_leg) {
+                            $_dur = (int) ($_leg['elapsedTime'] ?? 0);
+                            if ($_dur > 0) {
+                                $_durs[] = $_dur;
+                            }
+                        }
+                    }
+                    $sfDurMax  = !empty($_durs) ? max($_durs) : 1440;
+                    $sfDurMin  = !empty($_durs) ? min($_durs) : 0;
+                    $sfDurSpan = $sfDurMax - $sfDurMin;
 
                     $sfStopsAvail = [];
                     foreach ($results as $_r) {
-                        $_ls = $_r['legs'][0]['segments'] ?? [];
-                        $_st = max(0, count($_ls) - 1) + (int)array_sum(array_column($_ls, 'stop_count'));
-                        $sfStopsAvail[$_st] = true;
+                        $_m = $_r['listing_meta'] ?? [];
+                        $_stO = (int) ($_m['st_o'] ?? 0);
+                        $_stR = array_key_exists('st_r', $_m) && $_m['st_r'] !== null ? (int) $_m['st_r'] : null;
+                        $_st = $_stR !== null ? max($_stO, $_stR) : $_stO;
+                        $_tier = $_st >= 2 ? 2 : $_st;
+                        $sfStopsAvail[$_tier] = true;
                     }
                     ksort($sfStopsAvail);
                     $sfStopsAvail = array_keys($sfStopsAvail);
+
+                    $sfTimeSlots = [
+                        ['key' => 'night', 'icon' => 'bx bxs-moon', 'label' => 'Night', 'range' => '00–06'],
+                        ['key' => 'morning', 'icon' => 'bx bx-sun', 'label' => 'Morning', 'range' => '06–12'],
+                        ['key' => 'afternoon', 'icon' => 'bx bxs-sun', 'label' => 'Afternoon', 'range' => '12–18'],
+                        ['key' => 'evening', 'icon' => 'bx bx-moon', 'label' => 'Evening', 'range' => '18–24'],
+                    ];
 
                     $sfRefundCounts = ['refundable' => 0, 'non_refundable' => 0];
                     foreach ($results as $_r) {
@@ -223,44 +242,62 @@
 
                     {{-- Departure Time --}}
                     <div class="sf__section">
-                        <div class="sf__sechead"><i class="bx bx-time-five"></i> Departure Time</div>
+                        <div class="sf__sechead">
+                            <i class="bx bx-time-five"></i>
+                            {{ $isRoundTrip ? 'Outbound Departure' : 'Departure Time' }}
+                        </div>
                         <div class="sf__time-grid">
-                            <button class="sf__timebtn" data-sf-dep="night">
-                                <i class="bx bxs-moon"></i><span>Night</span><small>00–06</small>
+                            @foreach($sfTimeSlots as $_slot)
+                            <button class="sf__timebtn" data-sf-dep="{{ $_slot['key'] }}">
+                                <i class="{{ $_slot['icon'] }}"></i><span>{{ $_slot['label'] }}</span><small>{{ $_slot['range'] }}</small>
                             </button>
-                            <button class="sf__timebtn" data-sf-dep="morning">
-                                <i class="bx bx-sun"></i><span>Morning</span><small>06–12</small>
-                            </button>
-                            <button class="sf__timebtn" data-sf-dep="afternoon">
-                                <i class="bx bxs-sun"></i><span>Afternoon</span><small>12–18</small>
-                            </button>
-                            <button class="sf__timebtn" data-sf-dep="evening">
-                                <i class="bx bx-moon"></i><span>Evening</span><small>18–24</small>
-                            </button>
+                            @endforeach
                         </div>
                     </div>
 
                     {{-- Arrival Time --}}
                     <div class="sf__section">
-                        <div class="sf__sechead"><i class="bx bx-landing"></i> Arrival Time</div>
+                        <div class="sf__sechead">
+                            <i class="bx bx-landing"></i>
+                            {{ $isRoundTrip ? 'Outbound Arrival' : 'Arrival Time' }}
+                        </div>
                         <div class="sf__time-grid">
-                            <button class="sf__timebtn" data-sf-arr="night">
-                                <i class="bx bxs-moon"></i><span>Night</span><small>00–06</small>
+                            @foreach($sfTimeSlots as $_slot)
+                            <button class="sf__timebtn" data-sf-arr="{{ $_slot['key'] }}">
+                                <i class="{{ $_slot['icon'] }}"></i><span>{{ $_slot['label'] }}</span><small>{{ $_slot['range'] }}</small>
                             </button>
-                            <button class="sf__timebtn" data-sf-arr="morning">
-                                <i class="bx bx-sun"></i><span>Morning</span><small>06–12</small>
-                            </button>
-                            <button class="sf__timebtn" data-sf-arr="afternoon">
-                                <i class="bx bxs-sun"></i><span>Afternoon</span><small>12–18</small>
-                            </button>
-                            <button class="sf__timebtn" data-sf-arr="evening">
-                                <i class="bx bx-moon"></i><span>Evening</span><small>18–24</small>
-                            </button>
+                            @endforeach
                         </div>
                     </div>
 
+                    @if($isRoundTrip)
+                    {{-- Return Departure Time --}}
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-time-five"></i> Return Departure</div>
+                        <div class="sf__time-grid">
+                            @foreach($sfTimeSlots as $_slot)
+                            <button class="sf__timebtn" data-sf-dep-r="{{ $_slot['key'] }}">
+                                <i class="{{ $_slot['icon'] }}"></i><span>{{ $_slot['label'] }}</span><small>{{ $_slot['range'] }}</small>
+                            </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Return Arrival Time --}}
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-landing"></i> Return Arrival</div>
+                        <div class="sf__time-grid">
+                            @foreach($sfTimeSlots as $_slot)
+                            <button class="sf__timebtn" data-sf-arr-r="{{ $_slot['key'] }}">
+                                <i class="{{ $_slot['icon'] }}"></i><span>{{ $_slot['label'] }}</span><small>{{ $_slot['range'] }}</small>
+                            </button>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
                     {{-- Max Duration --}}
-                    @if($sfDurMax > 120)
+                    @if($sfDurSpan >= 15)
                     <div class="sf__section">
                         <div class="sf__sechead">
                             <i class="bx bx-stopwatch"></i> Max Duration
@@ -340,7 +377,7 @@
                 </div>{{-- /.rp-stack__tools --}}
 
                 <div class="rp-stack__main rp-main">
-                <div id="rp-list">
+                <div id="rp-list" data-rp-trip="{{ $isRoundTrip ? 'round_trip' : 'one_way' }}">
                     @foreach ($results as $result)
                         @php
                             $lid        = $result['id'];
@@ -2326,13 +2363,29 @@
         try { return JSON.parse(card.dataset.rpMeta||'{}'); } catch(e){ return {}; }
     }
     function cd(card, key){ return card.dataset[key] ?? ''; }
-    function hourSlot(h){
-        h = parseInt(h, 10);
-        if (isNaN(h) || h < 0) return null;
-        if (h <  6) return 'night';
-        if (h < 12) return 'morning';
-        if (h < 18) return 'afternoon';
-        return 'evening';
+
+    const IS_ROUND_TRIP = (list.dataset.rpTrip || '') === 'round_trip';
+    const SLOT_TO_BUCKET = { night: 4, morning: 1, afternoon: 2, evening: 3 };
+
+    function bucketsFromSlots(slotSet){
+        return [...slotSet].map(s => SLOT_TO_BUCKET[s]).filter(Boolean);
+    }
+    function legMatchesTimeBuckets(selectedSlots, legBuckets){
+        if (!selectedSlots || selectedSlots.size === 0) return true;
+        const wanted = bucketsFromSlots(selectedSlots);
+        const buckets = Array.isArray(legBuckets) ? legBuckets.map(Number) : [];
+        if (buckets.length === 0) return false;
+        return wanted.some(w => buckets.includes(w));
+    }
+    function cardStopsTier(meta){
+        const stO = Number(meta.st_o) || 0;
+        const stR = meta.st_r === null || meta.st_r === undefined ? null : Number(meta.st_r);
+        const st = IS_ROUND_TRIP && stR !== null ? Math.max(stO, stR) : stO;
+        return st >= 2 ? 2 : st;
+    }
+    function fmtDurMinutes(m){
+        m = parseInt(m, 10) || 0;
+        return Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
     }
 
     function initFareTooltips(root){
@@ -2363,8 +2416,10 @@
         priceMin      : globalMin,
         priceMax      : globalMax,
         stops         : new Set(),    // empty = all
-        depSlots      : new Set(),    // empty = all
-        arrSlots      : new Set(),    // empty = all
+        depSlots      : new Set(),    // outbound departure
+        arrSlots      : new Set(),    // outbound arrival
+        depSlotsR     : new Set(),    // return departure
+        arrSlotsR     : new Set(),    // return arrival
         refund        : new Set(),    // empty = all; values: '0', '1'
         maxDur        : Infinity,
     };
@@ -2376,10 +2431,7 @@
         let visible = 0;
         allCards.forEach(card=>{
             const price  = parseFloat(cd(card,'rpPrice'))  || 0;
-            const stops  = parseInt(cd(card,'rpStops'),10);
             const refund = cd(card,'rpRefund');
-            const depH   = cd(card,'rpDepH');
-            const arrH   = cd(card,'rpArrH');
             const dur    = parseInt(cd(card,'rpDur'),10)   || 0;
             const meta   = parseMeta(card);
             const als    = Array.isArray(meta.al) ? meta.al.map(c=>String(c).toUpperCase()) : [];
@@ -2390,24 +2442,20 @@
             if (state.sliderAirline !== 'all' && !als.includes(state.sliderAirline)) ok = false;
             // price
             if (ok && (price < state.priceMin || price > state.priceMax)) ok = false;
-            // stops
+            // stops (worst leg on round trip)
             if (ok && state.stops.size > 0){
-                const st = stops >= 2 ? 2 : stops;
-                if (!state.stops.has(String(st))) ok = false;
+                const tier = cardStopsTier(meta);
+                if (!state.stops.has(String(tier))) ok = false;
             }
-            // departure slot
-            if (ok && state.depSlots.size > 0){
-                const slot = hourSlot(depH);
-                if (!slot || !state.depSlots.has(slot)) ok = false;
-            }
-            // arrival slot
-            if (ok && state.arrSlots.size > 0){
-                const slot = hourSlot(arrH);
-                if (!slot || !state.arrSlots.has(slot)) ok = false;
-            }
+            // outbound departure / arrival buckets (all segments on that leg)
+            if (ok && !legMatchesTimeBuckets(state.depSlots, meta.dba_o)) ok = false;
+            if (ok && !legMatchesTimeBuckets(state.arrSlots, meta.aba_o)) ok = false;
+            // return departure / arrival buckets
+            if (ok && IS_ROUND_TRIP && !legMatchesTimeBuckets(state.depSlotsR, meta.dba_r)) ok = false;
+            if (ok && IS_ROUND_TRIP && !legMatchesTimeBuckets(state.arrSlotsR, meta.aba_r)) ok = false;
             // fare type
             if (ok && state.refund.size > 0 && !state.refund.has(refund)) ok = false;
-            // duration
+            // duration (outbound leg)
             if (ok && dur > 0 && state.maxDur !== Infinity && dur > state.maxDur) ok = false;
 
             card.classList.toggle('sf-hidden', !ok);
@@ -2429,6 +2477,8 @@
         if (state.stops.size)    n++;
         if (state.depSlots.size) n++;
         if (state.arrSlots.size) n++;
+        if (state.depSlotsR.size) n++;
+        if (state.arrSlotsR.size) n++;
         if (state.refund.size)   n++;
         if (state.maxDur !== Infinity) n++;
         return n;
@@ -2703,7 +2753,7 @@
         });
     });
 
-    /* Time slot buttons - departure */
+    /* Time slot buttons - outbound departure */
     document.querySelectorAll('[data-sf-dep]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
             const slot = btn.dataset.sfDep;
@@ -2713,12 +2763,32 @@
         });
     });
 
-    /* Time slot buttons - arrival */
+    /* Time slot buttons - outbound arrival */
     document.querySelectorAll('[data-sf-arr]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
             const slot = btn.dataset.sfArr;
             btn.classList.toggle('sf-active');
             btn.classList.contains('sf-active') ? state.arrSlots.add(slot) : state.arrSlots.delete(slot);
+            applyFilters();
+        });
+    });
+
+    /* Time slot buttons - return departure */
+    document.querySelectorAll('[data-sf-dep-r]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            const slot = btn.dataset.sfDepR;
+            btn.classList.toggle('sf-active');
+            btn.classList.contains('sf-active') ? state.depSlotsR.add(slot) : state.depSlotsR.delete(slot);
+            applyFilters();
+        });
+    });
+
+    /* Time slot buttons - return arrival */
+    document.querySelectorAll('[data-sf-arr-r]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            const slot = btn.dataset.sfArrR;
+            btn.classList.toggle('sf-active');
+            btn.classList.contains('sf-active') ? state.arrSlotsR.add(slot) : state.arrSlotsR.delete(slot);
             applyFilters();
         });
     });
@@ -2736,21 +2806,14 @@
     const durSlider = document.getElementById('sf-dur');
     const durLbl    = document.getElementById('sf-dur-lbl');
     if (durSlider){
-        function fmtDur(m){
-            m = parseInt(m,10);
-            return Math.floor(m/60)+'h '+(m%60)+'m';
-        }
         durSlider.addEventListener('input', ()=>{
             state.maxDur = parseInt(durSlider.value, 10);
-            if (durLbl) durLbl.textContent = fmtDur(durSlider.value);
-            // update range track fill color
+            if (durLbl) durLbl.textContent = fmtDurMinutes(durSlider.value);
             const pct = ((durSlider.value - durSlider.min)/(durSlider.max - durSlider.min))*100;
             durSlider.style.background = `linear-gradient(to right, var(--c-brand) ${pct}%, var(--c-line) ${pct}%)`;
             applyFilters();
         });
-        // init fill
-        const pct0 = 100;
-        durSlider.style.background = `linear-gradient(to right, var(--c-brand) ${pct0}%, var(--c-line) ${pct0}%)`;
+        durSlider.style.background = `linear-gradient(to right, var(--c-brand) 100%, var(--c-line) 100%)`;
     }
 
     /* Reset button */
@@ -2764,6 +2827,8 @@
             state.stops.clear();
             state.depSlots.clear();
             state.arrSlots.clear();
+            state.depSlotsR.clear();
+            state.arrSlotsR.clear();
             state.refund.clear();
             state.maxDur        = Infinity;
 
@@ -2781,7 +2846,7 @@
             document.querySelectorAll('[data-sf="stops"]').forEach(c=>{ c.checked = false; });
 
             // reset time buttons
-            document.querySelectorAll('[data-sf-dep],[data-sf-arr]').forEach(b=> b.classList.remove('sf-active'));
+            document.querySelectorAll('[data-sf-dep],[data-sf-arr],[data-sf-dep-r],[data-sf-arr-r]').forEach(b=> b.classList.remove('sf-active'));
 
             // reset fare checkboxes
             document.querySelectorAll('[data-sf="refund"]').forEach(c=>{ c.checked = false; });
@@ -2789,7 +2854,7 @@
             // reset duration
             if (durSlider){
                 durSlider.value = durSlider.max;
-                if (durLbl) durLbl.textContent = fmtDur ? fmtDur(durSlider.max) : '';
+                if (durLbl) durLbl.textContent = fmtDurMinutes(durSlider.max);
                 durSlider.style.background = `linear-gradient(to right, var(--c-brand) 100%, var(--c-line) 100%)`;
             }
 

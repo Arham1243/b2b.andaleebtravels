@@ -1260,18 +1260,20 @@ class FlightController extends Controller
         if (!$hhmm || !preg_match('/^(\d{1,2}):/', $hhmm, $m)) {
             return 0;
         }
+
         $h = (int) $m[1];
-        if ($h >= 5 && $h < 12) {
+
+        if ($h >= 0 && $h < 6) {
+            return 4;
+        }
+        if ($h >= 6 && $h < 12) {
             return 1;
         }
         if ($h >= 12 && $h < 18) {
             return 2;
         }
-        if ($h >= 18 && $h < 24) {
-            return 3;
-        }
 
-        return 4;
+        return 3;
     }
 
     /**
@@ -1693,6 +1695,9 @@ class FlightController extends Controller
             }
         }
 
+        $outSegs = $legs[0]['segments'] ?? [];
+        $lastOutSeg = $outSegs !== [] ? $outSegs[array_key_last($outSegs)] : [];
+
         return [
             'price' => $price,
             'st_o' => $o['stops_tier'],
@@ -1708,7 +1713,9 @@ class FlightController extends Controller
             'al' => array_keys($airlines),
             'fare' => $pricingTags['tags'],
             'first_dep_iso' => data_get($legs, '0.segments.0.departure_datetime'),
+            'first_arr_iso' => $lastOutSeg['arrival_datetime'] ?? null,
             'dur_o' => (int) data_get($legs, '0.elapsedTime', 0),
+            'dur_r' => (int) data_get($legs, '1.elapsedTime', 0),
         ];
     }
 
