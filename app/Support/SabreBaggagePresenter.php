@@ -357,10 +357,10 @@ final class SabreBaggagePresenter
     private static function pieceEquivalentNote(int $pieces, int $kg): string
     {
         if ($pieces === 1) {
-            return '1 piece baggage is equivalent to ' . $kg . ' kg';
+            return '1 piece cabin baggage is equivalent to ' . $kg . ' kg';
         }
 
-        return $pieces . ' pieces baggage are equivalent to ' . $kg . ' kg each';
+        return $pieces . ' pieces cabin baggage are equivalent to ' . $kg . ' kg each';
     }
 
     /**
