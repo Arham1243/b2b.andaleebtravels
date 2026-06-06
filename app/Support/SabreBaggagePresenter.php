@@ -394,11 +394,21 @@ final class SabreBaggagePresenter
         }
 
         $amounts = array_values(array_unique(array_map(static fn (array $row): string => (string) ($row['amount'] ?? ''), $friendlyRows)));
+        $note = null;
+
+        foreach ($friendlyRows as $row) {
+            $rowNote = trim((string) ($row['note'] ?? ''));
+
+            if ($rowNote !== '') {
+                $note = $rowNote;
+                break;
+            }
+        }
 
         return [
             'amount' => implode(' / ', $amounts),
             'label' => (string) ($friendlyRows[0]['label'] ?? ''),
-            'note' => $friendlyRows[0]['note'] ?? null,
+            'note' => $note,
             'display' => implode(' / ', array_map(static fn (array $row): string => (string) ($row['display'] ?? ''), $friendlyRows)),
         ];
     }
@@ -551,15 +561,19 @@ final class SabreBaggagePresenter
             return null;
         }
 
+        if (preg_match('/\d+\s*(?:LB|LBS|POUND|POUNDS)\s*\/\s*(\d+)\s*(?:KG|KGS|KILO|KILOS|KILOGRAM|KILOGRAMS)\b/', $upper, $matches)) {
+            return (int) $matches[1];
+        }
+
         if (preg_match('/\d+\s*LB\s*\/\s*(\d+)\s*KG\b/', $upper, $matches)) {
             return (int) $matches[1];
         }
 
-        if (preg_match('/(?:UPTO|UP TO)\s*(\d+)\s*KG\b/', $upper, $matches)) {
+        if (preg_match('/(?:UP\s*TO|UPTO)\s*(\d+)\s*(?:KG|KGS|KILO|KILOS|KILOGRAM|KILOGRAMS)\b/', $upper, $matches)) {
             return (int) $matches[1];
         }
 
-        if (preg_match('/(\d+)\s*KG\b/', $upper, $matches)) {
+        if (preg_match('/(\d+)\s*(?:KG|KGS|KILO|KILOS|KILOGRAM|KILOGRAMS)\b/', $upper, $matches)) {
             return (int) $matches[1];
         }
 
