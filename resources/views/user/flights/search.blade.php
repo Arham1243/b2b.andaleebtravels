@@ -430,7 +430,7 @@
                                         </div>
                                         <div class="rc__dt">{{ $s0['departure_weekday']??'' }}, {{ $s0['departure_label']??'' }}</div>
                                         <div class="rc__city">
-                                            {{ fl_city_label($s0, true) }}@if(!empty($s0['departure_terminal'])), T{{ $s0['departure_terminal'] }}@endif
+                                            {{ fl_city_label($s0, true) }}@if(!empty($s0['departure_terminal'])), Terminal {{ $s0['departure_terminal'] }}@endif
                                         </div>
                                     </div>
 
@@ -458,7 +458,7 @@
                                         </div>
                                         <div class="rc__dt">{{ $sLast['arrival_weekday']??'' }}, {{ $sLast['arrival_label']??'' }}</div>
                                         <div class="rc__city">
-                                            {{ fl_city_label($sLast, false) }}@if(!empty($sLast['arrival_terminal'])), T{{ $sLast['arrival_terminal'] }}@endif
+                                            {{ fl_city_label($sLast, false) }}@if(!empty($sLast['arrival_terminal'])), Terminal {{ $sLast['arrival_terminal'] }}@endif
                                         </div>
                                     </div>
 
@@ -658,8 +658,15 @@
                                                             </div>
                                                         </div>
                                                         <div class="fd-seg__chips">
-                                                            @if(!empty($sx['cabin_code']))<span class="fd-chip fd-chip--cab">{{ formatFlightCabinLabel($sx['cabin_code']) }}</span>@endif
-                                                            @if(!empty($sx['booking_code']))<span class="fd-chip">{{ formatFlightBookingClassLabel($sx['booking_code']) }}</span>@endif
+                                                            @php
+                                                                $segCabinTags = flightFareRowCabinLabels($sx['cabin_code'] ?? null, $sx['booking_code'] ?? null);
+                                                            @endphp
+                                                            @if($segCabinTags['cabin'] !== '')
+                                                                <span class="fd-chip fd-chip--cab">{{ $segCabinTags['cabin'] }}</span>
+                                                            @endif
+                                                            @if($segCabinTags['booking'] !== '')
+                                                                <span class="fd-chip">{{ $segCabinTags['booking'] }}</span>
+                                                            @endif
                                                             @if(isset($sx['seats_available']))<span class="fd-chip fd-chip--seat"><i class="bx bx-group"></i> {{ (int)$sx['seats_available'] }} left</span>@endif
                                                         </div>
                                                     </div>

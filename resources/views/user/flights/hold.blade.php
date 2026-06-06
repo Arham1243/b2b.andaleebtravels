@@ -150,7 +150,7 @@
                                                 <div class="hp-leg__time">{{ $s0['departure_clock'] ?? ' - ' }}</div>
                                                 <div class="hp-leg__dt">{{ $s0['departure_weekday'] ?? '' }}, {{ $s0['departure_label'] ?? '' }}</div>
                                                 <div class="hp-leg__city">
-                                                    {{ $s0['from'] ?? '' }}@if(!empty($s0['departure_terminal'])), T{{ $s0['departure_terminal'] }}@endif
+                                                    {{ $s0['from'] ?? '' }}@if(!empty($s0['departure_terminal'])), Terminal {{ $s0['departure_terminal'] }}@endif
                                                 </div>
                                             </div>
 
@@ -182,7 +182,7 @@
                                                 </div>
                                                 <div class="hp-leg__dt">{{ $sLast['arrival_weekday'] ?? '' }}, {{ $sLast['arrival_label'] ?? '' }}</div>
                                                 <div class="hp-leg__city">
-                                                    {{ $sLast['to'] ?? '' }}@if(!empty($sLast['arrival_terminal'])), T{{ $sLast['arrival_terminal'] }}@endif
+                                                    {{ $sLast['to'] ?? '' }}@if(!empty($sLast['arrival_terminal'])), Terminal {{ $sLast['arrival_terminal'] }}@endif
                                                 </div>
                                             </div>
 
