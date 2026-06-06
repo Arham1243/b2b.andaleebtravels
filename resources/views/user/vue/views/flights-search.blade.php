@@ -630,10 +630,16 @@
                             <span class="fs-pro-tile__title">Import PNR</span>
                         </span>
                     </a>
-                    <a href="#" class="fs-pro-tile fs-pro-tile--hold" @click.prevent>
+                    <a href="{{ route('user.bookings.flights', ['status' => 'hold']) }}" class="fs-pro-tile fs-pro-tile--hold">
                         <span class="fs-pro-tile__icon"><i class='bx bx-time-five'></i></span>
                         <span class="fs-pro-tile__meta">
                             <span class="fs-pro-tile__title">Hold Itineraries</span>
+                        </span>
+                    </a>
+                    <a href="{{ route('user.bookings.flights') }}" class="fs-pro-tile fs-pro-tile--bookings">
+                        <span class="fs-pro-tile__icon"><i class='bx bx-book-content'></i></span>
+                        <span class="fs-pro-tile__meta">
+                            <span class="fs-pro-tile__title">My Bookings</span>
                         </span>
                     </a>
                     <a href="#" class="fs-pro-tile fs-pro-tile--calendar" @click.prevent>

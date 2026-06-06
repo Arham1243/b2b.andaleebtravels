@@ -115,7 +115,7 @@ class AuthController extends Controller
                     ->with('notify_success', 'Login Successfully');
             }
 
-            return redirect()->route('user.dashboard')
+            return redirect()->route('user.flights.index')
                 ->with('notify_success', 'Login Successfully');
         }
 

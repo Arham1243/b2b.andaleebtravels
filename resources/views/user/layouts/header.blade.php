@@ -62,6 +62,11 @@
                                     <i class='bx bx-wallet-alt'></i> {{ __('Recharge') }}
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ route('user.bookings.flights') }}" class="dropdown-item">
+                                    <i class='bx bx-book-content'></i> {{ __('My Bookings') }}
+                                </a>
+                            </li>
                             <li class="dropdown-divider"></li>
                             <li>
                                 <form action="{{ route('user.logout') }}" method="POST">

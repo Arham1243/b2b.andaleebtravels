@@ -25,7 +25,7 @@
                     </div>
                     <span class="quick-action-label">Recharge Wallet</span>
                 </a>
-                <a href="{{ route('user.bookings.index') }}" class="quick-action-item">
+                <a href="{{ route('user.bookings.flights') }}" class="quick-action-item">
                     <div class="quick-action-circle">
                         <i class='bx bxs-book-content'></i>
                     </div>
