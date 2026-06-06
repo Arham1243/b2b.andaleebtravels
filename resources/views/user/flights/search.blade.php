@@ -21,6 +21,10 @@
 
         function fl_segment_minutes(array $seg): ?int
         {
+            if (isset($seg['elapsedTime']) && is_numeric($seg['elapsedTime']) && (int) $seg['elapsedTime'] > 0) {
+                return (int) $seg['elapsedTime'];
+            }
+
             try {
                 $d = \Carbon\Carbon::parse($seg['departure_datetime'] ?? null);
                 $a = \Carbon\Carbon::parse($seg['arrival_datetime'] ?? null);

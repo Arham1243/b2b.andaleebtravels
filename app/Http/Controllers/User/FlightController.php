@@ -1135,20 +1135,22 @@ class FlightController extends Controller
             $depRaw = $schedule['departure']['time'] ?? '00:00:00';
             $arrRaw = $schedule['arrival']['time'] ?? '00:00:00';
             $depClock = Carbon::parse($this->normalizeSabreTimeForParse($depRaw))->format('H:i');
-            $arrParts = explode(':', Carbon::parse($this->normalizeSabreTimeForParse($arrRaw))->format('H:i'));
-            $arrH = (int) ($arrParts[0] ?? 0);
-            $arrM = (int) ($arrParts[1] ?? 0);
+            $arrClock = Carbon::parse($this->normalizeSabreTimeForParse($arrRaw))->format('H:i');
 
-            $depDateTime = Carbon::parse($baseDate . ' ' . $depClock)->addDays($dayAccumulator)->startOfMinute();
-            $arrDateTime = $depDateTime->copy()->setTime($arrH, $arrM, 0);
+            $depDateTime = $this->parseSabreScheduleDateTime($baseDate, $depRaw, $dayAccumulator);
+            $arrDayAdjustment = $dayAccumulator
+                + (int) ($scheduleRef['arrivalDateAdjustment'] ?? 0)
+                + (int) ($schedule['arrival']['dateAdjustment'] ?? 0);
+            $arrDateTime = $this->parseSabreScheduleDateTime($baseDate, $arrRaw, $arrDayAdjustment);
 
-            while ($arrDateTime->lessThanOrEqualTo($depDateTime)) {
-                $arrDateTime->addDay();
+            $segmentElapsed = (int) ($schedule['elapsedTime'] ?? 0);
+            if ($segmentElapsed <= 0) {
+                $segmentElapsed = max(15, (int) $depDateTime->diffInMinutes($arrDateTime, false));
             }
 
-            $elapsedFallback += max(15, $depDateTime->diffInMinutes($arrDateTime));
+            $elapsedFallback += $segmentElapsed;
 
-            $diffDays = max(0, $depDateTime->diffInDays($arrDateTime, false));
+            $diffDays = max(0, $depDateTime->copy()->startOfDay()->diffInDays($arrDateTime->copy()->startOfDay(), false));
 
             $marketing = $schedule['carrier']['marketing'] ?? '';
             $mktFlight = trim((string) ($schedule['carrier']['marketingFlightNumber'] ?? ''));
@@ -1174,15 +1176,16 @@ class FlightController extends Controller
                 'equipment_type_first' => data_get($schedule, 'carrier.equipment.typeForFirstLeg'),
                 'equipment_type_last' => data_get($schedule, 'carrier.equipment.typeForLastLeg'),
                 'stop_count' => $schedule['stopCount'] ?? 0,
+                'elapsedTime' => $segmentElapsed,
                 'departure_datetime' => $depDateTime->toIso8601String(),
                 'arrival_datetime' => $arrDateTime->toIso8601String(),
-                'departure_label' => $depDateTime->format('M j') . "'" . substr($depDateTime->format('y'), -2),
+                'departure_label' => formatFlightSegmentDate($depDateTime),
                 'departure_weekday' => $depDateTime->format('D'),
-                'arrival_label' => $arrDateTime->format('M j') . "'" . substr($arrDateTime->format('y'), -2),
+                'arrival_label' => formatFlightSegmentDate($arrDateTime),
                 'arrival_weekday' => $arrDateTime->format('D'),
                 'next_day_hint' => $diffDays >= 1,
-                'departure_clock' => $depDateTime->format('H:i'),
-                'arrival_clock' => $arrDateTime->format('H:i'),
+                'departure_clock' => $depClock,
+                'arrival_clock' => $arrClock,
                 'is_red_eye_segment' => $this->clockIsRedEye($depDateTime->format('H:i')),
                 'booking_code' => data_get($seatRow, 'bookingCode'),
                 'meal_code' => data_get($seatRow, 'mealCode'),
@@ -1207,6 +1210,36 @@ class FlightController extends Controller
         }
 
         return (string) preg_replace('/([+-][0-9]{2}:?[0-9]{2}|Z)$/', '', $t);
+    }
+
+    /**
+     * Build an absolute segment timestamp from Sabre's local clock + UTC offset.
+     */
+    private function parseSabreScheduleDateTime(string $baseDate, ?string $timeRaw, int $dayAdjustment = 0): Carbon
+    {
+        $timeRaw = trim((string) ($timeRaw ?? ''));
+        if ($timeRaw === '') {
+            $timeRaw = '00:00:00';
+        }
+
+        $date = Carbon::parse($baseDate)->addDays($dayAdjustment)->format('Y-m-d');
+
+        if (preg_match('/([+-]\d{2}:?\d{2}|Z)$/i', $timeRaw)) {
+            $timePart = $timeRaw;
+            if (preg_match('/^\d{2}:\d{2}[+-]/', $timePart)) {
+                $timePart = preg_replace('/^(\d{2}:\d{2})/', '$1:00', $timePart);
+            } elseif (preg_match('/^\d{2}:\d{2}:\d{2}[+-]/', $timePart) === 0 && preg_match('/^\d{2}:\d{2}:\d{2}Z/i', $timePart) === 0) {
+                $timePart .= ':00';
+            }
+
+            $timePart = (string) preg_replace('/([+-])(\d{2})(\d{2})$/', '$1$2:$3', $timePart);
+
+            return Carbon::parse($date . 'T' . $timePart);
+        }
+
+        $clock = Carbon::parse($this->normalizeSabreTimeForParse($timeRaw))->format('H:i:s');
+
+        return Carbon::parse($date . ' ' . $clock)->startOfMinute();
     }
 
     /** Departure/arrival clocks are HH:mm (24h) */

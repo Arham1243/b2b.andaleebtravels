@@ -265,6 +265,17 @@ if (! function_exists('bookingCancellationApiPayload')) {
     }
 }
 
+if (! function_exists('formatFlightSegmentDate')) {
+    /** Display date for flight segments, e.g. "23 June 2026". */
+    function formatFlightSegmentDate($date): string
+    {
+        if (empty($date)) {
+            return '';
+        }
+
+        return Carbon::parse($date)->format('j F Y');
+    }
+}
 if (! function_exists('formatDateTime')) {
     function formatDateTime($date)
     {
