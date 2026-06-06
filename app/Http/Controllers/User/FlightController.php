@@ -462,7 +462,6 @@ class FlightController extends Controller
                 'RequestType' => 'A',
                 'Description' => true,
             ],
-            'TPA_Extensions' => FlightCabinPreference::sabreFlexibleFaresExtension($onwardCabin),
         ];
 
         if ($children > 0 && $infants === 0) {

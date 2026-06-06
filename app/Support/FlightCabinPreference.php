@@ -122,25 +122,6 @@ final class FlightCabinPreference
         ];
     }
 
-    /**
-     * Ask Sabre for multiple economy fare families per itinerary (Etihad Light/Value/Comfort/etc.).
-     *
-     * @return array{FlexibleFares: array{FareParameters: list<array<string, mixed>>}}
-     */
-    public static function sabreFlexibleFaresExtension(string $uiCabin): array
-    {
-        return [
-            'FlexibleFares' => [
-                'FareParameters' => [
-                    [
-                        'PassengerType' => ['Code' => 'ADT'],
-                        'Cabin' => ['Type' => self::toSabreCode($uiCabin)],
-                    ],
-                ],
-            ],
-        ];
-    }
-
     public static function isClearlyPremiumCabinCode(?string $code): bool
     {
         $code = strtoupper(trim((string) ($code ?? '')));
