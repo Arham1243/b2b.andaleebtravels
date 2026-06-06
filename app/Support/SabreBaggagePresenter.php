@@ -5,6 +5,85 @@ namespace App\Support;
 final class SabreBaggagePresenter
 {
     /**
+     * Raw Sabre baggage payload for debugging (PC / cabin / checked).
+     *
+     * @param  array<string, mixed>  $grouped
+     * @param  array<string, mixed>  $pricingBlock
+     * @return array<string, mixed>
+     */
+    public static function debugExport(array $grouped, array $pricingBlock): array
+    {
+        $allowanceById = collect($grouped['baggageAllowanceDescs'] ?? [])->keyBy('id');
+        $passengerRows = data_get($pricingBlock, 'fare.passengerInfoList', []);
+        $usedAllowanceIds = [];
+
+        $paxBaggage = [];
+
+        foreach ($passengerRows as $paxRow) {
+            if (! is_array($paxRow)) {
+                continue;
+            }
+
+            $paxInfo = $paxRow['passengerInfo'] ?? [];
+            if (! is_array($paxInfo)) {
+                continue;
+            }
+
+            $entries = [];
+
+            foreach ($paxInfo['baggageInformation'] ?? [] as $bagRow) {
+                if (! is_array($bagRow)) {
+                    continue;
+                }
+
+                $allowanceRef = data_get($bagRow, 'allowance.ref');
+                if ($allowanceRef !== null) {
+                    $usedAllowanceIds[] = $allowanceRef;
+                }
+
+                $desc = self::resolveAllowanceDesc($bagRow, $allowanceById);
+                $provisionType = strtoupper(trim((string) ($bagRow['provisionType'] ?? 'A')));
+                $isCabin = self::isCabinProvision($provisionType);
+
+                $entries[] = [
+                    'provision_type' => $provisionType,
+                    'provision_label' => $isCabin ? 'Cabin / carry-on (B)' : 'Checked baggage (A)',
+                    'airline_code' => $bagRow['airlineCode'] ?? null,
+                    'segments' => $bagRow['segments'] ?? [],
+                    'allowance_ref' => $allowanceRef,
+                    'allowance_desc_raw' => $desc,
+                    'friendly_parsed' => self::parseAllowanceFriendly($desc, $isCabin),
+                ];
+            }
+
+            $paxBaggage[] = [
+                'passenger_type' => $paxInfo['passengerType'] ?? null,
+                'baggage_information' => $entries,
+            ];
+        }
+
+        $usedAllowanceIds = array_values(array_unique($usedAllowanceIds));
+        $allowanceDescs = [];
+
+        foreach ($usedAllowanceIds as $id) {
+            $desc = $allowanceById->get($id);
+            if (is_array($desc)) {
+                $allowanceDescs[] = array_merge(['id' => $id], $desc);
+            }
+        }
+
+        return [
+            'provision_type_legend' => [
+                'A' => 'Checked baggage allowance',
+                'B' => 'Cabin / carry-on baggage allowance',
+            ],
+            'baggage_allowance_descs_used' => $allowanceDescs,
+            'baggage_allowance_descs_all' => array_values($allowanceById->all()),
+            'passenger_baggage' => $paxBaggage,
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $pricingBlock
      * @param array<string, mixed> $grouped
      *

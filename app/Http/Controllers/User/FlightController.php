@@ -213,6 +213,60 @@ class FlightController extends Controller
         ]);
     }
 
+    public function debugBaggage(Request $request)
+    {
+        if (! config('app.debug') && ! app()->environment(['local', 'staging'])) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'itinerary' => 'nullable|integer|min:1',
+            'fare' => 'nullable|integer|min:0',
+        ]);
+
+        $grouped = session('flight_search_response');
+        $results = session('flight_search_results', []);
+
+        if (! is_array($grouped) || $grouped === []) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No search session. Run a flight search first, then open this URL with ?itinerary=ID&fare=0',
+            ], 422);
+        }
+
+        $itineraryId = (int) ($validated['itinerary'] ?? array_key_first($results));
+        $fareIndex = (int) ($validated['fare'] ?? 0);
+        $resultCard = $results[$itineraryId] ?? null;
+
+        if (! is_array($resultCard)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Itinerary not found in session.',
+                'available_itinerary_ids' => array_map('intval', array_keys($results)),
+            ], 404);
+        }
+
+        $pricingBlock = SabrePricingResolver::pricingBlockForFare($resultCard, $grouped, $fareIndex);
+
+        if ($pricingBlock === null) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Fare pricing block not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'itinerary_id' => $itineraryId,
+            'fare_index' => $fareIndex,
+            'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
+            'fare_brand' => $resultCard['fare_options'][$fareIndex]['fare_brand'] ?? $resultCard['fare_brand'] ?? null,
+            'baggage_request_sent' => data_get(session('flight_search_payload'), 'OTA_AirLowFareSearchRQ.TravelPreferences.Baggage'),
+            'sabre_baggage_raw' => SabreBaggagePresenter::debugExport($grouped, $pricingBlock),
+            'app_baggage_parsed' => SabreBaggagePresenter::fromPricingBlock($pricingBlock, $grouped),
+        ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+
     public function fareRulesText(Request $request, FlightService $flightService)
     {
         if (! $this->isProviderEnabled('sabre')) {
