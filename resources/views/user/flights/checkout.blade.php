@@ -34,6 +34,27 @@
 
         $searchBackUrl = route('user.flights.search') . '?' . http_build_query(array_filter($searchParams ?? []));
 
+        $latestTravelDate = null;
+        try {
+            $departureTravelDate = !empty($searchParams['departure_date'])
+                ? \Carbon\Carbon::parse($searchParams['departure_date'])
+                : null;
+            $returnTravelDate = !empty($searchParams['return_date'])
+                ? \Carbon\Carbon::parse($searchParams['return_date'])
+                : null;
+            if ($returnTravelDate && (!$departureTravelDate || $returnTravelDate->gt($departureTravelDate))) {
+                $latestTravelDate = $returnTravelDate;
+            } else {
+                $latestTravelDate = $departureTravelDate;
+            }
+        } catch (\Throwable $e) {
+            $latestTravelDate = null;
+        }
+        $passportExpiryMinDate = $latestTravelDate
+            ? $latestTravelDate->copy()->addDay()->max(\Carbon\Carbon::today())->format('Y-m-d')
+            : \Carbon\Carbon::today()->format('Y-m-d');
+        $travelDateIso = $latestTravelDate?->format('Y-m-d');
+
         $depLabel = '';
         $retLabel = '';
         if (!empty($searchParams['departure_date'])) {
@@ -173,10 +194,11 @@
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]"
                                             placeholder="Passport number">
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="hp-label">Passport Expiry</label>
-                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][passport_exp]">
-                                    </div>
+                                    @include('user.flights.partials.hp-passport-expiry-field', [
+                                        'pIndex' => $pIndex,
+                                        'paxLabel' => 'Adult ' . ($i + 1),
+                                        'minDate' => $passportExpiryMinDate,
+                                    ])
                                     <div class="col-12">
                                         <label class="hp-save-check">
                                             <input type="checkbox" name="passengers[{{ $pIndex }}][save_profile]" value="1">
@@ -232,10 +254,11 @@
                                         <label class="hp-label">Passport Number</label>
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]" placeholder="Passport number">
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="hp-label">Passport Expiry</label>
-                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][passport_exp]">
-                                    </div>
+                                    @include('user.flights.partials.hp-passport-expiry-field', [
+                                        'pIndex' => $pIndex,
+                                        'paxLabel' => 'Child ' . ($i + 1),
+                                        'minDate' => $passportExpiryMinDate,
+                                    ])
                                 </div>
                             </div>
                             @php $pIndex++; @endphp
@@ -554,6 +577,7 @@
         .hp-select:focus { border-color:var(--c-brand); box-shadow:0 0 0 3px rgba(205,27,79,.1); }
 
         @include('user.flights.partials.hp-pax-autocomplete-styles')
+        @include('user.flights.partials.hp-passport-expiry-styles')
         @include('user.flights.partials.fare-rules-styles')
     </style>
 @endpush
@@ -561,6 +585,7 @@
 @push('js')
     @include('user.flights.partials.fare-rules-scripts')
     @include('user.flights.partials.hp-pax-autocomplete-scripts')
+    @include('user.flights.partials.hp-passport-expiry-scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const total = @json($totalAmount);
@@ -669,9 +694,17 @@
                 countries: @json($countries),
             });
 
+            HpPassportExpiry.init({
+                formSelector: '#flightCheckoutForm',
+                travelDate: @json($travelDateIso),
+            });
+
             const form = document.getElementById('flightCheckoutForm');
             if (form) {
                 form.addEventListener('submit', function() {
+                    if (document.querySelector('#flightCheckoutForm .js-passport-exp.is-invalid')) {
+                        return;
+                    }
                     recalc();
                     if (els.payBtn) {
                         els.payBtn.disabled = true;

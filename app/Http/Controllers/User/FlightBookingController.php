@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class FlightBookingController extends Controller
 {
@@ -102,6 +103,7 @@ class FlightBookingController extends Controller
 
         $results = session('flight_search_results', []);
         $params = session('flight_search_params', []);
+        $this->validatePassportExpiryDates($validated['passengers'], $params);
 
         $itineraryId = (int) $validated['itinerary_id'];
         $fareIndex = max(0, (int) ($validated['fare_option'] ?? 0));
@@ -458,6 +460,7 @@ class FlightBookingController extends Controller
 
         $results       = session('flight_search_results', []);
         $params        = session('flight_search_params', []);
+        $this->validatePassportExpiryDates($validated['passengers'], $params);
         $itineraryId   = (int) $validated['itinerary_id'];
         $fareIndex     = max(0, (int) ($validated['fare_option'] ?? 0));
         $itineraryData = $this->resolveItineraryFare($results, $itineraryId, $fareIndex);
@@ -721,6 +724,67 @@ class FlightBookingController extends Controller
         return array_merge([
             'countries' => CountryCatalog::forAutocomplete(),
         ], $data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $searchParams
+     */
+    protected function resolveLatestTravelDate(array $searchParams): ?Carbon
+    {
+        try {
+            $departureDate = !empty($searchParams['departure_date'])
+                ? Carbon::parse($searchParams['departure_date'])->startOfDay()
+                : null;
+            $returnDate = !empty($searchParams['return_date'])
+                ? Carbon::parse($searchParams['return_date'])->startOfDay()
+                : null;
+
+            if ($returnDate && (!$departureDate || $returnDate->gt($departureDate))) {
+                return $returnDate;
+            }
+
+            return $departureDate;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $passengers
+     * @param  array<string, mixed>  $searchParams
+     */
+    protected function validatePassportExpiryDates(array $passengers, array $searchParams): void
+    {
+        $travelDate = $this->resolveLatestTravelDate($searchParams);
+        $today = Carbon::today();
+        $errors = [];
+
+        foreach ($passengers as $index => $passenger) {
+            $expiry = $passenger['passport_exp'] ?? null;
+            if ($expiry === null || $expiry === '') {
+                continue;
+            }
+
+            try {
+                $expiryDate = Carbon::parse($expiry)->startOfDay();
+            } catch (\Throwable $e) {
+                $errors["passengers.{$index}.passport_exp"] = 'Enter a valid passport expiry date.';
+                continue;
+            }
+
+            if ($expiryDate->lt($today)) {
+                $errors["passengers.{$index}.passport_exp"] = 'Passport expiry cannot be in the past.';
+                continue;
+            }
+
+            if ($travelDate && $expiryDate->lte($travelDate)) {
+                $errors["passengers.{$index}.passport_exp"] = 'Passport must be valid after the travel date (' . $travelDate->format('d M Y') . ').';
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     /**
