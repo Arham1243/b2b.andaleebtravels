@@ -1696,7 +1696,25 @@ class FlightController extends Controller
         }
 
         $outSegs = $legs[0]['segments'] ?? [];
+        $firstOutSeg = $outSegs[0] ?? [];
         $lastOutSeg = $outSegs !== [] ? $outSegs[array_key_last($outSegs)] : [];
+        $airlinePrimary = strtoupper(trim((string) ($firstOutSeg['carrier'] ?? '')));
+        $airlineName = trim((string) ($firstOutSeg['carrier_display'] ?? $airlinePrimary));
+
+        $airlineCodes = array_keys($airlines);
+        usort($airlineCodes, static function (string $a, string $b) use ($airlinePrimary): int {
+            if ($a === $airlinePrimary && $b !== $airlinePrimary) {
+                return -1;
+            }
+            if ($b === $airlinePrimary && $a !== $airlinePrimary) {
+                return 1;
+            }
+
+            return strcasecmp($a, $b);
+        });
+
+        $durOutbound = (int) data_get($legs, '0.elapsedTime', 0);
+        $durReturn = (int) data_get($legs, '1.elapsedTime', 0);
 
         return [
             'price' => $price,
@@ -1710,13 +1728,31 @@ class FlightController extends Controller
             'dep_r' => $r ? $r['first_dep_airports'] : [],
             'conn_o' => $o['middle_airports'],
             'conn_r' => $r ? $r['middle_airports'] : [],
-            'al' => array_keys($airlines),
+            'al' => $airlineCodes,
+            'airline_primary' => $airlinePrimary,
+            'airline_name' => $airlineName,
             'fare' => $pricingTags['tags'],
             'first_dep_iso' => data_get($legs, '0.segments.0.departure_datetime'),
             'first_arr_iso' => $lastOutSeg['arrival_datetime'] ?? null,
-            'dur_o' => (int) data_get($legs, '0.elapsedTime', 0),
-            'dur_r' => (int) data_get($legs, '1.elapsedTime', 0),
+            'dep_ts' => $this->listingTimestamp(data_get($legs, '0.segments.0.departure_datetime')),
+            'arr_ts' => $this->listingTimestamp($lastOutSeg['arrival_datetime'] ?? null),
+            'dur_o' => $durOutbound,
+            'dur_r' => $durReturn,
+            'dur_total' => $durOutbound + $durReturn,
         ];
+    }
+
+    private function listingTimestamp(mixed $iso): int
+    {
+        if (! is_string($iso) || trim($iso) === '') {
+            return 0;
+        }
+
+        try {
+            return (int) \Carbon\Carbon::parse($iso)->timestamp;
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 
     /**

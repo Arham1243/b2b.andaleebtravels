@@ -363,13 +363,13 @@
                         <div class="rp-bar__sort">
                             <span class="rp-bar__sortlabel">SORT BY:</span>
                             <div class="rp-sortrow">
-                                <button class="rp-sortbtn" data-rp-sort="airline">Airline</button>
-                                <button class="rp-sortbtn" data-rp-sort="departure-o">Departure</button>
-                                <button class="rp-sortbtn" data-rp-sort="duration-o-asc">Duration</button>
-                                <button class="rp-sortbtn" data-rp-sort="best-value">Best Value</button>
-                                <button class="rp-sortbtn" data-rp-sort="arrival-o">Arrival</button>
-                                <button class="rp-sortbtn rp-sortbtn--active" data-rp-sort="price-asc" data-rp-cycle>
-                                    Price <i class="bx bx-down-arrow-alt rp-sortbtn__dir"></i>
+                                <button type="button" class="rp-sortbtn" data-rp-sort-key="airline">Airline <i class="bx bx-up-arrow-alt rp-sortbtn__dir" aria-hidden="true"></i></button>
+                                <button type="button" class="rp-sortbtn" data-rp-sort-key="departure">Departure <i class="bx bx-up-arrow-alt rp-sortbtn__dir" aria-hidden="true"></i></button>
+                                <button type="button" class="rp-sortbtn" data-rp-sort-key="duration">Duration <i class="bx bx-up-arrow-alt rp-sortbtn__dir" aria-hidden="true"></i></button>
+                                <button type="button" class="rp-sortbtn" data-rp-sort-key="best-value">Best Value <i class="bx bx-up-arrow-alt rp-sortbtn__dir" aria-hidden="true"></i></button>
+                                <button type="button" class="rp-sortbtn" data-rp-sort-key="arrival">Arrival <i class="bx bx-up-arrow-alt rp-sortbtn__dir" aria-hidden="true"></i></button>
+                                <button type="button" class="rp-sortbtn rp-sortbtn--active is-active" data-rp-sort-key="price">
+                                    Price <i class="bx bx-up-arrow-alt rp-sortbtn__dir" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -427,6 +427,7 @@
                         @endphp
 
                         <div class="rc"
+                             data-rp-id="{{ $lid }}"
                              data-rp-meta='@json($meta)'
                              data-rp-stops="{{ $rpStops }}"
                              data-rp-refund="{{ ($result['non_refundable'] ?? false) ? '0' : '1' }}"
@@ -1105,7 +1106,9 @@
 }
 .rp-sortbtn:hover { background: var(--c-bg); color: var(--c-ink); }
 .rp-sortbtn--active, .rp-sortbtn.is-active { background: var(--c-brand); color: #fff; }
-.rp-sortbtn__dir { transition: transform .2s ease; }
+.rp-sortbtn__dir { display: none; font-size: .95em; transition: transform .2s ease; }
+.rp-sortbtn.is-active .rp-sortbtn__dir,
+.rp-sortbtn.rp-sortbtn--active .rp-sortbtn__dir { display: inline-block; }
 .rp-sortbtn.is-desc .rp-sortbtn__dir { transform: rotate(180deg); }
 
 /* =========================================================
@@ -2494,46 +2497,85 @@
     /* ─────────────────────────────────────────────────────
        SORT
     ───────────────────────────────────────────────────── */
-    let currentSort = 'price-asc';
+    let currentSortKey = 'price';
+    let currentSortDir = 'asc';
+
+    function cardSortValue(card, key){
+        const meta = parseMeta(card);
+        const price = Number(meta.price) || parseFloat(cd(card, 'rpPrice')) || 0;
+
+        switch (key) {
+            case 'price':
+                return price;
+            case 'airline':
+                return String(meta.airline_name || meta.airline_primary || (meta.al || [])[0] || '').toLowerCase();
+            case 'departure':
+                return Number(meta.dep_ts) || Date.parse(meta.first_dep_iso || '') || 0;
+            case 'arrival':
+                return Number(meta.arr_ts) || Date.parse(meta.first_arr_iso || '') || 0;
+            case 'duration':
+                return Number(meta.dur_o) || parseInt(cd(card, 'rpDur'), 10) || 0;
+            case 'best-value': {
+                const minutes = Math.max(1, Number(meta.dur_total) || Number(meta.dur_o) || parseInt(cd(card, 'rpDur'), 10) || 1);
+                return price / minutes;
+            }
+            default:
+                return price;
+        }
+    }
+
+    function compareCards(a, b){
+        let cmp = 0;
+
+        if (currentSortKey === 'airline') {
+            cmp = cardSortValue(a, 'airline').localeCompare(cardSortValue(b, 'airline'), undefined, { sensitivity: 'base' });
+        } else {
+            cmp = cardSortValue(a, currentSortKey) - cardSortValue(b, currentSortKey);
+        }
+
+        if (cmp === 0) {
+            cmp = cardSortValue(a, 'price') - cardSortValue(b, 'price');
+        }
+        if (cmp === 0) {
+            cmp = String(a.dataset.rpId || '').localeCompare(String(b.dataset.rpId || ''));
+        }
+
+        return currentSortDir === 'desc' ? -cmp : cmp;
+    }
+
+    function updateSortButtons(){
+        document.querySelectorAll('.rp-sortbtn[data-rp-sort-key]').forEach(btn=>{
+            const active = btn.dataset.rpSortKey === currentSortKey;
+            btn.classList.toggle('is-active', active);
+            btn.classList.toggle('rp-sortbtn--active', active);
+            btn.classList.toggle('is-desc', active && currentSortDir === 'desc');
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
 
     function sortCards(){
         const items = [...list.querySelectorAll('.rc')];
-        items.sort((a,b)=>{
-            const ma=parseMeta(a), mb=parseMeta(b);
-            switch(currentSort){
-                case 'price-desc':     return (Number(mb.price)||0)-(Number(ma.price)||0);
-                case 'duration-o-asc': return (Number(ma.dur_o)||9e9)-(Number(mb.dur_o)||9e9);
-                case 'departure-o':    return String(ma.first_dep_iso||'').localeCompare(String(mb.first_dep_iso||''));
-                case 'arrival-o':      return String(ma.first_arr_iso||'').localeCompare(String(mb.first_arr_iso||''));
-                case 'airline':        return String((ma.al||[])[0]||'').localeCompare(String((mb.al||[])[0]||''));
-                case 'best-value': {
-                    const va=(Number(ma.price)||9e9)/Math.max(1,Number(ma.dur_o)||1);
-                    const vb=(Number(mb.price)||9e9)/Math.max(1,Number(mb.dur_o)||1);
-                    return va-vb;
-                }
-                default: return (Number(ma.price)||0)-(Number(mb.price)||0);
-            }
-        });
+        items.sort(compareCards);
         items.forEach(el=>list.appendChild(el));
     }
 
-    document.querySelectorAll('.rp-sortbtn[data-rp-sort]').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-            let target = btn.dataset.rpSort;
-            const canCycle = btn.hasAttribute('data-rp-cycle');
-            if(canCycle && (btn.classList.contains('is-active')||btn.classList.contains('rp-sortbtn--active'))){
-                if(target==='price-asc'){ target='price-desc'; btn.classList.add('is-desc'); }
-                else { target='price-asc'; btn.classList.remove('is-desc'); }
-                btn.dataset.rpSort = target;
-            } else if(canCycle){
-                btn.classList.remove('is-desc');
+    document.querySelectorAll('.rp-sortbtn[data-rp-sort-key]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+            const key = btn.dataset.rpSortKey || 'price';
+
+            if (key === currentSortKey) {
+                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortKey = key;
+                currentSortDir = 'asc';
             }
-            document.querySelectorAll('.rp-sortbtn').forEach(b=>b.classList.remove('rp-sortbtn--active','is-active'));
-            btn.classList.add('is-active');
-            currentSort = target;
+
+            updateSortButtons();
             sortCards();
         });
     });
+
+    updateSortButtons();
 
     /* ─────────────────────────────────────────────────────
        MODAL
