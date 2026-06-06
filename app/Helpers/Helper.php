@@ -332,6 +332,11 @@ if (! function_exists('resolveFlightCityLabel')) {
     {
         $cityName = trim((string) ($cityName ?? ''));
         $airportCode = strtoupper(trim((string) ($airportCode ?? '')));
+        $map = flightAirportCityMap();
+
+        if ($airportCode !== '' && isset($map[$airportCode])) {
+            return $map[$airportCode];
+        }
 
         if ($cityName !== '' && ! preg_match('/^[A-Z0-9]{3}$/', strtoupper($cityName))) {
             return $cityName;
@@ -342,7 +347,7 @@ if (! function_exists('resolveFlightCityLabel')) {
             return '';
         }
 
-        return flightAirportCityMap()[$lookup] ?? $lookup;
+        return $map[$lookup] ?? $lookup;
     }
 }
 

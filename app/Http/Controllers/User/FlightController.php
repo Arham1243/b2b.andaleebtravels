@@ -670,6 +670,7 @@ class FlightController extends Controller
 
                 $primaryFare = $fareOptions[0];
                 $legs = $this->expandLegsForConnectingDisplay($legs, $primaryFare['baggage_details'] ?? []);
+                $legs = $this->sanitizeLegsForDisplay($legs, $searchData);
 
                 $totalPrice = (float) ($primaryFare['totalPrice'] ?? 0.0);
 
@@ -1283,7 +1284,7 @@ class FlightController extends Controller
      */
     private function expandLegsForConnectingDisplay(array $legs, array $baggageDetails): array
     {
-        $expectedRoutes = [];
+        $allRoutes = [];
 
         foreach (array_merge($baggageDetails['checked'] ?? [], $baggageDetails['cabin'] ?? []) as $row) {
             if (! is_array($row)) {
@@ -1295,23 +1296,29 @@ class FlightController extends Controller
                 continue;
             }
 
-            if (! in_array($route, $expectedRoutes, true)) {
-                $expectedRoutes[] = $route;
+            if (! in_array($route, $allRoutes, true)) {
+                $allRoutes[] = $route;
             }
         }
 
-        if (count($expectedRoutes) <= 1) {
+        if ($allRoutes === []) {
             return $legs;
         }
 
         foreach ($legs as &$leg) {
             $segments = is_array($leg['segments'] ?? null) ? $leg['segments'] : [];
 
-            if ($segments === [] || count($segments) >= count($expectedRoutes)) {
+            if ($segments === []) {
                 continue;
             }
 
-            $expanded = $this->buildDisplaySegmentsFromRoutes($segments, $expectedRoutes);
+            $legRoutes = $this->expectedRoutesForLeg($segments, $allRoutes);
+
+            if (count($legRoutes) <= 1 || count($segments) >= count($legRoutes)) {
+                continue;
+            }
+
+            $expanded = $this->buildDisplaySegmentsFromRoutes($segments, $legRoutes);
 
             if (count($expanded) > count($segments)) {
                 $leg['segments'] = $expanded;
@@ -1321,6 +1328,194 @@ class FlightController extends Controller
         unset($leg);
 
         return $legs;
+    }
+
+    /**
+     * Keep only baggage routes that chain within a single leg's origin → destination.
+     *
+     * @param  list<array<string, mixed>>  $segments
+     * @param  list<string>  $allRoutes
+     * @return list<string>
+     */
+    private function expectedRoutesForLeg(array $segments, array $allRoutes): array
+    {
+        $first = $segments[0] ?? [];
+        $last = $segments[array_key_last($segments)] ?? [];
+        $origin = strtoupper(trim((string) ($first['from'] ?? '')));
+        $destination = strtoupper(trim((string) ($last['to'] ?? '')));
+
+        if ($origin === '' || $destination === '') {
+            return [];
+        }
+
+        $parsed = [];
+
+        foreach ($allRoutes as $route) {
+            if (! preg_match('/^([A-Z]{3})\s*→\s*([A-Z]{3})$/', strtoupper(trim($route)), $matches)) {
+                continue;
+            }
+
+            $parsed[] = [
+                'route' => strtoupper(trim($matches[1])) . ' → ' . strtoupper(trim($matches[2])),
+                'from' => strtoupper(trim($matches[1])),
+                'to' => strtoupper(trim($matches[2])),
+            ];
+        }
+
+        if ($parsed === []) {
+            return [];
+        }
+
+        $selected = [];
+        $remaining = $parsed;
+        $current = $origin;
+        $guard = count($parsed) + 1;
+
+        while ($current !== $destination && $guard-- > 0) {
+            $next = null;
+
+            foreach ($remaining as $index => $route) {
+                if ($route['from'] !== $current) {
+                    continue;
+                }
+
+                $next = $route;
+                unset($remaining[$index]);
+                break;
+            }
+
+            if ($next === null) {
+                break;
+            }
+
+            $selected[] = $next['route'];
+            $current = $next['to'];
+        }
+
+        if ($current === $destination && $selected !== []) {
+            return $selected;
+        }
+
+        foreach ($parsed as $route) {
+            if ($route['from'] === $origin && $route['to'] === $destination) {
+                return [$route['route']];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Drop cross-leg segments that baggage expansion can inject on round trips.
+     *
+     * @param  list<array<string, mixed>>  $legs
+     * @param  array<string, mixed>  $searchData
+     * @return list<array<string, mixed>>
+     */
+    private function sanitizeLegsForDisplay(array $legs, array $searchData): array
+    {
+        $from = strtoupper(trim((string) ($searchData['from'] ?? '')));
+        $to = strtoupper(trim((string) ($searchData['to'] ?? '')));
+
+        if ($from === '' || $to === '') {
+            return $legs;
+        }
+
+        foreach ($legs as $legIndex => &$leg) {
+            $segments = is_array($leg['segments'] ?? null) ? $leg['segments'] : [];
+            if ($segments === []) {
+                continue;
+            }
+
+            $origin = $legIndex === 0 ? $from : $to;
+            $destination = $legIndex === 0 ? $to : $from;
+
+            $filtered = $this->filterSegmentsForLegDirection($segments, $origin, $destination);
+            if ($filtered !== []) {
+                $leg['segments'] = $filtered;
+                $leg['filter_axes'] = $this->axisForLegSegments($filtered);
+            }
+        }
+        unset($leg);
+
+        return $legs;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     * @return list<array<string, mixed>>
+     */
+    private function filterSegmentsForLegDirection(array $segments, string $origin, string $destination): array
+    {
+        $origin = strtoupper($origin);
+        $destination = strtoupper($destination);
+
+        $filtered = [];
+
+        foreach ($segments as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+
+            $from = strtoupper(trim((string) ($segment['from'] ?? '')));
+            $to = strtoupper(trim((string) ($segment['to'] ?? '')));
+
+            if ($from === $destination && $to === $origin) {
+                continue;
+            }
+
+            $filtered[] = $segment;
+        }
+
+        if ($filtered === []) {
+            return $segments;
+        }
+
+        $chain = $this->pickSegmentChain($filtered, $origin, $destination);
+
+        return $chain !== [] ? $chain : $filtered;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     * @return list<array<string, mixed>>
+     */
+    private function pickSegmentChain(array $segments, string $origin, string $destination): array
+    {
+        $remaining = $segments;
+        $selected = [];
+        $current = strtoupper($origin);
+        $guard = count($segments) + 1;
+
+        while ($current !== strtoupper($destination) && $guard-- > 0) {
+            $next = null;
+            $nextIndex = null;
+
+            foreach ($remaining as $index => $segment) {
+                $from = strtoupper(trim((string) ($segment['from'] ?? '')));
+                if ($from !== $current) {
+                    continue;
+                }
+
+                $next = $segment;
+                $nextIndex = $index;
+                break;
+            }
+
+            if ($next === null) {
+                break;
+            }
+
+            unset($remaining[$nextIndex]);
+            $selected[] = $next;
+            $current = strtoupper(trim((string) ($next['to'] ?? '')));
+        }
+
+        if ($current !== strtoupper($destination)) {
+            return [];
+        }
+
+        return $selected;
     }
 
     /**

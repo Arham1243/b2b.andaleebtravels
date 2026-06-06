@@ -353,15 +353,18 @@
                             $cardCur    = strtoupper((string) ($fareOptions[0]['currency'] ?? $result['currency'] ?? $currencyCode));
                             $totalPrice = (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0));
 
-                            // Modal tab labels: "DXB → KHI" per leg
+                            // Modal tab labels from search endpoints (not expanded segment endpoints).
+                            $searchFrom = strtoupper((string) ($query['from'] ?? ''));
+                            $searchTo = strtoupper((string) ($query['to'] ?? ''));
                             $legRoutes = [];
                             foreach ($legs as $li2 => $lg2) {
-                                $sg2 = $lg2['segments'] ?? [];
-                                $f2  = $sg2[0] ?? [];
-                                $l2  = !empty($sg2) ? $sg2[array_key_last($sg2)] : [];
+                                $routeFrom = $li2 === 0 ? $searchFrom : $searchTo;
+                                $routeTo = $li2 === 0 ? $searchTo : $searchFrom;
                                 $legRoutes[] = [
-                                    'from' => $f2['from'] ?? ' - ',
-                                    'to'   => $l2['to']   ?? ' - ',
+                                    'from' => $routeFrom !== '' ? $routeFrom : ($lg2['segments'][0]['from'] ?? ' - '),
+                                    'to' => $routeTo !== '' ? $routeTo : ($lg2['segments'][array_key_last($lg2['segments'] ?? [])]['to'] ?? ' - '),
+                                    'from_label' => resolveFlightCityLabel('', $routeFrom),
+                                    'to_label' => resolveFlightCityLabel('', $routeTo),
                                     'label'=> $li2 === 0 ? 'Outbound' : 'Return',
                                     'icon' => $li2 === 0 ? 'bxs-plane-take-off' : 'bxs-plane-land',
                                 ];
@@ -592,9 +595,9 @@
                                 <div class="fd-head">
                                     <div class="fd-head__title">
                                         <i class="bx bxs-plane"></i>
-                                        {{ $legRoutes[0]['from'] }} → {{ $legRoutes[0]['to'] }}
+                                        {{ ($legRoutes[0]['from_label'] ?? $legRoutes[0]['from']) }} → {{ ($legRoutes[0]['to_label'] ?? $legRoutes[0]['to']) }}
                                         @if(count($legRoutes) > 1)
-                                            ⇄ {{ $legRoutes[1]['from'] }} → {{ $legRoutes[1]['to'] }}
+                                            ⇄ {{ ($legRoutes[1]['from_label'] ?? $legRoutes[1]['from']) }} → {{ ($legRoutes[1]['to_label'] ?? $legRoutes[1]['to']) }}
                                         @endif
                                         <span class="fd-head__sub">· Flight Details</span>
                                     </div>
@@ -610,7 +613,7 @@
                                             data-fd-tab="{{ $ti }}">
                                             <i class="bx {{ $lr['icon'] }}"></i>
                                             {{ $lr['label'] }}
-                                            <span class="fd-tab__route">{{ $lr['from'] }} → {{ $lr['to'] }}</span>
+                                            <span class="fd-tab__route">{{ ($lr['from_label'] ?? $lr['from']) }} → {{ ($lr['to_label'] ?? $lr['to']) }}</span>
                                         </button>
                                     @endforeach
                                     <button class="fd-tab" data-fd-tab="baggage">
@@ -633,16 +636,7 @@
                                             @foreach($segs as $sIdx => $sx)
                                                 @php
                                                     $sxMins  = fl_segment_minutes($sx);
-                                                    $layover = $sIdx > 0 ? fl_layover_minutes($segs[$sIdx-1], $sx) : null;
                                                 @endphp
-
-                                                @if($layover !== null)
-                                                    <div class="fd-layover">
-                                                        <i class="bx bx-time-five"></i>
-                                                        <strong>{{ fl_format_hm($layover) }}</strong> layover at
-                                                        <strong>{{ resolveFlightCityLabel($sx['departure_city'] ?? '', $sx['from'] ?? '') }}</strong>
-                                                    </div>
-                                                @endif
 
                                                 <div class="fd-seg">
                                                     <div class="fd-seg__air">
