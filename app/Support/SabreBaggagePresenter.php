@@ -99,7 +99,7 @@ final class SabreBaggagePresenter
         $allowanceById = collect($grouped['baggageAllowanceDescs'] ?? [])->keyBy('id');
         $baggageInformation = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo.baggageInformation', []);
         $fareComponents = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo.fareComponents', []);
-        $segmentRoutes = self::segmentRoutes($fareComponents);
+        $segmentRoutes = self::segmentRoutes($fareComponents, $grouped);
 
         $checked = [];
         $cabin = [];
@@ -114,30 +114,31 @@ final class SabreBaggagePresenter
             }
 
             $provisionType = strtoupper(trim((string) ($row['provisionType'] ?? 'A')));
-            $segmentId = (int) data_get($row, 'segments.0.id', -1);
-            $route = $segmentRoutes[$segmentId] ?? 'All segments';
             $airline = strtoupper(trim((string) ($row['airlineCode'] ?? '')));
             $isCabin = self::isCabinProvision($provisionType);
             $desc = self::resolveAllowanceDesc($row, $allowanceById);
             $friendly = self::parseAllowanceFriendly($desc, $isCabin);
+            $targetRoutes = self::resolveBaggageTargetRoutes($row, $segmentRoutes);
 
-            $entry = [
-                'route' => $route,
-                'airline' => $airline,
-                'allowance' => $friendly['display'],
-                'friendly' => $friendly,
-                'provision_type' => $provisionType,
-            ];
+            foreach ($targetRoutes as $route) {
+                $entry = [
+                    'route' => $route,
+                    'airline' => $airline,
+                    'allowance' => $friendly['display'],
+                    'friendly' => $friendly,
+                    'provision_type' => $provisionType,
+                ];
 
-            if (self::isCabinProvision($provisionType)) {
-                $cabin[] = $entry;
-            } else {
-                $checked[] = $entry;
+                if ($isCabin) {
+                    $cabin[] = $entry;
+                } else {
+                    $checked[] = $entry;
+                }
             }
         }
 
-        $checked = self::uniqueRows($checked);
-        $cabin = self::uniqueRows($cabin);
+        $checked = self::normalizeSegmentAllowanceRows($checked, $segmentRoutes, false);
+        $cabin = self::normalizeSegmentAllowanceRows($cabin, $segmentRoutes, true);
         $paxTable = self::paxAllowanceTable($pricingBlock, $grouped);
 
         return [
@@ -147,6 +148,347 @@ final class SabreBaggagePresenter
             'pax_table' => $paxTable,
             'cabin_notes' => self::collectCabinNotes($cabin, $paxTable),
         ];
+    }
+
+    /**
+     * Align per-segment baggage rows with built flight legs and propagate itinerary-level allowance.
+     *
+     * @param  array<string, mixed>  $baggageDetails
+     * @param  list<array<string, mixed>>  $legs
+     * @return array<string, mixed>
+     */
+    public static function alignWithFlightLegs(array $baggageDetails, array $legs): array
+    {
+        $segmentRoutes = self::mergeSegmentRoutes(
+            self::routesFromLegs($legs),
+            self::routesFromBaggageRows(
+                array_merge($baggageDetails['checked'] ?? [], $baggageDetails['cabin'] ?? []),
+            ),
+        );
+
+        if ($segmentRoutes === []) {
+            return $baggageDetails;
+        }
+
+        $baggageDetails['checked'] = self::normalizeSegmentAllowanceRows(
+            $baggageDetails['checked'] ?? [],
+            $segmentRoutes,
+            false,
+            $baggageDetails,
+        );
+        $baggageDetails['cabin'] = self::normalizeSegmentAllowanceRows(
+            $baggageDetails['cabin'] ?? [],
+            $segmentRoutes,
+            true,
+            $baggageDetails,
+        );
+        $baggageDetails['summary'] = self::buildSummary(
+            $baggageDetails['checked'] ?? [],
+            $baggageDetails['cabin'] ?? [],
+        );
+
+        return $baggageDetails;
+    }
+
+    /**
+     * @param  array<string, mixed>  $bagRow
+     * @param  array<int, string>  $segmentRoutes
+     * @return list<string>
+     */
+    private static function resolveBaggageTargetRoutes(array $bagRow, array $segmentRoutes): array
+    {
+        $segmentRefs = is_array($bagRow['segments'] ?? null) ? $bagRow['segments'] : [];
+        $routes = [];
+
+        if ($segmentRefs === []) {
+            return array_values(array_unique(array_filter($segmentRoutes)));
+        }
+
+        foreach ($segmentRefs as $segmentRef) {
+            if (! is_array($segmentRef)) {
+                continue;
+            }
+
+            $segmentId = (int) ($segmentRef['id'] ?? -1);
+            $route = $segmentRoutes[$segmentId] ?? null;
+
+            if ($route !== null && $route !== '') {
+                $routes[] = $route;
+            }
+        }
+
+        $routes = array_values(array_unique(array_filter($routes)));
+
+        return $routes !== [] ? $routes : array_values(array_unique(array_filter($segmentRoutes)));
+    }
+
+    /**
+     * @param  array<int, string>  $primaryRoutes
+     * @param  list<string>  $secondaryRoutes
+     * @return array<int, string>
+     */
+    private static function mergeSegmentRoutes(array $primaryRoutes, array $secondaryRoutes): array
+    {
+        $merged = [];
+        $ordinal = 0;
+
+        foreach (array_values(array_unique(array_filter(array_merge(
+            array_values($primaryRoutes),
+            $secondaryRoutes,
+        )))) as $route) {
+            $merged[$ordinal++] = $route;
+        }
+
+        return $merged;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<string>
+     */
+    private static function routesFromBaggageRows(array $rows): array
+    {
+        $routes = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $route = trim((string) ($row['route'] ?? ''));
+            if ($route === '' || strcasecmp($route, 'All segments') === 0) {
+                continue;
+            }
+
+            if (! in_array($route, $routes, true)) {
+                $routes[] = $route;
+            }
+        }
+
+        return $routes;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $legs
+     * @return array<int, string>
+     */
+    public static function routesFromLegs(array $legs): array
+    {
+        $routes = [];
+        $ordinal = 0;
+
+        foreach ($legs as $leg) {
+            if (! is_array($leg)) {
+                continue;
+            }
+
+            foreach ($leg['segments'] ?? [] as $segment) {
+                if (! is_array($segment)) {
+                    continue;
+                }
+
+                $route = self::routeFromAirports(
+                    (string) ($segment['from'] ?? ''),
+                    (string) ($segment['to'] ?? ''),
+                );
+
+                if ($route !== null) {
+                    $routes[$ordinal] = $route;
+                }
+
+                $ordinal++;
+            }
+        }
+
+        return $routes;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array<int, string>  $segmentRoutes
+     * @param  array<string, mixed>|null  $fullBaggage
+     * @return list<array<string, mixed>>
+     */
+    private static function normalizeSegmentAllowanceRows(
+        array $rows,
+        array $segmentRoutes,
+        bool $isCabin,
+        ?array $fullBaggage = null,
+    ): array {
+        $routeList = array_values(array_unique(array_filter($segmentRoutes)));
+
+        if ($routeList === []) {
+            return self::uniqueRowsPreferAllowance($rows);
+        }
+
+        $byRoute = [];
+
+        foreach ($rows as $row) {
+            $route = trim((string) ($row['route'] ?? ''));
+
+            if ($route === '' || strcasecmp($route, 'All segments') === 0) {
+                continue;
+            }
+
+            if (! isset($byRoute[$route])) {
+                $byRoute[$route] = $row;
+                continue;
+            }
+
+            if (self::rowIsNotIncluded($byRoute[$route]) && ! self::rowIsNotIncluded($row)) {
+                $byRoute[$route] = $row;
+            }
+        }
+
+        $fallback = self::fallbackAllowanceForType($rows, $isCabin, $fullBaggage);
+        $normalized = [];
+
+        foreach ($routeList as $route) {
+            if (isset($byRoute[$route])) {
+                $row = $byRoute[$route];
+                if (self::rowIsNotIncluded($row) && $fallback !== null) {
+                    $row = self::applyAllowanceToRow($row, $fallback);
+                }
+                $normalized[] = $row;
+                continue;
+            }
+
+            if ($fallback !== null) {
+                $normalized[] = self::makeAllowanceRow($route, $fallback);
+            }
+        }
+
+        if ($normalized === []) {
+            return self::uniqueRowsPreferAllowance($rows);
+        }
+
+        return self::uniqueRowsPreferAllowance($normalized);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function rowIsNotIncluded(array $row): bool
+    {
+        $amount = trim((string) data_get($row, 'friendly.amount', ''));
+        $allowance = trim((string) ($row['allowance'] ?? ''));
+
+        if ($amount !== '' && strcasecmp($amount, 'Not included') !== 0) {
+            return false;
+        }
+
+        return $allowance === '' || strcasecmp($allowance, 'Not included') === 0;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array<string, mixed>|null  $fullBaggage
+     * @return array{display: string, friendly: array<string, mixed>, airline: string, provision_type: string}|null
+     */
+    private static function fallbackAllowanceForType(array $rows, bool $isCabin, ?array $fullBaggage): ?array
+    {
+        foreach ($rows as $row) {
+            if (! self::rowIsNotIncluded($row)) {
+                return [
+                    'display' => (string) ($row['allowance'] ?? data_get($row, 'friendly.display', 'Not included')),
+                    'friendly' => is_array($row['friendly'] ?? null) ? $row['friendly'] : self::parseAllowanceFriendly(null, $isCabin),
+                    'airline' => (string) ($row['airline'] ?? ''),
+                    'provision_type' => (string) ($row['provision_type'] ?? ($isCabin ? 'B' : 'A')),
+                ];
+            }
+        }
+
+        if ($fullBaggage === null) {
+            return null;
+        }
+
+        $friendlyKey = $isCabin ? 'cabin_friendly' : 'checked_friendly';
+        $textKey = $isCabin ? 'cabin' : 'checked';
+
+        foreach ($fullBaggage['pax_table'] ?? [] as $paxRow) {
+            if (! is_array($paxRow)) {
+                continue;
+            }
+
+            $friendly = $paxRow[$friendlyKey] ?? null;
+            $text = trim((string) ($paxRow[$textKey] ?? ''));
+
+            if (is_array($friendly) && trim((string) ($friendly['amount'] ?? '')) !== '' && strcasecmp((string) $friendly['amount'], 'Not included') !== 0) {
+                return [
+                    'display' => (string) ($friendly['display'] ?? $friendly['amount']),
+                    'friendly' => $friendly,
+                    'airline' => '',
+                    'provision_type' => $isCabin ? 'B' : 'A',
+                ];
+            }
+
+            if ($text !== '' && strcasecmp($text, 'Not included') !== 0) {
+                return [
+                    'display' => $text,
+                    'friendly' => self::parseAllowanceFriendly(null, $isCabin),
+                    'airline' => '',
+                    'provision_type' => $isCabin ? 'B' : 'A',
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array{display: string, friendly: array<string, mixed>, airline: string, provision_type: string}  $fallback
+     * @return array<string, mixed>
+     */
+    private static function applyAllowanceToRow(array $row, array $fallback): array
+    {
+        $row['allowance'] = $fallback['display'];
+        $row['friendly'] = $fallback['friendly'];
+        if (($row['airline'] ?? '') === '' && $fallback['airline'] !== '') {
+            $row['airline'] = $fallback['airline'];
+        }
+
+        return $row;
+    }
+
+    /**
+     * @param  array{display: string, friendly: array<string, mixed>, airline: string, provision_type: string}  $fallback
+     * @return array<string, mixed>
+     */
+    private static function makeAllowanceRow(string $route, array $fallback): array
+    {
+        return [
+            'route' => $route,
+            'airline' => $fallback['airline'],
+            'allowance' => $fallback['display'],
+            'friendly' => $fallback['friendly'],
+            'provision_type' => $fallback['provision_type'],
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private static function uniqueRowsPreferAllowance(array $rows): array
+    {
+        $unique = [];
+
+        foreach ($rows as $row) {
+            $route = strtolower(trim((string) ($row['route'] ?? '')));
+            $key = $route . '|' . strtolower((string) ($row['provision_type'] ?? ''));
+
+            if (! isset($unique[$key])) {
+                $unique[$key] = $row;
+                continue;
+            }
+
+            if (self::rowIsNotIncluded($unique[$key]) && ! self::rowIsNotIncluded($row)) {
+                $unique[$key] = $row;
+            }
+        }
+
+        return array_values($unique);
     }
 
     /**
@@ -205,28 +547,122 @@ final class SabreBaggagePresenter
     }
 
     /**
-     * @param list<array<string, mixed>> $fareComponents
-     *
+     * @param  list<array<string, mixed>>  $fareComponents
+     * @param  array<string, mixed>  $grouped
      * @return array<int, string>
      */
-    private static function segmentRoutes(array $fareComponents): array
+    private static function segmentRoutes(array $fareComponents, array $grouped = []): array
     {
+        $scheduleById = collect($grouped['scheduleDescs'] ?? [])->keyBy('id');
         $routes = [];
+        $ordinal = 0;
 
-        foreach ($fareComponents as $index => $component) {
-            if (!is_array($component)) {
+        foreach ($fareComponents as $component) {
+            if (! is_array($component)) {
                 continue;
             }
 
-            $from = strtoupper(trim((string) ($component['beginAirport'] ?? '')));
-            $to = strtoupper(trim((string) ($component['endAirport'] ?? '')));
+            $segments = is_array($component['segments'] ?? null) ? $component['segments'] : [];
 
-            if ($from !== '' && $to !== '') {
-                $routes[(int) $index] = $from . ' → ' . $to;
+            if ($segments !== []) {
+                foreach ($segments as $segWrap) {
+                    if (! is_array($segWrap)) {
+                        continue;
+                    }
+
+                    $segment = is_array($segWrap['segment'] ?? null) ? $segWrap['segment'] : [];
+                    $segmentId = array_key_exists('id', $segment) ? (int) $segment['id'] : $ordinal;
+                    $route = self::routeForFareSegment($segment, $scheduleById, $component);
+
+                    if ($route !== null) {
+                        $routes[$segmentId] = $route;
+                        $routes[$ordinal] = $route;
+                    }
+
+                    $ordinal++;
+                }
+
+                continue;
             }
+
+            $route = self::routeFromAirports(
+                (string) ($component['beginAirport'] ?? ''),
+                (string) ($component['endAirport'] ?? ''),
+            );
+
+            if ($route !== null) {
+                $routes[$ordinal] = $route;
+            }
+
+            $ordinal++;
         }
 
         return $routes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $segment
+     * @param  \Illuminate\Support\Collection<int|string, mixed>  $scheduleById
+     * @param  array<string, mixed>  $component
+     */
+    private static function routeForFareSegment(array $segment, $scheduleById, array $component): ?string
+    {
+        $route = self::routeFromAirports(
+            (string) (data_get($segment, 'origin')
+                ?? data_get($segment, 'departure.airport')
+                ?? data_get($segment, 'departureAirport')
+                ?? ''),
+            (string) (data_get($segment, 'destination')
+                ?? data_get($segment, 'arrival.airport')
+                ?? data_get($segment, 'arrivalAirport')
+                ?? ''),
+        );
+
+        if ($route !== null) {
+            return $route;
+        }
+
+        foreach (['scheduleRef', 'schedule', 'ref'] as $scheduleKey) {
+            $scheduleRef = data_get($segment, $scheduleKey);
+            $schedule = is_array($scheduleRef)
+                ? $scheduleRef
+                : $scheduleById->get($scheduleRef);
+
+            if (! is_array($schedule)) {
+                continue;
+            }
+
+            $route = self::routeFromAirports(
+                (string) data_get($schedule, 'departure.airport'),
+                (string) data_get($schedule, 'arrival.airport'),
+            );
+
+            if ($route !== null) {
+                return $route;
+            }
+        }
+
+        $componentSegments = is_array($component['segments'] ?? null) ? $component['segments'] : [];
+        if (count($componentSegments) === 1) {
+            return self::routeFromAirports(
+                (string) ($component['beginAirport'] ?? ''),
+                (string) ($component['endAirport'] ?? ''),
+            );
+        }
+
+        return null;
+    }
+
+    private static function routeFromAirports(string $from, string $to): ?string
+    {
+        $from = strtoupper(trim($from));
+        $to = strtoupper(trim($to));
+
+        if ($from === '' || $to === '') {
+            return null;
+        }
+
+        return $from . ' → ' . $to;
     }
 
     /**
@@ -707,17 +1143,7 @@ final class SabreBaggagePresenter
      */
     private static function uniqueRows(array $rows): array
     {
-        $unique = [];
-
-        foreach ($rows as $row) {
-            $key = strtolower($row['route'] . '|' . $row['allowance'] . '|' . $row['provision_type']);
-
-            if (!isset($unique[$key])) {
-                $unique[$key] = $row;
-            }
-        }
-
-        return array_values($unique);
+        return self::uniqueRowsPreferAllowance($rows);
     }
 
     /**

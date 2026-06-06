@@ -660,6 +660,17 @@ class FlightController extends Controller
                     );
                 }
 
+                foreach ($fareOptions as &$fareOption) {
+                    $fareOption['baggage_details'] = SabreBaggagePresenter::alignWithFlightLegs(
+                        $fareOption['baggage_details'] ?? [],
+                        $legs,
+                    );
+                }
+                unset($fareOption);
+
+                $primaryFare = $fareOptions[0];
+                $legs = $this->expandLegsForConnectingDisplay($legs, $primaryFare['baggage_details'] ?? []);
+
                 $totalPrice = (float) ($primaryFare['totalPrice'] ?? 0.0);
 
                 $results[] = [
@@ -1227,6 +1238,121 @@ class FlightController extends Controller
         }
 
         return 4;
+    }
+
+    /**
+     * Some Sabre fares expose per-segment baggage routes before all schedule segments are materialized.
+     * Expand display legs so the details popup shows each connecting segment separately.
+     *
+     * @param  list<array<string, mixed>>  $legs
+     * @param  array<string, mixed>  $baggageDetails
+     * @return list<array<string, mixed>>
+     */
+    private function expandLegsForConnectingDisplay(array $legs, array $baggageDetails): array
+    {
+        $expectedRoutes = [];
+
+        foreach (array_merge($baggageDetails['checked'] ?? [], $baggageDetails['cabin'] ?? []) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $route = trim((string) ($row['route'] ?? ''));
+            if ($route === '' || strcasecmp($route, 'All segments') === 0) {
+                continue;
+            }
+
+            if (! in_array($route, $expectedRoutes, true)) {
+                $expectedRoutes[] = $route;
+            }
+        }
+
+        if (count($expectedRoutes) <= 1) {
+            return $legs;
+        }
+
+        foreach ($legs as &$leg) {
+            $segments = is_array($leg['segments'] ?? null) ? $leg['segments'] : [];
+
+            if ($segments === [] || count($segments) >= count($expectedRoutes)) {
+                continue;
+            }
+
+            $expanded = $this->buildDisplaySegmentsFromRoutes($segments, $expectedRoutes);
+
+            if (count($expanded) > count($segments)) {
+                $leg['segments'] = $expanded;
+                $leg['filter_axes'] = $this->axisForLegSegments($expanded);
+            }
+        }
+        unset($leg);
+
+        return $legs;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     * @param  list<string>  $routes
+     * @return list<array<string, mixed>>
+     */
+    private function buildDisplaySegmentsFromRoutes(array $segments, array $routes): array
+    {
+        $parsedRoutes = [];
+
+        foreach ($routes as $route) {
+            if (! preg_match('/^([A-Z]{3})\s*→\s*([A-Z]{3})$/', strtoupper(trim($route)), $matches)) {
+                continue;
+            }
+
+            $parsedRoutes[] = [
+                'route' => strtoupper(trim($matches[1])) . ' → ' . strtoupper(trim($matches[2])),
+                'from' => strtoupper(trim($matches[1])),
+                'to' => strtoupper(trim($matches[2])),
+            ];
+        }
+
+        if ($parsedRoutes === []) {
+            return $segments;
+        }
+
+        $template = $segments[0] ?? [];
+        $expanded = [];
+
+        foreach ($parsedRoutes as $index => $parsedRoute) {
+            $matched = null;
+
+            foreach ($segments as $segment) {
+                if (! is_array($segment)) {
+                    continue;
+                }
+
+                if (strtoupper((string) ($segment['from'] ?? '')) === $parsedRoute['from']
+                    && strtoupper((string) ($segment['to'] ?? '')) === $parsedRoute['to']) {
+                    $matched = $segment;
+                    break;
+                }
+            }
+
+            if ($matched !== null) {
+                $expanded[] = $matched;
+                continue;
+            }
+
+            $expanded[] = array_merge($template, [
+                'from' => $parsedRoute['from'],
+                'to' => $parsedRoute['to'],
+                'departure_city' => '',
+                'arrival_city' => '',
+                'departure_clock' => $index === 0 ? ($template['departure_clock'] ?? ' - ') : ' - ',
+                'arrival_clock' => $index === count($parsedRoutes) - 1 ? ($template['arrival_clock'] ?? ' - ') : ' - ',
+                'departure_label' => $index === 0 ? ($template['departure_label'] ?? '') : '',
+                'arrival_label' => $index === count($parsedRoutes) - 1 ? ($template['arrival_label'] ?? '') : '',
+                'departure_datetime' => $index === 0 ? ($template['departure_datetime'] ?? null) : null,
+                'arrival_datetime' => $index === count($parsedRoutes) - 1 ? ($template['arrival_datetime'] ?? null) : null,
+            ]);
+        }
+
+        return $expanded !== [] ? $expanded : $segments;
     }
 
     /**
