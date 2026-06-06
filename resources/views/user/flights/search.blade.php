@@ -148,14 +148,19 @@
                         </span>
                     </div>
                     <div class="col-12">
-                        <div class="rp-agent-notice" role="note">
-                            <i class="bx bx-info-circle" aria-hidden="true"></i>
-                            <p>
-                                <strong>Note:</strong>
-                                Creating more than one booking for the same passenger on the same airline may result in an
-                                Airline Debit Memo (ADM). Any ADM issued will be debited to your agency account.
-                            </p>
-                        </div>
+                        <aside class="rp-advisory" role="note" aria-label="Agency booking advisory">
+                            <div class="rp-advisory__mark" aria-hidden="true">
+                                <i class="bx bx-shield-quarter"></i>
+                            </div>
+                            <div class="rp-advisory__body">
+                                <span class="rp-advisory__tag">Agency advisory</span>
+                                <p class="rp-advisory__title">Avoid duplicate bookings on the same airline</p>
+                                <p class="rp-advisory__text">
+                                    If the same traveller is reserved more than once on one carrier, the airline may issue an
+                                    Airline Debit Memo (ADM). Any ADM applied by the airline will be recovered from your agency account.
+                                </p>
+                            </div>
+                        </aside>
                     </div>
                 </div>
 
@@ -1044,32 +1049,61 @@
 .rp-listing-prelude__count-wrap {
     padding: .45rem 0 .35rem;
 }
-.rp-agent-notice {
+.rp-advisory {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .85rem;
+    align-items: start;
+    padding: .85rem 1rem .85rem .95rem;
+    border-radius: 12px;
+    border: 1px solid rgba(205, 27, 79, .14);
+    background:
+        linear-gradient(135deg, rgba(253, 238, 243, .95) 0%, rgba(255, 255, 255, .98) 58%),
+        var(--c-white);
+    box-shadow: inset 3px 0 0 var(--c-brand);
+}
+.rp-advisory__mark {
     display: flex;
-    align-items: flex-start;
-    gap: .55rem;
-    padding: .62rem .85rem;
-    border-radius: 8px;
-    border: 1px solid rgba(217, 119, 6, .28);
-    background: var(--c-amber-soft);
-    color: #92400e;
-}
-.rp-agent-notice i {
-    font-size: 1.05rem;
-    line-height: 1.35;
-    color: var(--c-amber);
+    align-items: center;
+    justify-content: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 10px;
+    background: var(--c-brand-soft);
+    color: var(--c-brand);
     flex-shrink: 0;
-    margin-top: .02rem;
 }
-.rp-agent-notice p {
+.rp-advisory__mark i {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+.rp-advisory__body {
+    min-width: 0;
+}
+.rp-advisory__tag {
+    display: inline-block;
+    margin-bottom: .28rem;
+    padding: .12rem .45rem;
+    border-radius: 999px;
+    background: rgba(205, 27, 79, .08);
+    color: var(--c-brand2);
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.rp-advisory__title {
+    margin: 0 0 .2rem;
+    font-size: .84rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--c-ink);
+}
+.rp-advisory__text {
     margin: 0;
     font-size: .78rem;
-    line-height: 1.45;
-    color: #78350f;
-}
-.rp-agent-notice strong {
-    font-weight: 700;
-    color: #92400e;
+    line-height: 1.5;
+    color: var(--c-slate);
 }
 
 /* =========================================================
