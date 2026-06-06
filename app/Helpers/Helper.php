@@ -351,6 +351,90 @@ if (! function_exists('resolveFlightCityLabel')) {
     }
 }
 
+if (! function_exists('formatFlightAircraftCode')) {
+    function formatFlightAircraftCode(?string $code): string
+    {
+        $code = strtoupper(trim((string) ($code ?? '')));
+
+        if ($code === '') {
+            return '';
+        }
+
+        static $labels = [
+            '319' => 'Airbus A319',
+            '320' => 'Airbus A320',
+            '321' => 'Airbus A321',
+            '32A' => 'Airbus A320',
+            '32B' => 'Airbus A321',
+            '32N' => 'Airbus A320neo',
+            '32Q' => 'Airbus A321neo',
+            '330' => 'Airbus A330',
+            '332' => 'Airbus A330-200',
+            '333' => 'Airbus A330-300',
+            '339' => 'Airbus A330-900neo',
+            '350' => 'Airbus A350',
+            '359' => 'Airbus A350-900',
+            '351' => 'Airbus A350-1000',
+            '380' => 'Airbus A380',
+            '388' => 'Airbus A380',
+            '737' => 'Boeing 737',
+            '738' => 'Boeing 737-800',
+            '739' => 'Boeing 737-900',
+            '73H' => 'Boeing 737-800',
+            '73J' => 'Boeing 737-900',
+            '7M8' => 'Boeing 737 MAX 8',
+            '7M9' => 'Boeing 737 MAX 9',
+            '747' => 'Boeing 747',
+            '744' => 'Boeing 747-400',
+            '772' => 'Boeing 777-200',
+            '773' => 'Boeing 777-300',
+            '77L' => 'Boeing 777-200LR',
+            '77W' => 'Boeing 777-300ER',
+            '787' => 'Boeing 787',
+            '788' => 'Boeing 787-8',
+            '789' => 'Boeing 787-9',
+            '781' => 'Boeing 787-10',
+            '223' => 'Airbus A220-300',
+            '221' => 'Airbus A220-100',
+            'E90' => 'Embraer E190',
+            'E95' => 'Embraer E195',
+            '295' => 'Embraer E195-E2',
+            'AT7' => 'ATR 72',
+            'ATR' => 'ATR 72',
+        ];
+
+        return $labels[$code] ?? $code;
+    }
+}
+
+if (! function_exists('formatFlightAircraftLabel')) {
+    /**
+     * @param  array<string, mixed>  $segment
+     */
+    function formatFlightAircraftLabel(array $segment): string
+    {
+        $code = trim((string) ($segment['equipment'] ?? ''));
+
+        foreach (['equipment_type_first', 'equipment_type_last'] as $key) {
+            $type = trim((string) ($segment[$key] ?? ''));
+
+            if ($type === '') {
+                continue;
+            }
+
+            if (preg_match('/^(airbus|boeing|embraer|atr|bombardier|canadair|mcdonnell)/i', $type)) {
+                return $type;
+            }
+
+            if (strlen($type) > 3 && ! preg_match('/^[A-Z0-9]{3}$/', strtoupper($type))) {
+                return $type;
+            }
+        }
+
+        return formatFlightAircraftCode($code);
+    }
+}
+
 if (! function_exists('formatDateTime')) {
     function formatDateTime($date)
     {

@@ -651,8 +651,14 @@
                                                                 @if(($sx['operating_carrier']??'') && ($sx['operating_carrier']??'') !== ($sx['carrier']??''))
                                                                     · Operated by {{ $sx['operating_carrier'] }}{{ $sx['operating_flight_number']??'' }}
                                                                 @endif
-                                                                @if(!empty($sx['equipment'])) · {{ $sx['equipment'] }}@endif
                                                             </div>
+                                                            @php $aircraftLabel = formatFlightAircraftLabel($sx); @endphp
+                                                            @if($aircraftLabel !== '')
+                                                                <div class="fd-seg__aircraft">
+                                                                    <span class="fd-seg__aircraft-label">Aircraft</span>
+                                                                    <span class="fd-seg__aircraft-name">{{ $aircraftLabel }}</span>
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                         <div class="fd-seg__chips">
                                                             @php
@@ -1437,6 +1443,22 @@
 }
 .fd-seg__aname { font-size: .85rem; font-weight: 700; color: var(--c-ink); }
 .fd-seg__ameta { font-family: var(--mono); font-size: .65rem; color: var(--c-muted); margin-top: .05rem; }
+.fd-seg__aircraft { margin-top: .45rem; }
+.fd-seg__aircraft-label {
+    display: block;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+}
+.fd-seg__aircraft-name {
+    display: block;
+    margin-top: .12rem;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--c-slate);
+}
 .fd-seg__chips { display: flex; gap: .3rem; flex-wrap: wrap; margin-left: auto; }
 .fd-chip {
     display: inline-flex; align-items: center; gap: .15rem;
