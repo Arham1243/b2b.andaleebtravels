@@ -513,14 +513,13 @@
                                                 <span class="rc__fbadge rc__fbadge--ref">Refundable</span>
                                             @endif
                                             @php
-                                                $fareCabinLabel = $fareCabin !== '' ? formatFlightCabinLabel($fareCabin) : '';
-                                                $fareRbdLabel = $fareRbd !== '' ? formatFlightBookingClassLabel($fareRbd) : '';
+                                                $fareCabinTags = flightFareRowCabinLabels($fareCabin, $fareRbd);
                                             @endphp
-                                            @if($fareCabinLabel !== '')
-                                                <span class="rc__ftag">{{ $fareCabinLabel }}</span>
+                                            @if($fareCabinTags['cabin'] !== '')
+                                                <span class="rc__ftag">{{ $fareCabinTags['cabin'] }}</span>
                                             @endif
-                                            @if($fareRbdLabel !== '' && $fareRbdLabel !== $fareCabinLabel)
-                                                <span class="rc__ftag">{{ $fareRbdLabel }}</span>
+                                            @if($fareCabinTags['booking'] !== '')
+                                                <span class="rc__ftag">{{ $fareCabinTags['booking'] }}</span>
                                             @endif
                                             @if(!empty($bagNote))
                                                 <span class="rc__ftag"><i class="bx bx-briefcase-alt-2"></i> {{ $bagNote }}</span>

@@ -137,6 +137,38 @@ if (! function_exists('formatFlightBookingClassLabel')) {
     }
 }
 
+if (! function_exists('flightFareRowCabinLabels')) {
+    /**
+     * One cabin tier per fare row. Sabre cabin_code (e.g. Y) and booking RBD (e.g. S)
+     * can map to different tier names — show the fare cabin only, not both.
+     *
+     * @return array{cabin: string, booking: string}
+     */
+    function flightFareRowCabinLabels(?string $cabinCode, ?string $bookingCode): array
+    {
+        $cabinCode = trim((string) ($cabinCode ?? ''));
+        $bookingCode = trim((string) ($bookingCode ?? ''));
+
+        $cabinLabel = $cabinCode !== '' ? formatFlightCabinLabel($cabinCode) : '';
+        if ($cabinLabel === '' && $bookingCode !== '') {
+            $cabinLabel = formatFlightCabinLabel($bookingCode);
+        }
+
+        $bookingLabel = '';
+        $tierLabels = ['Economy', 'Premium Economy', 'Business', 'First'];
+
+        if ($bookingCode !== '' && strlen($bookingCode) === 1) {
+            $bookingAsTier = formatFlightBookingClassLabel($bookingCode);
+
+            if ($bookingAsTier !== $cabinLabel && ! in_array($bookingAsTier, $tierLabels, true)) {
+                $bookingLabel = $bookingAsTier;
+            }
+        }
+
+        return ['cabin' => $cabinLabel, 'booking' => $bookingLabel];
+    }
+}
+
 if (! function_exists('formatCreditLimitDisplay')) {
     function formatCreditLimitDisplay(?\App\Models\B2bVendor $vendor, string $emptyLabel = 'Not set'): HtmlString
     {
