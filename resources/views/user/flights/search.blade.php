@@ -520,9 +520,16 @@
                                     @endphp
                                     <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
                                         data-rc-fare-row="{{ $fi }}">
-                                        <div class="rc__fare-left">
+                                        <div class="rc__fare-left {{ $isRoundTrip && !empty($bagLines['return']) ? 'rc__fare-left--split' : '' }}">
+                                            @if($isRoundTrip && !empty($bagLines['return']))
+                                                <div class="rc__fare-leg-tags" aria-hidden="true">
+                                                    <span class="rc__leg-tag rc__leg-tag--ow" title="Outbound">OW</span>
+                                                    <span class="rc__leg-tag rc__leg-tag--rt" title="Return">RT</span>
+                                                </div>
+                                            @endif
+                                            <div class="rc__fare-lines">
                                             <div class="rc__fare-line">
-                                            @if($isRoundTrip)
+                                            @if($isRoundTrip && empty($bagLines['return']))
                                                 <span class="rc__leg-tag rc__leg-tag--ow" title="Outbound">OW</span>
                                             @endif
                                             @if($fareBrand !== '')
@@ -547,24 +554,40 @@
                                                 <span class="rc__ftag rc__ftag--seat" title="{{ $fareSeats }} {{ $fareSeats === 1 ? 'seat' : 'seats' }} available"><i class="bx bx-user"></i> {{ $fareSeats }}</span>
                                             @endif
                                             @if($nonRefund)
-                                                <span class="rc__fbadge rc__fbadge--nr rc__fbadge--tick" title="Non-Refundable">N</span>
+                                                <span class="rc__fbadge rc__fbadge--nr rc__fbadge--tick"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    data-bs-custom-class="rc-fare-tip"
+                                                    data-bs-title="Non-Refundable">N</span>
                                             @else
-                                                <span class="rc__fbadge rc__fbadge--ref rc__fbadge--tick" title="Refundable">R</span>
+                                                <span class="rc__fbadge rc__fbadge--ref rc__fbadge--tick"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    data-bs-custom-class="rc-fare-tip"
+                                                    data-bs-title="Refundable">R</span>
                                             @endif
                                             </div>
                                             @if($isRoundTrip && !empty($bagLines['return']))
                                                 <div class="rc__fare-line rc__fare-line--return">
-                                                    <span class="rc__leg-tag rc__leg-tag--rt" title="Return">RT</span>
                                                     @foreach($bagLines['return'] as $bagPill)
                                                         <span class="rc__ftag rc__ftag--bag" title="Return baggage allowance"><i class="bx bx-briefcase-alt-2"></i> {{ $bagPill }}</span>
                                                     @endforeach
                                                     @if($nonRefund)
-                                                        <span class="rc__fbadge rc__fbadge--nr rc__fbadge--tick" title="Non-Refundable">N</span>
+                                                        <span class="rc__fbadge rc__fbadge--nr rc__fbadge--tick"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-placement="top"
+                                                            data-bs-custom-class="rc-fare-tip"
+                                                            data-bs-title="Non-Refundable">N</span>
                                                     @else
-                                                        <span class="rc__fbadge rc__fbadge--ref rc__fbadge--tick" title="Refundable">R</span>
+                                                        <span class="rc__fbadge rc__fbadge--ref rc__fbadge--tick"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-placement="top"
+                                                            data-bs-custom-class="rc-fare-tip"
+                                                            data-bs-title="Refundable">R</span>
                                                     @endif
                                                 </div>
                                             @endif
+                                            </div>
                                         </div>
 
                                         <div class="rc__fare-right">
@@ -1208,17 +1231,38 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: .22rem;
+    gap: .18rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.rc__fare-left--split {
+    flex-direction: row;
+    align-items: stretch;
+    gap: .32rem;
+}
+.rc__fare-leg-tags {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: .16rem;
+    flex-shrink: 0;
+    padding: .02rem 0;
+}
+.rc__fare-lines {
+    display: flex;
+    flex-direction: column;
+    gap: .16rem;
     flex: 1 1 auto;
     min-width: 0;
 }
 .rc__fare-line {
     display: flex;
     align-items: center;
-    gap: .3rem;
+    gap: .28rem;
     flex-wrap: wrap;
     width: 100%;
     min-width: 0;
+    min-height: 1.15rem;
 }
 .rc__fare-line--return {
     padding-left: 0;
@@ -1227,19 +1271,29 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.55rem;
-    height: 1.35rem;
-    padding: 0 .34rem;
-    border-radius: 4px;
-    background: #334155;
-    color: #fff;
-    font-size: .58rem;
+    min-width: 1.28rem;
+    height: 1.12rem;
+    padding: 0 .24rem;
+    border-radius: 3px;
+    border: 1px solid var(--c-line);
+    background: #f8fafc;
+    color: var(--c-slate);
+    font-size: .52rem;
     font-weight: 800;
-    letter-spacing: .05em;
+    letter-spacing: .04em;
     line-height: 1;
     flex-shrink: 0;
 }
-.rc__leg-tag--rt { background: #475569; }
+.rc__leg-tag--ow {
+    background: var(--c-brand-soft);
+    color: var(--c-brand);
+    border-color: rgba(205, 27, 79, .2);
+}
+.rc__leg-tag--rt {
+    background: var(--c-blue-soft);
+    color: var(--c-blue);
+    border-color: rgba(37, 99, 235, .18);
+}
 .rc__fare-right {
     display: flex;
     align-items: center;
@@ -1276,6 +1330,23 @@
     font-size: .62rem;
     letter-spacing: 0;
     cursor: help;
+}
+.tooltip.rc-fare-tip .tooltip-inner {
+    background: var(--c-ink);
+    color: #fff;
+    font-size: .68rem;
+    font-weight: 600;
+    padding: .3rem .55rem;
+    border-radius: 5px;
+    box-shadow: 0 4px 14px rgba(26, 37, 64, .18);
+}
+.tooltip.rc-fare-tip.bs-tooltip-top .tooltip-arrow::before,
+.tooltip.rc-fare-tip.bs-tooltip-auto[data-popper-placement^="top"] .tooltip-arrow::before {
+    border-top-color: var(--c-ink);
+}
+.tooltip.rc-fare-tip.bs-tooltip-bottom .tooltip-arrow::before,
+.tooltip.rc-fare-tip.bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before {
+    border-bottom-color: var(--c-ink);
 }
 .rc__fbadge--ref { background: var(--c-green-soft); color: var(--c-green); }
 .rc__fbadge--nr  { background: #fff0f3; color: #c0143c; }
@@ -2274,6 +2345,15 @@
         return 'evening';
     }
 
+    function initFareTooltips(root){
+        if (typeof bootstrap === 'undefined' || !bootstrap.Tooltip) return;
+        (root || document).querySelectorAll('.rc__fare [data-bs-toggle="tooltip"]').forEach(el=>{
+            const existing = bootstrap.Tooltip.getInstance(el);
+            if (existing) existing.dispose();
+            new bootstrap.Tooltip(el, { trigger: 'hover focus', container: 'body' });
+        });
+    }
+
     /* ─────────────────────────────────────────────────────
        FILTER STATE
     ───────────────────────────────────────────────────── */
@@ -2541,6 +2621,8 @@
                     ? 'Show fewer fares'
                     : `+${hiddenCount} More Fare${hiddenCount === 1 ? '' : 's'}`;
             }
+
+            if (expanded) initFareTooltips(wrap);
         });
     });
 
@@ -2738,6 +2820,7 @@
 
     sortCards();
     applyFilters();
+    initFareTooltips(list);
 
 })();
 </script>
