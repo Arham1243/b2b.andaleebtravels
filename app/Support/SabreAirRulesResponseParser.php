@@ -5,20 +5,75 @@ namespace App\Support;
 final class SabreAirRulesResponseParser
 {
     /**
+     * Sabre returns DuplicateFareInfo when several routings match one fare basis.
+     * A follow-up RuleReqInfo@RPH request is required to load Paragraph rules.
+     */
+    public static function needsRoutingSelection(string $xml): bool
+    {
+        if (self::hasDuplicateFareInfo($xml)) {
+            return true;
+        }
+
+        return ! self::hasRuleParagraphs($xml);
+    }
+
+    public static function hasDuplicateFareInfo(string $xml): bool
+    {
+        return (bool) preg_match('/<DuplicateFareInfo\b/i', $xml);
+    }
+
+    public static function hasRuleParagraphs(string $xml): bool
+    {
+        return (bool) preg_match('/<Rules\b[^>]*>.*?<Paragraph\b/is', $xml);
+    }
+
+    /**
+     * Pick the duplicate-fare line number (RPH) to request full rules for.
+     */
+    public static function resolveRoutingRph(string $xml, ?string $fareRuleCode = null): string
+    {
+        if (! preg_match('/<DuplicateFareInfo\b[^>]*>.*?<Text>(.*?)<\/Text>/is', $xml, $match)) {
+            return '1';
+        }
+
+        $text = html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $fareRuleCode = strtoupper(trim((string) ($fareRuleCode ?? '')));
+
+        if ($fareRuleCode !== '') {
+            foreach (preg_split('/\r\n|\n/', $text) ?: [] as $line) {
+                if (stripos($line, $fareRuleCode) === false) {
+                    continue;
+                }
+
+                if (preg_match('/^\s*(\d+)\s+/', $line, $lineMatch)) {
+                    return $lineMatch[1];
+                }
+            }
+        }
+
+        if (preg_match('/^\s*1\s+/m', $text)) {
+            return '1';
+        }
+
+        return '1';
+    }
+
+    /**
      * @return list<array{title: string, paragraphs: list<string>}>
      */
     public static function parse(string $xml): array
     {
-        $sections = [];
-        $rulesBlock = '';
-
-        if (preg_match('/<Rules\b[^>]*>(.*?)<\/Rules>/is', $xml, $rulesMatch)) {
-            $rulesBlock = $rulesMatch[1];
+        if (self::hasDuplicateFareInfo($xml)) {
+            return [];
         }
 
-        $paragraphSource = $rulesBlock !== '' ? $rulesBlock : $xml;
+        if (! preg_match('/<Rules\b[^>]*>(.*?)<\/Rules>/is', $xml, $rulesMatch)) {
+            return [];
+        }
 
-        if (preg_match_all('/<Paragraph\b([^>]*)>(.*?)<\/Paragraph>/is', $paragraphSource, $matches, PREG_SET_ORDER)) {
+        $sections = [];
+
+        if (preg_match_all('/<Paragraph\b([^>]*)>(.*?)<\/Paragraph>/is', $rulesMatch[1], $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $title = self::attributeValue($match[1], 'Title') ?? 'Fare Rules';
                 $body = self::extractTextBlock($match[2]);
@@ -32,60 +87,6 @@ final class SabreAirRulesResponseParser
                     'paragraphs' => self::splitParagraphs($body),
                 ];
             }
-        }
-
-        if ($sections === [] && preg_match('/<Header\b[^>]*>(.*?)<\/Header>/is', $xml, $headerMatch)) {
-            $headerSections = self::parseHeaderLines($headerMatch[1]);
-            if ($headerSections !== []) {
-                return $headerSections;
-            }
-        }
-
-        if ($sections === [] && preg_match_all('/<Text\b[^>]*>(.*?)<\/Text>/is', $paragraphSource, $textMatches)) {
-            $lines = [];
-
-            foreach ($textMatches[1] as $rawLine) {
-                $line = trim(html_entity_decode(strip_tags($rawLine), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-
-                if ($line !== '') {
-                    $lines[] = $line;
-                }
-            }
-
-            if ($lines !== []) {
-                $sections[] = [
-                    'title' => 'Fare Rules',
-                    'paragraphs' => $lines,
-                ];
-            }
-        }
-
-        return $sections;
-    }
-
-    /**
-     * @return list<array{title: string, paragraphs: list<string>}>
-     */
-    private static function parseHeaderLines(string $headerXml): array
-    {
-        if (! preg_match_all('/<Line\b([^>]*)>(.*?)<\/Line>/is', $headerXml, $matches, PREG_SET_ORDER)) {
-            return [];
-        }
-
-        $sections = [];
-
-        foreach ($matches as $match) {
-            $title = self::attributeValue($match[1], 'Type') ?? 'Details';
-            $text = self::extractTextBlock($match[2]);
-
-            if ($text === '') {
-                continue;
-            }
-
-            $sections[] = [
-                'title' => trim(html_entity_decode($title, ENT_QUOTES | ENT_HTML5, 'UTF-8')),
-                'paragraphs' => self::splitParagraphs($text),
-            ];
         }
 
         return $sections;

@@ -1784,8 +1784,7 @@ XML;
                     throw new \InvalidArgumentException('Validating carrier is required to load fare rules.');
                 }
 
-                $responseBody = $this->callAirRulesLLS($binaryToken, $request, $bearerToken);
-                $sections = SabreAirRulesResponseParser::parse($responseBody);
+                $sections = $this->resolveAirRulesSections($binaryToken, $request, $bearerToken);
 
                 $components[] = [
                     'route' => (string) ($request['route_label'] ?? ''),
@@ -1799,6 +1798,34 @@ XML;
         }
 
         return $components;
+    }
+
+    /**
+     * @param  array{
+     *     route_label: string,
+     *     fare_basis: string,
+     *     fare_rule: ?string,
+     *     airline: string,
+     *     origin: string,
+     *     destination: string,
+     *     departure_date: string
+     * }  $request
+     *
+     * @return list<array{title: string, paragraphs: list<string>}>
+     */
+    private function resolveAirRulesSections(string $binaryToken, array $request, ?string $bearerToken = null): array
+    {
+        $responseBody = $this->callAirRulesLLS($binaryToken, $request, $bearerToken);
+
+        if (SabreAirRulesResponseParser::needsRoutingSelection($responseBody)) {
+            $rph = SabreAirRulesResponseParser::resolveRoutingRph(
+                $responseBody,
+                $request['fare_rule'] ?? null,
+            );
+            $responseBody = $this->callAirRulesSelectRouting($binaryToken, $rph, $bearerToken);
+        }
+
+        return SabreAirRulesResponseParser::parse($responseBody);
     }
 
     /**
@@ -1900,6 +1927,86 @@ XML;
                 'body' => mb_substr($body, 0, 4000),
             ]);
             throw new \Exception('Sabre fare rules request failed: ' . $fault);
+        }
+
+        return $body;
+    }
+
+    private function callAirRulesSelectRouting(string $binaryToken, string $rph, ?string $bearerToken = null): string
+    {
+        $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
+        $messageId = 'mid:airrules-rph-' . now()->format('Ymd-His') . '-' . rand(1000, 9999);
+        $rph = htmlspecialchars(trim($rph) !== '' ? trim($rph) : '1', ENT_XML1);
+
+        $xml = <<<XML
+<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:eb="http://www.ebxml.org/namespaces/messageHeader" xmlns:wsse="http://schemas.xmlsoap.org/ws/2002/12/secext">
+    <soap-env:Header>
+        <eb:MessageHeader soap-env:mustUnderstand="1" eb:version="1.0.0">
+            <eb:From><eb:PartyId>WebServiceClient</eb:PartyId></eb:From>
+            <eb:To><eb:PartyId>Sabre</eb:PartyId></eb:To>
+            <eb:CPAId>{$this->sabrePcc}</eb:CPAId>
+            <eb:ConversationId>OTA_AirRulesLLS</eb:ConversationId>
+            <eb:Service>OTA_AirRulesLLSRQ</eb:Service>
+            <eb:Action>OTA_AirRulesLLSRQ</eb:Action>
+            <eb:MessageData>
+                <eb:MessageId>{$messageId}</eb:MessageId>
+                <eb:Timestamp>{$timestamp}</eb:Timestamp>
+            </eb:MessageData>
+        </eb:MessageHeader>
+        <wsse:Security>
+            <wsse:BinarySecurityToken valueType="String" EncodingType="wsse:Base64Binary">{$binaryToken}</wsse:BinarySecurityToken>
+        </wsse:Security>
+    </soap-env:Header>
+    <soap-env:Body>
+        <OTA_AirRulesRQ ReturnHostCommand="true" Version="2.3.0" xmlns="http://webservices.sabre.com/sabreXML/2011/10">
+            <RuleReqInfo RPH="{$rph}"/>
+        </OTA_AirRulesRQ>
+    </soap-env:Body>
+</soap-env:Envelope>
+XML;
+
+        $headers = [
+            'Content-Type' => 'text/xml; charset=utf-8',
+            'SOAPAction' => 'OTA_AirRulesLLSRQ',
+        ];
+
+        if ($bearerToken) {
+            $headers['Authorization'] = 'Bearer ' . $bearerToken;
+        }
+
+        $response = $this->sabreHttp()->withHeaders($headers)
+            ->withBody($xml, 'text/xml')
+            ->post('https://sws-crt.cert.sabre.com');
+
+        $body = $response->body();
+
+        if (! $response->successful()) {
+            Log::error('Sabre OTA_AirRulesLLS routing-select HTTP failure', [
+                'status' => $response->status(),
+                'rph' => $rph,
+                'body' => mb_substr($body, 0, 4000),
+            ]);
+            throw new \Exception('Sabre fare rules routing selection failed.');
+        }
+
+        $applicationError = $this->extractAirRulesApplicationError($body);
+        if ($applicationError !== null) {
+            Log::error('Sabre OTA_AirRulesLLS routing-select application error', [
+                'error' => $applicationError,
+                'rph' => $rph,
+                'body' => mb_substr($body, 0, 4000),
+            ]);
+            throw new \Exception('Sabre fare rules routing selection failed: ' . $applicationError);
+        }
+
+        $fault = $this->extractSoapFault($body);
+        if ($fault !== null) {
+            Log::error('Sabre OTA_AirRulesLLS routing-select SOAP fault', [
+                'fault' => $fault,
+                'rph' => $rph,
+                'body' => mb_substr($body, 0, 4000),
+            ]);
+            throw new \Exception('Sabre fare rules routing selection failed: ' . $fault);
         }
 
         return $body;
