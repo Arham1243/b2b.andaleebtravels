@@ -36,7 +36,7 @@ final class TravelportFareRulesPresenter
             'components' => $components,
             'penalties' => $penalties,
             'policy_sections' => self::buildPolicySections($penalties, $nonRefundable, $lastTicketDisplay),
-            'notes' => self::buildNotes($nonRefundable, $lastTicketDisplay, $penalties),
+            'notes' => self::buildNotes($nonRefundable, $penalties),
         ];
     }
 
@@ -274,13 +274,9 @@ final class TravelportFareRulesPresenter
      * @param  list<array<string, mixed>>  $penalties
      * @return list<string>
      */
-    private static function buildNotes(bool $nonRefundable, ?string $lastTicketDisplay, array $penalties): array
+    private static function buildNotes(bool $nonRefundable, array $penalties): array
     {
         $notes = [];
-
-        if ($lastTicketDisplay !== null) {
-            $notes[] = 'Latest ticketing time from Travelport: ' . $lastTicketDisplay . '.';
-        }
 
         if ($penalties === [] && $nonRefundable) {
             $notes[] = 'Fare marked non-refundable by the airline.';
