@@ -173,9 +173,12 @@ class TravelportSearchPresenter
                     }
 
                     if ($legSegments !== []) {
-                        $elapsed = self::parseTravelTimeMinutes(self::attr($option, 'TravelTime'));
+                        $elapsed = self::legElapsedMinutes($legSegments);
+                        if ($elapsed <= 0) {
+                            $elapsed = self::parseTravelTimeMinutes(self::attr($option, 'TravelTime'));
+                        }
                         if ($elapsed === null || $elapsed <= 0) {
-                            $elapsed = self::legElapsedMinutes($legSegments);
+                            $elapsed = self::sumTravelTime($legSegments);
                         }
 
                         $legs[] = [
@@ -283,14 +286,15 @@ class TravelportSearchPresenter
 
         $depDateTime = self::parseTravelportDateTime($depRaw);
         $arrDateTime = self::parseTravelportDateTime($arrRaw);
-        $depClock = self::normalizeClock($depDateTime->format('H:i'));
-        $arrClock = self::normalizeClock($arrDateTime->format('H:i'));
-        $elapsed = (int) self::attr($segmentNode, 'FlightTime', 0);
-        if ($elapsed <= 0) {
-            $elapsed = max(15, (int) $depDateTime->diffInMinutes($arrDateTime, false));
-        }
+        $depClock = self::localClockFromRaw($depRaw, $depDateTime);
+        $arrClock = self::localClockFromRaw($arrRaw, $arrDateTime);
+        $elapsed = self::segmentElapsedMinutes($depRaw, $arrRaw, $depDateTime, $arrDateTime, $segmentNode);
 
-        $diffDays = max(0, $depDateTime->copy()->startOfDay()->diffInDays($arrDateTime->copy()->startOfDay(), false));
+        $depLocalDay = self::localDateFromRaw($depRaw, $depDateTime);
+        $arrLocalDay = self::localDateFromRaw($arrRaw, $arrDateTime);
+        $diffDays = ($depLocalDay !== null && $arrLocalDay !== null)
+            ? max(0, $depLocalDay->diffInDays($arrLocalDay, false))
+            : max(0, $depDateTime->copy()->startOfDay()->diffInDays($arrDateTime->copy()->startOfDay(), false));
         $mktFlight = $flightNumber;
 
         return [
@@ -338,6 +342,68 @@ class TravelportSearchPresenter
         } catch (\Throwable $e) {
             return Carbon::now();
         }
+    }
+
+    /**
+     * Use airport-local wall clock from Travelport ISO timestamps, not app timezone.
+     */
+    private static function localClockFromRaw(string $raw, Carbon $fallback): string
+    {
+        if (preg_match('/T(\d{1,2}:\d{2})/', trim($raw), $matches)) {
+            return self::normalizeClock($matches[1]);
+        }
+
+        return self::normalizeClock($fallback->format('H:i'));
+    }
+
+    private static function localDateFromRaw(string $raw, Carbon $fallback): ?Carbon
+    {
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', trim($raw), $matches)) {
+            try {
+                return Carbon::parse($matches[1])->startOfDay();
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        try {
+            return $fallback->copy()->startOfDay();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $segmentNode
+     */
+    private static function segmentElapsedMinutes(
+        string $depRaw,
+        string $arrRaw,
+        Carbon $depDateTime,
+        Carbon $arrDateTime,
+        array $segmentNode,
+    ): int {
+        $elapsedFromDates = 0;
+
+        if ($depRaw !== '' && $arrRaw !== '') {
+            try {
+                $elapsedFromDates = max(0, (int) $depDateTime->diffInMinutes($arrDateTime, false));
+            } catch (\Throwable $e) {
+                $elapsedFromDates = 0;
+            }
+        }
+
+        $flightTime = (int) self::attr($segmentNode, 'FlightTime', 0);
+
+        if ($elapsedFromDates > 0) {
+            return max(15, $elapsedFromDates);
+        }
+
+        if ($flightTime > 0) {
+            return max(15, $flightTime);
+        }
+
+        return 15;
     }
 
     private static function clockIsRedEye(string $clock): bool

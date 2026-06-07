@@ -1,12 +1,12 @@
 [
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKAm9kdCAAAAA==",
+            "Key": "899qT6TqWDKAfOOeCAAAAA==",
             "FareBasis": "WDLIT3AE",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED160",
             "NegotiatedFare": "false",
@@ -24,20 +24,27 @@
         "FareRuleKey": "gws-eJxNjksOwyAMRA8Tzd42Jc0SAqSJUrGiatn0\/seogVaqJTODnn\/OOSGZaabF\/ceE93TbkB8ByBDNcz9wMdaC9VNBJIxnvB\/F+IQxgxdFueOh3AsDB6uCIMkM1AK1v\/G1KqM+WZXRNqNZ7cDPpF1t9rH4tBYyWmypnl9IV+ip2vcBRXospg==",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAmAldCAAAAA==",
+                "Key": "899qT6TqWDKAJUOeCAAAAA==",
                 "BrandID": "2004609",
+                "UpSellBrandID": "2004608",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "WDSMR3AE",
+                    "FareInfoRef": "899qT6TqWDKARROeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKA59kdCAAAAA==",
+            "Key": "899qT6TqWDKAyOOeCAAAAA==",
             "FareBasis": "LLEOPAE1",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED200",
             "NegotiatedFare": "false",
@@ -55,20 +62,27 @@
         "FareRuleKey": "gws-eJxNjksOwjAMRA9Tzd52krbLhNSoqFVgUSS64f7HwElAwpIzEz3\/YoxCMtJIc\/yPAe9BN5RnBgrEcltvCN57sH1OEAlj3\/X+SMroM3g2VBruyq0wcw4mUHcNHdXA2d7ldTFGbbIpo25GtdaBn9HVbEnLkfQI5NwkVpq\/kCbYqdb3AT9nLGU=",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAoAldCAAAAA==",
+                "Key": "899qT6TqWDKALUOeCAAAAA==",
                 "BrandID": "1982413",
+                "UpSellBrandID": "1982412",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "KLSOSAE1",
+                    "FareInfoRef": "899qT6TqWDKAjROeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKAE+kdCAAAAA==",
+            "Key": "899qT6TqWDKA9OOeCAAAAA==",
             "FareBasis": "VOLP7AE1",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED310",
             "NegotiatedFare": "false",
@@ -76,7 +90,7 @@
         },
         "FareSurcharge": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAS+kdCAAAAA==",
+                "Key": "899qT6TqWDKALPOeCAAAAA==",
                 "Type": "Other",
                 "Amount": "NUC6.09"
             }
@@ -93,12 +107,12 @@
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKAT+kdCAAAAA==",
+            "Key": "899qT6TqWDKAMPOeCAAAAA==",
             "FareBasis": "NLR3R1RI",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED240",
             "NegotiatedFare": "false",
@@ -116,20 +130,27 @@
         "FareRuleKey": "gws-eJxNjtEOwiAMRT9mue8FJsM3VLZs0ZDYaCIv\/v9n7AKarAm9F05bGmO0Yr14CfEYA77DU5HfNyDD8tzXDf7kHAwvBSKW5qFOjW7oM0wgyg13Na0wnedAwSLL2FENlJbT50ombTLVoP6MatmBv5lX2nxJLy0yinN8sz8kE7gou3b8Zywl",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAqAldCAAAAA==",
+                "Key": "899qT6TqWDKANUOeCAAAAA==",
                 "BrandID": "1834625",
+                "UpSellBrandID": "1834624",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "SLR3R1SI",
+                    "FareInfoRef": "899qT6TqWDKAuROeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKAl+kdCAAAAA==",
+            "Key": "899qT6TqWDKAePOeCAAAAA==",
             "FareBasis": "EBLIT3AE",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED760",
             "NegotiatedFare": "false",
@@ -147,20 +168,27 @@
         "FareRuleKey": "gws-eJxNTkEOwyAMe0zlexIEozco0LXaxGHqpPWy\/z9jATZpkRI7cuIkhCAkjhz58B8T3tN1RX0moEI0b9sOIednsHYniIRRlvt+mFgwTNirVLs8kPtg4mQVkCTPQ2qBs9f8WppXdyYiRjuNRnUDP1I2pTXmI5blQcZYa8mUr0gX6K+69wFoWyyp",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAsAldCAAAAA==",
+                "Key": "899qT6TqWDKAPUOeCAAAAA==",
                 "BrandID": "2004609",
+                "UpSellBrandID": "2004608",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "EBSMR3AE",
+                    "FareInfoRef": "899qT6TqWDKAASOeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKA6+kdCAAAAA==",
+            "Key": "899qT6TqWDKAzPOeCAAAAA==",
             "FareBasis": "VBLIT3AE",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED820",
             "NegotiatedFare": "false",
@@ -178,20 +206,27 @@
         "FareRuleKey": "gws-eJxNTssOwjAM+5jJ9zzUMW7t2sImUA9oIHbh\/z9jaQsSkRI7cuLEey8kI400+f8Y8BmuF5RnBArE8rasEFFRsHU7iITxmu\/rpiGjm\/BkUmlyR26DkaMzQJR07lIN7K2m91y9mjMRMeppVGob+JG8GC0hbSHPD1J1zpHmr0gn2K+2dwBmiCyg",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAuAldCAAAAA==",
+                "Key": "899qT6TqWDKARUOeCAAAAA==",
                 "BrandID": "2004609",
+                "UpSellBrandID": "2004608",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "VBSMR3AE",
+                    "FareInfoRef": "899qT6TqWDKAVSOeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKAG\/kdCAAAAA==",
+            "Key": "899qT6TqWDKA\/POeCAAAAA==",
             "FareBasis": "QBLIT3AE",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED890",
             "NegotiatedFare": "false",
@@ -209,20 +244,27 @@
         "FareRuleKey": "gws-eJxNTssKAjEM\/Jhl7klq13rrU3dRCsoK7sX\/\/wzTVsFAMhMmmcR7LyQzzeT8f0x4T5cz6jMBFaJ5XVbIQcSBtdtBJIx7vK2bCQXDhJ1KtcsDuQ8mTlYBSfJpSC2w95pfsXl1ZyJitNNoVDfwI2VRWkPeQokPMsZaS6Z8RTpCf9W9D2j5LKc=",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAwAldCAAAAA==",
+                "Key": "899qT6TqWDKATUOeCAAAAA==",
                 "BrandID": "2004609",
+                "UpSellBrandID": "2004608",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "QBSMR3AE",
+                    "FareInfoRef": "899qT6TqWDKAhSOeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKAS\/kdCAAAAA==",
+            "Key": "899qT6TqWDKALQOeCAAAAA==",
             "FareBasis": "NLR3R1RI",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED520",
             "NegotiatedFare": "false",
@@ -240,20 +282,27 @@
         "FareRuleKey": "gws-eJxNjt0KwjAMhR9mnPs0HbPeVe3GhlIwKNob3\/8xdtoqGEhz0i9\/MUYVnWSSEP9twGe4G\/LzAmQo\/bpucKN4D8esQEQpbubN2YY+xAWi3HCPrhWm4xwYsMgydlQNpb3pfSbrk4UCdfWroCbswU\/MK2U+pYcVqcX80y+SA3gr+3aIQSz5",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAyAldCAAAAA==",
+                "Key": "899qT6TqWDKAVUOeCAAAAA==",
                 "BrandID": "1834625",
+                "UpSellBrandID": "1834624",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "SLR3R1SI",
+                    "FareInfoRef": "899qT6TqWDKAtSOeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKAp\/kdCAAAAA==",
+            "Key": "899qT6TqWDKAiQOeCAAAAA==",
             "FareBasis": "BBLIT3AE",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED1210",
             "NegotiatedFare": "false",
@@ -271,20 +320,27 @@
         "FareRuleKey": "gws-eJxNjksOwjAMRA9TzX6ckNLu0nygFSgLVCS64f7HwElAwpLtsZ5\/3ntDM3Lk5P9twHu4XlCeESgw6rd1gzXziRCtDpBGEMJ92+2S0ZfIpKg03LO0xijRaUI0ae6oGo4W0yso65tJCuppVKkT+Im8qixL2pccHrTWOUebv5Bn6K869wFgtCyY",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKA0AldCAAAAA==",
+                "Key": "899qT6TqWDKAXUOeCAAAAA==",
                 "BrandID": "2004609",
+                "UpSellBrandID": "2004608",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "BBSMR3AE",
+                    "FareInfoRef": "899qT6TqWDKAETOeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKA1\/kdCAAAAA==",
+            "Key": "899qT6TqWDKAuQOeCAAAAA==",
             "FareBasis": "NLR3R1RI",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED830",
             "NegotiatedFare": "false",
@@ -293,7 +349,7 @@
         },
         "FareSurcharge": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKAIAldCAAAAA==",
+                "Key": "899qT6TqWDKABROeCAAAAA==",
                 "Type": "Other",
                 "Amount": "NUC85.00"
             }
@@ -309,20 +365,27 @@
         "FareRuleKey": "gws-eJxNTtEOwjAI\/Jjl3g86Z32r2i1bNE1sNNoX\/\/8zpK0mkgAHBwchBKVOnOjDvw14D7eM9DgDCWp+WTfISOcgVhWQauCaXZa8oYuINyo1umdpg\/Ewe0tYuIydqobSYnydqpbuTJmkoJ5+FtTCdvAD82owHeM9F9Y3rKdfinvYr7b3AYlRLP0=",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKA2AldCAAAAA==",
+                "Key": "899qT6TqWDKAZUOeCAAAAA==",
                 "BrandID": "1834625",
+                "UpSellBrandID": "1834624",
                 "BrandTier": "0002"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "SLR3R1SI",
+                    "FareInfoRef": "899qT6TqWDKAQTOeCAAAAA=="
+                }
             }
         }
     },
     {
         "@attributes": {
-            "Key": "wU3lT6VqWDKAJAldCAAAAA==",
+            "Key": "899qT6TqWDKACROeCAAAAA==",
             "FareBasis": "MLR3R1SI",
             "PassengerTypeCode": "ADT",
             "Origin": "DXB",
             "Destination": "KHI",
-            "EffectiveDate": "2026-06-09T01:51:00.000+04:00",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
             "DepartureDate": "2026-06-18",
             "Amount": "AED1660",
             "NegotiatedFare": "false",
@@ -340,9 +403,336 @@
         "FareRuleKey": "gws-eJxNjtEOwiAMRT9mue+3gJO9obJli0oiaiIv\/v9nWEATm9De9rSlIQRDM3KkD\/824D3cMtLzBCQYfed1g9vJRIhmBaQRXC\/ZZrlv6EvEK0oN9yitMU6z14CFi+uoGkrz8XVU1jeTFNSvUaVO4CfmVWU6xEcudLRWa+aLuIdeqlMfJnIsWQ==",
         "Brand": {
             "@attributes": {
-                "Key": "wU3lT6VqWDKA4AldCAAAAA==",
+                "Key": "899qT6TqWDKAbUOeCAAAAA==",
                 "BrandID": "1834624",
+                "UpSellBrandID": "1834623",
                 "BrandTier": "0003"
+            },
+            "UpsellBrand": {
+                "@attributes": {
+                    "FareBasis": "HLR3R1FI",
+                    "FareInfoRef": "899qT6TqWDKAjTOeCAAAAA=="
+                }
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKARROeCAAAAA==",
+            "FareBasis": "WDSMR3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED230",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjkEOAiEMRQ8z+fu2BJwlDKBjJrLQMcrG+x9jCmhik\/b\/5tFS772QOHI0+\/+Y8JkuZ5RnBApEc1uvcOIYrE0FkTBe6XG7m5AxdvCsqHQ8lPvDyNGqIEo2A7VA7TW9F2XUN6sy2s9oVifwM3lVW0LaQ152MsZaS3X7QjpBT9W5A0i9LKs=",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKAdUOeCAAAAA==",
+                "BrandID": "2004608",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAjROeCAAAAA==",
+            "FareBasis": "KLSOSAE1",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED590",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-18",
+            "NotValidAfter": "2026-06-18"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjksOgzAMRA+DZm8bFViGhiBQULqglcqm9z9GJ7Eq1ZLjsZ8\/CSGY2CCDTOHfOny6lFFeESgwet52KBsVyuyCiCnycT7OOSl8iU5EpWGP2hqjxhsDVl3FUTVc7V3edzLfLBSop1ElJ\/ATaaMs8\/LkMZG+H41FRzKCP+XUFw4XK\/0=",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKAfUOeCAAAAA==",
+                "BrandID": "1982412",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAuROeCAAAAA==",
+            "FareBasis": "SLR3R1SI",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED520",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjtEOwiAMRT9mue8tIOIbKlu2aEhkmriX\/f9neAFNbEJ729OWxhiNGC9eQvy3AfvwKMivK5Bh+G7zAnV68FBmG0SMYr0XW3Rd0JdoIMoN96itMZ3GwIBJJtdRNWzNp\/eFrG8WCtSvUSUn8BPjTJnP6Vk2cWIta+aL5AheyqkPJ+YsWw==",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKAhUOeCAAAAA==",
+                "BrandID": "1834624",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAASOeCAAAAA==",
+            "FareBasis": "EBSMR3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED830",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNTtEOwjAI\/Jjl3oGGub21a6szxj5MTdyL\/\/8Zo60mksAdOTjw3gvJSCNN\/j8GfIbLGeUVgQKxvK1XiOisYOt2EAkjL4\/75kJGN+HJpNLkjtwGI0c1QJQ0d6kG9lbTe6lezZmIGPU0KrUN\/EhejZaQniEvGzmnquTyV6QT7FfbOwBrniyu",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKAjUOeCAAAAA==",
+                "BrandID": "2004608",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAVSOeCAAAAA==",
+            "FareBasis": "VBSMR3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED890",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNTssOAjEI\/JjN3IHatd761DXGHtZH3Iv\/\/xnSVhNJYIYMDHjvhWSmmZz\/jwnv6XREfSSgQjQvyxmyE3Fg7TYQCeMZb9fVhIJhwk6l2uWB3AcTJ6uAJPkwpBbYes2v2Ly6MxEx2mk0qhv4kbIorSHfQ4krGWOtJVO+Iu2hv+reB3C5LLU=",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKAlUOeCAAAAA==",
+                "BrandID": "2004608",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAhSOeCAAAAA==",
+            "FareBasis": "QBSMR3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED960",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNTssOAjEI\/JjN3IHaut761DXGJq6auBf\/\/zOkrSaSwAwZGPDeC4kjR7P\/jwnv6XREfSagQjQvyxni2OzA2m0gEsYt3q+rCQXDhGeVapcHch9MnKwCkuTDkFpg6zW\/YvPqzkTEaKfRqG7gR8qitIb8CCWuZIy1lkz5irSH\/qp7H2w8LKw=",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKAnUOeCAAAAA==",
+                "BrandID": "2004608",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAtSOeCAAAAA==",
+            "FareBasis": "SLR3R1SI",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED800",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjtEOwiAMRT9mue+33UR8Q2XLjIZEplFe9v+fYWGa2ITetodeCCEo1dHRh\/\/osHb3jPQ8Awlq5zpfoOJ2DmJdAamC5Zb7LIuRZiLeUGp4U2kX42H0Jpg4DRuqgdJyfJ+aV3UmKahPvwpqYzv4FeNsZTrGRy4c2Pc20y\/iHvZX2\/sAk3UtEQ==",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKApUOeCAAAAA==",
+                "BrandID": "1834624",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAETOeCAAAAA==",
+            "FareBasis": "BBSMR3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED1280",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjkkOwjAMRQ9T\/b2d1CXsMkIRIosCEt1w\/2PgJCBhyfa3nifvvSGz0ELO\/9uE93Q+oT4TUGHUr+sFdnazgLXaQWQYMd5vmw0FYwk7RbXjkbk3Jk6iCcnk40DNsPeYX1HZ2ExEjHYaTeoEfqKsKmvIj1DiRtaKCNnyhXSA\/qpzH2rlLK0=",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKArUOeCAAAAA==",
+                "BrandID": "2004608",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAQTOeCAAAAA==",
+            "FareBasis": "SLR3R1SI",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED1110",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjkkOwjAMRQ9T\/f23U0LZBUirIlAkUhBk0\/sfAycFCUsen6cQglI9PYfwLx3W7p6RnmcgQU2v8wUqfuchlhWQKlhu2WVZjLQlMhhKDW9eWmM8jIM5TJz6DVVBaTa+T8YcxTaTFNTTr4Ka2Ax+wThbmI7xkQt7Omc1\/SLuYb\/a3AeSIi0M",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKAtUOeCAAAAA==",
+                "BrandID": "1834624",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0003"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "899qT6TqWDKAjTOeCAAAAA==",
+            "FareBasis": "HLR3R1FI",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T02:13:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED2970",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "35",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjkEOAiEMRQ8z+ftPGUfcoTKEiYZEoolsvP8xpoAmNqH97WtLvfdCWbjQ+X+b8JkeBfl1BTJE3y1tcHQHgdGsghSDdC+2mLhhLDFOUe54RNMbw2l1GhAZ54GaoXYf3hdlYzNJg\/Y1mtQJ\/MSaVOZzeJbKmdZqTb6IR+ilOrUDIFQsTw==",
+        "Brand": {
+            "@attributes": {
+                "Key": "899qT6TqWDKAvUOeCAAAAA==",
+                "BrandID": "1834623",
+                "UpSellBrandFound": "false",
+                "BrandTier": "0004"
             }
         }
     }
