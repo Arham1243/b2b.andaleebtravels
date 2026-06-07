@@ -59,7 +59,15 @@ class TravelportBookingService
 
             $holdResponse = $this->client->airHold($travelers, $pricingData);
             if (! ($holdResponse['success'] ?? false)) {
-                throw new \RuntimeException($holdResponse['error'] ?? 'Travelport airHold failed.');
+                $code = (string) ($holdResponse['error_code'] ?? '');
+                $traceId = (string) ($holdResponse['trace_id'] ?? '');
+                Log::error('Travelport airHold rejected by GDS', [
+                    'booking_id' => $booking->id,
+                    'error_code' => $code !== '' ? $code : null,
+                    'trace_id' => $traceId !== '' ? $traceId : null,
+                    'error' => $holdResponse['error'] ?? null,
+                ]);
+                throw new \RuntimeException($this->formatHoldGdsError($holdResponse));
             }
 
             $locators = $this->parseHoldLocators($holdResponse);
@@ -288,5 +296,31 @@ class TravelportBookingService
         }
 
         return $pricingData;
+    }
+
+    /**
+     * @param  array<string, mixed>  $holdResponse
+     */
+    private function formatHoldGdsError(array $holdResponse): string
+    {
+        $code = trim((string) ($holdResponse['error_code'] ?? ''));
+        $traceId = trim((string) ($holdResponse['trace_id'] ?? ''));
+        $raw = trim((string) ($holdResponse['error'] ?? 'Travelport airHold failed.'));
+
+        if ($code === '3515' || str_contains(strtolower($raw), 'primary host transaction')) {
+            $msg = 'Travelport could not place the hold with the airline reservation system (GDS error 3515). '
+                . 'Pricing succeeded but the host rejected the booking — this is usually a Travelport sandbox/PCC configuration issue, not a form error.';
+            if ($traceId !== '') {
+                $msg .= ' Reference trace: ' . $traceId . '.';
+            }
+
+            return $msg;
+        }
+
+        if ($traceId !== '') {
+            return $raw . ' (Trace: ' . $traceId . ')';
+        }
+
+        return $raw !== '' ? $raw : 'Travelport airHold failed.';
     }
 }

@@ -662,13 +662,43 @@ XML;
 
         $parsed = $this->parseXmlResponse(is_string($response) ? $response : '');
         $isFault = isset($parsed['Body']['Fault']);
+        $faultMeta = $isFault
+            ? $this->parseSoapFault($parsed, is_string($response) ? $response : '')
+            : ['message' => null, 'code' => null, 'trace_id' => null];
 
         return [
             'success' => !$isFault,
             'httpCode' => $httpCode,
             'raw' => is_string($response) ? $response : '',
             'parsed' => $parsed,
-            'error' => $isFault ? ($parsed['Body']['Fault']['faultstring'] ?? 'SOAP Fault') : null,
+            'error' => $isFault ? ($faultMeta['message'] ?? 'SOAP Fault') : null,
+            'error_code' => $faultMeta['code'] ?? null,
+            'trace_id' => $faultMeta['trace_id'] ?? null,
+        ];
+    }
+
+    /**
+     * @return array{message: ?string, code: ?string, trace_id: ?string}
+     */
+    private function parseSoapFault(?array $parsed, string $raw): array
+    {
+        $message = $parsed['Body']['Fault']['faultstring'] ?? 'SOAP Fault';
+        $code = data_get($parsed, 'Body.Fault.detail.ErrorInfo.Code')
+            ?? data_get($parsed, 'Body.Fault.detail.common_v52_0:ErrorInfo.common_v52_0:Code');
+        $traceId = data_get($parsed, 'Body.Fault.detail.ErrorInfo.TraceId')
+            ?? data_get($parsed, 'Body.Fault.detail.common_v52_0:ErrorInfo.common_v52_0:TraceId');
+
+        if (! $code && preg_match('/<(?:common_v52_0:)?Code>(\d+)<\/(?:common_v52_0:)?Code>/i', $raw, $m)) {
+            $code = $m[1];
+        }
+        if (! $traceId && preg_match('/<(?:common_v52_0:)?TraceId>([^<]+)<\/(?:common_v52_0:)?TraceId>/i', $raw, $m)) {
+            $traceId = trim($m[1]);
+        }
+
+        return [
+            'message' => is_string($message) ? $message : 'SOAP Fault',
+            'code' => is_string($code) ? $code : null,
+            'trace_id' => is_string($traceId) ? $traceId : null,
         ];
     }
 

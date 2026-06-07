@@ -52,6 +52,23 @@
             ? $latestTravelDate->copy()->addDay()->max(\Carbon\Carbon::today())->format('Y-m-d')
             : \Carbon\Carbon::today()->format('Y-m-d');
         $travelDateIso = $latestTravelDate?->format('Y-m-d');
+
+        $depLabel = '';
+        $retLabel = '';
+        if (!empty($searchParams['departure_date'])) {
+            try {
+                $depLabel = \Carbon\Carbon::parse($searchParams['departure_date'])->format('d M Y');
+            } catch (\Throwable $e) {
+                $depLabel = (string) $searchParams['departure_date'];
+            }
+        }
+        if (!empty($searchParams['return_date'])) {
+            try {
+                $retLabel = \Carbon\Carbon::parse($searchParams['return_date'])->format('d M Y');
+            } catch (\Throwable $e) {
+                $retLabel = (string) $searchParams['return_date'];
+            }
+        }
     @endphp
 
     <div class="hp">
@@ -508,8 +525,8 @@
                                     <div class="hp-summary__meta-row">
                                         <i class="bx bxs-calendar"></i>
                                         <span>
-                                            {{ $searchParams['departure_date'] }}
-                                            @if(!empty($searchParams['return_date']))  -  {{ $searchParams['return_date'] }} @endif
+                                            {{ $depLabel }}
+                                            @if(!empty($searchParams['return_date']) && $retLabel) – {{ $retLabel }} @endif
                                         </span>
                                     </div>
                                 @endif
