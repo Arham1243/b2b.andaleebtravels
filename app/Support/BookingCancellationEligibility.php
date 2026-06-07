@@ -118,11 +118,11 @@ final class BookingCancellationEligibility
             return array_merge($base, ['reason' => 'Booking has already been cancelled.']);
         }
 
-        if ($booking->booking_status === 'hold') {
+        if ($booking->isOnHold()) {
             return array_merge($base, ['reason' => 'Use release hold for bookings on hold.']);
         }
 
-        if ($booking->booking_status !== 'confirmed' || $booking->payment_status !== 'paid') {
+        if (! $booking->isConfirmed() || ! $booking->isPaid()) {
             return array_merge($base, ['reason' => 'Cancellation is only available for confirmed, paid bookings.']);
         }
 

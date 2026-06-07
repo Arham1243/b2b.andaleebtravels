@@ -170,7 +170,7 @@ final class SupplierFlightBookingDetailsPresenter
 
     private static function cancellationPolicySummary(B2bFlightBooking $booking, ?string $refundability): ?string
     {
-        if ($booking->booking_status === 'hold') {
+        if ($booking->isOnHold()) {
             return 'Unticketed hold — airline fare rules apply when ticketing.';
         }
 
@@ -183,7 +183,7 @@ final class SupplierFlightBookingDetailsPresenter
 
     private static function formatHoldExpiry(B2bFlightBooking $booking): ?string
     {
-        if ($booking->booking_status !== 'hold') {
+        if (! $booking->isOnHold()) {
             return null;
         }
 
@@ -230,6 +230,10 @@ final class SupplierFlightBookingDetailsPresenter
      */
     private static function resolveStatusBadge(mixed $supplierStatus, B2bFlightBooking $booking): ?array
     {
+        if ($booking->isPaid() && $booking->ticket_status === 'issued') {
+            return ['label' => 'Confirmed', 'class' => 'confirmed'];
+        }
+
         $status = $supplierStatus ?: $booking->booking_status;
 
         if ($status === null || trim((string) $status) === '') {

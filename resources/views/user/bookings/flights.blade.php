@@ -176,8 +176,8 @@
                         <tbody>
                         @foreach($flightBookings as $booking)
                         @php
-                            $st      = $booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status;
-                            $isHold  = $booking->booking_status === 'hold';
+                            $st      = $booking->displayBookingStatus();
+                            $isHold  = $booking->isOnHold();
                             $isRound = !empty($booking->return_date);
                             $legs    = $booking->itinerary_data['legs'] ?? [];
                             $carrier = data_get($legs, '0.segments.0.carrier', '');

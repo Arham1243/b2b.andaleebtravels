@@ -163,7 +163,7 @@ class AdminBookingController extends Controller
             return redirect()->back()->with('notify_error', 'Booking is already cancelled.');
         }
 
-        if ($bookingModel->booking_status !== 'hold') {
+        if ($bookingModel->booking_status !== 'hold' || $bookingModel->isPaid()) {
             return redirect()->back()->with('notify_error', 'This action is only available for held bookings.');
         }
 

@@ -14,8 +14,8 @@
 
 @section('content')
 @php
-    $status = $booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status;
-    $isHold = $booking->booking_status === 'hold';
+    $status = $booking->displayBookingStatus();
+    $isHold = $booking->isOnHold();
     $isRound = !empty($booking->return_date);
     $legs = $booking->itinerary_data['legs'] ?? [];
     $passengers = $booking->passengers_data['passengers'] ?? [];

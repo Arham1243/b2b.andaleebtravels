@@ -6,8 +6,8 @@
 
 @section('content')
 @php
-    $status     = $booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status;
-    $isHold     = $booking->booking_status === 'hold';
+    $status     = $booking->displayBookingStatus();
+    $isHold     = $booking->isOnHold();
     $isRound    = !empty($booking->return_date);
     $legs       = $booking->itinerary_data['legs'] ?? [];
     $passengers = $booking->passengers_data['passengers'] ?? [];
@@ -329,6 +329,12 @@
                                     <span>Base Fare <span style="color:#8492a6;font-weight:400;">(× {{ $totalPax }} pax)</span></span>
                                     <span><span class="dirham">D</span> {{ number_format((float)$booking->total_amount, 2) }}</span>
                                 </div>
+                                @if (($booking->wallet_amount ?? 0) > 0)
+                                <div class="bkpd-fare__row">
+                                    <span>Wallet applied</span>
+                                    <span>− <span class="dirham">D</span> {{ number_format((float) $booking->wallet_amount, 2) }}</span>
+                                </div>
+                                @endif
                                 @if($isHold)
                                 <div class="bkpd-fare__row">
                                     <span>Hold Deposit</span>

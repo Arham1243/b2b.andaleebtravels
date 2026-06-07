@@ -106,9 +106,42 @@ class B2bFlightBooking extends Model
         return $this->payment_status === 'paid';
     }
 
+    public function isOnHold(): bool
+    {
+        return $this->booking_status === 'hold' && ! $this->isPaid();
+    }
+
+    /**
+     * Persist confirmed status after a hold booking is paid via Confirm & Pay.
+     */
+    public function reconcileStatusAfterHoldPayment(): bool
+    {
+        if ($this->booking_status !== 'hold' || ! $this->isPaid()) {
+            return false;
+        }
+
+        $this->update(['booking_status' => 'confirmed']);
+        $this->refresh();
+
+        return true;
+    }
+
+    public function displayBookingStatus(): string
+    {
+        if ($this->booking_status === 'completed') {
+            return 'confirmed';
+        }
+
+        if ($this->booking_status === 'hold' && $this->isPaid()) {
+            return 'confirmed';
+        }
+
+        return $this->booking_status ?? 'pending';
+    }
+
     public function isConfirmed(): bool
     {
-        return $this->booking_status === 'confirmed';
+        return in_array($this->displayBookingStatus(), ['confirmed', 'completed'], true);
     }
 
     public function isCancelled(): bool

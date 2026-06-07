@@ -78,7 +78,7 @@
                                                         'tamara' => 'Tamara',
                                                         'wallet' => 'Wallet',
                                                         'hold' => 'Hold',
-                                                        default => $payMethod !== '' ? ucfirst(str_replace('_', ' ', $payMethod)) : ($booking->booking_status === 'hold' ? 'Hold' : '—'),
+                                                        default => $payMethod !== '' ? ucfirst(str_replace('_', ' ', $payMethod)) : ($booking->isOnHold() ? 'Hold' : '—'),
                                                     };
                                                 @endphp
                                                 {{ $payLabel }}
@@ -90,9 +90,12 @@
                                                 </span>
                                             </td>
                                             <td>
+                                                @php
+                                                    $displayStatus = $booking->displayBookingStatus();
+                                                @endphp
                                                 <span
-                                                    class="badge rounded-pill bg-{{ in_array($booking->booking_status, ['confirmed', 'completed'], true) ? 'success' : ($booking->booking_status === 'hold' ? 'info' : ($booking->booking_status === 'pending' ? 'warning' : ($booking->booking_status === 'refunded' ? 'info' : 'danger'))) }}">
-                                                    {{ ucfirst($booking->booking_status) }}
+                                                    class="badge rounded-pill bg-{{ in_array($displayStatus, ['confirmed'], true) ? 'success' : ($displayStatus === 'hold' ? 'info' : ($displayStatus === 'pending' ? 'warning' : ($displayStatus === 'refunded' ? 'info' : 'danger'))) }}">
+                                                    {{ ucfirst($displayStatus) }}
                                                 </span>
                                             </td>
                                             <td>

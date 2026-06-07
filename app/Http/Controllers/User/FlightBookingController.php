@@ -257,6 +257,7 @@ class FlightBookingController extends Controller
     {
         try {
             $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($booking);
+            $booking->reconcileStatusAfterHoldPayment();
 
             // Idempotent: do not re-verify payment or re-issue ticket on reload
             if ($booking->payment_status === 'paid' && $booking->ticket_status === 'issued') {
@@ -315,7 +316,7 @@ class FlightBookingController extends Controller
                     'payment_status' => 'paid',
                     'payment_response' => $verificationResult['data'] ?? null,
                 ]);
-                $booking->refresh();
+                $booking->reconcileStatusAfterHoldPayment();
             }
 
             if (empty($booking->sabre_record_locator)) {
@@ -338,6 +339,8 @@ class FlightBookingController extends Controller
                 $booking->refresh();
             }
 
+            $booking->reconcileStatusAfterHoldPayment();
+
             return redirect()->route('user.flights.payment.success.view', ['booking' => $booking->id]);
         } catch (\Exception $e) {
             Log::error('Flight payment success processing failed', [
@@ -355,6 +358,7 @@ class FlightBookingController extends Controller
     {
         try {
             $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($booking);
+            $booking->reconcileStatusAfterHoldPayment();
 
             if ($booking->payment_status !== 'paid' || $booking->ticket_status !== 'issued') {
                 return redirect()->route('user.flights.index')
@@ -547,7 +551,12 @@ class FlightBookingController extends Controller
     public function holdSuccess(int $booking)
     {
         try {
-            $booking = B2bFlightBooking::findOrFail($booking);
+            $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($booking);
+
+            if (! $booking->isOnHold()) {
+                return redirect()->route('user.bookings.flights.detail', $booking->id);
+            }
+
             return view('user.flights.hold-success', compact('booking'));
         } catch (\Exception $e) {
             return redirect()->route('user.flights.index')->with('notify_error', 'Booking not found.');
@@ -563,7 +572,7 @@ class FlightBookingController extends Controller
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
             ->findOrFail($booking);
 
-        if ($booking->booking_status !== 'hold') {
+        if (! $booking->isOnHold()) {
             return redirect()->route('user.bookings.flights.detail', $booking->id)
                 ->with('notify_error', 'This booking is not in a hold state.');
         }
@@ -583,7 +592,7 @@ class FlightBookingController extends Controller
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())
             ->findOrFail($booking);
 
-        if ($booking->booking_status !== 'hold') {
+        if (! $booking->isOnHold()) {
             return back()->with('notify_error', 'This booking is not in a hold state.');
         }
 

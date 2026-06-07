@@ -616,7 +616,9 @@
 
     /* Resolve hold expiry: returns true if a hold booking's deadline has passed */
     $isHoldExpired = function ($bookingObj): bool {
-        if (($bookingObj->booking_status ?? '') !== 'hold') return false;
+        if (! ($bookingObj instanceof \App\Models\B2bFlightBooking) || ! $bookingObj->isOnHold()) {
+            return false;
+        }
         // 1. Explicit column
         if (!empty($bookingObj->hold_expires_at)) {
             try { return \Carbon\Carbon::parse($bookingObj->hold_expires_at)->isPast(); } catch (\Throwable $e) {}
@@ -694,7 +696,11 @@
                             $bkType = $bk['type'];
                             $bkKey  = $bkType . '-' . $bkObj->id;
                             $bkStatus = $bkObj->booking_status;
-                            if ($bkStatus === 'completed') $bkStatus = 'confirmed';
+                            if ($bkType === 'flight' && $bkObj instanceof \App\Models\B2bFlightBooking) {
+                                $bkStatus = $bkObj->displayBookingStatus();
+                            } elseif ($bkStatus === 'completed') {
+                                $bkStatus = 'confirmed';
+                            }
                             if ($bkStatus === 'hold' && $isHoldExpired($bkObj)) $bkStatus = 'expired';
 
                             if ($bkType === 'flight') {
@@ -746,8 +752,8 @@
                 @foreach($flightBookings as $booking)
                 @php
                     $bkKey     = 'flight-' . $booking->id;
-                    $bkStatus  = $booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status;
-                    $isHold    = ($booking->payment_method === 'hold');
+                    $bkStatus  = $booking->displayBookingStatus();
+                    $isHold    = $booking->isOnHold();
                     if ($bkStatus === 'hold' && $isHoldExpired($booking)) $bkStatus = 'expired';
                     $passengers = $booking->passengers_data['passengers'] ?? [];
                     $lead       = $booking->passengers_data['lead'] ?? [];
@@ -1051,7 +1057,7 @@
                                     <p style="font-size:.7rem;color:#8492a6;margin-top:8px;">
                                         Releasing the hold cancels the PNR at the airline end. No refund is needed since no payment was made.
                                     </p>
-                                @elseif($booking->booking_status === 'confirmed' && $booking->payment_status === 'paid')
+                                @elseif($booking->isConfirmed() && $booking->isPaid())
                                     @include('partials.flight-booking-cancel-actions', [
                                         'booking' => $booking,
                                         'cancellation' => \App\Support\BookingCancellationEligibility::forFlight($booking),

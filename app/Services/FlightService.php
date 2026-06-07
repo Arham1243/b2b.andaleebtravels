@@ -658,11 +658,18 @@ class FlightService
 
             $responseData = $response->json();
 
-            $booking->update([
+            $ticketUpdate = [
                 'ticket_request' => $payload,
                 'ticket_response' => $responseData,
                 'ticket_status' => 'issued',
-            ]);
+            ];
+
+            if ($booking->booking_status === 'hold') {
+                $ticketUpdate['booking_status'] = 'confirmed';
+            }
+
+            $booking->update($ticketUpdate);
+            $booking->reconcileStatusAfterHoldPayment();
 
             return [
                 'success' => true,

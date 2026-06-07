@@ -1,6 +1,6 @@
 @php
     $cancellation = $cancellation ?? ['can_cancel' => false, 'reason' => null];
-    $status = $status ?? ($booking->booking_status === 'completed' ? 'confirmed' : $booking->booking_status);
+    $status = $status ?? $booking->displayBookingStatus();
 @endphp
 
 @if ($status === 'cancelled')

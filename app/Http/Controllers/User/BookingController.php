@@ -35,7 +35,14 @@ class BookingController extends Controller
         $status = $request->query('status', 'all');
         if ($status && $status !== 'all') {
             if ($status === 'confirmed') {
-                $query->whereIn('booking_status', ['confirmed', 'completed']);
+                $query->where(function ($q) {
+                    $q->whereIn('booking_status', ['confirmed', 'completed'])
+                        ->orWhere(function ($q2) {
+                            $q2->where('booking_status', 'hold')->where('payment_status', 'paid');
+                        });
+                });
+            } elseif ($status === 'hold') {
+                $query->where('booking_status', 'hold')->where('payment_status', '!=', 'paid');
             } else {
                 $query->where('booking_status', $status);
             }
@@ -60,6 +67,7 @@ class BookingController extends Controller
     public function flightDetail(int $id)
     {
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($id);
+        $booking->reconcileStatusAfterHoldPayment();
         $counts  = $this->bookingCounts();
         $cancellation = BookingCancellationEligibility::forFlight($booking);
 
@@ -275,7 +283,7 @@ class BookingController extends Controller
             return back()->with('notify_error', 'Booking is already cancelled.');
         }
 
-        if ($booking->booking_status !== 'hold') {
+        if ($booking->booking_status !== 'hold' || $booking->isPaid()) {
             return back()->with('notify_error', 'This action is only available for held bookings.');
         }
 
