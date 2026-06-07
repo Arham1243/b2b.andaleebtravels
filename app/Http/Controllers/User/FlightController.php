@@ -8,11 +8,13 @@ use App\Services\FlightProviders\FlightProviderManager;
 use App\Services\FlightProviders\SabreFlightProvider;
 use App\Services\FlightProviders\TravelportFlightProvider;
 use App\Services\FlightService;
+use App\Services\Travelport\TravelportApiClient;
 use App\Support\FlightCabinPreference;
 use App\Support\FlightPromoConfig;
 use App\Support\SabreBaggagePresenter;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
+use App\Support\Travelport\TravelportFareRulesResponseParser;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -239,13 +241,6 @@ class FlightController extends Controller
 
     public function fareRulesText(Request $request, FlightService $flightService)
     {
-        if (! $this->isProviderEnabled('sabre')) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Sabre is disabled for your account.',
-            ], 403);
-        }
-
         $validated = $request->validate([
             'itinerary' => 'required|integer|min:1',
             'fare' => 'required|integer|min:0',
@@ -254,16 +249,30 @@ class FlightController extends Controller
         $itineraryId = (int) $validated['itinerary'];
         $fareIndex = (int) $validated['fare'];
         $resultCard = session('flight_search_results')[$itineraryId] ?? null;
-        $grouped = session('flight_search_response');
 
-        if (strtolower((string) ($resultCard['supplier'] ?? 'sabre')) !== 'sabre') {
+        if (! is_array($resultCard)) {
             return response()->json([
                 'success' => false,
-                'error' => 'Fare rules are not available for this provider yet.',
+                'error' => 'Search session expired. Please search again.',
             ], 422);
         }
 
-        if (! is_array($resultCard) || ! is_array($grouped)) {
+        $supplier = strtolower((string) ($resultCard['supplier'] ?? 'sabre'));
+
+        if ($supplier === 'travelport') {
+            return $this->travelportFareRulesText($resultCard, $fareIndex);
+        }
+
+        if (! $this->isProviderEnabled('sabre')) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Sabre is disabled for your account.',
+            ], 403);
+        }
+
+        $grouped = session('flight_search_response');
+
+        if (! is_array($grouped)) {
             return response()->json([
                 'success' => false,
                 'error' => 'Search session expired. Please search again.',
@@ -291,6 +300,64 @@ class FlightController extends Controller
 
         try {
             $components = $flightService->fetchFareRulesText($ruleRequests);
+
+            return response()->json([
+                'success' => true,
+                'components' => $components,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to load full fare rules right now. Please try again.',
+            ], 500);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $resultCard
+     */
+    private function travelportFareRulesText(array $resultCard, int $fareIndex)
+    {
+        if (! $this->isProviderEnabled('travelport')) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Travelport is disabled for your account.',
+            ], 403);
+        }
+
+        $fareOption = $resultCard['fare_options'][$fareIndex] ?? null;
+        $ruleRequest = is_array($fareOption) ? ($fareOption['travelport_fare_rule'] ?? null) : null;
+
+        if (! is_array($ruleRequest) || trim((string) ($ruleRequest['fare_rule_key'] ?? '')) === '') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Fare rule details are not available for this fare.',
+            ], 422);
+        }
+
+        try {
+            $response = (new TravelportApiClient())->airFareRules($ruleRequest);
+
+            if (! ($response['success'] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $response['error'] ?? 'Unable to load fare rules from Travelport.',
+                ], 500);
+            }
+
+            $components = TravelportFareRulesResponseParser::toComponents(
+                (string) ($response['raw'] ?? ''),
+                $ruleRequest,
+            );
+
+            if ($components === []) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No detailed fare rules returned for this fare.',
+                ], 422);
+            }
 
             return response()->json([
                 'success' => true,

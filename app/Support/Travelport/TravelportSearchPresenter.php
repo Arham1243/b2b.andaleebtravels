@@ -208,6 +208,18 @@ class TravelportSearchPresenter
             $validatingCarrier,
         );
         $displayBrand = $fareBrand ?: ($cabinClass ?: 'Economy');
+        $fareRules = TravelportFareRulesPresenter::fromPricing(
+            $primaryPricingInfo,
+            $primaryFareInfo,
+            $legs,
+            $displayBrand,
+            $cabinClass,
+        );
+        $fareRuleRequest = TravelportFareRulesPresenter::fareRuleRequest(
+            $primaryFareInfo,
+            $primaryPricingInfo,
+            $legs,
+        );
 
         $fareOption = [
             'travelport_pricing_index' => 0,
@@ -223,7 +235,8 @@ class TravelportSearchPresenter
             'non_refundable' => $nonRefundable,
             'baggage_notes' => (string) ($baggageDetails['summary'] ?? ''),
             'baggage_details' => $baggageDetails,
-            'fare_rules' => [],
+            'fare_rules' => $fareRules,
+            'travelport_fare_rule' => $fareRuleRequest,
             'fare_tags' => ['published'],
             'validating_carrier' => $validatingCarrier,
             'cabin_code' => $cabinClass,
@@ -249,7 +262,7 @@ class TravelportSearchPresenter
             'fare_brand' => $displayBrand,
             'baggage_notes' => (string) ($baggageDetails['summary'] ?? ''),
             'baggage_details' => $baggageDetails,
-            'fare_rules' => [],
+            'fare_rules' => $fareRules,
             'fare_tags' => ['published'],
             'fare_options' => [$fareOption],
             'listing_meta' => FlightListingMetaBuilder::fromLegs($legs, $totalPrice, ['tags' => ['published']]),
@@ -503,6 +516,7 @@ class TravelportSearchPresenter
             $existing['fare_brand'] = $cheapest['fare_brand'] ?? $existing['fare_brand'] ?? null;
             $existing['baggage_details'] = $cheapest['baggage_details'] ?? $existing['baggage_details'] ?? [];
             $existing['baggage_notes'] = $cheapest['baggage_notes'] ?? $existing['baggage_notes'] ?? '';
+            $existing['fare_rules'] = $cheapest['fare_rules'] ?? $existing['fare_rules'] ?? [];
             $existing['non_refundable'] = (bool) ($cheapest['non_refundable'] ?? $existing['non_refundable'] ?? false);
 
             $grouped[$signature] = $existing;

@@ -57,6 +57,56 @@ XML;
     }
 
     /**
+     * @param  array{
+     *     fare_info_ref: string,
+     *     fare_rule_key: string,
+     *     provider_code?: string
+     * }  $request
+     * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
+     */
+    public function airFareRules(array $request): array
+    {
+        $fareInfoRef = htmlspecialchars(trim((string) ($request['fare_info_ref'] ?? '')), ENT_XML1);
+        $fareRuleKey = htmlspecialchars(trim((string) ($request['fare_rule_key'] ?? '')), ENT_XML1);
+        $providerCode = htmlspecialchars(trim((string) ($request['provider_code'] ?? self::PROVIDER_CODE)), ENT_XML1);
+
+        if ($fareInfoRef === '' || $fareRuleKey === '') {
+            return [
+                'success' => false,
+                'httpCode' => 0,
+                'raw' => '',
+                'parsed' => null,
+                'error' => 'Fare rule reference is missing.',
+            ];
+        }
+
+        $traceId = $this->generateTraceId();
+        $authorizedBy = self::AUTHORIZED_BY;
+        $targetBranch = self::TARGET_BRANCH;
+        $airNs = self::AIR_NS;
+        $comNs = self::COM_NS;
+
+        $soap = <<<XML
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <air:AirFareRulesReq
+            TraceId="{$traceId}"
+            AuthorizedBy="{$authorizedBy}"
+            TargetBranch="{$targetBranch}"
+            xmlns:air="{$airNs}"
+            xmlns:com="{$comNs}">
+            <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>
+            <air:FareRuleKey FareInfoRef="{$fareInfoRef}" ProviderCode="{$providerCode}">{$fareRuleKey}</air:FareRuleKey>
+        </air:AirFareRulesReq>
+    </soapenv:Body>
+</soapenv:Envelope>
+XML;
+
+        return $this->sendRequest('AirService', $soap);
+    }
+
+    /**
      * @param  array<string, mixed>  $searchData
      */
     private function buildSearchAirLegsXml(array $searchData): string
