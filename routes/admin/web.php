@@ -79,6 +79,8 @@ Route::middleware(['admin', 'admin.staff_gate'])->prefix('admin')->name('admin.'
 
     Route::resource('hotel-bookings', AdminHotelBookingController::class)->only(['index', 'show']);
     Route::resource('flight-bookings', AdminFlightBookingController::class)->only(['index', 'show']);
+    Route::get('flight-bookings/{flight_booking}/fare-rules', [AdminFlightBookingController::class, 'fareRules'])
+        ->name('flight-bookings.fare-rules');
 
     Route::post('bookings/hotels/{booking}/status', [AdminBookingController::class, 'updateHotelStatus'])->name('bookings.hotels.status');
     Route::post('bookings/hotels/{booking}/cancel', [AdminBookingController::class, 'cancelHotelBooking'])->name('bookings.hotels.cancel');

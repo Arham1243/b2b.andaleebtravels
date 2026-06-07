@@ -43,7 +43,7 @@ window.FlightFareRules = (function () {
         }).join('');
     }
 
-    async function loadIntoWrap(fullWrap, itineraryId, fareIndex) {
+    async function loadIntoWrap(fullWrap, itineraryId, fareIndex, customUrl) {
         if (!fullWrap) return;
 
         if (fullWrap.dataset.loaded === '1' || fullWrap.dataset.loaded === 'loading') {
@@ -54,9 +54,15 @@ window.FlightFareRules = (function () {
 
         const status = fullWrap.querySelector('[data-fd-rules-status]');
         const body = fullWrap.querySelector('[data-fd-rules-body]');
-        const url = new URL(apiUrl, window.location.origin);
-        url.searchParams.set('itinerary', String(itineraryId));
-        url.searchParams.set('fare', String(fareIndex));
+        const url = customUrl
+            ? new URL(customUrl, window.location.origin)
+            : (() => {
+                const searchUrl = new URL(apiUrl, window.location.origin);
+                searchUrl.searchParams.set('itinerary', String(itineraryId));
+                searchUrl.searchParams.set('fare', String(fareIndex));
+
+                return searchUrl;
+            })();
 
         try {
             const response = await fetch(url.toString(), {
@@ -92,13 +98,20 @@ window.FlightFareRules = (function () {
     function loadForRoot(root) {
         if (!root) return;
 
+        const customUrl = root.dataset.fareRulesUrl || '';
         const itineraryId = root.dataset.itineraryId;
         const fareIndex = root.dataset.fareIndex ?? '0';
         const fullWrap = root.querySelector('[data-fd-rules-full]');
 
+        if (!fullWrap) return;
+
+        if (customUrl) {
+            return loadIntoWrap(fullWrap, null, null, customUrl);
+        }
+
         if (!itineraryId) return;
 
-        return loadIntoWrap(fullWrap, itineraryId, fareIndex);
+        return loadIntoWrap(fullWrap, itineraryId, fareIndex, '');
     }
 
     function loadForModal(modal) {

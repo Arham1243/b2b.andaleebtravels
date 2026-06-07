@@ -2,6 +2,7 @@
 
 @push('css')
 @include('user.bookings._styles')
+@include('user.flights.partials.fare-rules-styles')
 <style>
 .bkp--admin { padding: 0; min-height: auto; background: transparent; }
 .bkp--admin .bkp-main { min-width: 0; }
@@ -9,6 +10,16 @@
 .admin-flight-status .form-check-label { font-size: .82rem; color: #4a5568; }
 .admin-booking-vendor .bkpd-info-row__val a { color: var(--c-brand, #cd1b4f); font-weight: 600; text-decoration: none; }
 .admin-booking-vendor .bkpd-info-row__val a:hover { text-decoration: underline; }
+.bkp--admin {
+    --c-ink: #1a2540;
+    --c-muted: #8492a6;
+    --c-line: #e8ecf1;
+    --c-line-inner: #eef1f5;
+    --c-bg: #f8f9fb;
+    --c-green: #10b981;
+    --c-brand: #cd1b4f;
+}
+.bkp--admin .fd-rules { padding: .85rem 1.1rem 1rem; }
 </style>
 @endpush
 
@@ -303,6 +314,8 @@
                                 </div>
                             </div>
                         @endif
+
+                        @include('partials.flight-booking-fare-rules', ['booking' => $booking])
                     </div>
 
                     <div>
@@ -522,6 +535,7 @@
 @endsection
 
 @push('js')
+@include('user.flights.partials.fare-rules-scripts')
 @include('admin.bookings.partials.status-form-confirm')
 <script>
 $(document).on('click', '.cancel-booking-btn', function() {
