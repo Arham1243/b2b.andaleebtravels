@@ -433,7 +433,7 @@
                             $rpDur   = (int)($legs[0]['elapsedTime'] ?? 0);
                         @endphp
 
-                        <div class="rc"
+                        <div class="rc {{ !empty($result['supplier']) ? 'rc--has-provider' : '' }}"
                              data-rp-id="{{ $lid }}"
                              data-rp-meta='@json($meta)'
                              data-rp-stops="{{ $rpStops }}"
@@ -494,7 +494,7 @@
                                     {{-- departure --}}
                                     <div class="rc__point">
                                         <div class="rc__time">
-                                            {{ $s0['departure_clock'] ?? ' - ' }}
+                                            {{ formatFlightClock($s0['departure_clock'] ?? null) }}
                                             @if ($isRedEye)<i class="bx bxs-moon rc__moon"></i>@endif
                                         </div>
                                         <div class="rc__dt">{{ $s0['departure_weekday']??'' }}, {{ $s0['departure_label']??'' }}</div>
@@ -522,7 +522,7 @@
                                     {{-- arrival --}}
                                     <div class="rc__point rc__point--arr">
                                         <div class="rc__time">
-                                            {{ $sLast['arrival_clock'] ?? ' - ' }}
+                                            {{ formatFlightClock($sLast['arrival_clock'] ?? null) }}
                                             @if($nextDay)<span class="rc__nextday">Next Day</span>@endif
                                         </div>
                                         <div class="rc__dt">{{ $sLast['arrival_weekday']??'' }}, {{ $sLast['arrival_label']??'' }}</div>
@@ -735,7 +735,7 @@
 
                                                     <div class="fd-seg__route">
                                                         <div class="fd-seg__pt">
-                                                            <strong class="fd-seg__time">{{ $sx['departure_clock']??' - ' }}</strong>
+                                                            <strong class="fd-seg__time">{{ formatFlightClock($sx['departure_clock'] ?? null) }}</strong>
                                                             <span class="fd-seg__code">{{ $sx['from']??'' }}</span>
                                                             <span class="fd-seg__city">
                                                                 {{ resolveFlightCityLabel($sx['departure_city'] ?? '', $sx['from'] ?? '') }}
@@ -760,7 +760,7 @@
                                                         </div>
 
                                                         <div class="fd-seg__pt fd-seg__pt--arr">
-                                                            <strong class="fd-seg__time">{{ $sx['arrival_clock']??' - ' }}</strong>
+                                                            <strong class="fd-seg__time">{{ formatFlightClock($sx['arrival_clock'] ?? null) }}</strong>
                                                             <span class="fd-seg__code">{{ $sx['to']??'' }}</span>
                                                             <span class="fd-seg__city">
                                                                 {{ resolveFlightCityLabel($sx['arrival_city'] ?? '', $sx['to'] ?? '') }}
@@ -1235,6 +1235,12 @@
     background: #ecfdf5;
     color: #047857;
     border: 1px solid #6ee7b7;
+}
+.rc--has-provider .rc__point--arr {
+    padding-right: 5.75rem;
+}
+.rc--has-provider .rc__time {
+    white-space: nowrap;
 }
 .rc__hold--disabled,
 .rc__cta--disabled,

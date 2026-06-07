@@ -278,6 +278,27 @@ if (! function_exists('formatFlightSegmentDate')) {
     }
 }
 
+if (! function_exists('formatFlightClock')) {
+    /** Normalize segment clock labels for cards and modals, e.g. "19:15" or "19:00". */
+    function formatFlightClock(mixed $clock): string
+    {
+        $clock = trim((string) ($clock ?? ''));
+        if ($clock === '' || $clock === '-') {
+            return ' - ';
+        }
+
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $clock, $matches)) {
+            return sprintf('%02d:%02d', (int) $matches[1], (int) $matches[2]);
+        }
+
+        if (preg_match('/^(\d{1,2})$/', $clock, $matches)) {
+            return sprintf('%02d:00', (int) $matches[1]);
+        }
+
+        return $clock;
+    }
+}
+
 if (! function_exists('flightAirportCityMap')) {
     /** @return array<string, string> */
     function flightAirportCityMap(): array

@@ -3,7 +3,6 @@
 namespace App\Support\Travelport;
 
 use App\Support\FlightListingMetaBuilder;
-use App\Support\SabreBaggagePresenter;
 use Carbon\Carbon;
 
 class TravelportSearchPresenter
@@ -86,10 +85,11 @@ class TravelportSearchPresenter
         $cabinClass = null;
         $seatsAvailable = null;
         $nonRefundable = false;
-        $baggageDetails = self::emptyBaggageDetails();
+        $baggageDetails = TravelportBaggagePresenter::fromFareInfo(null, null, [], null);
         $basePrice = null;
         $taxes = null;
         $primaryFareInfo = null;
+        $primaryPricingInfo = null;
 
         foreach ($pricingInfos as $pricingInfo) {
             if (! is_array($pricingInfo)) {
@@ -109,11 +109,11 @@ class TravelportSearchPresenter
                 $taxes = $taxMoney['amount'];
             }
 
+            $primaryPricingInfo = $primaryPricingInfo ?: $pricingInfo;
             $primaryFareInfo = $primaryFareInfo ?: self::resolveFareInfoNode($pricingInfo, $fareInfosByKey);
             if ($primaryFareInfo !== null) {
                 $fareBasis = $fareBasis ?: self::attr($primaryFareInfo, 'FareBasis');
                 $fareBrand = $fareBrand ?: self::resolveBrandName($primaryFareInfo, $brandsByKey);
-                $baggageDetails = self::buildBaggageDetails($primaryFareInfo, $validatingCarrier);
             }
 
             $flightOptions = self::asList(data_get($pricingInfo, 'FlightOptionsList.FlightOption'));
@@ -162,8 +162,8 @@ class TravelportSearchPresenter
                             $segmentFareInfo = $fareInfosByKey[$fareInfoRef];
                             $fareBasis = $fareBasis ?: self::attr($segmentFareInfo, 'FareBasis');
                             $fareBrand = $fareBrand ?: self::resolveBrandName($segmentFareInfo, $brandsByKey);
-                            if (($baggageDetails['summary_items'] ?? []) === []) {
-                                $baggageDetails = self::buildBaggageDetails($segmentFareInfo, $validatingCarrier);
+                            if ($primaryFareInfo === null) {
+                                $primaryFareInfo = $segmentFareInfo;
                             }
                         }
 
@@ -201,7 +201,12 @@ class TravelportSearchPresenter
             return null;
         }
 
-        $baggageDetails = self::dedupeBaggageSummary(SabreBaggagePresenter::alignWithFlightLegs($baggageDetails, $legs));
+        $baggageDetails = TravelportBaggagePresenter::fromFareInfo(
+            $primaryFareInfo,
+            $primaryPricingInfo,
+            $legs,
+            $validatingCarrier,
+        );
         $displayBrand = $fareBrand ?: ($cabinClass ?: 'Economy');
 
         $fareOption = [
@@ -641,79 +646,6 @@ class TravelportSearchPresenter
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    private static function buildBaggageDetails(?array $fareInfo, ?string $validatingCarrier): array
-    {
-        if ($fareInfo === null) {
-            return self::emptyBaggageDetails();
-        }
-
-        $allowance = self::parseBaggageAllowance($fareInfo);
-        if ($allowance === null) {
-            return self::emptyBaggageDetails();
-        }
-
-        $origin = strtoupper(trim((string) self::attr($fareInfo, 'Origin', '')));
-        $destination = strtoupper(trim((string) self::attr($fareInfo, 'Destination', '')));
-        $route = $origin !== '' && $destination !== '' ? $origin . ' → ' . $destination : '';
-        $airline = strtoupper(trim((string) ($validatingCarrier ?? '')));
-
-        $entry = [
-            'route' => $route,
-            'airline' => $airline,
-            'allowance' => $allowance['display'],
-            'friendly' => $allowance,
-            'provision_type' => 'A',
-        ];
-
-        return [
-            'summary' => $allowance['display'],
-            'summary_items' => [$allowance['display']],
-            'checked' => [$entry],
-            'cabin' => [],
-            'pax_table' => [],
-            'cabin_notes' => [],
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $fareInfo
-     * @return array{display: string, amount: string}|null
-     */
-    private static function parseBaggageAllowance(array $fareInfo): ?array
-    {
-        $baggage = data_get($fareInfo, 'BaggageAllowance');
-        if (! is_array($baggage)) {
-            return null;
-        }
-
-        $maxWeight = data_get($baggage, 'MaxWeight');
-        if (is_array($maxWeight)) {
-            $value = trim((string) self::attr($maxWeight, 'Value', ''));
-            $unit = strtolower(trim((string) self::attr($maxWeight, 'Unit', 'Kilograms')));
-
-            if ($value !== '' && is_numeric($value)) {
-                $display = $unit === 'kilograms' || $unit === 'kg'
-                    ? $value . ' kg'
-                    : trim($value . ' ' . $unit);
-
-                return ['display' => $display, 'amount' => $display];
-            }
-        }
-
-        $pieces = self::attr($baggage, 'NumberOfPieces');
-        if ($pieces !== null && $pieces !== '' && is_numeric($pieces)) {
-            $count = (int) $pieces;
-            $display = $count === 1 ? '1 pc' : $count . ' pcs';
-
-            return ['display' => $display, 'amount' => $display];
-        }
-
-        return null;
-    }
-
-    /**
      * @param  list<array<string, mixed>>  $segments
      */
     private static function legElapsedMinutes(array $segments): int
@@ -773,38 +705,4 @@ class TravelportSearchPresenter
         return $clock;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private static function emptyBaggageDetails(): array
-    {
-        return [
-            'summary' => null,
-            'summary_items' => [],
-            'checked' => [],
-            'cabin' => [],
-            'pax_table' => [],
-            'cabin_notes' => [],
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $baggageDetails
-     * @return array<string, mixed>
-     */
-    private static function dedupeBaggageSummary(array $baggageDetails): array
-    {
-        $items = [];
-        foreach ($baggageDetails['summary_items'] ?? [] as $item) {
-            $text = trim((string) $item);
-            if ($text !== '' && ! in_array($text, $items, true)) {
-                $items[] = $text;
-            }
-        }
-
-        $baggageDetails['summary_items'] = $items;
-        $baggageDetails['summary'] = $items !== [] ? implode(' · ', $items) : null;
-
-        return $baggageDetails;
-    }
 }
