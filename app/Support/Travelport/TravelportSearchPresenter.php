@@ -3,6 +3,7 @@
 namespace App\Support\Travelport;
 
 use App\Support\FlightListingMetaBuilder;
+use App\Support\SabreBaggagePresenter;
 use Carbon\Carbon;
 
 class TravelportSearchPresenter
@@ -24,6 +25,8 @@ class TravelportSearchPresenter
         }
 
         $segmentsByKey = self::indexByKey(data_get($rsp, 'AirSegmentList.AirSegment'));
+        $fareInfosByKey = self::indexByKey(data_get($rsp, 'FareInfoList.FareInfo'));
+        $brandsByKey = self::indexByKey(data_get($rsp, 'BrandList.Brand'));
         $pricePoints = self::asList(data_get($rsp, 'AirPricePointList.AirPricePoint'));
 
         $results = [];
@@ -33,11 +36,13 @@ class TravelportSearchPresenter
                 continue;
             }
 
-            $card = self::buildCard($pricePoint, $segmentsByKey, $searchData);
+            $card = self::buildCard($pricePoint, $segmentsByKey, $fareInfosByKey, $brandsByKey, $searchData);
             if ($card !== null) {
                 $results[] = $card;
             }
         }
+
+        $results = self::groupCardsByRouting($results);
 
         usort($results, static fn (array $a, array $b): int => ((float) ($a['totalPrice'] ?? 0)) <=> ((float) ($b['totalPrice'] ?? 0)));
 
@@ -47,10 +52,17 @@ class TravelportSearchPresenter
     /**
      * @param  array<string, mixed>  $pricePoint
      * @param  array<string, array<string, mixed>>  $segmentsByKey
+     * @param  array<string, array<string, mixed>>  $fareInfosByKey
+     * @param  array<string, array<string, mixed>>  $brandsByKey
      * @param  array<string, mixed>  $searchData
      */
-    private static function buildCard(array $pricePoint, array $segmentsByKey, array $searchData): ?array
-    {
+    private static function buildCard(
+        array $pricePoint,
+        array $segmentsByKey,
+        array $fareInfosByKey,
+        array $brandsByKey,
+        array $searchData,
+    ): ?array {
         $key = (string) self::attr($pricePoint, 'Key', '');
         $totalPrice = self::extractTotalPrice($pricePoint);
         if ($totalPrice === null || $totalPrice <= 0) {
@@ -69,8 +81,15 @@ class TravelportSearchPresenter
         $rawSegments = [];
         $validatingCarrier = null;
         $fareBasis = null;
+        $fareBrand = null;
         $bookingCode = null;
         $cabinClass = null;
+        $seatsAvailable = null;
+        $nonRefundable = false;
+        $baggageDetails = self::emptyBaggageDetails();
+        $basePrice = null;
+        $taxes = null;
+        $primaryFareInfo = null;
 
         foreach ($pricingInfos as $pricingInfo) {
             if (! is_array($pricingInfo)) {
@@ -78,6 +97,25 @@ class TravelportSearchPresenter
             }
 
             $validatingCarrier = $validatingCarrier ?: self::attr($pricingInfo, 'PlatingCarrier');
+            $nonRefundable = strtolower((string) self::attr($pricingInfo, 'Refundable', 'true')) === 'false';
+
+            $pricingMoney = self::parseMoneyValue(self::attr($pricingInfo, 'BasePrice'));
+            if ($basePrice === null && ($pricingMoney['amount'] ?? null) !== null) {
+                $basePrice = $pricingMoney['amount'];
+            }
+
+            $taxMoney = self::parseMoneyValue(self::attr($pricingInfo, 'Taxes'));
+            if ($taxes === null && ($taxMoney['amount'] ?? null) !== null) {
+                $taxes = $taxMoney['amount'];
+            }
+
+            $primaryFareInfo = $primaryFareInfo ?: self::resolveFareInfoNode($pricingInfo, $fareInfosByKey);
+            if ($primaryFareInfo !== null) {
+                $fareBasis = $fareBasis ?: self::attr($primaryFareInfo, 'FareBasis');
+                $fareBrand = $fareBrand ?: self::resolveBrandName($primaryFareInfo, $brandsByKey);
+                $baggageDetails = self::buildBaggageDetails($primaryFareInfo, $validatingCarrier);
+            }
+
             $flightOptions = self::asList(data_get($pricingInfo, 'FlightOptionsList.FlightOption'));
 
             foreach ($flightOptions as $flightOption) {
@@ -112,19 +150,40 @@ class TravelportSearchPresenter
                         $bookingCode = $bookingCode ?: self::attr($bookingInfo, 'BookingCode');
                         $cabinClass = $cabinClass ?: self::attr($bookingInfo, 'CabinClass');
 
+                        if ($seatsAvailable === null) {
+                            $bookingCount = self::attr($bookingInfo, 'BookingCount');
+                            if ($bookingCount !== null && is_numeric($bookingCount)) {
+                                $seatsAvailable = (int) $bookingCount;
+                            }
+                        }
+
+                        $fareInfoRef = (string) self::attr($bookingInfo, 'FareInfoRef', '');
+                        if ($fareInfoRef !== '' && isset($fareInfosByKey[$fareInfoRef])) {
+                            $segmentFareInfo = $fareInfosByKey[$fareInfoRef];
+                            $fareBasis = $fareBasis ?: self::attr($segmentFareInfo, 'FareBasis');
+                            $fareBrand = $fareBrand ?: self::resolveBrandName($segmentFareInfo, $brandsByKey);
+                            if (($baggageDetails['summary_items'] ?? []) === []) {
+                                $baggageDetails = self::buildBaggageDetails($segmentFareInfo, $validatingCarrier);
+                            }
+                        }
+
                         $built = self::buildSegment($segmentNode, $bookingCode, $cabinClass);
                         $legSegments[] = $built;
                         $rawSegments[] = array_merge($segmentNode, ['booking_code' => $bookingCode]);
                     }
-                }
 
-                if ($legSegments !== []) {
-                    $elapsed = array_sum(array_map(static fn ($s) => (int) ($s['elapsedTime'] ?? 0), $legSegments));
-                    $legs[] = [
-                        'elapsedTime' => $elapsed > 0 ? $elapsed : self::sumTravelTime($legSegments),
-                        'segments' => $legSegments,
-                        'filter_axes' => FlightListingMetaBuilder::axisForLegSegments($legSegments),
-                    ];
+                    if ($legSegments !== []) {
+                        $elapsed = self::parseTravelTimeMinutes(self::attr($option, 'TravelTime'));
+                        if ($elapsed === null || $elapsed <= 0) {
+                            $elapsed = self::legElapsedMinutes($legSegments);
+                        }
+
+                        $legs[] = [
+                            'elapsedTime' => $elapsed,
+                            'segments' => $legSegments,
+                            'filter_axes' => FlightListingMetaBuilder::axisForLegSegments($legSegments),
+                        ];
+                    }
                 }
             }
 
@@ -134,6 +193,7 @@ class TravelportSearchPresenter
                     continue;
                 }
                 $fareBasis = $fareBasis ?: self::attr($fareInfo, 'FareBasis');
+                $fareBrand = $fareBrand ?: self::resolveBrandName($fareInfo, $brandsByKey);
             }
         }
 
@@ -141,24 +201,29 @@ class TravelportSearchPresenter
             return null;
         }
 
+        $baggageDetails = self::dedupeBaggageSummary(SabreBaggagePresenter::alignWithFlightLegs($baggageDetails, $legs));
+        $displayBrand = $fareBrand ?: ($cabinClass ?: 'Economy');
+
         $fareOption = [
             'travelport_pricing_index' => 0,
+            'travelport_price_point_key' => $key,
             'totalPrice' => $totalPrice,
-            'supplierBasePrice' => null,
-            'supplierTaxes' => null,
-            'basePrice' => null,
-            'taxes' => null,
+            'supplierBasePrice' => $basePrice,
+            'supplierTaxes' => $taxes,
+            'basePrice' => $basePrice,
+            'taxes' => $taxes,
             'currency' => $currency,
-            'fare_brand' => $cabinClass ?: 'Economy',
+            'fare_brand' => $displayBrand,
             'fare_basis' => $fareBasis,
-            'non_refundable' => false,
-            'baggage_notes' => '',
-            'baggage_details' => [],
+            'non_refundable' => $nonRefundable,
+            'baggage_notes' => (string) ($baggageDetails['summary'] ?? ''),
+            'baggage_details' => $baggageDetails,
             'fare_rules' => [],
             'fare_tags' => ['published'],
             'validating_carrier' => $validatingCarrier,
             'cabin_code' => $cabinClass,
             'booking_code' => $bookingCode,
+            'seats_available' => $seatsAvailable,
         ];
 
         return [
@@ -166,19 +231,19 @@ class TravelportSearchPresenter
             'travelport_price_point_key' => $key,
             'travelport_segments' => $rawSegments,
             'supplierPrice' => $totalPrice,
-            'supplierBasePrice' => null,
-            'supplierTaxes' => null,
-            'basePrice' => null,
-            'taxes' => null,
+            'supplierBasePrice' => $basePrice,
+            'supplierTaxes' => $taxes,
+            'basePrice' => $basePrice,
+            'taxes' => $taxes,
             'totalPrice' => $totalPrice,
             'currency' => $currency,
             'legs' => $legs,
             'supplier' => 'travelport',
             'validating_carrier' => $validatingCarrier,
-            'non_refundable' => false,
-            'fare_brand' => $cabinClass ?: 'Economy',
-            'baggage_notes' => '',
-            'baggage_details' => [],
+            'non_refundable' => $nonRefundable,
+            'fare_brand' => $displayBrand,
+            'baggage_notes' => (string) ($baggageDetails['summary'] ?? ''),
+            'baggage_details' => $baggageDetails,
             'fare_rules' => [],
             'fare_tags' => ['published'],
             'fare_options' => [$fareOption],
@@ -200,8 +265,8 @@ class TravelportSearchPresenter
 
         $depDateTime = self::parseTravelportDateTime($depRaw);
         $arrDateTime = self::parseTravelportDateTime($arrRaw);
-        $depClock = $depDateTime->format('H:i');
-        $arrClock = $arrDateTime->format('H:i');
+        $depClock = self::normalizeClock($depDateTime->format('H:i'));
+        $arrClock = self::normalizeClock($arrDateTime->format('H:i'));
         $elapsed = (int) self::attr($segmentNode, 'FlightTime', 0);
         if ($elapsed <= 0) {
             $elapsed = max(15, (int) $depDateTime->diffInMinutes($arrDateTime, false));
@@ -395,5 +460,351 @@ class TravelportSearchPresenter
         }
 
         return $default;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $cards
+     * @return list<array<string, mixed>>
+     */
+    private static function groupCardsByRouting(array $cards): array
+    {
+        $grouped = [];
+
+        foreach ($cards as $card) {
+            $signature = self::routingSignature($card);
+
+            if (! isset($grouped[$signature])) {
+                $grouped[$signature] = $card;
+
+                continue;
+            }
+
+            $existing = $grouped[$signature];
+            $mergedOptions = self::mergeFareOptions(
+                $existing['fare_options'] ?? [],
+                $card['fare_options'] ?? [],
+            );
+
+            $existing['fare_options'] = $mergedOptions;
+            $existing['totalPrice'] = (float) ($mergedOptions[0]['totalPrice'] ?? $existing['totalPrice'] ?? 0);
+            $existing['supplierPrice'] = $existing['totalPrice'];
+            $existing['listing_meta'] = FlightListingMetaBuilder::fromLegs(
+                $existing['legs'] ?? [],
+                $existing['totalPrice'],
+                ['tags' => $existing['fare_tags'] ?? ['published']],
+            );
+
+            $cheapest = $mergedOptions[0] ?? [];
+            $existing['fare_brand'] = $cheapest['fare_brand'] ?? $existing['fare_brand'] ?? null;
+            $existing['baggage_details'] = $cheapest['baggage_details'] ?? $existing['baggage_details'] ?? [];
+            $existing['baggage_notes'] = $cheapest['baggage_notes'] ?? $existing['baggage_notes'] ?? '';
+            $existing['non_refundable'] = (bool) ($cheapest['non_refundable'] ?? $existing['non_refundable'] ?? false);
+
+            $grouped[$signature] = $existing;
+        }
+
+        return array_values($grouped);
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     */
+    private static function routingSignature(array $card): string
+    {
+        $parts = [];
+
+        foreach ($card['legs'] ?? [] as $leg) {
+            foreach ($leg['segments'] ?? [] as $segment) {
+                if (! is_array($segment)) {
+                    continue;
+                }
+
+                $parts[] = implode(':', [
+                    strtoupper((string) ($segment['carrier'] ?? '')),
+                    trim((string) ($segment['flight_number'] ?? '')),
+                    (string) ($segment['departure_clock'] ?? ''),
+                    strtoupper((string) ($segment['from'] ?? '')),
+                    strtoupper((string) ($segment['to'] ?? '')),
+                ]);
+            }
+        }
+
+        return implode('|', $parts);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $left
+     * @param  list<array<string, mixed>>  $right
+     * @return list<array<string, mixed>>
+     */
+    private static function mergeFareOptions(array $left, array $right): array
+    {
+        $merged = [];
+        $seen = [];
+
+        foreach (array_merge($left, $right) as $option) {
+            if (! is_array($option)) {
+                continue;
+            }
+
+            $dedupeKey = implode('|', [
+                (string) ($option['fare_basis'] ?? ''),
+                (string) ($option['fare_brand'] ?? ''),
+                (string) ($option['totalPrice'] ?? ''),
+                (string) ($option['travelport_price_point_key'] ?? ''),
+            ]);
+
+            if (isset($seen[$dedupeKey])) {
+                continue;
+            }
+
+            $seen[$dedupeKey] = true;
+            $merged[] = $option;
+        }
+
+        usort($merged, static fn (array $a, array $b): int => ((float) ($a['totalPrice'] ?? 0)) <=> ((float) ($b['totalPrice'] ?? 0)));
+
+        foreach ($merged as $index => &$option) {
+            $option['travelport_pricing_index'] = $index;
+        }
+        unset($option);
+
+        return $merged;
+    }
+
+    /**
+     * @param  array<string, mixed>  $pricingInfo
+     * @param  array<string, array<string, mixed>>  $fareInfosByKey
+     */
+    private static function resolveFareInfoNode(array $pricingInfo, array $fareInfosByKey): ?array
+    {
+        foreach (self::asList(data_get($pricingInfo, 'FareInfoRef')) as $fareInfoRef) {
+            if (! is_array($fareInfoRef)) {
+                continue;
+            }
+
+            $key = (string) self::attr($fareInfoRef, 'Key', '');
+            if ($key !== '' && isset($fareInfosByKey[$key])) {
+                return $fareInfosByKey[$key];
+            }
+        }
+
+        $singleRef = data_get($pricingInfo, 'FareInfoRef');
+        if (is_array($singleRef)) {
+            $key = (string) self::attr($singleRef, 'Key', '');
+            if ($key !== '' && isset($fareInfosByKey[$key])) {
+                return $fareInfosByKey[$key];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $fareInfo
+     * @param  array<string, array<string, mixed>>  $brandsByKey
+     */
+    private static function resolveBrandName(array $fareInfo, array $brandsByKey): ?string
+    {
+        $brandNode = data_get($fareInfo, 'Brand');
+        if (! is_array($brandNode)) {
+            return null;
+        }
+
+        $brandKey = (string) self::attr($brandNode, 'Key', '');
+        if ($brandKey !== '' && isset($brandsByKey[$brandKey])) {
+            $name = trim((string) self::attr($brandsByKey[$brandKey], 'Name', ''));
+
+            return $name !== '' ? $name : null;
+        }
+
+        $brandId = (string) self::attr($brandNode, 'BrandID', '');
+        if ($brandId === '') {
+            return null;
+        }
+
+        foreach ($brandsByKey as $brand) {
+            if (! is_array($brand)) {
+                continue;
+            }
+
+            if ((string) self::attr($brand, 'BrandID', '') !== $brandId) {
+                continue;
+            }
+
+            $name = trim((string) self::attr($brand, 'Name', ''));
+
+            return $name !== '' ? $name : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function buildBaggageDetails(?array $fareInfo, ?string $validatingCarrier): array
+    {
+        if ($fareInfo === null) {
+            return self::emptyBaggageDetails();
+        }
+
+        $allowance = self::parseBaggageAllowance($fareInfo);
+        if ($allowance === null) {
+            return self::emptyBaggageDetails();
+        }
+
+        $origin = strtoupper(trim((string) self::attr($fareInfo, 'Origin', '')));
+        $destination = strtoupper(trim((string) self::attr($fareInfo, 'Destination', '')));
+        $route = $origin !== '' && $destination !== '' ? $origin . ' → ' . $destination : '';
+        $airline = strtoupper(trim((string) ($validatingCarrier ?? '')));
+
+        $entry = [
+            'route' => $route,
+            'airline' => $airline,
+            'allowance' => $allowance['display'],
+            'friendly' => $allowance,
+            'provision_type' => 'A',
+        ];
+
+        return [
+            'summary' => $allowance['display'],
+            'summary_items' => [$allowance['display']],
+            'checked' => [$entry],
+            'cabin' => [],
+            'pax_table' => [],
+            'cabin_notes' => [],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $fareInfo
+     * @return array{display: string, amount: string}|null
+     */
+    private static function parseBaggageAllowance(array $fareInfo): ?array
+    {
+        $baggage = data_get($fareInfo, 'BaggageAllowance');
+        if (! is_array($baggage)) {
+            return null;
+        }
+
+        $maxWeight = data_get($baggage, 'MaxWeight');
+        if (is_array($maxWeight)) {
+            $value = trim((string) self::attr($maxWeight, 'Value', ''));
+            $unit = strtolower(trim((string) self::attr($maxWeight, 'Unit', 'Kilograms')));
+
+            if ($value !== '' && is_numeric($value)) {
+                $display = $unit === 'kilograms' || $unit === 'kg'
+                    ? $value . ' kg'
+                    : trim($value . ' ' . $unit);
+
+                return ['display' => $display, 'amount' => $display];
+            }
+        }
+
+        $pieces = self::attr($baggage, 'NumberOfPieces');
+        if ($pieces !== null && $pieces !== '' && is_numeric($pieces)) {
+            $count = (int) $pieces;
+            $display = $count === 1 ? '1 pc' : $count . ' pcs';
+
+            return ['display' => $display, 'amount' => $display];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     */
+    private static function legElapsedMinutes(array $segments): int
+    {
+        if ($segments === []) {
+            return 0;
+        }
+
+        $first = $segments[0];
+        $last = $segments[array_key_last($segments)];
+
+        try {
+            $departure = Carbon::parse((string) ($first['departure_datetime'] ?? ''));
+            $arrival = Carbon::parse((string) ($last['arrival_datetime'] ?? ''));
+
+            return max(1, (int) $departure->diffInMinutes($arrival, false));
+        } catch (\Throwable $e) {
+            return self::sumTravelTime($segments);
+        }
+    }
+
+    private static function parseTravelTimeMinutes(?string $isoDuration): ?int
+    {
+        $isoDuration = trim((string) ($isoDuration ?? ''));
+        if ($isoDuration === '') {
+            return null;
+        }
+
+        if (! preg_match('/P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/i', $isoDuration, $matches)) {
+            return null;
+        }
+
+        $days = (int) ($matches[1] ?? 0);
+        $hours = (int) ($matches[2] ?? 0);
+        $minutes = (int) ($matches[3] ?? 0);
+        $seconds = (int) ($matches[4] ?? 0);
+        $total = ($days * 24 * 60) + ($hours * 60) + $minutes;
+
+        if ($seconds >= 30) {
+            $total++;
+        }
+
+        return $total > 0 ? $total : null;
+    }
+
+    private static function normalizeClock(string $clock): string
+    {
+        $clock = trim($clock);
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $clock, $matches)) {
+            return sprintf('%02d:%02d', (int) $matches[1], (int) $matches[2]);
+        }
+
+        if (preg_match('/^(\d{1,2})$/', $clock, $matches)) {
+            return sprintf('%02d:00', (int) $matches[1]);
+        }
+
+        return $clock;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function emptyBaggageDetails(): array
+    {
+        return [
+            'summary' => null,
+            'summary_items' => [],
+            'checked' => [],
+            'cabin' => [],
+            'pax_table' => [],
+            'cabin_notes' => [],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $baggageDetails
+     * @return array<string, mixed>
+     */
+    private static function dedupeBaggageSummary(array $baggageDetails): array
+    {
+        $items = [];
+        foreach ($baggageDetails['summary_items'] ?? [] as $item) {
+            $text = trim((string) $item);
+            if ($text !== '' && ! in_array($text, $items, true)) {
+                $items[] = $text;
+            }
+        }
+
+        $baggageDetails['summary_items'] = $items;
+        $baggageDetails['summary'] = $items !== [] ? implode(' · ', $items) : null;
+
+        return $baggageDetails;
     }
 }

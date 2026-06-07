@@ -1,0 +1,349 @@
+[
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKAzJbgCAAAAA==",
+            "FareBasis": "WDLIT3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED160",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjksOwyAMRA8Tzd42Jc0SAqSJUrGiatn0\/seogVaqJTODnn\/OOSGZaabF\/ceE93TbkB8ByBDNcz9wMdaC9VNBJIxnvB\/F+IQxgxdFueOh3AsDB6uCIMkM1AK1v\/G1KqM+WZXRNqNZ7cDPpF1t9rH4tBYyWmypnl9IV+ip2vcBRXospg==",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKAyMbgCAAAAA==",
+                "BrandID": "2004609",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKAGKbgCAAAAA==",
+            "FareBasis": "LLEOPAE1",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED200",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-18",
+            "NotValidAfter": "2026-06-18"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjksOwjAMRA9Tzd52krbLhNSoqFVgUSS64f7HwElAwpIzEz3\/YoxCMtJIc\/yPAe9BN5RnBgrEcltvCN57sH1OEAlj3\/X+SMroM3g2VBruyq0wcw4mUHcNHdXA2d7ldTFGbbIpo25GtdaBn9HVbEnLkfQI5NwkVpq\/kCbYqdb3AT9nLGU=",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKA0MbgCAAAAA==",
+                "BrandID": "1982413",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKARKbgCAAAAA==",
+            "FareBasis": "VOLP7AE1",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED310",
+            "NegotiatedFare": "false",
+            "NotValidAfter": "2026-06-30"
+        },
+        "FareSurcharge": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKAfKbgCAAAAA==",
+                "Type": "Other",
+                "Amount": "NUC6.09"
+            }
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjksOQiEMRRfzcudtUWAI8skzGnSgxufA\/S\/DAprYpO1tTn8hBCGxZMmHf1vwXuoL7Z6ABlE\/rUc4KwLWYgORMB6X89XFwpg72CtqA8\/Mo7FSZU1InPYTdcM2Yn4elJEX03uI0S+jS53AT5RVZYv5RhwLGUO8Y5u\/kBz0VZ37AEGFLFM="
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKAgKbgCAAAAA==",
+            "FareBasis": "NLR3R1RI",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED240",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjtEOwiAMRT9mue8FJsM3VLZs0ZDYaCIv\/v9n7AKarAm9F05bGmO0Yr14CfEYA77DU5HfNyDD8tzXDf7kHAwvBSKW5qFOjW7oM0wgyg13Na0wnedAwSLL2FENlJbT50ombTLVoP6MatmBv5lX2nxJLy0yinN8sz8kE7gou3b8Zywl",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKA2MbgCAAAAA==",
+                "BrandID": "1834625",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKAyKbgCAAAAA==",
+            "FareBasis": "EBLIT3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED760",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNTkEOwyAMe0zlexIEozco0LXaxGHqpPWy\/z9jATZpkRI7cuIkhCAkjhz58B8T3tN1RX0moEI0b9sOIednsHYniIRRlvt+mFgwTNirVLs8kPtg4mQVkCTPQ2qBs9f8WppXdyYiRjuNRnUDP1I2pTXmI5blQcZYa8mUr0gX6K+69wFoWyyp",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKA4MbgCAAAAA==",
+                "BrandID": "2004609",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKAHLbgCAAAAA==",
+            "FareBasis": "VBLIT3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED820",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNTssOwjAM+5jJ9zzUMW7t2sImUA9oIHbh\/z9jaQsSkRI7cuLEey8kI400+f8Y8BmuF5RnBArE8rasEFFRsHU7iITxmu\/rpiGjm\/BkUmlyR26DkaMzQJR07lIN7K2m91y9mjMRMeppVGob+JG8GC0hbSHPD1J1zpHmr0gn2K+2dwBmiCyg",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKA6MbgCAAAAA==",
+                "BrandID": "2004609",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKATLbgCAAAAA==",
+            "FareBasis": "QBLIT3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED890",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNTssKAjEM\/Jhl7klq13rrU3dRCsoK7sX\/\/wzTVsFAMhMmmcR7LyQzzeT8f0x4T5cz6jMBFaJ5XVbIQcSBtdtBJIx7vK2bCQXDhJ1KtcsDuQ8mTlYBSfJpSC2w95pfsXl1ZyJitNNoVDfwI2VRWkPeQokPMsZaS6Z8RTpCf9W9D2j5LKc=",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKA8MbgCAAAAA==",
+                "BrandID": "2004609",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKAfLbgCAAAAA==",
+            "FareBasis": "NLR3R1RI",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED520",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjt0KwjAMhR9mnPs0HbPeVe3GhlIwKNob3\/8xdtoqGEhz0i9\/MUYVnWSSEP9twGe4G\/LzAmQo\/bpucKN4D8esQEQpbubN2YY+xAWi3HCPrhWm4xwYsMgydlQNpb3pfSbrk4UCdfWroCbswU\/MK2U+pYcVqcX80y+SA3gr+3aIQSz5",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKA+MbgCAAAAA==",
+                "BrandID": "1834625",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKA2LbgCAAAAA==",
+            "FareBasis": "BBLIT3AE",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED1210",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjksOwjAMRA9TzX6ckNLu0nygFSgLVCS64f7HwElAwpLtsZ5\/3ntDM3Lk5P9twHu4XlCeESgw6rd1gzXziRCtDpBGEMJ92+2S0ZfIpKg03LO0xijRaUI0ae6oGo4W0yso65tJCuppVKkT+Im8qixL2pccHrTWOUebv5Bn6K869wFgtCyY",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKAANbgCAAAAA==",
+                "BrandID": "2004609",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKACMbgCAAAAA==",
+            "FareBasis": "NLR3R1RI",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED830",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "FareSurcharge": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKAVMbgCAAAAA==",
+                "Type": "Other",
+                "Amount": "NUC85.00"
+            }
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "25",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNTtEOwjAI\/Jjl3g86Z32r2i1bNE1sNNoX\/\/8zpK0mkgAHBwchBKVOnOjDvw14D7eM9DgDCWp+WTfISOcgVhWQauCaXZa8oYuINyo1umdpg\/Ewe0tYuIydqobSYnydqpbuTJmkoJ5+FtTCdvAD82owHeM9F9Y3rKdfinvYr7b3AYlRLP0=",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKACNbgCAAAAA==",
+                "BrandID": "1834625",
+                "BrandTier": "0002"
+            }
+        }
+    },
+    {
+        "@attributes": {
+            "Key": "Kh2lT6UqWDKAWMbgCAAAAA==",
+            "FareBasis": "MLR3R1SI",
+            "PassengerTypeCode": "ADT",
+            "Origin": "DXB",
+            "Destination": "KHI",
+            "EffectiveDate": "2026-06-09T01:45:00.000+04:00",
+            "DepartureDate": "2026-06-18",
+            "Amount": "AED1660",
+            "NegotiatedFare": "false",
+            "NotValidBefore": "2026-06-19",
+            "NotValidAfter": "2026-06-19"
+        },
+        "BaggageAllowance": {
+            "MaxWeight": {
+                "@attributes": {
+                    "Value": "30",
+                    "Unit": "Kilograms"
+                }
+            }
+        },
+        "FareRuleKey": "gws-eJxNjtEOwiAMRT9mue+3gJO9obJli0oiaiIv\/v9nWEATm9De9rSlIQRDM3KkD\/824D3cMtLzBCQYfed1g9vJRIhmBaQRXC\/ZZrlv6EvEK0oN9yitMU6z14CFi+uoGkrz8XVU1jeTFNSvUaVO4CfmVWU6xEcudLRWa+aLuIdeqlMfJnIsWQ==",
+        "Brand": {
+            "@attributes": {
+                "Key": "Kh2lT6UqWDKAENbgCAAAAA==",
+                "BrandID": "1834624",
+                "BrandTier": "0003"
+            }
+        }
+    }
+]
