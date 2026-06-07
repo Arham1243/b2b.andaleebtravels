@@ -80,10 +80,12 @@ class TravelportBookingService
             $bookingResponse = $parsedHold['Body']['AirCreateReservationRsp'] ?? $parsedHold;
             if (is_array($bookingResponse)) {
                 $bookingResponse['travelport_universal_locator'] = $locators['universal_locator'] ?? null;
+                $bookingResponse['travelport_universal_version'] = $locators['universal_version'] ?? null;
             } else {
                 $bookingResponse = [
                     'raw' => $holdResponse['raw'] ?? '',
                     'travelport_universal_locator' => $locators['universal_locator'] ?? null,
+                    'travelport_universal_version' => $locators['universal_version'] ?? null,
                 ];
             }
 
@@ -129,21 +131,22 @@ class TravelportBookingService
                 throw new \RuntimeException('Missing Travelport air reservation locator for ticketing.');
             }
 
-            $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
-            $platingCarrier = trim((string) (
-                $itineraryData['validating_carrier']
-                ?? data_get($itineraryData, 'legs.0.segments.0.carrier')
-                ?? data_get($booking->booking_request, 'pricing_data.carrier')
-                ?? ''
-            ));
-
+            $platingCarrier = $this->resolvePlatingCarrier($booking);
             if ($platingCarrier === '') {
                 throw new \RuntimeException('Missing validating carrier for Travelport ticketing.');
             }
 
             $ticketResponse = $this->client->airTicket($locator, $platingCarrier);
             if (! ($ticketResponse['success'] ?? false)) {
-                throw new \RuntimeException($ticketResponse['error'] ?? 'Travelport airTicket failed.');
+                Log::error('Travelport airTicket failed', [
+                    'booking_id' => $booking->id,
+                    'locator' => $locator,
+                    'plating_carrier' => $platingCarrier,
+                    'error_code' => $ticketResponse['error_code'] ?? null,
+                    'trace_id' => $ticketResponse['trace_id'] ?? null,
+                    'error' => $ticketResponse['error'] ?? null,
+                ]);
+                throw new \RuntimeException($this->formatTravelportGdsError($ticketResponse, 'Travelport ticketing failed.'));
             }
 
             $parsed = is_array($ticketResponse['parsed'] ?? null) ? $ticketResponse['parsed'] : [];
@@ -187,25 +190,43 @@ class TravelportBookingService
      */
     public function cancelHold(B2bFlightBooking $booking): array
     {
-        $universalLocator = $this->resolveUniversalLocator($booking);
-        if ($universalLocator === '') {
-            throw new \RuntimeException('Missing Travelport universal record locator for cancel.');
-        }
+        try {
+            $universalLocator = $this->resolveUniversalLocator($booking);
+            if ($universalLocator === '') {
+                throw new \RuntimeException('Missing Travelport universal record locator for cancel.');
+            }
 
-        $cancelResponse = $this->client->airCancel($universalLocator);
-        if (! ($cancelResponse['success'] ?? false)) {
-            throw new \RuntimeException($cancelResponse['error'] ?? 'Travelport cancel failed.');
-        }
+            $version = $this->resolveUniversalVersion($booking);
+            $cancelResponse = $this->client->airCancel($universalLocator, $version);
+            if (! ($cancelResponse['success'] ?? false)) {
+                Log::error('Travelport airCancel failed', [
+                    'booking_id' => $booking->id,
+                    'universal_locator' => $universalLocator,
+                    'version' => $version,
+                    'error_code' => $cancelResponse['error_code'] ?? null,
+                    'trace_id' => $cancelResponse['trace_id'] ?? null,
+                    'error' => $cancelResponse['error'] ?? null,
+                ]);
+                throw new \RuntimeException($this->formatTravelportGdsError($cancelResponse, 'Travelport cancel failed.'));
+            }
 
-        return [
-            'success' => true,
-            'data' => is_array($cancelResponse['parsed'] ?? null) ? $cancelResponse['parsed'] : ['raw' => $cancelResponse['raw'] ?? ''],
-        ];
+            return [
+                'success' => true,
+                'data' => is_array($cancelResponse['parsed'] ?? null) ? $cancelResponse['parsed'] : ['raw' => $cancelResponse['raw'] ?? ''],
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Travelport cancel hold failed', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
      * @param  array<string, mixed>  $response
-     * @return array{universal_locator: ?string, air_reservation_locator: ?string}
+     * @return array{universal_locator: ?string, air_reservation_locator: ?string, universal_version: ?string}
      */
     private function parseHoldLocators(array $response): array
     {
@@ -218,16 +239,23 @@ class TravelportBookingService
         $air = data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.@attributes.LocatorCode')
             ?? data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.LocatorCode');
 
+        $version = data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.@attributes.Version')
+            ?? data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.Version');
+
         if (! $universal && preg_match('/UniversalRecord[^>]+LocatorCode="([^"]+)"/i', $raw, $m)) {
             $universal = $m[1];
         }
         if (! $air && preg_match('/<(?:[\w-]+:)?AirReservation[^>]+LocatorCode="([^"]+)"/i', $raw, $m)) {
             $air = $m[1];
         }
+        if (! $version && preg_match('/UniversalRecord[^>]+Version="([^"]+)"/i', $raw, $m)) {
+            $version = $m[1];
+        }
 
         return [
             'universal_locator' => is_string($universal) ? $universal : null,
             'air_reservation_locator' => is_string($air) ? $air : null,
+            'universal_version' => is_string($version) ? $version : null,
         ];
     }
 
@@ -252,9 +280,38 @@ class TravelportBookingService
         }
 
         $parsed = data_get($booking->booking_response, 'UniversalRecord.@attributes.LocatorCode')
-            ?? data_get($booking->booking_response, 'UniversalRecord.LocatorCode');
+            ?? data_get($booking->booking_response, 'UniversalRecord.LocatorCode')
+            ?? data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.@attributes.LocatorCode')
+            ?? data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.LocatorCode');
 
         return is_string($parsed) ? trim($parsed) : '';
+    }
+
+    private function resolveUniversalVersion(B2bFlightBooking $booking): string
+    {
+        $fromResponse = data_get($booking->booking_response, 'travelport_universal_version');
+        if (is_string($fromResponse) && trim($fromResponse) !== '') {
+            return trim($fromResponse);
+        }
+
+        $parsed = data_get($booking->booking_response, 'UniversalRecord.@attributes.Version')
+            ?? data_get($booking->booking_response, 'UniversalRecord.Version')
+            ?? data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.@attributes.Version')
+            ?? data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.Version');
+
+        return is_string($parsed) && trim($parsed) !== '' ? trim($parsed) : '0';
+    }
+
+    private function resolvePlatingCarrier(B2bFlightBooking $booking): string
+    {
+        $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+
+        return trim((string) (
+            $itineraryData['validating_carrier']
+            ?? data_get($itineraryData, 'legs.0.segments.0.carrier')
+            ?? data_get($booking->booking_request, 'pricing_data.carrier')
+            ?? ''
+        ));
     }
 
     /**
@@ -303,9 +360,17 @@ class TravelportBookingService
      */
     private function formatHoldGdsError(array $holdResponse): string
     {
-        $code = trim((string) ($holdResponse['error_code'] ?? ''));
-        $traceId = trim((string) ($holdResponse['trace_id'] ?? ''));
-        $raw = trim((string) ($holdResponse['error'] ?? 'Travelport airHold failed.'));
+        return $this->formatTravelportGdsError($holdResponse, 'Travelport airHold failed.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $response
+     */
+    private function formatTravelportGdsError(array $response, string $fallback): string
+    {
+        $code = trim((string) ($response['error_code'] ?? ''));
+        $traceId = trim((string) ($response['trace_id'] ?? ''));
+        $raw = trim((string) ($response['error'] ?? $fallback));
 
         if ($code === '3515' || str_contains(strtolower($raw), 'primary host transaction')) {
             $msg = 'Travelport could not place the hold with the airline reservation system (GDS error 3515). '
@@ -321,6 +386,6 @@ class TravelportBookingService
             return $raw . ' (Trace: ' . $traceId . ')';
         }
 
-        return $raw !== '' ? $raw : 'Travelport airHold failed.';
+        return $raw !== '' ? $raw : $fallback;
     }
 }

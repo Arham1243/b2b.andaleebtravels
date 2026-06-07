@@ -152,7 +152,13 @@ class B2bFlightBooking extends Model
 
     public function isTravelport(): bool
     {
-        return normalizeFlightBookingProvider($this->provider) === 'travelport';
+        if (normalizeFlightBookingProvider($this->provider) === 'travelport') {
+            return true;
+        }
+
+        $itineraryData = is_array($this->itinerary_data) ? $this->itinerary_data : [];
+
+        return strtolower((string) ($itineraryData['supplier'] ?? '')) === 'travelport';
     }
 
     public function isSabre(): bool
