@@ -34,6 +34,8 @@ class TravelportApiClient
         $airNs = self::AIR_NS;
         $comNs = self::COM_NS;
 
+        // ReturnUpsellFare returns additional branded fares (e.g. Economy Light + Smart)
+        // for the same routing so cards can show "+N More Fares" like Sabre.
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
     <soapenv:Header/>
@@ -42,6 +44,8 @@ class TravelportApiClient
             TraceId="{$traceId}"
             AuthorizedBy="{$authorizedBy}"
             TargetBranch="{$targetBranch}"
+            ReturnBrandedFares="true"
+            ReturnUpsellFare="true"
             xmlns:air="{$airNs}"
             xmlns:com="{$comNs}">
             <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>
