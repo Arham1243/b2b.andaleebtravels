@@ -14,6 +14,7 @@ class B2bFlightBooking extends Model
     protected $fillable = [
         'b2b_vendor_id',
         'booking_number',
+        'provider',
         'sabre_record_locator',
         'itinerary_id',
         'from_airport',

@@ -56,6 +56,7 @@ class FlightService
         return B2bFlightBooking::create([
             'b2b_vendor_id' => auth()->id(),
             'booking_number' => B2bFlightBooking::generateBookingNumber(),
+            'provider' => $data['provider'] ?? data_get($data, 'itinerary_data.supplier', 'sabre'),
             'itinerary_id' => $data['itinerary_id'] ?? null,
             'from_airport' => $data['from_airport'] ?? null,
             'to_airport' => $data['to_airport'] ?? null,

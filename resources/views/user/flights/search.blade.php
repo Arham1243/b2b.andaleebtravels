@@ -404,6 +404,8 @@
                             ]];
                             $cardCur    = strtoupper((string) ($fareOptions[0]['currency'] ?? $result['currency'] ?? $currencyCode));
                             $totalPrice = (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0));
+                            $cardSupplier = strtolower((string) ($result['supplier'] ?? 'sabre'));
+                            $isTravelportCard = $cardSupplier === 'travelport';
 
                             // Modal tab labels from search endpoints (not expanded segment endpoints).
                             $searchFrom = strtoupper((string) ($query['from'] ?? ''));
@@ -439,7 +441,14 @@
                              data-rp-price="{{ $totalPrice }}"
                              data-rp-dep-h="{{ $rpDepH }}"
                              data-rp-arr-h="{{ $rpArrH }}"
-                             data-rp-dur="{{ $rpDur }}">
+                             data-rp-dur="{{ $rpDur }}"
+                             data-rp-supplier="{{ $cardSupplier }}">
+
+                            @if (!empty($result['supplier']))
+                                <span class="rc__provider-badge rc__provider-badge--{{ $cardSupplier }}">
+                                    {{ strtoupper($result['supplier']) }}
+                                </span>
+                            @endif
 
                             {{-- ── per-leg rows ── --}}
                             @foreach ($legs as $li => $leg)
@@ -600,14 +609,26 @@
                                                 data-fd-fare="{{ $fi }}">
                                                 Details
                                             </button>
-                                            <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                class="rc__hold">
-                                                <i class="bx bx-time-five"></i> Hold
-                                            </a>
-                                            <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                class="rc__cta">
-                                                Book Now <i class="bx bx-right-arrow-alt"></i>
-                                            </a>
+                                            {{-- TODO: Travelport airPrice → airBook/airHold in FlightService --}}
+                                            @if ($isTravelportCard)
+                                                <button type="button" class="rc__hold rc__hold--disabled" disabled
+                                                    title="Booking via Travelport coming soon">
+                                                    <i class="bx bx-time-five"></i> Hold
+                                                </button>
+                                                <button type="button" class="rc__cta rc__cta--disabled" disabled
+                                                    title="Booking via Travelport coming soon">
+                                                    Book Now <i class="bx bx-right-arrow-alt"></i>
+                                                </button>
+                                            @else
+                                                <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                    class="rc__hold">
+                                                    <i class="bx bx-time-five"></i> Hold
+                                                </a>
+                                                <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                    class="rc__cta">
+                                                    Book Now <i class="bx bx-right-arrow-alt"></i>
+                                                </a>
+                                            @endif
                                         </div>
                                     </div>
                                 @endforeach
@@ -958,14 +979,25 @@
                                                 </span>
                                             </div>
                                             <div class="fd-foot__btns">
-                                                <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                    class="fd-foot__hold">
-                                                    <i class="bx bx-time-five"></i> Hold
-                                                </a>
-                                                <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                    class="fd-foot__book">
-                                                    Book Now <i class="bx bx-right-arrow-alt"></i>
-                                                </a>
+                                                @if ($isTravelportCard)
+                                                    <button type="button" class="fd-foot__hold fd-foot__hold--disabled" disabled
+                                                        title="Booking via Travelport coming soon">
+                                                        <i class="bx bx-time-five"></i> Hold
+                                                    </button>
+                                                    <button type="button" class="fd-foot__book fd-foot__book--disabled" disabled
+                                                        title="Booking via Travelport coming soon">
+                                                        Book Now <i class="bx bx-right-arrow-alt"></i>
+                                                    </button>
+                                                @else
+                                                    <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                        class="fd-foot__hold">
+                                                        <i class="bx bx-time-five"></i> Hold
+                                                    </a>
+                                                    <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                        class="fd-foot__book">
+                                                        Book Now <i class="bx bx-right-arrow-alt"></i>
+                                                    </a>
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach
@@ -1168,6 +1200,40 @@
 .rc:hover {
     border-color: rgba(205, 27, 79, 0.22);
     box-shadow: 0 2px 8px rgba(26, 37, 64, 0.055);
+}
+
+.rc {
+    position: relative;
+}
+.rc__provider-badge {
+    position: absolute;
+    top: .55rem;
+    right: .65rem;
+    z-index: 2;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    padding: .2rem .45rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+.rc__provider-badge--sabre {
+    background: #e8f0fe;
+    color: #1a56db;
+    border: 1px solid #93b4f5;
+}
+.rc__provider-badge--travelport {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #6ee7b7;
+}
+.rc__hold--disabled,
+.rc__cta--disabled,
+.fd-foot__hold--disabled,
+.fd-foot__book--disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* leg row */

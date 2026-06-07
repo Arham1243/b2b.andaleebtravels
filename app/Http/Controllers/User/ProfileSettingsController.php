@@ -24,7 +24,7 @@ class ProfileSettingsController extends Controller
         $user = Auth::user();
         $config = Config::pluck('config_value', 'config_key')->toArray();
         $adminProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null, ['yalago', 'tbo', 'tripindeal']);
-        $adminFlightProviders = $this->parseProviderConfig($config['FLIGHT_SEARCH_PROVIDERS'] ?? null, ['sabre']) ?? ['sabre'];
+        $adminFlightProviders = $this->parseProviderConfig($config['FLIGHT_SEARCH_PROVIDERS'] ?? null, ['sabre', 'travelport']) ?? ['sabre', 'travelport'];
 
         return view('user.profile-settings.personal-info')
             ->with('title', 'Personal Information')
@@ -107,7 +107,7 @@ class ProfileSettingsController extends Controller
             'hotel_search_providers' => 'nullable|array',
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
             'flight_search_providers' => 'nullable|array',
-            'flight_search_providers.*' => 'in:sabre',
+            'flight_search_providers.*' => 'in:sabre,travelport',
         ]);
 
         // Travel agency name, username, and trade license fields are admin-managed only.
@@ -124,7 +124,7 @@ class ProfileSettingsController extends Controller
         }
 
         $data['hotel_search_providers'] = $this->parseProviderConfig($request->input('hotel_search_providers'), ['yalago', 'tbo', 'tripindeal']);
-        $data['flight_search_providers'] = $this->parseProviderConfig($request->input('flight_search_providers'), ['sabre']);
+        $data['flight_search_providers'] = $this->parseProviderConfig($request->input('flight_search_providers'), ['sabre', 'travelport']);
 
         B2bVendor::where('id', Auth::user()->id)->update($data);
 

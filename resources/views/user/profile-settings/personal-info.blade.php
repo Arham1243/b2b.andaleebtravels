@@ -180,7 +180,10 @@
                                 if (!is_array($selectedFlightProviders) || empty($selectedFlightProviders)) {
                                     $selectedFlightProviders = $adminFlightProviders ?? [];
                                 }
-                                $flightProviderOptions = ['sabre' => 'Sabre'];
+                                $flightProviderOptions = [
+                                    'sabre' => 'Sabre',
+                                    'travelport' => 'Travelport',
+                                ];
                             @endphp
                             <div class="ps-field" style="max-width:420px;">
                                 <label class="ps-field__label">Enable Providers</label>

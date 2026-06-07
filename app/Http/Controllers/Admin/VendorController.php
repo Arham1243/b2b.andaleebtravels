@@ -345,8 +345,8 @@ class VendorController extends Controller
         ) ?? ['yalago', 'tbo', 'tripindeal'];
         $adminFlightProviders = $this->parseProviderConfig(
             $config['FLIGHT_SEARCH_PROVIDERS'] ?? null,
-            ['sabre']
-        ) ?? ['sabre'];
+            ['sabre', 'travelport']
+        ) ?? ['sabre', 'travelport'];
 
         return view('admin.vendors.edit', compact('vendor', 'adminProviders', 'adminFlightProviders'));
     }
@@ -386,7 +386,7 @@ class VendorController extends Controller
                 ),
                 'flight_search_providers' => $this->parseProviderConfig(
                     $request->input('flight_search_providers'),
-                    ['sabre']
+                    ['sabre', 'travelport']
                 ),
                 'vendor_discounts_enabled' => $request->boolean('vendor_discounts_enabled'),
                 'flight_discount_type' => $request->boolean('vendor_discounts_enabled')
@@ -577,7 +577,7 @@ class VendorController extends Controller
             'hotel_search_providers' => 'nullable|array',
             'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
             'flight_search_providers' => 'nullable|array',
-            'flight_search_providers.*' => 'in:sabre',
+            'flight_search_providers.*' => 'in:sabre,travelport',
             'vendor_discounts_enabled' => 'nullable|boolean',
             'flight_discount_type' => 'nullable|in:percent,fixed',
             'flight_discount_value' => 'nullable|numeric|min:0|max:99999999.99',

@@ -211,6 +211,7 @@ if (! function_exists('formatBookingSupplierLabel')) {
 
         return match ($s) {
             'tbo' => 'TBO',
+            'travelport' => 'Travelport',
             default => ucfirst($s),
         };
     }

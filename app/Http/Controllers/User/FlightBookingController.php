@@ -31,6 +31,12 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Please search for flights again.');
         }
 
+        // TODO: Travelport airPrice → airBook/airHold in FlightService
+        if (strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport') {
+            return redirect()->route('user.flights.index')
+                ->with('notify_error', 'Booking via Travelport is not available yet. Please choose a Sabre flight.');
+        }
+
         $totalAmount = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency = $itineraryData['currency'] ?? 'AED';
         $walletBalance = (float) (Auth::user()->totalSpendableBalance() ?? 0);
@@ -112,6 +118,12 @@ class FlightBookingController extends Controller
         if (!$itineraryData || empty($params)) {
             return redirect()->route('user.flights.index')
                 ->with('notify_error', 'Flight selection expired. Please search again.');
+        }
+
+        // TODO: Travelport airPrice → airBook/airHold in FlightService
+        if (strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport') {
+            return redirect()->route('user.flights.index')
+                ->with('notify_error', 'Booking via Travelport is not available yet. Please choose a Sabre flight.');
         }
 
         [$sabreItineraryId, $sabreGroupIndex] = $this->resolveSabreItineraryLookup($itineraryData, $itineraryId);
@@ -415,6 +427,12 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Please search for flights again.');
         }
 
+        // TODO: Travelport airPrice → airBook/airHold in FlightService
+        if (strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport') {
+            return redirect()->route('user.flights.index')
+                ->with('notify_error', 'Hold via Travelport is not available yet. Please choose a Sabre flight.');
+        }
+
         try {
             $savedPassengers = Auth::user()
                 ->savedPassengers()
@@ -472,6 +490,12 @@ class FlightBookingController extends Controller
         if (!$itineraryData || empty($params)) {
             return redirect()->route('user.flights.index')
                 ->with('notify_error', 'Flight selection expired. Please search again.');
+        }
+
+        // TODO: Travelport airPrice → airBook/airHold in FlightService
+        if (strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport') {
+            return redirect()->route('user.flights.index')
+                ->with('notify_error', 'Hold via Travelport is not available yet. Please choose a Sabre flight.');
         }
 
         // Save any passenger profiles requested (silently skip if table not yet migrated)

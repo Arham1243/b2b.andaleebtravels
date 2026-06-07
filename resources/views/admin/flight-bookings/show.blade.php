@@ -340,6 +340,10 @@
                                     <span class="bkpd-info-row__label">Booking #</span>
                                     <span class="bkpd-info-row__val" style="color:#cd1b4f;font-weight:700;">{{ $booking->booking_number }}</span>
                                 </div>
+                                <div class="bkpd-info-row">
+                                    <span class="bkpd-info-row__label">Provider</span>
+                                    <span class="bkpd-info-row__val">{{ formatBookingSupplierLabel($booking->provider, 'Sabre') }}</span>
+                                </div>
                                 @if ($booking->sabre_record_locator)
                                     <div class="bkpd-info-row">
                                         <span class="bkpd-info-row__label">PNR</span>

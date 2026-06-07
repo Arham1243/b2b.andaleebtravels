@@ -13,7 +13,10 @@
     if (!is_array($selectedFlightProviders) || empty($selectedFlightProviders)) {
         $selectedFlightProviders = $adminFlightProviders ?? [];
     }
-    $flightProviderOptions = ['sabre' => 'Sabre'];
+    $flightProviderOptions = [
+        'sabre' => 'Sabre',
+        'travelport' => 'Travelport',
+    ];
 @endphp
 
 <div class="form-wrapper mt-3">
