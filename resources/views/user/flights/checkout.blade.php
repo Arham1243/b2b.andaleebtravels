@@ -74,6 +74,7 @@
 
         $savedPassengers = $savedPassengers ?? [];
         $countries = $countries ?? [];
+        $requireTravelportDob = $requireTravelportDob ?? false;
     @endphp
 
     <div class="hp">
@@ -94,6 +95,20 @@
                     You will receive confirmation by email after the ticket is issued.
                 </div>
             </div>
+
+            @if ($errors->any())
+                <div class="hp-alert hp-alert--error" role="alert">
+                    <i class="bx bx-error-circle"></i>
+                    <div>
+                        <strong>Please fix the following before checkout:</strong>
+                        <ul class="hp-alert__list mb-0">
+                            @foreach ($errors->all() as $message)
+                                <li>{{ $message }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            @endif
 
             <form id="flightCheckoutForm" action="{{ route('user.flights.payment.process') }}" method="POST" novalidate>
                 @csrf
@@ -175,9 +190,17 @@
                                             placeholder="Enter last name" required autocomplete="family-name">
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="hp-label">Date of Birth</label>
-                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
-                                        <span class="hp-hint">Age calculated as per travel date</span>
+                                        <label class="hp-label">Date of Birth @if($requireTravelportDob)<span class="hp-req">*</span>@endif</label>
+                                        @php $dobKey = 'passengers.'.$pIndex.'.dob'; @endphp
+                                        <input type="date" class="hp-input{{ $errors->has($dobKey) ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][dob]" value="{{ old($dobKey) }}" @if($requireTravelportDob) required @endif>
+                                        @if($requireTravelportDob)
+                                            <span class="hp-hint">Required for Travelport bookings</span>
+                                        @else
+                                            <span class="hp-hint">Age calculated as per travel date</span>
+                                        @endif
+                                        @if($errors->has($dobKey))
+                                            <span class="hp-field-error">{{ $errors->first($dobKey) }}</span>
+                                        @endif
                                     </div>
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -237,8 +260,12 @@
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" placeholder="Enter last name" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="hp-label">Date of Birth</label>
-                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
+                                        <label class="hp-label">Date of Birth @if($requireTravelportDob)<span class="hp-req">*</span>@endif</label>
+                                        @php $dobKey = 'passengers.'.$pIndex.'.dob'; @endphp
+                                        <input type="date" class="hp-input{{ $errors->has($dobKey) ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][dob]" value="{{ old($dobKey) }}" @if($requireTravelportDob) required @endif>
+                                        @if($errors->has($dobKey))
+                                            <span class="hp-field-error">{{ $errors->first($dobKey) }}</span>
+                                        @endif
                                     </div>
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -291,8 +318,12 @@
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" placeholder="Enter last name" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="hp-label">Date of Birth</label>
-                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
+                                        <label class="hp-label">Date of Birth @if($requireTravelportDob)<span class="hp-req">*</span>@endif</label>
+                                        @php $dobKey = 'passengers.'.$pIndex.'.dob'; @endphp
+                                        <input type="date" class="hp-input{{ $errors->has($dobKey) ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][dob]" value="{{ old($dobKey) }}" @if($requireTravelportDob) required @endif>
+                                        @if($errors->has($dobKey))
+                                            <span class="hp-field-error">{{ $errors->first($dobKey) }}</span>
+                                        @endif
                                     </div>
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -527,6 +558,22 @@
         }
         .hcf-checkout-notice i { font-size:1.2rem; color:#2563eb; flex-shrink:0; }
 
+        .hp-alert {
+            display: flex; gap: .65rem; align-items: flex-start;
+            padding: .85rem 1rem; border-radius: .55rem; margin-bottom: 1rem;
+            font-size: .82rem; line-height: 1.45;
+        }
+        .hp-alert--error {
+            background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;
+        }
+        .hp-alert i { font-size: 1.25rem; flex-shrink: 0; margin-top: .05rem; }
+        .hp-alert__list { margin-top: .35rem; padding-left: 1.1rem; }
+        .hp-field-error {
+            display: block; margin-top: .25rem;
+            font-size: .72rem; color: #dc2626;
+        }
+        .hp-input.is-invalid { border-color: #dc2626; }
+
         .hp-pax-fields { padding:.85rem 1.1rem 1rem; }
         .hp-pax-note {
             margin: 0; padding: .5rem 1.1rem;
@@ -698,6 +745,13 @@
                 formSelector: '#flightCheckoutForm',
                 travelDate: @json($travelDateIso),
             });
+
+            @if ($errors->any())
+            const checkoutErrorAlert = document.querySelector('.hp-alert--error');
+            if (checkoutErrorAlert) {
+                checkoutErrorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            @endif
 
             const form = document.getElementById('flightCheckoutForm');
             if (form) {

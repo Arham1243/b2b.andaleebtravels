@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bVendor;
 use App\Services\FlightService;
+use App\Services\Travelport\TravelportApiClient;
 use App\Support\BookingCancellationEligibility;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
 use App\Support\SupplierFlightBookingDetailsPresenter;
+use App\Support\Travelport\TravelportFareRulesResponseParser;
 use Illuminate\Http\Request;
 
 class AdminFlightBookingController extends Controller
@@ -50,13 +52,9 @@ class AdminFlightBookingController extends Controller
     public function fareRules(int $id, FlightService $flightService)
     {
         $booking = B2bFlightBooking::findOrFail($id);
-        $provider = strtolower((string) ($booking->provider ?? 'sabre'));
 
-        if ($provider !== 'sabre') {
-            return response()->json([
-                'success' => false,
-                'error' => 'Fare rules are not available for this provider yet.',
-            ], 422);
+        if ($booking->isTravelport()) {
+            return $this->travelportFareRulesForBooking($booking);
         }
 
         $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
@@ -89,6 +87,84 @@ class AdminFlightBookingController extends Controller
 
         try {
             $components = $flightService->fetchFareRulesText($ruleRequests);
+
+            return response()->json([
+                'success' => true,
+                'components' => $components,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to load full fare rules right now. Please try again.',
+            ], 500);
+        }
+    }
+
+    private function travelportFareRulesForBooking(B2bFlightBooking $booking)
+    {
+        $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $ruleRequest = is_array($itineraryData['travelport_fare_rule'] ?? null)
+            ? $itineraryData['travelport_fare_rule']
+            : null;
+
+        $storedRules = is_array($itineraryData['fare_rules'] ?? null) ? $itineraryData['fare_rules'] : [];
+
+        if ($ruleRequest === null || trim((string) ($ruleRequest['fare_rule_key'] ?? '')) === '') {
+            if ($storedRules !== []) {
+                return response()->json([
+                    'success' => true,
+                    'components' => [[
+                        'title' => 'Fare rules (from search)',
+                        'sections' => array_map(static fn ($section) => [
+                            'title' => (string) ($section['title'] ?? 'Policy'),
+                            'items' => array_values(array_filter((array) ($section['items'] ?? []))),
+                        ], $storedRules),
+                    ]],
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Fare rule details are not available for this Travelport booking.',
+            ], 422);
+        }
+
+        try {
+            $response = (new TravelportApiClient())->airFareRules($ruleRequest);
+
+            if (! ($response['success'] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $response['error'] ?? 'Unable to load fare rules from Travelport.',
+                ], 500);
+            }
+
+            $components = TravelportFareRulesResponseParser::toComponents(
+                (string) ($response['raw'] ?? ''),
+                $ruleRequest,
+            );
+
+            if ($components === [] && $storedRules !== []) {
+                return response()->json([
+                    'success' => true,
+                    'components' => [[
+                        'title' => 'Fare rules (from search)',
+                        'sections' => array_map(static fn ($section) => [
+                            'title' => (string) ($section['title'] ?? 'Policy'),
+                            'items' => array_values(array_filter((array) ($section['items'] ?? []))),
+                        ], $storedRules),
+                    ]],
+                ]);
+            }
+
+            if ($components === []) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No detailed fare rules returned for this fare.',
+                ], 422);
+            }
 
             return response()->json([
                 'success' => true,

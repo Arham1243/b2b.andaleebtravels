@@ -15,6 +15,83 @@ class TravelportBookingService
     ) {}
 
     /**
+     * Pre-payment price check via airPrice (Book Now checkout).
+     *
+     * @param  array<string, mixed>  $itineraryData
+     * @param  array<string, mixed>  $searchParams
+     * @return array{success: bool, error?: string, repriced_total?: float}
+     */
+    public function revalidateItinerary(array $itineraryData, array $searchParams): array
+    {
+        try {
+            $segments = TravelportHoldPayloadBuilder::buildAirPriceSegments($itineraryData);
+            if ($segments === []) {
+                return [
+                    'success' => false,
+                    'error' => 'No Travelport segments found on this itinerary.',
+                ];
+            }
+
+            $passengerCounts = TravelportHoldPayloadBuilder::passengerCounts([
+                'adults' => (int) ($searchParams['adults'] ?? 1),
+                'children' => (int) ($searchParams['children'] ?? 0),
+                'infants' => (int) ($searchParams['infants'] ?? 0),
+            ]);
+
+            $priceResponse = $this->client->airPrice($segments, $passengerCounts);
+            if (! ($priceResponse['success'] ?? false)) {
+                return [
+                    'success' => false,
+                    'error' => $priceResponse['error'] ?? 'Unable to revalidate Travelport fare.',
+                ];
+            }
+
+            $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
+            $pricingData = TravelportAirPriceParser::extract(
+                (string) ($priceResponse['raw'] ?? ''),
+                $requestedClass,
+            );
+
+            if (($pricingData['solution_key'] ?? '') === '') {
+                return [
+                    'success' => false,
+                    'error' => 'Unable to parse Travelport pricing for this fare.',
+                ];
+            }
+
+            $repricedTotal = $this->parseTravelportMoneyAmount((string) ($pricingData['total_price'] ?? ''));
+            $expectedTotal = (float) ($itineraryData['totalPrice'] ?? 0);
+
+            if ($repricedTotal === null) {
+                return [
+                    'success' => false,
+                    'error' => 'Unable to read revalidated Travelport fare amount.',
+                ];
+            }
+
+            if ($expectedTotal > 0 && abs($repricedTotal - $expectedTotal) > 0.02) {
+                return [
+                    'success' => false,
+                    'error' => 'Fare price has changed. Please search again.',
+                    'repriced_total' => $repricedTotal,
+                ];
+            }
+
+            return [
+                'success' => true,
+                'repriced_total' => $repricedTotal,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('Travelport revalidation failed', ['error' => $e->getMessage()]);
+
+            return [
+                'success' => false,
+                'error' => 'Unable to revalidate Travelport fare. Please search again.',
+            ];
+        }
+    }
+
+    /**
      * @return array{success: bool, locator?: string, universal_locator?: string, error?: string, data?: array<string, mixed>}
      */
     public function createHold(B2bFlightBooking $booking): array
@@ -159,7 +236,7 @@ class TravelportBookingService
                 'ticket_status' => 'issued',
             ];
 
-            if ($booking->booking_status === 'hold') {
+            if (in_array($booking->booking_status, ['hold', 'pending'], true)) {
                 $ticketUpdate['booking_status'] = 'confirmed';
             }
 
@@ -387,5 +464,19 @@ class TravelportBookingService
         }
 
         return $raw !== '' ? $raw : $fallback;
+    }
+
+    private function parseTravelportMoneyAmount(string $raw): ?float
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/([\d,]+(?:\.\d+)?)/', $raw, $m)) {
+            return (float) str_replace(',', '', $m[1]);
+        }
+
+        return null;
     }
 }

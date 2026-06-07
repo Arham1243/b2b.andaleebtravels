@@ -9,6 +9,7 @@ use App\Support\CountryCatalog;
 use App\Support\WalletLedgerDescription;
 use App\Models\Config;
 use App\Services\FlightService;
+use App\Services\Travelport\TravelportBookingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,11 +32,7 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Please search for flights again.');
         }
 
-        // TODO: Travelport airPrice → airBook/airHold in FlightService
-        if (strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport') {
-            return redirect()->route('user.flights.index')
-                ->with('notify_error', 'Booking via Travelport is not available yet. Please choose a Sabre flight.');
-        }
+        $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
 
         $totalAmount = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency = $itineraryData['currency'] ?? 'AED';
@@ -60,6 +57,7 @@ class FlightBookingController extends Controller
             'currency' => $currency,
             'walletBalance' => $walletBalance,
             'savedPassengers' => $savedPassengers,
+            'requireTravelportDob' => $isTravelport,
         ]));
     }
 
@@ -120,27 +118,40 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Flight selection expired. Please search again.');
         }
 
-        // TODO: Travelport airPrice → airBook/airHold in FlightService
-        if (strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport') {
-            return redirect()->route('user.flights.index')
-                ->with('notify_error', 'Booking via Travelport is not available yet. Please choose a Sabre flight.');
-        }
+        $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
 
-        [$sabreItineraryId, $sabreGroupIndex] = $this->resolveSabreItineraryLookup($itineraryData, $itineraryId);
+        if ($isTravelport) {
+            foreach ($validated['passengers'] as $index => $pax) {
+                if (empty($pax['dob'])) {
+                    return redirect()
+                        ->route('user.flights.checkout', ['itinerary' => $itineraryId, 'fare' => $fareIndex])
+                        ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required for Travelport bookings.'])
+                        ->withInput();
+                }
+            }
 
-        $revalidate = $flightService->revalidateItinerary(
-            session('flight_search_response', []),
-            $sabreItineraryId,
-            (int) ($params['adults'] ?? 1),
-            (int) ($params['children'] ?? 0),
-            (int) ($params['infants'] ?? 0),
-            $sabreGroupIndex,
-            (int) ($itineraryData['sabre_pricing_index'] ?? 0),
-        );
+            $revalidate = app(TravelportBookingService::class)->revalidateItinerary($itineraryData, $params);
+            if (! ($revalidate['success'] ?? false)) {
+                return redirect()->route('user.flights.index')
+                    ->with('notify_error', $revalidate['error'] ?? 'Unable to revalidate Travelport fare. Please search again.');
+            }
+        } else {
+            [$sabreItineraryId, $sabreGroupIndex] = $this->resolveSabreItineraryLookup($itineraryData, $itineraryId);
 
-        if (!($revalidate['success'] ?? false)) {
-            return redirect()->route('user.flights.index')
-                ->with('notify_error', $revalidate['error'] ?? 'Unable to revalidate flight itinerary. Please search again.');
+            $revalidate = $flightService->revalidateItinerary(
+                session('flight_search_response', []),
+                $sabreItineraryId,
+                (int) ($params['adults'] ?? 1),
+                (int) ($params['children'] ?? 0),
+                (int) ($params['infants'] ?? 0),
+                $sabreGroupIndex,
+                (int) ($itineraryData['sabre_pricing_index'] ?? 0),
+            );
+
+            if (!($revalidate['success'] ?? false)) {
+                return redirect()->route('user.flights.index')
+                    ->with('notify_error', $revalidate['error'] ?? 'Unable to revalidate flight itinerary. Please search again.');
+            }
         }
 
         try {
@@ -192,7 +203,9 @@ class FlightBookingController extends Controller
             ],
             'itinerary_data' => $itineraryData,
             'search_request' => session('flight_search_payload'),
-            'search_response' => session('flight_search_response'),
+            'search_response' => $isTravelport
+                ? (session('flight_search_responses')['travelport'] ?? null)
+                : session('flight_search_response'),
             'provider' => normalizeFlightBookingProvider($itineraryData['supplier'] ?? null),
             'total_amount' => $pricingFields['total_amount'],
             'original_amount' => $pricingFields['original_amount'],
@@ -333,21 +346,23 @@ class FlightBookingController extends Controller
             }
 
             if (empty($booking->sabre_record_locator)) {
-                if ($booking->isTravelport()) {
+                $pnrResult = $booking->isTravelport()
+                    ? $flightService->createTravelportHoldPnr($booking)
+                    : $flightService->createSabrePnr($booking);
+
+                if (! ($pnrResult['success'] ?? false)) {
                     $booking->update(['booking_status' => 'failed']);
+                    $errMsg = $pnrResult['error'] ?? $pnrResult['message'] ?? 'Unable to confirm your booking. Our team will contact you shortly.';
 
                     return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
-                        ->with('notify_error', 'No PNR found for this hold booking. Please contact support.');
+                        ->with('notify_error', $errMsg);
                 }
 
-                $pnrResult = $flightService->createSabrePnr($booking);
-                if (!$pnrResult['success']) {
-                    $booking->update(['booking_status' => 'failed']);
-
-                    return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
-                        ->with('notify_error', 'Unable to confirm your booking. Our team will contact you shortly.');
-                }
                 $booking->refresh();
+
+                if ($booking->isTravelport() && $booking->payment_method !== 'hold') {
+                    $booking->update(['booking_status' => 'confirmed']);
+                }
             }
 
             if ($booking->ticket_status !== 'issued') {

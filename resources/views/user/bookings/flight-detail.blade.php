@@ -57,6 +57,13 @@
         $h = intdiv($m, 60); $r = $m % 60;
         return $h ? ($r ? "{$h}h {$r}m" : "{$h}h") : "{$r}m";
     };
+
+    $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+    $nonRefundable = null;
+    if (array_key_exists('non_refundable', $itinerary)) {
+        $nonRefundable = (bool) ($itinerary['non_refundable'] ?? false);
+    }
+    $fareRulesSummary = is_array($itinerary['fare_rules'] ?? null) ? $itinerary['fare_rules'] : [];
 @endphp
 
 <div class="bkp">
@@ -362,6 +369,22 @@
                                     <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $booking->sabre_record_locator }}</span>
                                 </div>
                                 @endif
+                                @if($nonRefundable !== null)
+                                <div class="bkpd-info-row">
+                                    <span class="bkpd-info-row__label">Fare type</span>
+                                    <span class="bkpd-info-row__val">
+                                        @if($nonRefundable)
+                                            <span class="bkpd-refund-pill bkpd-refund-pill--no">Non-refundable</span>
+                                        @else
+                                            <span class="bkpd-refund-pill bkpd-refund-pill--yes">Refundable</span>
+                                        @endif
+                                    </span>
+                                </div>
+                                @endif
+                                <div class="bkpd-info-row">
+                                    <span class="bkpd-info-row__label">Ticket status</span>
+                                    <span class="bkpd-info-row__val">{{ ucfirst($booking->ticket_status ?? 'pending') }}</span>
+                                </div>
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Payment</span>
                                     <span class="bkpd-info-row__val">{{ $isHold ? 'Hold (Free)' : ucfirst($booking->payment_method ?? 'N/A') }}</span>
@@ -394,6 +417,24 @@
                                 @endif
                             </div>
                         </div>
+
+                        @if($fareRulesSummary !== [])
+                        <div class="bkpd-card mb-3">
+                            <div class="bkpd-card__section-head bkpd-card__section-head--slate"><i class="bx bx-file"></i> Fare Rules Summary</div>
+                            <div class="bkpd-info-rows">
+                                @foreach($fareRulesSummary as $section)
+                                    @if(!empty($section['title']))
+                                    <div class="bkpd-info-row" style="flex-direction:column;align-items:flex-start;gap:.35rem;">
+                                        <span class="bkpd-info-row__label">{{ $section['title'] }}</span>
+                                        @foreach((array) ($section['items'] ?? []) as $item)
+                                            <span class="bkpd-info-row__val" style="font-size:.78rem;line-height:1.45;">{{ $item }}</span>
+                                        @endforeach
+                                    </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
 
                         {{-- Actions --}}
                         <div class="bkpd-card">

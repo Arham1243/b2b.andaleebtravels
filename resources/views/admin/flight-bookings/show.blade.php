@@ -410,10 +410,10 @@
                                         <div class="bkpd-info-row__val bkpd-info-row__val--refund">
                                             @if ($nonRefundable)
                                                 <span class="bkpd-refund-pill bkpd-refund-pill--no"><i class="bx bx-x-circle"></i> Non-refundable fare</span>
-                                                <p class="bkpd-refund-note">Selected at booking from Sabre shop results. Airline change/cancel rules still apply.</p>
+                                                <p class="bkpd-refund-note">Selected at booking from {{ $booking->providerLabel() }} shop results. Airline change/cancel rules still apply.</p>
                                             @else
                                                 <span class="bkpd-refund-pill bkpd-refund-pill--yes"><i class="bx bx-check-shield"></i> Refundable fare</span>
-                                                <p class="bkpd-refund-note">Selected at booking from Sabre shop results. Refund eligibility depends on airline fare rules and timing.</p>
+                                                <p class="bkpd-refund-note">Selected at booking from {{ $booking->providerLabel() }} shop results. Refund eligibility depends on airline fare rules and timing.</p>
                                             @endif
                                         </div>
                                     </div>

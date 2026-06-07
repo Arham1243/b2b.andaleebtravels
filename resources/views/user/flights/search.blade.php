@@ -617,26 +617,14 @@
                                                 data-fd-fare="{{ $fi }}">
                                                 Details
                                             </button>
-                                            {{-- TODO: Travelport airPrice → airBook/airHold in FlightService --}}
-                                            @if ($isTravelportCard)
-                                                <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                    class="rc__hold">
-                                                    <i class="bx bx-time-five"></i> Hold
-                                                </a>
-                                                <button type="button" class="rc__cta rc__cta--disabled" disabled
-                                                    title="Booking via Travelport coming soon">
-                                                    Book Now <i class="bx bx-right-arrow-alt"></i>
-                                                </button>
-                                            @else
-                                                <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                    class="rc__hold">
-                                                    <i class="bx bx-time-five"></i> Hold
-                                                </a>
-                                                <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                    class="rc__cta">
-                                                    Book Now <i class="bx bx-right-arrow-alt"></i>
-                                                </a>
-                                            @endif
+                                            <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                class="rc__hold">
+                                                <i class="bx bx-time-five"></i> Hold
+                                            </a>
+                                            <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                class="rc__cta">
+                                                Book Now <i class="bx bx-right-arrow-alt"></i>
+                                            </a>
                                         </div>
                                     </div>
                                 @endforeach
@@ -987,25 +975,14 @@
                                                 </span>
                                             </div>
                                             <div class="fd-foot__btns">
-                                                @if ($isTravelportCard)
-                                                    <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                        class="fd-foot__hold">
-                                                        <i class="bx bx-time-five"></i> Hold
-                                                    </a>
-                                                    <button type="button" class="fd-foot__book fd-foot__book--disabled" disabled
-                                                        title="Booking via Travelport coming soon">
-                                                        Book Now <i class="bx bx-right-arrow-alt"></i>
-                                                    </button>
-                                                @else
-                                                    <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                        class="fd-foot__hold">
-                                                        <i class="bx bx-time-five"></i> Hold
-                                                    </a>
-                                                    <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
-                                                        class="fd-foot__book">
-                                                        Book Now <i class="bx bx-right-arrow-alt"></i>
-                                                    </a>
-                                                @endif
+                                                <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                    class="fd-foot__hold">
+                                                    <i class="bx bx-time-five"></i> Hold
+                                                </a>
+                                                <a href="{{ route('user.flights.checkout', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                    class="fd-foot__book">
+                                                    Book Now <i class="bx bx-right-arrow-alt"></i>
+                                                </a>
                                             </div>
                                         </div>
                                     @endforeach

@@ -225,7 +225,9 @@ class AdminBookingController extends Controller
 
         try {
             BookingCancellationEligibility::assertFlightCanCancel($bookingModel);
-            $cancelResponse = $flightService->cancelSabreBooking($bookingModel);
+            $cancelResponse = $bookingModel->isTravelport()
+                ? $flightService->cancelTravelportBooking($bookingModel)
+                : $flightService->cancelSabreBooking($bookingModel);
 
             $before = $bookingModel->only(['payment_status', 'booking_status']);
             $isRefundable = BookingCancellationEligibility::flightIsRefundableForWalletRefund($bookingModel);
@@ -234,7 +236,11 @@ class AdminBookingController extends Controller
                 'booking_status' => 'cancelled',
                 'cancelled_at' => now(),
                 'cancelled_by' => 'admin',
-                'cancel_response' => BookingCancellationRecorder::envelope('flight_sabre_cancel', $cancelResponse, 'admin'),
+                'cancel_response' => BookingCancellationRecorder::envelope(
+                    $bookingModel->isTravelport() ? 'flight_travelport_cancel' : 'flight_sabre_cancel',
+                    $cancelResponse,
+                    'admin'
+                ),
             ];
 
             if ($refundedPayment = $this->bookingWalletRefundService->paymentStatusAfterCancellationRefund($before, $isRefundable)) {

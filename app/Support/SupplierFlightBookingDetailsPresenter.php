@@ -16,6 +16,10 @@ final class SupplierFlightBookingDetailsPresenter
             return null;
         }
 
+        if ($booking->isTravelport()) {
+            return self::presentTravelport($booking);
+        }
+
         $liveResponse = is_array($liveFetch['response'] ?? null) ? $liveFetch['response'] : null;
         $savedResponse = self::normalizeFromSavedResponses($booking);
 
@@ -50,6 +54,48 @@ final class SupplierFlightBookingDetailsPresenter
             'error' => ($liveFetch !== null && empty($liveFetch['ok'])) ? ($liveFetch['error'] ?? null) : null,
             'status' => self::resolveStatusBadge($normalized['bookingStatus'] ?? $booking->booking_status, $booking),
             'sections' => self::buildSections($rows),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function presentTravelport(B2bFlightBooking $booking): array
+    {
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $pricingData = is_array(data_get($booking->booking_request, 'pricing_data'))
+            ? data_get($booking->booking_request, 'pricing_data')
+            : [];
+
+        $platingCarrier = trim((string) (
+            $itinerary['validating_carrier']
+            ?? data_get($itinerary, 'legs.0.segments.0.carrier')
+            ?? ($pricingData['carrier'] ?? '')
+        ));
+
+        $confirmation = self::filterRows([
+            self::row('Supplier status', $booking->displayBookingStatus(), ['badge' => true]),
+            self::row('Air reservation locator', $booking->sabre_record_locator, ['mono' => true]),
+            self::row('Universal record locator', data_get($booking->booking_response, 'travelport_universal_locator'), ['mono' => true]),
+            self::row('Plating carrier', $platingCarrier !== '' ? strtoupper($platingCarrier) : null),
+            self::row('Ticket status', $booking->ticket_status, ['badge' => true]),
+            self::row('Latest ticketing time', data_get($pricingData, 'latest_ticketing_time')),
+        ]);
+
+        $refundability = self::resolveRefundability($booking);
+
+        $policy = self::filterRows([
+            self::row('Refundability', $refundability),
+            self::row('Cancellation policy', self::cancellationPolicySummary($booking, $refundability), ['multiline' => true]),
+            self::row('Hold expires', self::formatHoldExpiry($booking)),
+        ]);
+
+        return [
+            'supplier_label' => 'Travelport',
+            'source' => 'saved',
+            'error' => null,
+            'status' => self::resolveStatusBadge($booking->booking_status, $booking),
+            'sections' => self::buildSections(compact('confirmation', 'policy')),
         ];
     }
 

@@ -703,6 +703,12 @@ class FlightService
         return app(TravelportBookingService::class)->createHold($booking);
     }
 
+    /** Book Now and hold both use airPrice → airHold (no GDS card). */
+    public function createTravelportReservation(B2bFlightBooking $booking): array
+    {
+        return $this->createTravelportHoldPnr($booking);
+    }
+
     public function issueTravelportTicket(B2bFlightBooking $booking): array
     {
         return app(TravelportBookingService::class)->issueTicket($booking);
