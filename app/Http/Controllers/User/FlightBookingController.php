@@ -460,35 +460,55 @@ class FlightBookingController extends Controller
 
     public function processHold(Request $request, FlightService $flightService)
     {
-        $validated = $request->validate([
-            'itinerary_id'              => 'required|integer',
-            // lead name fields are synced from passenger[0] via JS as hidden inputs
-            'lead.title'                => 'nullable|string',
-            'lead.first_name'           => 'nullable|string|max:60',
-            'lead.last_name'            => 'nullable|string|max:60',
-            'lead.email'                => 'required|email',
-            'lead.phone'                => 'required|string|max:25',
-            'passengers'                => 'required|array|min:1',
-            'passengers.*.type'         => 'required|in:ADT,C06,INF',
-            'passengers.*.title'        => 'required|string',
-            'passengers.*.first_name'   => 'required|string|max:60',
-            'passengers.*.last_name'    => 'required|string|max:60',
-            'passengers.*.dob'          => 'nullable|date',
-            'passengers.*.nationality'  => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
-            'passengers.*.issuing_country' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
-            'passengers.*.passport_no'  => 'nullable|string|max:20',
-            'passengers.*.passport_exp' => 'nullable|date',
-            'passengers.*.save_profile' => 'nullable|in:1',
-            'fare_option' => 'nullable|integer|min:0',
-        ]);
+        $itineraryId = (int) $request->input('itinerary_id', 0);
+        $fareIndex   = max(0, (int) $request->input('fare_option', 0));
 
-        $validated = $this->normalizePassengerCountries($validated);
+        try {
+            $validated = $request->validate([
+                'itinerary_id'              => 'required|integer',
+                // lead name fields are synced from passenger[0] via JS as hidden inputs
+                'lead.title'                => 'nullable|string',
+                'lead.first_name'           => 'nullable|string|max:60',
+                'lead.last_name'            => 'nullable|string|max:60',
+                'lead.email'                => 'required|email',
+                'lead.phone'                => 'required|string|max:25',
+                'passengers'                => 'required|array|min:1',
+                'passengers.*.type'         => 'required|in:ADT,C06,INF',
+                'passengers.*.title'        => 'required|string',
+                'passengers.*.first_name'   => 'required|string|max:60',
+                'passengers.*.last_name'    => 'required|string|max:60',
+                'passengers.*.dob'          => 'nullable|date',
+                'passengers.*.nationality'  => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
+                'passengers.*.issuing_country' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
+                'passengers.*.passport_no'  => 'nullable|string|max:20',
+                'passengers.*.passport_exp' => 'nullable|date',
+                'passengers.*.save_profile' => 'nullable|in:1',
+                'fare_option' => 'nullable|integer|min:0',
+            ], [
+                'passengers.*.nationality.required' => 'Please select a nationality from the country list.',
+                'passengers.*.nationality.size' => 'Please select a nationality from the country list.',
+                'passengers.*.issuing_country.required' => 'Please select an issuing country from the country list.',
+                'passengers.*.issuing_country.size' => 'Please select an issuing country from the country list.',
+            ]);
 
-        $results       = session('flight_search_results', []);
-        $params        = session('flight_search_params', []);
-        $this->validatePassportExpiryDates($validated['passengers'], $params);
-        $itineraryId   = (int) $validated['itinerary_id'];
-        $fareIndex     = max(0, (int) ($validated['fare_option'] ?? 0));
+            $validated = $this->normalizePassengerCountries($validated);
+
+            $results       = session('flight_search_results', []);
+            $params        = session('flight_search_params', []);
+            $this->validatePassportExpiryDates($validated['passengers'], $params);
+            $itineraryId   = (int) $validated['itinerary_id'];
+            $fareIndex     = max(0, (int) ($validated['fare_option'] ?? 0));
+        } catch (ValidationException $e) {
+            Log::warning('Hold checkout validation failed', [
+                'itinerary_id' => $itineraryId,
+                'fare_index'   => $fareIndex,
+                'user_id'      => Auth::id(),
+                'errors'       => $e->errors(),
+            ]);
+
+            throw $e;
+        }
+
         $itineraryData = $this->resolveItineraryFare($results, $itineraryId, $fareIndex);
 
         if (!$itineraryData || empty($params)) {
@@ -501,8 +521,14 @@ class FlightBookingController extends Controller
         if ($isTravelport) {
             foreach ($validated['passengers'] as $index => $pax) {
                 if (empty($pax['dob'])) {
-                    return redirect()
-                        ->route('user.flights.hold', ['itinerary' => $itineraryId] + request()->query())
+                    Log::warning('Hold checkout: Travelport DOB missing', [
+                        'itinerary_id' => $itineraryId,
+                        'fare_index'   => $fareIndex,
+                        'user_id'      => Auth::id(),
+                        'passenger'    => $index,
+                    ]);
+
+                    return $this->holdCheckoutRedirect($itineraryId, $fareIndex)
                         ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required for Travelport hold bookings.'])
                         ->withInput();
                 }
@@ -577,8 +603,7 @@ class FlightBookingController extends Controller
                 'result'     => $pnrResult,
             ]);
             $errMsg = $pnrResult['error'] ?? $pnrResult['message'] ?? 'Unable to create hold booking. Please try again.';
-            return redirect()
-                ->route('user.flights.hold', ['itinerary' => $itineraryId] + request()->query())
+            return $this->holdCheckoutRedirect($itineraryId, $fareIndex)
                 ->with('notify_error', $errMsg);
         }
 
@@ -838,6 +863,14 @@ class FlightBookingController extends Controller
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    protected function holdCheckoutRedirect(int $itineraryId, int $fareIndex = 0)
+    {
+        return redirect()->route('user.flights.hold', [
+            'itinerary' => $itineraryId,
+            'fare'      => $fareIndex,
+        ]);
     }
 
     /**
