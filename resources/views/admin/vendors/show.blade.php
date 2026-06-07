@@ -609,6 +609,7 @@
                             <thead>
                                 <tr>
                                     <th>Booking #</th>
+                                    <th>Provider</th>
                                     <th>Route</th>
                                     <th>Departure</th>
                                     <th>Return</th>
@@ -628,6 +629,7 @@
                                         <td class="fw-semibold" style="font-size:13px; color:var(--color-primary);">
                                             {{ $booking->booking_number }}
                                         </td>
+                                        <td>@include('admin.partials.flight-booking-provider-badge', ['booking' => $booking])</td>
                                         <td style="white-space:nowrap;">
                                             <span class="fw-semibold">{{ $booking->from_airport }}</span>
                                             <i class="bx bx-right-arrow-alt" style="color:#aaa; vertical-align:middle;"></i>

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\B2bFlightBooking;
 use App\Models\Config;
+use App\Services\Travelport\TravelportBookingService;
 use App\Support\SabreAirRulesResponseParser;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -53,10 +54,14 @@ class FlightService
 
     public function createBookingRecord(array $data): B2bFlightBooking
     {
+        $provider = normalizeFlightBookingProvider(
+            $data['provider'] ?? data_get($data, 'itinerary_data.supplier')
+        );
+
         return B2bFlightBooking::create([
             'b2b_vendor_id' => auth()->id(),
             'booking_number' => B2bFlightBooking::generateBookingNumber(),
-            'provider' => $data['provider'] ?? data_get($data, 'itinerary_data.supplier', 'sabre'),
+            'provider' => $provider,
             'itinerary_id' => $data['itinerary_id'] ?? null,
             'from_airport' => $data['from_airport'] ?? null,
             'to_airport' => $data['to_airport'] ?? null,
@@ -691,6 +696,21 @@ class FlightService
                 'error' => $e->getMessage(),
             ];
         }
+    }
+
+    public function createTravelportHoldPnr(B2bFlightBooking $booking): array
+    {
+        return app(TravelportBookingService::class)->createHold($booking);
+    }
+
+    public function issueTravelportTicket(B2bFlightBooking $booking): array
+    {
+        return app(TravelportBookingService::class)->issueTicket($booking);
+    }
+
+    public function cancelTravelportBooking(B2bFlightBooking $booking): array
+    {
+        return app(TravelportBookingService::class)->cancelHold($booking);
     }
 
     /**

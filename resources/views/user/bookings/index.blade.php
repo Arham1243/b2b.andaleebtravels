@@ -772,7 +772,8 @@
                         return $h ? ($r ? "{$h}h {$r}m" : "{$h}h") : "{$r}m";
                     };
 
-                    $ttlDate = data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.ticketingDeadline')
+                    $ttlDate = $booking->hold_expires_at?->format('d M Y, h:i A')
+                            ?? data_get($booking->booking_response, 'CreatePassengerNameRecordRS.ItineraryRef.ticketingDeadline')
                             ?? data_get($booking->booking_response, 'CreatePassengerNameRecordRS.TravelItineraryAddInfo.AgencyInfo.Ticketing.Date')
                             ?? null;
                 @endphp
@@ -788,13 +789,13 @@
                                 <div class="bk-hold-banner__text">
                                     PNR <strong>{{ $booking->sabre_record_locator ?? 'Pending' }}</strong> may have been auto-cancelled by the airline.
                                     @if($ttlDate) The ticketing deadline was <strong>{{ $ttlDate }}</strong>. @endif
-                                    Please contact support or check the PNR directly on Sabre.
+                                    Please contact support if you need assistance.
                                     Hold created: <strong>{{ $booking->created_at->format('d M Y, h:i A') }}</strong>.
                                 </div>
                             @else
                                 <div class="bk-hold-banner__title">This booking is On Hold &mdash; no payment charged</div>
                                 <div class="bk-hold-banner__text">
-                                    PNR <strong>{{ $booking->sabre_record_locator ?? 'Pending' }}</strong> has been created on Sabre.
+                                    PNR <strong>{{ $booking->sabre_record_locator ?? 'Pending' }}</strong> has been created with the airline.
                                     Ticketing time limit is set by the airline on the PNR.
                                     Typical hold window is <strong>1–24 hours</strong>  -  confirm ticketing before it expires to avoid auto-cancellation.<br>
                                     @if($ttlDate) Ticketing deadline: <strong>{{ $ttlDate }}</strong>. @endif
@@ -1044,19 +1045,12 @@
                                         No payment was made. Marking as cancelled will update the booking status and remove it from active holds.
                                     </p>
                                 @elseif($isHold)
-                                    <div class="bk-actions">
-                                        <form action="{{ route('user.bookings.flights.release-hold', $booking->id) }}"
-                                              method="POST"
-                                              onsubmit="return confirm('Release this hold? The PNR {{ $booking->sabre_record_locator }} will be cancelled on Sabre and cannot be recovered.');">
-                                            @csrf
-                                            <button type="submit" class="bk-btn bk-btn--warning">
-                                                <i class="bx bx-x-circle"></i> Release Hold
-                                            </button>
-                                        </form>
-                                    </div>
-                                    <p style="font-size:.7rem;color:#8492a6;margin-top:8px;">
-                                        Releasing the hold cancels the PNR at the airline end. No refund is needed since no payment was made.
-                                    </p>
+                                    @include('partials.flight-booking-cancel-actions', [
+                                        'booking' => $booking,
+                                        'cancellation' => \App\Support\BookingCancellationEligibility::forFlight($booking),
+                                        'status' => $bkStatus,
+                                        'isHold' => true,
+                                    ])
                                 @elseif($booking->isConfirmed() && $booking->isPaid())
                                     @include('partials.flight-booking-cancel-actions', [
                                         'booking' => $booking,

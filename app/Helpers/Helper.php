@@ -211,9 +211,40 @@ if (! function_exists('formatBookingSupplierLabel')) {
 
         return match ($s) {
             'tbo' => 'TBO',
+            'sabre' => 'Sabre',
             'travelport' => 'Travelport',
             default => ucfirst($s),
         };
+    }
+}
+
+if (! function_exists('normalizeFlightBookingProvider')) {
+    /** Normalize GDS provider slug stored on flight bookings (sabre|travelport). */
+    function normalizeFlightBookingProvider(?string $provider): string
+    {
+        $normalized = strtolower(trim((string) $provider));
+
+        return in_array($normalized, ['travelport', 'sabre'], true) ? $normalized : 'sabre';
+    }
+}
+
+if (! function_exists('formatFlightBookingProviderLabel')) {
+    function formatFlightBookingProviderLabel(?string $provider): string
+    {
+        return formatBookingSupplierLabel(normalizeFlightBookingProvider($provider), 'Sabre');
+    }
+}
+
+if (! function_exists('flightHoldReleaseSuccessMessage')) {
+    function flightHoldReleaseSuccessMessage(\App\Models\B2bFlightBooking $booking): string
+    {
+        $pnr = trim((string) ($booking->sabre_record_locator ?? ''));
+
+        if ($pnr === '') {
+            return 'Hold released for booking #' . $booking->booking_number . '.';
+        }
+
+        return 'Hold released for booking #' . $booking->booking_number . '. PNR ' . $pnr . ' was cancelled at the airline.';
     }
 }
 

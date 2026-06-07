@@ -294,11 +294,16 @@ class BookingController extends Controller
             $cancellationType = 'flight_hold_release_local';
 
             if (! empty($booking->sabre_record_locator)) {
-                $cancelResponse = $flightService->cancelSabreBooking($booking);
-                $cancellationType = 'flight_hold_release_sabre';
+                if ($booking->isTravelport()) {
+                    $cancelResponse = $flightService->cancelTravelportBooking($booking);
+                    $cancellationType = 'flight_hold_release_travelport';
+                } else {
+                    $cancelResponse = $flightService->cancelSabreBooking($booking);
+                    $cancellationType = 'flight_hold_release_sabre';
+                }
             } else {
                 $cancelResponse = [
-                    'note' => 'No Sabre PNR on record; hold cleared locally only.',
+                    'note' => 'No airline PNR on record; hold cleared locally only.',
                 ];
             }
 
@@ -314,9 +319,7 @@ class BookingController extends Controller
             app(BookingCancellationNotifier::class)->notifyFlightHoldReleased($booking->fresh());
 
             $pnr = trim((string) ($booking->sabre_record_locator ?? ''));
-            $successMsg = $pnr !== ''
-                ? 'Hold released for booking #' . $booking->booking_number . '. PNR ' . $pnr . ' was cancelled on Sabre.'
-                : 'Hold released for booking #' . $booking->booking_number . '.';
+            $successMsg = flightHoldReleaseSuccessMessage($booking);
 
             return redirect()
                 ->route('user.bookings.flights')

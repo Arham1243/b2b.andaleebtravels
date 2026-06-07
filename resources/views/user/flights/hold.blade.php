@@ -6,6 +6,7 @@
         $infants  = (int) ($searchParams['infants']  ?? 0);
         $currency = $currency ?? 'AED';
         $legs     = $itinerary['legs'] ?? [];
+        $requireTravelportDob = strtolower((string) ($itinerary['supplier'] ?? 'sabre')) === 'travelport';
 
         $fareBreakdown = flightFareBreakdown($itinerary, (float) ($totalAmount ?? 0));
         $totalAmount = (float) ($fareBreakdown['total_amount'] ?? $totalAmount ?? 0);
@@ -240,7 +241,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <label class="hp-label">Date of Birth</label>
-                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
+                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]" @if($requireTravelportDob) required @endif>
                                         <span class="hp-hint">Age calculated as per travel date</span>
                                     </div>
                                     @include('user.flights.partials.hp-country-field', [
@@ -302,7 +303,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <label class="hp-label">Date of Birth</label>
-                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
+                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]" @if($requireTravelportDob) required @endif>
                                     </div>
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -356,7 +357,7 @@
                                     </div>
                                     <div class="col-md-4">
                                         <label class="hp-label">Date of Birth</label>
-                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]">
+                                        <input type="date" class="hp-input" name="passengers[{{ $pIndex }}][dob]" @if($requireTravelportDob) required @endif>
                                     </div>
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',

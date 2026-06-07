@@ -149,4 +149,19 @@ class B2bFlightBooking extends Model
     {
         return $this->booking_status === 'cancelled';
     }
+
+    public function isTravelport(): bool
+    {
+        return normalizeFlightBookingProvider($this->provider) === 'travelport';
+    }
+
+    public function isSabre(): bool
+    {
+        return normalizeFlightBookingProvider($this->provider) === 'sabre';
+    }
+
+    public function providerLabel(): string
+    {
+        return formatFlightBookingProviderLabel($this->provider);
+    }
 }

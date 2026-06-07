@@ -619,10 +619,10 @@
                                             </button>
                                             {{-- TODO: Travelport airPrice → airBook/airHold in FlightService --}}
                                             @if ($isTravelportCard)
-                                                <button type="button" class="rc__hold rc__hold--disabled" disabled
-                                                    title="Booking via Travelport coming soon">
+                                                <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                    class="rc__hold">
                                                     <i class="bx bx-time-five"></i> Hold
-                                                </button>
+                                                </a>
                                                 <button type="button" class="rc__cta rc__cta--disabled" disabled
                                                     title="Booking via Travelport coming soon">
                                                     Book Now <i class="bx bx-right-arrow-alt"></i>
@@ -988,10 +988,10 @@
                                             </div>
                                             <div class="fd-foot__btns">
                                                 @if ($isTravelportCard)
-                                                    <button type="button" class="fd-foot__hold fd-foot__hold--disabled" disabled
-                                                        title="Booking via Travelport coming soon">
+                                                    <a href="{{ route('user.flights.hold', ['itinerary' => $lid, 'fare' => $fi] + $query) }}"
+                                                        class="fd-foot__hold">
                                                         <i class="bx bx-time-five"></i> Hold
-                                                    </button>
+                                                    </a>
                                                     <button type="button" class="fd-foot__book fd-foot__book--disabled" disabled
                                                         title="Booking via Travelport coming soon">
                                                         Book Now <i class="bx bx-right-arrow-alt"></i>

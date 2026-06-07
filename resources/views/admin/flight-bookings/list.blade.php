@@ -32,6 +32,7 @@
                                 <thead>
                                     <tr>
                                         <th>Booking Number</th>
+                                        <th>Provider</th>
                                         <th>Agency</th>
                                         <th>Booked by</th>
                                         <th>Route</th>
@@ -54,6 +55,7 @@
                                                 <a href="{{ route('admin.flight-bookings.show', $booking->id) }}"
                                                     class="link">{{ $booking->booking_number }}</a>
                                             </td>
+                                            <td>@include('admin.partials.flight-booking-provider-badge', ['booking' => $booking])</td>
                                             <td>
                                                 @include('admin.partials.booking-vendor-agency', ['vendor' => $booking->vendor])
                                             </td>

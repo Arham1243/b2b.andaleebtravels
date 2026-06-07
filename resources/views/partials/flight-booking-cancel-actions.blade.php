@@ -15,14 +15,14 @@
         Pay and issue the ticket before the hold expires.
     </p>
     <form action="{{ route('user.bookings.flights.release-hold', $booking->id) }}" method="POST"
-          onsubmit="return confirm('Release hold on PNR {{ $booking->sabre_record_locator }}? The booking will be cancelled at the airline end.');">
+          onsubmit="return confirm('Release hold on PNR {{ $booking->sabre_record_locator }}? The booking will be cancelled at the airline.');">
         @csrf
         <button type="submit" class="bkp-btn bkp-btn--warning w-100">
             <i class="bx bx-x-circle"></i> Release Hold
         </button>
     </form>
     <p style="font-size:.7rem;color:#8492a6;margin-top:6px;text-align:center;">
-        Releases the PNR at Sabre — no charges since no payment was made.
+        Releases the airline PNR — no charges since no payment was made.
     </p>
 @elseif ($status === 'confirmed' && $booking->payment_status === 'paid')
     @if (!($cancellation['can_cancel'] ?? false))

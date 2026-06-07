@@ -169,6 +169,7 @@
                                     <div class="bkpd-card__sub">{{ $booking->booking_number }}</div>
                                 </div>
                                 <div class="d-flex gap-2 ms-auto flex-wrap align-items-center">
+                                    @include('admin.partials.flight-booking-provider-badge', ['booking' => $booking])
                                     <span class="bkp-badge bkp-badge--{{ $status }}">
                                         @if ($status === 'hold')
                                             <i class="bx bx-time-five"></i> On Hold
@@ -395,7 +396,7 @@
                                 </div>
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Provider</span>
-                                    <span class="bkpd-info-row__val">{{ formatBookingSupplierLabel($booking->provider, 'Sabre') }}</span>
+                                    <span class="bkpd-info-row__val">{{ $booking->providerLabel() }}</span>
                                 </div>
                                 @if ($booking->sabre_record_locator)
                                     <div class="bkpd-info-row">
@@ -550,7 +551,7 @@
                                         </button>
                                     </form>
                                     <p style="font-size:.7rem;color:#8492a6;margin-top:10px;text-align:center;line-height:1.4;">
-                                        Releases the PNR at Sabre — no charges since no payment was made.
+                                        Releases the PNR via {{ $booking->providerLabel() }} — no charges since no payment was made.
                                     </p>
                                 @elseif ($status === 'confirmed' && $booking->payment_status === 'paid')
                                     @include('partials.admin-flight-booking-cancel-actions', [

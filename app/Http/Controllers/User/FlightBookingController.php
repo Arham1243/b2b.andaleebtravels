@@ -193,6 +193,7 @@ class FlightBookingController extends Controller
             'itinerary_data' => $itineraryData,
             'search_request' => session('flight_search_payload'),
             'search_response' => session('flight_search_response'),
+            'provider' => normalizeFlightBookingProvider($itineraryData['supplier'] ?? null),
             'total_amount' => $pricingFields['total_amount'],
             'original_amount' => $pricingFields['original_amount'],
             'vendor_discount_amount' => $pricingFields['vendor_discount_amount'],
@@ -332,6 +333,13 @@ class FlightBookingController extends Controller
             }
 
             if (empty($booking->sabre_record_locator)) {
+                if ($booking->isTravelport()) {
+                    $booking->update(['booking_status' => 'failed']);
+
+                    return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
+                        ->with('notify_error', 'No PNR found for this hold booking. Please contact support.');
+                }
+
                 $pnrResult = $flightService->createSabrePnr($booking);
                 if (!$pnrResult['success']) {
                     $booking->update(['booking_status' => 'failed']);
@@ -343,7 +351,9 @@ class FlightBookingController extends Controller
             }
 
             if ($booking->ticket_status !== 'issued') {
-                $ticketResult = $flightService->issueSabreTicket($booking);
+                $ticketResult = $booking->isTravelport()
+                    ? $flightService->issueTravelportTicket($booking)
+                    : $flightService->issueSabreTicket($booking);
                 if (!$ticketResult['success']) {
                     return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
                         ->with('notify_error', 'Booking confirmed but ticketing failed. Please contact support.');
@@ -427,12 +437,6 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Please search for flights again.');
         }
 
-        // TODO: Travelport airPrice → airBook/airHold in FlightService
-        if (strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport') {
-            return redirect()->route('user.flights.index')
-                ->with('notify_error', 'Hold via Travelport is not available yet. Please choose a Sabre flight.');
-        }
-
         try {
             $savedPassengers = Auth::user()
                 ->savedPassengers()
@@ -492,10 +496,17 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Flight selection expired. Please search again.');
         }
 
-        // TODO: Travelport airPrice → airBook/airHold in FlightService
-        if (strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport') {
-            return redirect()->route('user.flights.index')
-                ->with('notify_error', 'Hold via Travelport is not available yet. Please choose a Sabre flight.');
+        $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
+
+        if ($isTravelport) {
+            foreach ($validated['passengers'] as $index => $pax) {
+                if (empty($pax['dob'])) {
+                    return redirect()
+                        ->route('user.flights.hold', ['itinerary' => $itineraryId] + request()->query())
+                        ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required for Travelport hold bookings.'])
+                        ->withInput();
+                }
+            }
         }
 
         // Save any passenger profiles requested (silently skip if table not yet migrated)
@@ -538,7 +549,10 @@ class FlightBookingController extends Controller
             'passengers_data' => ['lead' => $validated['lead'], 'passengers' => $validated['passengers']],
             'itinerary_data'  => $itineraryData,
             'search_request'  => session('flight_search_payload'),
-            'search_response' => session('flight_search_response'),
+            'search_response' => $isTravelport
+                ? (session('flight_search_responses')['travelport'] ?? null)
+                : session('flight_search_response'),
+            'provider'        => normalizeFlightBookingProvider($itineraryData['supplier'] ?? null),
             'total_amount'    => $pricingFields['total_amount'],
             'original_amount' => $pricingFields['original_amount'],
             'vendor_discount_amount' => $pricingFields['vendor_discount_amount'],
@@ -552,8 +566,9 @@ class FlightBookingController extends Controller
 
         $booking = $flightService->createBookingRecord($bookingData);
 
-        // Create Sabre PNR (hold – TicketType 7TAW, no payment required)
-        $pnrResult = $flightService->createSabrePnr($booking);
+        $pnrResult = $isTravelport
+            ? $flightService->createTravelportHoldPnr($booking)
+            : $flightService->createSabrePnr($booking);
 
         if (!($pnrResult['success'] ?? false)) {
             $booking->update(['booking_status' => 'failed']);
@@ -567,6 +582,7 @@ class FlightBookingController extends Controller
                 ->with('notify_error', $errMsg);
         }
 
+        $booking->refresh();
         $booking->update(['booking_status' => 'hold']);
 
         return redirect()->route('user.flights.hold.success', ['booking' => $booking->id]);
@@ -618,6 +634,10 @@ class FlightBookingController extends Controller
 
         if (! $booking->isOnHold()) {
             return back()->with('notify_error', 'This booking is not in a hold state.');
+        }
+
+        if (empty($booking->sabre_record_locator)) {
+            return back()->with('notify_error', 'No PNR found for this booking. Cannot proceed to payment.');
         }
 
         $validated = $request->validate([
@@ -897,6 +917,9 @@ class FlightBookingController extends Controller
             'pricing_subsource' => $selected['pricing_subsource'] ?? $card['pricing_subsource'] ?? '',
             'validating_carrier' => $selected['validating_carrier'] ?? $card['validating_carrier'] ?? null,
             'governing_carriers' => $selected['governing_carriers'] ?? $card['governing_carriers'] ?? null,
+            'supplier' => $selected['supplier'] ?? $card['supplier'] ?? 'sabre',
+            'booking_code' => $selected['booking_code'] ?? $card['booking_code'] ?? null,
+            'travelport_segments' => $selected['travelport_segments'] ?? $card['travelport_segments'] ?? [],
             'sabre_pricing_index' => $selected['sabre_pricing_index'] ?? 0,
             'selected_fare_index' => $fareIndex,
         ]);
