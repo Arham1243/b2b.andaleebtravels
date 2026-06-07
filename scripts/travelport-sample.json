@@ -1,0 +1,207 @@
+{
+    "@attributes": {
+        "Key": "wU3lT6VqWDKA\/xVdCAAAAA==",
+        "TotalPrice": "AED515",
+        "BasePrice": "AED160",
+        "ApproximateTotalPrice": "AED515",
+        "ApproximateBasePrice": "AED160",
+        "Taxes": "AED355",
+        "ApproximateTaxes": "AED355",
+        "CompleteItinerary": "true"
+    },
+    "AirPricingInfo": {
+        "@attributes": {
+            "Key": "wU3lT6VqWDKANvVdCAAAAA==",
+            "TotalPrice": "AED515",
+            "BasePrice": "AED160",
+            "ApproximateTotalPrice": "AED515",
+            "ApproximateBasePrice": "AED160",
+            "Taxes": "AED355",
+            "LatestTicketingTime": "2026-06-18T23:59:00.000+04:00",
+            "PricingMethod": "Guaranteed",
+            "Refundable": "true",
+            "ETicketability": "Yes",
+            "PlatingCarrier": "GF",
+            "ProviderCode": "1G",
+            "Cat35Indicator": "false"
+        },
+        "FareInfoRef": {
+            "@attributes": {
+                "Key": "wU3lT6VqWDKAMvVdCAAAAA=="
+            }
+        },
+        "TaxInfo": [
+            {
+                "@attributes": {
+                    "Category": "AE",
+                    "Amount": "AED75",
+                    "Key": "wU3lT6VqWDKAOvVdCAAAAA=="
+                }
+            },
+            {
+                "@attributes": {
+                    "Category": "F6",
+                    "Amount": "AED50",
+                    "Key": "wU3lT6VqWDKAPvVdCAAAAA=="
+                }
+            },
+            {
+                "@attributes": {
+                    "Category": "TP",
+                    "Amount": "AED5",
+                    "Key": "wU3lT6VqWDKAQvVdCAAAAA=="
+                }
+            },
+            {
+                "@attributes": {
+                    "Category": "ZR",
+                    "Amount": "AED5",
+                    "Key": "wU3lT6VqWDKARvVdCAAAAA=="
+                }
+            },
+            {
+                "@attributes": {
+                    "Category": "BH",
+                    "Amount": "AED60",
+                    "Key": "wU3lT6VqWDKASvVdCAAAAA=="
+                }
+            },
+            {
+                "@attributes": {
+                    "Category": "HM",
+                    "Amount": "AED10",
+                    "Key": "wU3lT6VqWDKATvVdCAAAAA=="
+                }
+            },
+            {
+                "@attributes": {
+                    "Category": "YQ",
+                    "Amount": "AED150",
+                    "Key": "wU3lT6VqWDKAUvVdCAAAAA=="
+                }
+            }
+        ],
+        "FareCalc": "DXB GF X\/BAH GF KHI 43.55WDLIT3AE NUC43.55END ROE3.673336",
+        "PassengerType": {
+            "@attributes": {
+                "Code": "ADT"
+            }
+        },
+        "ChangePenalty": {
+            "@attributes": {
+                "PenaltyApplies": "Anytime"
+            },
+            "Amount": "AED210.00"
+        },
+        "CancelPenalty": {
+            "@attributes": {
+                "PenaltyApplies": "Anytime"
+            },
+            "Amount": "AED350.00"
+        },
+        "FlightOptionsList": {
+            "FlightOption": {
+                "@attributes": {
+                    "LegRef": "wU3lT6VqWDKAevVdCAAAAA==",
+                    "Destination": "KHI",
+                    "Origin": "DXB"
+                },
+                "Option": [
+                    {
+                        "@attributes": {
+                            "Key": "wU3lT6VqWDKAVvVdCAAAAA==",
+                            "TravelTime": "P0DT6H0M0S"
+                        },
+                        "BookingInfo": [
+                            {
+                                "@attributes": {
+                                    "BookingCode": "W",
+                                    "BookingCount": "7",
+                                    "CabinClass": "Economy",
+                                    "FareInfoRef": "wU3lT6VqWDKAMvVdCAAAAA==",
+                                    "SegmentRef": "wU3lT6VqWDKAcuVdCAAAAA=="
+                                }
+                            },
+                            {
+                                "@attributes": {
+                                    "BookingCode": "W",
+                                    "BookingCount": "7",
+                                    "CabinClass": "Economy",
+                                    "FareInfoRef": "wU3lT6VqWDKAMvVdCAAAAA==",
+                                    "SegmentRef": "wU3lT6VqWDKAeuVdCAAAAA=="
+                                }
+                            }
+                        ],
+                        "Connection": {
+                            "@attributes": {
+                                "SegmentIndex": "0"
+                            }
+                        }
+                    },
+                    {
+                        "@attributes": {
+                            "Key": "wU3lT6VqWDKAYvVdCAAAAA==",
+                            "TravelTime": "P0DT7H25M0S"
+                        },
+                        "BookingInfo": [
+                            {
+                                "@attributes": {
+                                    "BookingCode": "W",
+                                    "BookingCount": "7",
+                                    "CabinClass": "Economy",
+                                    "FareInfoRef": "wU3lT6VqWDKAMvVdCAAAAA==",
+                                    "SegmentRef": "wU3lT6VqWDKAguVdCAAAAA=="
+                                }
+                            },
+                            {
+                                "@attributes": {
+                                    "BookingCode": "W",
+                                    "BookingCount": "7",
+                                    "CabinClass": "Economy",
+                                    "FareInfoRef": "wU3lT6VqWDKAMvVdCAAAAA==",
+                                    "SegmentRef": "wU3lT6VqWDKAeuVdCAAAAA=="
+                                }
+                            }
+                        ],
+                        "Connection": {
+                            "@attributes": {
+                                "SegmentIndex": "0"
+                            }
+                        }
+                    },
+                    {
+                        "@attributes": {
+                            "Key": "wU3lT6VqWDKAbvVdCAAAAA==",
+                            "TravelTime": "P0DT10H20M0S"
+                        },
+                        "BookingInfo": [
+                            {
+                                "@attributes": {
+                                    "BookingCode": "W",
+                                    "BookingCount": "7",
+                                    "CabinClass": "Economy",
+                                    "FareInfoRef": "wU3lT6VqWDKAMvVdCAAAAA==",
+                                    "SegmentRef": "wU3lT6VqWDKAiuVdCAAAAA=="
+                                }
+                            },
+                            {
+                                "@attributes": {
+                                    "BookingCode": "W",
+                                    "BookingCount": "7",
+                                    "CabinClass": "Economy",
+                                    "FareInfoRef": "wU3lT6VqWDKAMvVdCAAAAA==",
+                                    "SegmentRef": "wU3lT6VqWDKAeuVdCAAAAA=="
+                                }
+                            }
+                        ],
+                        "Connection": {
+                            "@attributes": {
+                                "SegmentIndex": "0"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

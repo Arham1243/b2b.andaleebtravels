@@ -2,8 +2,8 @@
 
 $src = file_get_contents(__DIR__ . '/../app/Http/Controllers/User/FlightController.php');
 $lines = explode("\n", $src);
-// getSabreToken (406) through listingTimestamp (1756); exclude buildFilterCatalog+
-$chunk = array_slice($lines, 405, 1351);
+// getSabreToken (406) through normalizeSabrePrice (1891)
+$chunk = array_slice($lines, 405, 1487);
 $body = implode("\n", $chunk);
 
 $header = <<<'PHP'

@@ -1017,6 +1017,15 @@
                     <i class="bx bx-search-alt-2 rp-empty__icon"></i>
                     <h3>No flights found</h3>
                     <p>We couldn't find itineraries for this route. Try different dates or nearby airports.</p>
+                    @if (!empty($messages))
+                        <ul class="rp-empty__msgs">
+                            @foreach ($messages as $message)
+                                @if (in_array(strtolower((string) ($message['severity'] ?? '')), ['error', 'warning'], true))
+                                    <li>{{ $message['text'] ?? '' }}</li>
+                                @endif
+                            @endforeach
+                        </ul>
+                    @endif
                     <a href="{{ route('user.flights.index') }}" class="rp-emptybtn">Modify Search</a>
                 </div>
             @else
@@ -1866,6 +1875,8 @@
 .rp-empty__icon--idle { color: var(--c-blue); }
 .rp-empty h3 { font-size: 1.15rem; font-weight: 700; margin: 0 0 .5rem; color: var(--c-ink); }
 .rp-empty p  { font-size: .88rem; color: var(--c-slate); margin: 0 0 1.1rem; line-height: 1.55; }
+.rp-empty__msgs { text-align: left; max-width: 520px; margin: 0 auto 1rem; padding: 0; list-style: none; font-size: .82rem; color: #b45309; }
+.rp-empty__msgs li { margin: .25rem 0; }
 .rp-emptybtn {
     display: inline-flex; align-items: center; gap: .3rem;
     background: var(--c-brand); color: #fff !important;

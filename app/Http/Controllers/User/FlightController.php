@@ -13,6 +13,7 @@ use App\Support\FlightPromoConfig;
 use App\Support\SabreBaggagePresenter;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -348,7 +349,7 @@ class FlightController extends Controller
                     return [
                         'from' => strtoupper(trim((string) ($segment['from'] ?? ''))),
                         'to' => strtoupper(trim((string) ($segment['to'] ?? ''))),
-                        'departure_date' => trim((string) ($segment['departure_date'] ?? '')),
+                        'departure_date' => $this->normalizeFlightSearchDate($segment['departure_date'] ?? '') ?? '',
                     ];
                 })
                 ->filter(function ($segment) {
@@ -371,12 +372,26 @@ class FlightController extends Controller
 
         $normalized['from'] = strtoupper(trim((string) ($data['from'] ?? '')));
         $normalized['to'] = strtoupper(trim((string) ($data['to'] ?? '')));
-        $normalized['departure_date'] = trim((string) ($data['departure_date'] ?? ''));
+        $normalized['departure_date'] = $this->normalizeFlightSearchDate($data['departure_date'] ?? '') ?? '';
         $normalized['return_date'] = $tripType === 'round_trip'
-            ? trim((string) ($data['return_date'] ?? ''))
+            ? ($this->normalizeFlightSearchDate($data['return_date'] ?? '') ?? '')
             : null;
 
         return $normalized;
+    }
+
+    private function normalizeFlightSearchDate(mixed $date): ?string
+    {
+        $date = trim((string) ($date ?? ''));
+        if ($date === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($date)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return $date;
+        }
     }
 
 

@@ -57,7 +57,12 @@ class TravelportSearchPresenter
             return null;
         }
 
-        $currency = strtoupper((string) (self::attr($pricePoint, 'Currency', '') ?: self::attr(data_get($pricePoint, 'TotalPrice'), 'CurrencyCode', 'AED')));
+        $money = self::parseMoneyValue(
+            self::attr($pricePoint, 'TotalPrice')
+                ?? self::attr($pricePoint, 'ApproximateTotalPrice')
+                ?? self::attr(data_get($pricePoint, 'AirPricingInfo'), 'TotalPrice')
+        );
+        $currency = $money['currency'] ?? 'AED';
 
         $pricingInfos = self::asList(data_get($pricePoint, 'AirPricingInfo'));
         $legs = [];
@@ -81,25 +86,29 @@ class TravelportSearchPresenter
                 }
 
                 $options = self::asList(data_get($flightOption, 'Option'));
+                $option = $options[0] ?? null;
                 $legSegments = [];
 
-                foreach ($options as $option) {
-                    if (! is_array($option)) {
-                        continue;
-                    }
-
+                if (is_array($option)) {
+                    $seenRefs = [];
                     $bookingInfos = self::asList(data_get($option, 'BookingInfo'));
+
                     foreach ($bookingInfos as $bookingInfo) {
                         if (! is_array($bookingInfo)) {
                             continue;
                         }
 
                         $segmentRef = (string) self::attr($bookingInfo, 'SegmentRef', '');
+                        if ($segmentRef === '' || isset($seenRefs[$segmentRef])) {
+                            continue;
+                        }
+
                         $segmentNode = $segmentsByKey[$segmentRef] ?? null;
                         if ($segmentNode === null) {
                             continue;
                         }
 
+                        $seenRefs[$segmentRef] = true;
                         $bookingCode = $bookingCode ?: self::attr($bookingInfo, 'BookingCode');
                         $cabinClass = $cabinClass ?: self::attr($bookingInfo, 'CabinClass');
 
@@ -269,27 +278,59 @@ class TravelportSearchPresenter
      */
     private static function extractTotalPrice(array $pricePoint): ?float
     {
-        $direct = self::attr($pricePoint, 'TotalPrice');
-        if (is_numeric($direct)) {
-            return round((float) $direct, 2);
-        }
-
-        $node = data_get($pricePoint, 'TotalPrice');
-        if (is_array($node)) {
-            foreach (['Amount', 'Total', 'Base'] as $key) {
-                $val = self::attr($node, $key);
-                if (is_numeric($val)) {
-                    return round((float) $val, 2);
-                }
+        foreach ([
+            self::attr($pricePoint, 'TotalPrice'),
+            self::attr($pricePoint, 'ApproximateTotalPrice'),
+            self::attr(data_get($pricePoint, 'AirPricingInfo'), 'TotalPrice'),
+        ] as $raw) {
+            $money = self::parseMoneyValue($raw);
+            if (($money['amount'] ?? null) !== null) {
+                return $money['amount'];
             }
         }
 
-        $approx = self::attr($pricePoint, 'ApproximateTotalPrice');
-        if (is_numeric($approx)) {
-            return round((float) $approx, 2);
+        return null;
+    }
+
+    /**
+     * @return array{amount: ?float, currency: ?string}
+     */
+    private static function parseMoneyValue(mixed $raw): array
+    {
+        if ($raw === null || $raw === '') {
+            return ['amount' => null, 'currency' => null];
         }
 
-        return null;
+        if (is_numeric($raw)) {
+            return ['amount' => round((float) $raw, 2), 'currency' => null];
+        }
+
+        $text = trim((string) $raw);
+        if ($text === '') {
+            return ['amount' => null, 'currency' => null];
+        }
+
+        if (preg_match('/^([A-Z]{3})([\d.,]+)$/i', $text, $matches)) {
+            return [
+                'amount' => round((float) str_replace(',', '', $matches[2]), 2),
+                'currency' => strtoupper($matches[1]),
+            ];
+        }
+
+        if (preg_match('/^([\d.,]+)\s*([A-Z]{3})$/i', $text, $matches)) {
+            return [
+                'amount' => round((float) str_replace(',', '', $matches[1]), 2),
+                'currency' => strtoupper($matches[2]),
+            ];
+        }
+
+        if (preg_match('/[\d.]/', $text)) {
+            $amount = (float) preg_replace('/[^0-9.]/', '', $text);
+
+            return ['amount' => $amount > 0 ? round($amount, 2) : null, 'currency' => null];
+        }
+
+        return ['amount' => null, 'currency' => null];
     }
 
     /**
