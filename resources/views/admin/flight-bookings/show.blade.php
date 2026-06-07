@@ -2,8 +2,8 @@
 
 @push('css')
 @include('user.bookings._styles')
-@include('user.flights.partials.fare-rules-styles')
 <style>
+@include('user.flights.partials.fare-rules-styles')
 .bkp--admin { padding: 0; min-height: auto; background: transparent; }
 .bkp--admin .bkp-main { min-width: 0; }
 .admin-flight-status .form-check { margin-bottom: .35rem; }
@@ -19,7 +19,47 @@
     --c-green: #10b981;
     --c-brand: #cd1b4f;
 }
-.bkp--admin .fd-rules { padding: .85rem 1.1rem 1rem; }
+.bkp--admin .fd-rules { padding: .85rem 1.1rem 1rem; font-size: .82rem; }
+.bkp--admin .fd-rules__route { font-size: .88rem; }
+.bkp--admin .fd-rules__row { font-size: .78rem; }
+.bkp--admin .fd-rules__section-title,
+.bkp--admin .fd-rules__component-route { font-size: .68rem; }
+.bkp--admin .fd-rules__list li { font-size: .78rem; }
+.bkp--admin .fd-rules__notes p { font-size: .74rem; }
+.bkp--admin .fd-rules__full .fd-rules__section-title { font-size: .72rem; margin-bottom: .45rem; }
+.bkp--admin .fd-rules__full-status { font-size: .78rem; }
+.bkp--admin .fd-rules__full-body {
+    max-height: 320px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-size: .72rem;
+    line-height: 1.5;
+    scrollbar-width: thin;
+    scrollbar-color: #b8c2ce #eef1f5;
+}
+.bkp--admin .fd-rules__full-route { font-size: .76rem; }
+.bkp--admin .fd-rules__full-section h4 { font-size: .72rem; }
+.bkp--admin .fd-rules__full-section p { font-size: .72rem; }
+.bkp--admin .fd-rules__component-grid div span { font-size: .62rem; }
+.bkp--admin .fd-rules__component-grid div strong { font-size: .78rem; }
+.bkp--admin .fd-rules__full-body::-webkit-scrollbar {
+    width: 8px;
+}
+.bkp--admin .fd-rules__full-body::-webkit-scrollbar-track {
+    background: #eef1f5;
+    border-radius: 8px;
+}
+.bkp--admin .fd-rules__full-body::-webkit-scrollbar-thumb {
+    background: #b8c2ce;
+    border-radius: 8px;
+}
+.bkp--admin .fd-rules__full-body::-webkit-scrollbar-thumb:hover {
+    background: #9aa8b8;
+}
+.bkp--admin .fd-rules__component-grid div span,
+.bkp--admin .fd-rules__component-grid div strong {
+    display: block;
+}
 </style>
 @endpush
 
