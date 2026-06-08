@@ -9,6 +9,7 @@ use App\Models\B2bWalletLedger;
 use App\Services\BookingCancellationNotifier;
 use App\Services\BookingCancellationRecorder;
 use App\Services\BookingWalletRefundService;
+use App\Services\FlightBookingConfirmationNotifier;
 use App\Services\FlightService;
 use App\Services\HotelService;
 use App\Support\BookingCancellationEligibility;
@@ -302,10 +303,21 @@ class AdminBookingController extends Controller
         $result = $flightService->fulfillPaidBooking($bookingModel->fresh());
 
         if ($result['success'] ?? false) {
-            $pnr = trim((string) ($result['pnr'] ?? $bookingModel->fresh()->sabre_record_locator ?? ''));
+            $bookingModel = $bookingModel->fresh();
+            $emailSent = false;
+
+            if (! ($result['already_complete'] ?? false)) {
+                $emailSent = app(FlightBookingConfirmationNotifier::class)->sendOnce($bookingModel);
+            }
+
+            $pnr = trim((string) ($result['pnr'] ?? $bookingModel->sabre_record_locator ?? ''));
             $message = ($result['already_complete'] ?? false)
                 ? 'Ticket is already issued for this booking.'
                 : 'Booking fulfilled successfully.' . ($pnr !== '' ? ' PNR: ' . $pnr . '.' : '');
+
+            if ($emailSent) {
+                $message .= ' Confirmation email sent to the vendor.';
+            }
 
             return redirect()->back()->with('notify_success', $message);
         }

@@ -7,14 +7,13 @@ use App\Models\B2bFlightBooking;
 use App\Models\B2bWalletLedger;
 use App\Support\CountryCatalog;
 use App\Support\WalletLedgerDescription;
-use App\Models\Config;
+use App\Services\FlightBookingConfirmationNotifier;
 use App\Services\FlightService;
 use App\Services\Travelport\TravelportBookingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class FlightBookingController extends Controller
@@ -385,7 +384,7 @@ class FlightBookingController extends Controller
                     ->with('notify_error', 'This booking is not ready yet or payment is incomplete.');
             }
 
-            $this->sendFlightBookingConfirmationEmailsOnce($booking);
+            app(FlightBookingConfirmationNotifier::class)->sendOnce($booking);
             $booking->refresh();
 
             return view('user.flights.payment-success', compact('booking'));
@@ -742,57 +741,6 @@ class FlightBookingController extends Controller
 
         $pax = Auth::user()->savedPassengers()->create($data);
         return response()->json(['success' => true, 'passenger' => $pax]);
-    }
-
-    protected function sendFlightBookingConfirmationEmailsOnce(B2bFlightBooking $booking): void
-    {
-        if ($booking->confirmation_email_sent_at) {
-            return;
-        }
-
-        $leadEmail = (string) data_get($booking->passengers_data, 'lead.email', '');
-        $adminEmail = (string) Config::where('config_key', 'ADMIN_NOTIFICATION_EMAIL')->value('config_value');
-
-        $detailUrl = route('user.bookings.flights.detail', $booking->id);
-
-        $dataFor = function (string $intro, bool $forAdmin) use ($booking, $leadEmail, $detailUrl) {
-            return [
-                'booking' => $booking,
-                'intro' => $intro,
-                'leadEmail' => $leadEmail,
-                'detailUrl' => $detailUrl,
-                'forAdmin' => $forAdmin,
-            ];
-        };
-
-        try {
-            if ($leadEmail !== '' && filter_var($leadEmail, FILTER_VALIDATE_EMAIL)) {
-                Mail::send(
-                    'user.emails.flight-booking-confirmed',
-                    $dataFor('Your flight is confirmed and your ticket has been issued. Your reservation summary is below.', false),
-                    function ($message) use ($leadEmail, $booking) {
-                        $message->to($leadEmail)->subject('Flight confirmed - ' . $booking->booking_number);
-                    }
-                );
-            }
-
-            if ($adminEmail !== '' && filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
-                Mail::send(
-                    'user.emails.flight-booking-confirmed',
-                    $dataFor('A B2B flight booking was confirmed and ticketed. Summary for your records.', true),
-                    function ($message) use ($adminEmail, $booking) {
-                        $message->to($adminEmail)->subject('[B2B] Flight ticketed - ' . $booking->booking_number);
-                    }
-                );
-            }
-
-            $booking->update(['confirmation_email_sent_at' => now()]);
-        } catch (\Throwable $e) {
-            Log::error('Flight confirmation email failed', [
-                'booking_id' => $booking->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 
     protected function passengerPageData(array $data = []): array
