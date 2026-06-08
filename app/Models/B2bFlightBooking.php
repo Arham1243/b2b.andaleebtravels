@@ -170,4 +170,70 @@ class B2bFlightBooking extends Model
     {
         return formatFlightBookingProviderLabel($this->provider);
     }
+
+    public function travelportUniversalLocator(): string
+    {
+        $fromResponse = data_get($this->booking_response, 'travelport_universal_locator');
+        if (is_string($fromResponse) && trim($fromResponse) !== '') {
+            return trim($fromResponse);
+        }
+
+        $parsed = data_get($this->booking_response, 'UniversalRecord.@attributes.LocatorCode')
+            ?? data_get($this->booking_response, 'UniversalRecord.LocatorCode')
+            ?? data_get($this->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.@attributes.LocatorCode')
+            ?? data_get($this->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.LocatorCode');
+
+        if (is_string($parsed) && trim($parsed) !== '') {
+            return trim($parsed);
+        }
+
+        $raw = data_get($this->booking_response, 'raw');
+        if (is_string($raw) && preg_match('/UniversalRecord[^>]+LocatorCode="([^"]+)"/i', $raw, $m)) {
+            return trim($m[1]);
+        }
+
+        return '';
+    }
+
+    public function travelportUniversalVersion(): string
+    {
+        $fromResponse = data_get($this->booking_response, 'travelport_universal_version');
+        if (is_string($fromResponse) && trim($fromResponse) !== '') {
+            return trim($fromResponse);
+        }
+
+        $parsed = data_get($this->booking_response, 'UniversalRecord.@attributes.Version')
+            ?? data_get($this->booking_response, 'UniversalRecord.Version')
+            ?? data_get($this->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.@attributes.Version')
+            ?? data_get($this->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.Version');
+
+        if (is_string($parsed) && trim($parsed) !== '') {
+            return trim($parsed);
+        }
+
+        $raw = data_get($this->booking_response, 'raw');
+        if (is_string($raw) && preg_match('/UniversalRecord[^>]+Version="([^"]+)"/i', $raw, $m)) {
+            return trim($m[1]);
+        }
+
+        return '0';
+    }
+
+    public function hasAirlinePnr(): bool
+    {
+        return trim((string) ($this->sabre_record_locator ?? '')) !== '';
+    }
+
+    public function canCancelAtAirline(): bool
+    {
+        if (! $this->hasAirlinePnr()) {
+            return false;
+        }
+
+        if ($this->isTravelport()) {
+            return $this->travelportUniversalLocator() !== '';
+        }
+
+        return true;
+    }
 }

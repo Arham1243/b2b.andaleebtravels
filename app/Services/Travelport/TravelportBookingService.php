@@ -151,6 +151,9 @@ class TravelportBookingService
             if (($locators['air_reservation_locator'] ?? '') === '') {
                 throw new \RuntimeException('Travelport hold succeeded but no air reservation locator was returned.');
             }
+            if (($locators['universal_locator'] ?? '') === '') {
+                throw new \RuntimeException('Travelport hold succeeded but no universal record locator was returned.');
+            }
 
             $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
             $parsedHold = is_array($holdResponse['parsed'] ?? null) ? $holdResponse['parsed'] : [];
@@ -268,12 +271,12 @@ class TravelportBookingService
     public function cancelHold(B2bFlightBooking $booking): array
     {
         try {
-            $universalLocator = $this->resolveUniversalLocator($booking);
+            $universalLocator = $booking->travelportUniversalLocator();
             if ($universalLocator === '') {
                 throw new \RuntimeException('Missing Travelport universal record locator for cancel.');
             }
 
-            $version = $this->resolveUniversalVersion($booking);
+            $version = $booking->travelportUniversalVersion();
             $cancelResponse = $this->client->airCancel($universalLocator, $version);
             if (! ($cancelResponse['success'] ?? false)) {
                 Log::error('Travelport airCancel failed', [
@@ -347,36 +350,6 @@ class TravelportBookingService
         }
 
         return now()->addHour();
-    }
-
-    private function resolveUniversalLocator(B2bFlightBooking $booking): string
-    {
-        $fromResponse = data_get($booking->booking_response, 'travelport_universal_locator');
-        if (is_string($fromResponse) && trim($fromResponse) !== '') {
-            return trim($fromResponse);
-        }
-
-        $parsed = data_get($booking->booking_response, 'UniversalRecord.@attributes.LocatorCode')
-            ?? data_get($booking->booking_response, 'UniversalRecord.LocatorCode')
-            ?? data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.@attributes.LocatorCode')
-            ?? data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.LocatorCode');
-
-        return is_string($parsed) ? trim($parsed) : '';
-    }
-
-    private function resolveUniversalVersion(B2bFlightBooking $booking): string
-    {
-        $fromResponse = data_get($booking->booking_response, 'travelport_universal_version');
-        if (is_string($fromResponse) && trim($fromResponse) !== '') {
-            return trim($fromResponse);
-        }
-
-        $parsed = data_get($booking->booking_response, 'UniversalRecord.@attributes.Version')
-            ?? data_get($booking->booking_response, 'UniversalRecord.Version')
-            ?? data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.@attributes.Version')
-            ?? data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.Version');
-
-        return is_string($parsed) && trim($parsed) !== '' ? trim($parsed) : '0';
     }
 
     private function resolvePlatingCarrier(B2bFlightBooking $booking): string

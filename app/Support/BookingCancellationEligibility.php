@@ -126,6 +126,14 @@ final class BookingCancellationEligibility
             return array_merge($base, ['reason' => 'Cancellation is only available for confirmed, paid bookings.']);
         }
 
+        if (! $booking->hasAirlinePnr()) {
+            return array_merge($base, ['reason' => 'No airline PNR is on record for this booking. Please contact support.']);
+        }
+
+        if ($booking->isTravelport() && $booking->travelportUniversalLocator() === '') {
+            return array_merge($base, ['reason' => 'Travelport cancel reference is missing for this booking. Please contact support.']);
+        }
+
         $nonRefundable = self::flightIsNonRefundable($booking);
 
         if ($nonRefundable !== false) {

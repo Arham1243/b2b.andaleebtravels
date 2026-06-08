@@ -287,6 +287,10 @@ class BookingController extends Controller
             return back()->with('notify_error', 'This action is only available for held bookings.');
         }
 
+        if ($booking->isTravelport() && $booking->hasAirlinePnr() && $booking->travelportUniversalLocator() === '') {
+            return back()->with('notify_error', 'Unable to release hold at the airline: Travelport cancel reference is missing. Please contact support.');
+        }
+
         DB::beginTransaction();
 
         try {

@@ -313,8 +313,11 @@ class FlightBookingController extends Controller
                     $verificationResult = $flightService->verifyTabbyPayment($booking);
                 } elseif ($booking->payment_method === 'tamara') {
                     $verificationResult = $flightService->verifyTamaraPayment($booking);
+                } elseif ($booking->payment_method === 'hold') {
+                    return redirect()->route('user.flights.hold.confirm', ['booking' => $booking->id])
+                        ->with('notify_error', 'Please complete payment for this hold booking first.');
                 } else {
-                    throw new \Exception('Invalid payment method');
+                    throw new \Exception('Invalid payment method: ' . ($booking->payment_method ?? 'unknown'));
                 }
 
                 if (!($verificationResult['success'] ?? false)) {
@@ -354,6 +357,13 @@ class FlightBookingController extends Controller
                     $booking->update(['booking_status' => 'failed']);
                     $errMsg = $pnrResult['error'] ?? $pnrResult['message'] ?? 'Unable to confirm your booking. Our team will contact you shortly.';
 
+                    Log::error('Hold PNR creation failed after payment', [
+                        'booking_id' => $booking->id,
+                        'provider' => $booking->isTravelport() ? 'travelport' : 'sabre',
+                        'payment_status' => $booking->payment_status,
+                        'result' => $pnrResult,
+                    ]);
+
                     return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
                         ->with('notify_error', $errMsg);
                 }
@@ -370,6 +380,13 @@ class FlightBookingController extends Controller
                     ? $flightService->issueTravelportTicket($booking)
                     : $flightService->issueSabreTicket($booking);
                 if (!$ticketResult['success']) {
+                    Log::error('Flight ticketing failed after payment', [
+                        'booking_id' => $booking->id,
+                        'provider' => $booking->isTravelport() ? 'travelport' : 'sabre',
+                        'pnr' => $booking->sabre_record_locator,
+                        'error' => $ticketResult['error'] ?? null,
+                    ]);
+
                     return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
                         ->with('notify_error', 'Booking confirmed but ticketing failed. Please contact support.');
                 }
