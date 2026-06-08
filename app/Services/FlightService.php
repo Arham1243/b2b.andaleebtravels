@@ -720,6 +720,99 @@ class FlightService
     }
 
     /**
+     * Post-payment PNR + ticketing for paid bookings (Sabre and Travelport).
+     * Idempotent when ticket is already issued.
+     *
+     * @return array{success: bool, already_complete?: bool, error?: string, stage?: string, pnr?: string|null}
+     */
+    public function fulfillPaidBooking(B2bFlightBooking $booking): array
+    {
+        $booking->reconcileStatusAfterHoldPayment();
+
+        if ($booking->payment_status !== 'paid') {
+            return [
+                'success' => false,
+                'error' => 'Booking payment is not completed.',
+            ];
+        }
+
+        if ($booking->booking_status === 'cancelled') {
+            return [
+                'success' => false,
+                'error' => 'Booking has been cancelled.',
+            ];
+        }
+
+        if ($booking->ticket_status === 'issued') {
+            return [
+                'success' => true,
+                'already_complete' => true,
+                'pnr' => $booking->sabre_record_locator,
+            ];
+        }
+
+        if (empty($booking->sabre_record_locator)) {
+            $pnrResult = $booking->isTravelport()
+                ? $this->createTravelportHoldPnr($booking)
+                : $this->createSabrePnr($booking);
+
+            if (! ($pnrResult['success'] ?? false)) {
+                $booking->update(['booking_status' => 'failed']);
+
+                Log::error('Flight PNR creation failed during fulfillment', [
+                    'booking_id' => $booking->id,
+                    'provider' => $booking->isTravelport() ? 'travelport' : 'sabre',
+                    'payment_status' => $booking->payment_status,
+                    'result' => $pnrResult,
+                ]);
+
+                return [
+                    'success' => false,
+                    'stage' => 'pnr',
+                    'error' => $pnrResult['error'] ?? $pnrResult['message'] ?? 'Unable to confirm booking at the airline.',
+                ];
+            }
+
+            $booking->refresh();
+
+            if ($booking->isTravelport() && $booking->payment_method !== 'hold') {
+                $booking->update(['booking_status' => 'confirmed']);
+            }
+        }
+
+        if ($booking->ticket_status !== 'issued') {
+            $ticketResult = $booking->isTravelport()
+                ? $this->issueTravelportTicket($booking)
+                : $this->issueSabreTicket($booking);
+
+            if (! ($ticketResult['success'] ?? false)) {
+                Log::error('Flight ticketing failed during fulfillment', [
+                    'booking_id' => $booking->id,
+                    'provider' => $booking->isTravelport() ? 'travelport' : 'sabre',
+                    'pnr' => $booking->sabre_record_locator,
+                    'error' => $ticketResult['error'] ?? null,
+                ]);
+
+                return [
+                    'success' => false,
+                    'stage' => 'ticket',
+                    'error' => $ticketResult['error'] ?? 'Booking confirmed but ticketing failed.',
+                    'pnr' => $booking->sabre_record_locator,
+                ];
+            }
+
+            $booking->refresh();
+        }
+
+        $booking->reconcileStatusAfterHoldPayment();
+
+        return [
+            'success' => true,
+            'pnr' => $booking->sabre_record_locator,
+        ];
+    }
+
+    /**
      * @return array{ok: bool, source: string|null, response: array<string, mixed>|null, error: string|null}
      */
     public function fetchLiveSabreBookingDetails(B2bFlightBooking $booking): array

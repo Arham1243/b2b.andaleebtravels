@@ -86,6 +86,7 @@ Route::middleware(['admin', 'admin.staff_gate'])->prefix('admin')->name('admin.'
     Route::post('bookings/hotels/{booking}/cancel', [AdminBookingController::class, 'cancelHotelBooking'])->name('bookings.hotels.cancel');
     Route::post('bookings/flights/{booking}/status', [AdminBookingController::class, 'updateFlightStatus'])->name('bookings.flights.status');
     Route::post('bookings/flights/{booking}/release-hold', [AdminBookingController::class, 'releaseFlightHold'])->name('bookings.flights.release-hold');
+    Route::post('bookings/flights/{booking}/retry-fulfillment', [AdminBookingController::class, 'retryFlightFulfillment'])->name('bookings.flights.retry-fulfillment');
     Route::post('bookings/flights/{booking}/cancel', [AdminBookingController::class, 'cancelFlightBooking'])->name('bookings.flights.cancel');
 
     Route::get('wallet/bank-transfers', [WalletBankTransferController::class, 'index'])->name('wallet.bank-transfers.index');

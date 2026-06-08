@@ -86,6 +86,7 @@ class B2bAdminRoutePermissionRegistry
                 ['admin.bookings.hotels.cancel', ['hotel_bookings_edit']],
                 ['admin.bookings.flights.status', ['flight_bookings_edit']],
                 ['admin.bookings.flights.release-hold', ['flight_bookings_edit']],
+                ['admin.bookings.flights.retry-fulfillment', ['flight_bookings_edit']],
                 ['admin.bookings.flights.cancel', ['flight_bookings_edit']],
             ],
             [

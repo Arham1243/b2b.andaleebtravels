@@ -278,4 +278,50 @@ class AdminBookingController extends Controller
             return redirect()->back()->with('notify_error', 'Unable to cancel booking: ' . $e->getMessage());
         }
     }
+
+    public function retryFlightFulfillment(int $booking, FlightService $flightService)
+    {
+        $bookingModel = B2bFlightBooking::findOrFail($booking);
+
+        if ($bookingModel->isOnHold()) {
+            return redirect()->back()->with('notify_error', 'This booking is still on hold and unpaid.');
+        }
+
+        if ($bookingModel->booking_status === 'cancelled') {
+            return redirect()->back()->with('notify_error', 'Cancelled bookings cannot be retried.');
+        }
+
+        if ($bookingModel->payment_status !== 'paid') {
+            return redirect()->back()->with('notify_error', 'Retry is only available for paid bookings.');
+        }
+
+        if ($bookingModel->ticket_status === 'issued') {
+            return redirect()->back()->with('notify_success', 'Ticket is already issued for this booking.');
+        }
+
+        $result = $flightService->fulfillPaidBooking($bookingModel->fresh());
+
+        if ($result['success'] ?? false) {
+            $pnr = trim((string) ($result['pnr'] ?? $bookingModel->fresh()->sabre_record_locator ?? ''));
+            $message = ($result['already_complete'] ?? false)
+                ? 'Ticket is already issued for this booking.'
+                : 'Booking fulfilled successfully.' . ($pnr !== '' ? ' PNR: ' . $pnr . '.' : '');
+
+            return redirect()->back()->with('notify_success', $message);
+        }
+
+        Log::warning('Admin flight fulfillment retry failed', [
+            'booking_id' => $bookingModel->id,
+            'provider' => $bookingModel->isTravelport() ? 'travelport' : 'sabre',
+            'stage' => $result['stage'] ?? null,
+            'error' => $result['error'] ?? null,
+        ]);
+
+        $stageLabel = ($result['stage'] ?? '') === 'pnr' ? 'PNR creation' : 'Ticketing';
+
+        return redirect()->back()->with(
+            'notify_error',
+            $stageLabel . ' failed: ' . ($result['error'] ?? 'Unable to complete booking at the airline.')
+        );
+    }
 }

@@ -348,52 +348,18 @@ class FlightBookingController extends Controller
                 $booking->reconcileStatusAfterHoldPayment();
             }
 
-            if (empty($booking->sabre_record_locator)) {
-                $pnrResult = $booking->isTravelport()
-                    ? $flightService->createTravelportHoldPnr($booking)
-                    : $flightService->createSabrePnr($booking);
+            $fulfillment = $flightService->fulfillPaidBooking($booking);
 
-                if (! ($pnrResult['success'] ?? false)) {
-                    $booking->update(['booking_status' => 'failed']);
-                    $errMsg = $pnrResult['error'] ?? $pnrResult['message'] ?? 'Unable to confirm your booking. Our team will contact you shortly.';
+            if (! ($fulfillment['success'] ?? false)) {
+                $errMsg = $fulfillment['error'] ?? 'Unable to complete your booking. Our team will contact you shortly.';
 
-                    Log::error('Hold PNR creation failed after payment', [
-                        'booking_id' => $booking->id,
-                        'provider' => $booking->isTravelport() ? 'travelport' : 'sabre',
-                        'payment_status' => $booking->payment_status,
-                        'result' => $pnrResult,
-                    ]);
-
-                    return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
-                        ->with('notify_error', $errMsg);
+                if (($fulfillment['stage'] ?? '') === 'ticket') {
+                    $errMsg = 'Booking confirmed but ticketing failed. Please contact support.';
                 }
 
-                $booking->refresh();
-
-                if ($booking->isTravelport() && $booking->payment_method !== 'hold') {
-                    $booking->update(['booking_status' => 'confirmed']);
-                }
+                return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
+                    ->with('notify_error', $errMsg);
             }
-
-            if ($booking->ticket_status !== 'issued') {
-                $ticketResult = $booking->isTravelport()
-                    ? $flightService->issueTravelportTicket($booking)
-                    : $flightService->issueSabreTicket($booking);
-                if (!$ticketResult['success']) {
-                    Log::error('Flight ticketing failed after payment', [
-                        'booking_id' => $booking->id,
-                        'provider' => $booking->isTravelport() ? 'travelport' : 'sabre',
-                        'pnr' => $booking->sabre_record_locator,
-                        'error' => $ticketResult['error'] ?? null,
-                    ]);
-
-                    return redirect()->route('user.flights.payment.failed', ['booking' => $booking->id])
-                        ->with('notify_error', 'Booking confirmed but ticketing failed. Please contact support.');
-                }
-                $booking->refresh();
-            }
-
-            $booking->reconcileStatusAfterHoldPayment();
 
             return redirect()->route('user.flights.payment.success.view', ['booking' => $booking->id]);
         } catch (\Exception $e) {

@@ -123,6 +123,11 @@
         return $h ? ($r ? "{$h}h {$r}m" : "{$h}h") : "{$r}m";
     };
     $canEditBooking = \App\Support\B2bAdminPortalUi::can('flight_bookings_edit');
+    $needsFulfillmentRetry = $canEditBooking
+        && $booking->isPaid()
+        && $booking->ticket_status !== 'issued'
+        && ! $booking->isCancelled()
+        && ! $booking->isOnHold();
 @endphp
 
 <div class="col-md-12">
@@ -131,6 +136,23 @@
 
         <div class="bkp bkp--admin">
             <div class="bkp-main">
+                @if ($needsFulfillmentRetry)
+                    <div class="alert alert-warning d-flex align-items-start gap-2 mb-3" role="alert">
+                        <i class="bx bx-error-circle fs-5 mt-1"></i>
+                        <div>
+                            <strong>Payment received — booking incomplete</strong>
+                            <p class="mb-0 small">
+                                This booking was paid but PNR creation or ticketing did not complete via {{ $booking->providerLabel() }}.
+                                @if ($booking->sabre_record_locator)
+                                    PNR <strong>{{ $booking->sabre_record_locator }}</strong> is on record; ticketing may still be pending.
+                                @else
+                                    No airline PNR is on record yet.
+                                @endif
+                                Use <strong>Retry Booking</strong> in Actions to re-run the same steps as the payment success flow.
+                            </p>
+                        </div>
+                    </div>
+                @endif
                 @if ($isHold && $status !== 'cancelled' && $ttl)
                     <div class="bkpd-hold-expiry mb-3 {{ $ttl->isPast() ? 'bkpd-hold-expiry--expired' : '' }}">
                         <div class="bkpd-hold-expiry__icon">
@@ -552,6 +574,17 @@
                                     </form>
                                     <p style="font-size:.7rem;color:#8492a6;margin-top:10px;text-align:center;line-height:1.4;">
                                         Releases the PNR via {{ $booking->providerLabel() }} — no charges since no payment was made.
+                                    </p>
+                                @elseif ($needsFulfillmentRetry)
+                                    <form action="{{ route('admin.bookings.flights.retry-fulfillment', $booking->id) }}" method="POST"
+                                          onsubmit="return confirm('Retry PNR creation and ticketing for this paid booking?');">
+                                        @csrf
+                                        <button type="submit" class="bkp-btn bkp-btn--primary w-100">
+                                            <i class="bx bx-refresh"></i> Retry Booking
+                                        </button>
+                                    </form>
+                                    <p style="font-size:.7rem;color:#8492a6;margin-top:10px;text-align:center;line-height:1.4;">
+                                        Re-runs airline PNR and ticketing via {{ $booking->providerLabel() }}.
                                     </p>
                                 @elseif ($status === 'confirmed' && $booking->payment_status === 'paid')
                                     @include('partials.admin-flight-booking-cancel-actions', [
