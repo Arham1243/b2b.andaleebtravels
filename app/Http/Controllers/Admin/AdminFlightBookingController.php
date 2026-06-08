@@ -12,6 +12,7 @@ use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
 use App\Support\SupplierFlightBookingDetailsPresenter;
 use App\Support\Travelport\TravelportFareRulesResponseParser;
+use App\Support\Travelport\TravelportStoredFareRuleResolver;
 use Illuminate\Http\Request;
 
 class AdminFlightBookingController extends Controller
@@ -105,23 +106,15 @@ class AdminFlightBookingController extends Controller
     private function travelportFareRulesForBooking(B2bFlightBooking $booking)
     {
         $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
-        $ruleRequest = is_array($itineraryData['travelport_fare_rule'] ?? null)
-            ? $itineraryData['travelport_fare_rule']
-            : null;
-
+        $ruleRequest = TravelportStoredFareRuleResolver::resolveFromBooking($booking);
         $storedRules = is_array($itineraryData['fare_rules'] ?? null) ? $itineraryData['fare_rules'] : [];
 
-        if ($ruleRequest === null || trim((string) ($ruleRequest['fare_rule_key'] ?? '')) === '') {
-            if ($storedRules !== []) {
+        if ($ruleRequest === null) {
+            $fallback = TravelportStoredFareRuleResolver::componentsFromStoredSummary($storedRules);
+            if ($fallback !== []) {
                 return response()->json([
                     'success' => true,
-                    'components' => [[
-                        'title' => 'Fare rules (from search)',
-                        'sections' => array_map(static fn ($section) => [
-                            'title' => (string) ($section['title'] ?? 'Policy'),
-                            'items' => array_values(array_filter((array) ($section['items'] ?? []))),
-                        ], $storedRules),
-                    ]],
+                    'components' => $fallback,
                 ]);
             }
 
@@ -135,6 +128,15 @@ class AdminFlightBookingController extends Controller
             $response = (new TravelportApiClient())->airFareRules($ruleRequest);
 
             if (! ($response['success'] ?? false)) {
+                $fallback = TravelportStoredFareRuleResolver::componentsFromStoredSummary($storedRules);
+                if ($fallback !== []) {
+                    return response()->json([
+                        'success' => true,
+                        'components' => $fallback,
+                        'warning' => $response['error'] ?? 'Live fare rules unavailable; showing search summary.',
+                    ]);
+                }
+
                 return response()->json([
                     'success' => false,
                     'error' => $response['error'] ?? 'Unable to load fare rules from Travelport.',
@@ -146,20 +148,15 @@ class AdminFlightBookingController extends Controller
                 $ruleRequest,
             );
 
-            if ($components === [] && $storedRules !== []) {
-                return response()->json([
-                    'success' => true,
-                    'components' => [[
-                        'title' => 'Fare rules (from search)',
-                        'sections' => array_map(static fn ($section) => [
-                            'title' => (string) ($section['title'] ?? 'Policy'),
-                            'items' => array_values(array_filter((array) ($section['items'] ?? []))),
-                        ], $storedRules),
-                    ]],
-                ]);
-            }
-
             if ($components === []) {
+                $fallback = TravelportStoredFareRuleResolver::componentsFromStoredSummary($storedRules);
+                if ($fallback !== []) {
+                    return response()->json([
+                        'success' => true,
+                        'components' => $fallback,
+                    ]);
+                }
+
                 return response()->json([
                     'success' => false,
                     'error' => 'No detailed fare rules returned for this fare.',
@@ -172,6 +169,15 @@ class AdminFlightBookingController extends Controller
             ]);
         } catch (\Throwable $e) {
             report($e);
+
+            $fallback = TravelportStoredFareRuleResolver::componentsFromStoredSummary($storedRules);
+            if ($fallback !== []) {
+                return response()->json([
+                    'success' => true,
+                    'components' => $fallback,
+                    'warning' => 'Live fare rules unavailable; showing search summary.',
+                ]);
+            }
 
             return response()->json([
                 'success' => false,

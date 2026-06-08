@@ -49,6 +49,58 @@ class TravelportSearchPresenter
     }
 
     /**
+     * Rebuild AirFareRules request from a persisted LowFareSearch response.
+     *
+     * @param  array<string, mixed>  $searchResponse
+     * @param  list<array<string, mixed>>  $legs
+     * @return array<string, mixed>|null
+     */
+    public static function fareRuleRequestForPricePoint(array $searchResponse, string $pricePointKey, array $legs): ?array
+    {
+        $pricePointKey = trim($pricePointKey);
+        if ($pricePointKey === '' || $legs === []) {
+            return null;
+        }
+
+        $rsp = data_get($searchResponse, 'Body.LowFareSearchRsp');
+        if (! is_array($rsp)) {
+            return null;
+        }
+
+        $fareInfosByKey = self::indexByKey(data_get($rsp, 'FareInfoList.FareInfo'));
+
+        foreach (self::asList(data_get($rsp, 'AirPricePointList.AirPricePoint')) as $pricePoint) {
+            if (! is_array($pricePoint)) {
+                continue;
+            }
+
+            if ((string) self::attr($pricePoint, 'Key', '') !== $pricePointKey) {
+                continue;
+            }
+
+            $primaryPricingInfo = null;
+            $primaryFareInfo = null;
+
+            foreach (self::asList(data_get($pricePoint, 'AirPricingInfo')) as $pricingInfo) {
+                if (! is_array($pricingInfo)) {
+                    continue;
+                }
+
+                $primaryPricingInfo = $primaryPricingInfo ?: $pricingInfo;
+                $primaryFareInfo = $primaryFareInfo ?: self::resolveFareInfoNode($pricingInfo, $fareInfosByKey);
+            }
+
+            if ($primaryPricingInfo === null || $primaryFareInfo === null) {
+                return null;
+            }
+
+            return TravelportFareRulesPresenter::fareRuleRequest($primaryFareInfo, $primaryPricingInfo, $legs);
+        }
+
+        return null;
+    }
+
+    /**
      * @param  array<string, mixed>  $pricePoint
      * @param  array<string, array<string, mixed>>  $segmentsByKey
      * @param  array<string, array<string, mixed>>  $fareInfosByKey

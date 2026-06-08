@@ -985,6 +985,9 @@ class FlightBookingController extends Controller
             'supplier' => $selected['supplier'] ?? $card['supplier'] ?? 'sabre',
             'booking_code' => $selected['booking_code'] ?? $card['booking_code'] ?? null,
             'travelport_segments' => $selected['travelport_segments'] ?? $card['travelport_segments'] ?? [],
+            'travelport_fare_rule' => $selected['travelport_fare_rule'] ?? $card['travelport_fare_rule'] ?? null,
+            'travelport_price_point_key' => $selected['travelport_price_point_key'] ?? $card['travelport_price_point_key'] ?? null,
+            'travelport_pricing_index' => $selected['travelport_pricing_index'] ?? $card['travelport_pricing_index'] ?? 0,
             'sabre_pricing_index' => $selected['sabre_pricing_index'] ?? 0,
             'selected_fare_index' => $fareIndex,
         ]);
