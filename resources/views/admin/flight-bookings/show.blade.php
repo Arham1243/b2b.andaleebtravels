@@ -140,7 +140,7 @@
                     <div class="alert alert-warning d-flex align-items-start gap-2 mb-3" role="alert">
                         <i class="bx bx-error-circle fs-5 mt-1"></i>
                         <div>
-                            <strong>Payment received — booking incomplete</strong>
+                            <strong>Payment received - booking incomplete</strong>
                             <p class="mb-0 small">
                                 This booking was paid but PNR creation or ticketing did not complete via {{ $booking->providerLabel() }}.
                                 @if ($booking->sabre_record_locator)
