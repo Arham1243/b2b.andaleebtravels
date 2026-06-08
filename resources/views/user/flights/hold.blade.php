@@ -449,7 +449,7 @@
                                     <label class="hp-label">Email <span class="hp-req">*</span></label>
                                     <input type="email" class="hp-input{{ $errors->has('lead.email') ? ' is-invalid' : '' }}" name="lead[email]"
                                         value="{{ old('lead.email') }}"
-                                        placeholder="email@example.com" required autocomplete="email">
+                                        placeholder="" required autocomplete="email">
                                     @if($errors->has('lead.email'))
                                         <span class="hp-field-error">{{ $errors->first('lead.email') }}</span>
                                     @endif

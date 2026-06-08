@@ -276,6 +276,8 @@ class TravelportSearchPresenter
             $legs,
         );
 
+        $fareTags = self::inferFareTags($primaryFareInfo, $brandsByKey)['tags'];
+
         $fareOption = [
             'travelport_pricing_index' => 0,
             'travelport_price_point_key' => $key,
@@ -292,7 +294,7 @@ class TravelportSearchPresenter
             'baggage_details' => $baggageDetails,
             'fare_rules' => $fareRules,
             'travelport_fare_rule' => $fareRuleRequest,
-            'fare_tags' => ['published'],
+            'fare_tags' => $fareTags,
             'validating_carrier' => $validatingCarrier,
             'cabin_code' => $cabinClass,
             'booking_code' => $bookingCode,
@@ -318,9 +320,9 @@ class TravelportSearchPresenter
             'baggage_notes' => (string) ($baggageDetails['summary'] ?? ''),
             'baggage_details' => $baggageDetails,
             'fare_rules' => $fareRules,
-            'fare_tags' => ['published'],
+            'fare_tags' => $fareTags,
             'fare_options' => [$fareOption],
-            'listing_meta' => FlightListingMetaBuilder::fromLegs($legs, $totalPrice, ['tags' => ['published']]),
+            'listing_meta' => FlightListingMetaBuilder::fromLegs($legs, $totalPrice, ['tags' => $fareTags]),
         ];
     }
 
@@ -624,11 +626,6 @@ class TravelportSearchPresenter
             $existing['fare_options'] = $mergedOptions;
             $existing['totalPrice'] = (float) ($mergedOptions[0]['totalPrice'] ?? $existing['totalPrice'] ?? 0);
             $existing['supplierPrice'] = $existing['totalPrice'];
-            $existing['listing_meta'] = FlightListingMetaBuilder::fromLegs(
-                $existing['legs'] ?? [],
-                $existing['totalPrice'],
-                ['tags' => $existing['fare_tags'] ?? ['published']],
-            );
 
             $cheapest = $mergedOptions[0] ?? [];
             $existing['fare_brand'] = $cheapest['fare_brand'] ?? $existing['fare_brand'] ?? null;
@@ -636,6 +633,12 @@ class TravelportSearchPresenter
             $existing['baggage_notes'] = $cheapest['baggage_notes'] ?? $existing['baggage_notes'] ?? '';
             $existing['fare_rules'] = $cheapest['fare_rules'] ?? $existing['fare_rules'] ?? [];
             $existing['non_refundable'] = (bool) ($cheapest['non_refundable'] ?? $existing['non_refundable'] ?? false);
+            $existing['fare_tags'] = $cheapest['fare_tags'] ?? $existing['fare_tags'] ?? ['published'];
+            $existing['listing_meta'] = FlightListingMetaBuilder::fromLegs(
+                $existing['legs'] ?? [],
+                $existing['totalPrice'],
+                ['tags' => $existing['fare_tags']],
+            );
 
             $grouped[$signature] = $existing;
         }
@@ -738,10 +741,31 @@ class TravelportSearchPresenter
     }
 
     /**
+     * Branded fares returned with rich content are treated as NDC retail in listings.
+     *
+     * @param  array<string, mixed>|null  $fareInfo
+     * @param  array<string, array<string, mixed>>  $brandsByKey
+     * @return array{tags: list<string>}
+     */
+    private static function inferFareTags(?array $fareInfo, array $brandsByKey): array
+    {
+        $tags = ['published'];
+        $brand = $fareInfo !== null ? self::resolveBrandRecord($fareInfo, $brandsByKey) : null;
+
+        if ($brand !== null
+            && strtolower((string) self::attr($brand, 'BrandedDetailsAvailable', '')) === 'true') {
+            $tags[] = 'ndc';
+        }
+
+        return ['tags' => array_values(array_unique($tags))];
+    }
+
+    /**
      * @param  array<string, mixed>  $fareInfo
      * @param  array<string, array<string, mixed>>  $brandsByKey
+     * @return array<string, mixed>|null
      */
-    private static function resolveBrandName(array $fareInfo, array $brandsByKey): ?string
+    private static function resolveBrandRecord(array $fareInfo, array $brandsByKey): ?array
     {
         $brandNode = data_get($fareInfo, 'Brand');
         if (! is_array($brandNode)) {
@@ -750,9 +774,7 @@ class TravelportSearchPresenter
 
         $brandKey = (string) self::attr($brandNode, 'Key', '');
         if ($brandKey !== '' && isset($brandsByKey[$brandKey])) {
-            $name = trim((string) self::attr($brandsByKey[$brandKey], 'Name', ''));
-
-            return $name !== '' ? $name : null;
+            return $brandsByKey[$brandKey];
         }
 
         $brandId = (string) self::attr($brandNode, 'BrandID', '');
@@ -765,16 +787,28 @@ class TravelportSearchPresenter
                 continue;
             }
 
-            if ((string) self::attr($brand, 'BrandID', '') !== $brandId) {
-                continue;
+            if ((string) self::attr($brand, 'BrandID', '') === $brandId) {
+                return $brand;
             }
-
-            $name = trim((string) self::attr($brand, 'Name', ''));
-
-            return $name !== '' ? $name : null;
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $fareInfo
+     * @param  array<string, array<string, mixed>>  $brandsByKey
+     */
+    private static function resolveBrandName(array $fareInfo, array $brandsByKey): ?string
+    {
+        $brand = self::resolveBrandRecord($fareInfo, $brandsByKey);
+        if ($brand === null) {
+            return null;
+        }
+
+        $name = trim((string) self::attr($brand, 'Name', ''));
+
+        return $name !== '' ? $name : null;
     }
 
     /**

@@ -58,6 +58,34 @@ final class FlightCabinPreference
         return null;
     }
 
+    public static function familyFromCabin(?string $value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+        if ($value === '') {
+            return null;
+        }
+
+        if ($fromCode = self::familyFromSabreCode($value)) {
+            return $fromCode;
+        }
+
+        foreach (self::uiOptions() as $option) {
+            if (strcasecmp($value, $option) === 0) {
+                return $option;
+            }
+        }
+
+        $normalized = strtolower(str_replace([' ', '_', '-'], '', $value));
+
+        return match ($normalized) {
+            'economy', 'coach' => 'Economy',
+            'premiumeconomy', 'premium' => 'Premium Economy',
+            'business' => 'Business',
+            'first', 'firstclass' => 'First',
+            default => null,
+        };
+    }
+
     /**
      * @param  array<string, mixed>  $fare
      */
@@ -79,7 +107,7 @@ final class FlightCabinPreference
                     ? $returnCabin
                     : $onwardCabin;
 
-                $componentFamily = self::familyFromSabreCode($component['cabin'] ?? null);
+                $componentFamily = self::familyFromCabin($component['cabin'] ?? null);
 
                 if ($componentFamily === null) {
                     continue;
@@ -97,18 +125,14 @@ final class FlightCabinPreference
             }
         }
 
-        $fareFamily = self::familyFromSabreCode($fare['cabin_code'] ?? null);
+        $fareFamily = self::familyFromCabin($fare['cabin_code'] ?? null);
 
         if ($fareFamily === $onwardCabin) {
             return true;
         }
 
-        if ($fareFamily === null && $onwardCabin === 'Economy' && ! self::isClearlyPremiumCabinCode($fare['cabin_code'] ?? null)) {
+        if ($tripType === 'round_trip' && $fareFamily !== null && $fareFamily === $returnCabin && $onwardCabin === $returnCabin) {
             return true;
-        }
-
-        if ($fareFamily === null && in_array($onwardCabin, ['Business', 'First', 'Premium Economy'], true)) {
-            return ! self::isClearlyEconomyCabinCode($fare['cabin_code'] ?? null);
         }
 
         return false;
@@ -129,14 +153,14 @@ final class FlightCabinPreference
 
     public static function isClearlyPremiumCabinCode(?string $code): bool
     {
-        $code = strtoupper(trim((string) ($code ?? '')));
+        $family = self::familyFromCabin($code);
 
-        return in_array($code, ['C', 'J', 'D', 'Z', 'F', 'A', 'P'], true);
+        return in_array($family, ['Business', 'First', 'Premium Economy'], true);
     }
 
     public static function isClearlyEconomyCabinCode(?string $code): bool
     {
-        return self::familyFromSabreCode($code) === 'Economy';
+        return self::familyFromCabin($code) === 'Economy';
     }
 
     /**

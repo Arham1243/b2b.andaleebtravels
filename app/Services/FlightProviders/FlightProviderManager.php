@@ -4,6 +4,7 @@ namespace App\Services\FlightProviders;
 
 use App\Services\FlightProviders\Contracts\FlightProviderInterface;
 use App\Services\FlightProviders\DTO\FlightProviderSearchResult;
+use App\Support\FlightSearchResultFilter;
 use Illuminate\Support\Facades\Log;
 
 class FlightProviderManager
@@ -35,7 +36,6 @@ class FlightProviderManager
         $messages = [];
         $responses = [];
         $payloads = [];
-        $totalCount = 0;
 
         foreach ($this->providers as $provider) {
             $key = $provider->key();
@@ -55,7 +55,6 @@ class FlightProviderManager
 
             $responses[$key] = $result->rawResponse;
             $payloads[$key] = $result->requestPayload;
-            $totalCount += $result->itineraryCount;
 
             foreach ($result->messages as $message) {
                 $messages[] = $message;
@@ -65,6 +64,8 @@ class FlightProviderManager
                 $merged[] = $card;
             }
         }
+
+        $merged = FlightSearchResultFilter::apply($merged, $searchData);
 
         usort($merged, static function (array $a, array $b): int {
             $priceA = (float) ($a['totalPrice'] ?? $a['supplierPrice'] ?? PHP_FLOAT_MAX);
@@ -83,7 +84,7 @@ class FlightProviderManager
         return [
             'results' => $merged,
             'messages' => $messages,
-            'itineraryCount' => $totalCount,
+            'itineraryCount' => count($merged),
             'responses' => $responses,
             'payloads' => $payloads,
         ];

@@ -807,6 +807,27 @@ if (! function_exists('flightFareRulesComponentForLeg')) {
     }
 }
 
+if (! function_exists('flightFareBasisListingLabel')) {
+    /**
+     * @param  list<string>  $fareTags
+     */
+    function flightFareBasisListingLabel(?string $basis, array $fareTags = []): string
+    {
+        $basis = trim((string) $basis);
+        if ($basis === '') {
+            return '';
+        }
+
+        $normalizedTags = array_map(static fn ($tag) => strtolower(trim((string) $tag)), $fareTags);
+
+        if (in_array('ndc', $normalizedTags, true) && ! str_contains(strtoupper($basis), '/NDC')) {
+            return $basis . '/NDC';
+        }
+
+        return $basis;
+    }
+}
+
 if (! function_exists('flightFareLegDisplayRows')) {
     /**
      * @param  array<string, mixed>  $fare
@@ -843,6 +864,7 @@ if (! function_exists('flightFareLegDisplayRows')) {
         $fareSeats = isset($fare['seats_available']) && is_numeric($fare['seats_available'])
             ? (int) $fare['seats_available']
             : null;
+        $fareTags = is_array($fare['fare_tags'] ?? null) ? $fare['fare_tags'] : [];
         $summaryPills = [];
 
         foreach ($baggageDetails['summary_items'] ?? [] as $item) {
@@ -868,6 +890,7 @@ if (! function_exists('flightFareLegDisplayRows')) {
             $isRoundTrip,
             $bagNoteFallback,
             $summaryPills,
+            $fareTags,
         ): array {
             $leg = $legs[$legIndex] ?? [];
             $isReturnLeg = $isRoundTrip && $legIndex > 0;
@@ -926,7 +949,7 @@ if (! function_exists('flightFareLegDisplayRows')) {
                 'tag' => $tag,
                 'tag_title' => $tagTitle,
                 'brand' => $brand,
-                'basis' => $basis,
+                'basis' => flightFareBasisListingLabel($basis, $fareTags),
                 'cabin' => $cabin,
                 'booking' => $booking,
                 'bag_pills' => $bagPills,

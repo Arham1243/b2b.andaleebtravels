@@ -582,8 +582,7 @@ XML;
     private function buildSearchModifiersXml(array $searchData): string
     {
         $provider = htmlspecialchars(self::PROVIDER_CODE, ENT_XML1);
-        $direct = !empty($searchData['direct_flight']);
-        $maxStops = $direct ? 0 : 2;
+        $direct = ! empty($searchData['direct_flight']);
         $cabin = FlightCabinPreference::normalizeUiLabel($searchData['onward_cabin_class'] ?? 'Economy');
         $cabinCode = $this->travelportCabinCode($cabin);
 
@@ -591,13 +590,18 @@ XML;
             ? "<air:PermittedCabins><com:CabinClass Type=\"{$cabinCode}\"/></air:PermittedCabins>"
             : '';
 
+        $flightTypeXml = $direct
+            ? '<air:FlightType NonStopDirects="true"/>'
+            : '<air:FlightType MaxConnections="1"/>';
+
         return <<<XML
 
-            <air:AirSearchModifiers MaxStops="{$maxStops}">
+            <air:AirSearchModifiers>
                 <air:PreferredProviders>
                     <com:Provider Code="{$provider}"/>
                 </air:PreferredProviders>
                 {$cabinXml}
+                {$flightTypeXml}
             </air:AirSearchModifiers>
 XML;
     }

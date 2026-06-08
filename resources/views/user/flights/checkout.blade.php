@@ -363,7 +363,7 @@
                                 <div class="col-md-6">
                                     <label class="hp-label">Email <span class="hp-req">*</span></label>
                                     <input type="email" class="hp-input" name="lead[email]"
-                                        placeholder="email@example.com" required autocomplete="email">
+                                        placeholder="" required autocomplete="email">
                                 </div>
                             </div>
                         </div>
