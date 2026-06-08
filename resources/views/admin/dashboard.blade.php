@@ -254,7 +254,7 @@
                     @if ($canWalletTransfers)
                     <div class="col-sm-6 col-xl-3 d-flex">
                         <a href="{{ route('admin.wallet.bank-transfers.index') }}" class="admin-tile w-100">
-                            <span class="admin-tile__icon"><i class='bx bx-bank'></i></span>
+                            <span class="admin-tile__icon"><i class='bx bxs-bank'></i></span>
                             <span class="admin-tile__body">
                                 <span class="admin-tile__label">Pending transfers</span>
                                 <span class="admin-tile__value">{{ number_format($walletTransfersPending) }}</span>
