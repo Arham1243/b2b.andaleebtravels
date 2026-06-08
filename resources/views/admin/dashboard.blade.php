@@ -152,7 +152,7 @@
                                 @if ($canFlightBookings && $flightBookingsPending > 0)
                                     <li>
                                         <a href="{{ route('admin.flight-bookings.index') }}">
-                                            <span class="admin-actions__icon"><i class='bx bx-plane'></i></span>
+                                            <span class="admin-actions__icon"><i class='bx bxs-plane'></i></span>
                                             <span class="admin-actions__label">Flight bookings pending payment</span>
                                             <span class="admin-actions__hint">{{ $flightBookingsPending }}</span>
                                             <i class='bx bx-chevron-right admin-actions__arrow'></i>
@@ -191,7 +191,7 @@
                                 @if ($canFlightBookings)
                                 <li>
                                     <a href="{{ route('admin.flight-bookings.index') }}">
-                                        <span class="admin-actions__icon admin-actions__icon--neutral"><i class='bx bx-plane'></i></span>
+                                        <span class="admin-actions__icon admin-actions__icon--neutral"><i class='bx bxs-plane'></i></span>
                                         <span class="admin-actions__label">All flight bookings</span>
                                         <i class='bx bx-chevron-right admin-actions__arrow'></i>
                                     </a>

@@ -226,7 +226,7 @@
 
                         @if (!empty($legs))
                             <div class="bkpd-card mb-3">
-                                <div class="bkpd-card__section-head bkpd-card__section-head--blue"><i class="bx bx-plane"></i> Flight route</div>
+                                <div class="bkpd-card__section-head bkpd-card__section-head--blue"><i class="bx bxs-plane"></i> Flight route</div>
                                 @foreach ($legs as $li => $leg)
                                     @php
                                         $segs = $leg['segments'] ?? [];

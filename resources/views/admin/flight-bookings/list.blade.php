@@ -23,7 +23,7 @@
 
                     @if ($bookings->isEmpty())
                         <div class="text-center py-5 text-muted">
-                            <i class="bx bx-plane" style="font-size: 36px;"></i>
+                            <i class="bx bxs-plane" style="font-size: 36px;"></i>
                             <p class="mt-2 mb-0">No flight bookings found.</p>
                         </div>
                     @else
