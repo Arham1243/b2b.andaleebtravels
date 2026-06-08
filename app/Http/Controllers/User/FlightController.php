@@ -289,7 +289,13 @@ class FlightController extends Controller
 
         $searchParams = session('flight_search_params', []);
         $departureDate = is_array($searchParams) ? ($searchParams['departure_date'] ?? null) : null;
-        $ruleRequests = SabreFareRulesRequestBuilder::fromPricingBlock($pricingBlock, $grouped, $departureDate);
+        $returnDate = is_array($searchParams) ? ($searchParams['return_date'] ?? null) : null;
+        $ruleRequests = SabreFareRulesRequestBuilder::fromPricingBlock(
+            $pricingBlock,
+            $grouped,
+            $departureDate,
+            $returnDate,
+        );
 
         if ($ruleRequests === []) {
             return response()->json([
@@ -298,8 +304,16 @@ class FlightController extends Controller
             ], 422);
         }
 
+        $fareOption = $resultCard['fare_options'][$fareIndex] ?? null;
+        $structuredFallback = is_array($fareOption)
+            ? ($fareOption['fare_rules'] ?? null)
+            : ($resultCard['fare_rules'] ?? null);
+
         try {
-            $components = $flightService->fetchFareRulesText($ruleRequests);
+            $components = $flightService->fetchFareRulesText(
+                $ruleRequests,
+                is_array($structuredFallback) ? $structuredFallback : null,
+            );
 
             return response()->json([
                 'success' => true,

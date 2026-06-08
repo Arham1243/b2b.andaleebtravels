@@ -79,7 +79,13 @@ class AdminFlightBookingController extends Controller
         }
 
         $departureDate = $booking->departure_date?->format('Y-m-d');
-        $ruleRequests = SabreFareRulesRequestBuilder::fromPricingBlock($pricingBlock, $grouped, $departureDate);
+        $returnDate = $booking->return_date?->format('Y-m-d');
+        $ruleRequests = SabreFareRulesRequestBuilder::fromPricingBlock(
+            $pricingBlock,
+            $grouped,
+            $departureDate,
+            $returnDate,
+        );
 
         if ($ruleRequests === []) {
             return response()->json([
@@ -88,8 +94,13 @@ class AdminFlightBookingController extends Controller
             ], 422);
         }
 
+        $structuredFallback = is_array($itineraryData['fare_rules'] ?? null) ? $itineraryData['fare_rules'] : null;
+
         try {
-            $components = $flightService->fetchFareRulesText($ruleRequests);
+            $components = $flightService->fetchFareRulesText(
+                $ruleRequests,
+                $structuredFallback,
+            );
 
             return response()->json([
                 'success' => true,

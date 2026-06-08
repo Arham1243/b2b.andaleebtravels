@@ -491,7 +491,7 @@ class SabreFlightSearchService
             'baggage_notes' => $baggageDetails['summary'] ?? $bagsSummary['label'],
             'baggage_details' => $baggageDetails,
             'fare_rules' => $fareRules,
-            'fare_tags' => $this->inferFareTagsFromPricingBlock($pricingBlock)['tags'],
+            'fare_tags' => $this->inferFareTagsFromPricingBlock($pricingBlock, $grouped)['tags'],
             'pricing_subsource' => (string) ($pricingBlock['pricingSubsource'] ?? ''),
             'validating_carrier' => data_get($pricingBlock, 'fare.validatingCarrierCode'),
             'governing_carriers' => data_get($pricingBlock, 'fare.governingCarriers'),
@@ -731,29 +731,37 @@ class SabreFlightSearchService
     }
 
     /**
-     * @return array{tags:list<string>}
+     * @param  array<string, mixed>  $grouped
+     * @return array{tags:list<string>, pricingSubsourceNormalized: string}
      */
-    private function inferFareTagsFromPricingBlock(array $pricingBlock): array
+    private function inferFareTagsFromPricingBlock(array $pricingBlock, array $grouped = []): array
     {
         $tags = [];
 
         $sub = strtolower((string) ($pricingBlock['pricingSubsource'] ?? ''));
+        $distribution = strtoupper((string) ($pricingBlock['distributionModel'] ?? ''));
 
         if ($sub !== '') {
-            if (str_contains($sub, 'ndc')) {
+            if (str_contains($sub, 'ndc') || $distribution === 'NDC') {
                 $tags[] = 'ndc';
             }
             if ($sub === 'mip' || str_contains($sub, 'pub') || str_contains($sub, 'atpco')) {
                 $tags[] = 'published';
             }
-            if (!$tags) {
+            if ($tags === []) {
                 $tags[] = 'other';
             }
         } elseif (strtoupper((string) ($pricingBlock['pricingSource'] ?? '')) !== '') {
             $tags[] = 'other';
         }
 
-        if (!$tags) {
+        // Branded retail fares get the same /NDC listing suffix as Travelport (BrandedDetailsAvailable).
+        if (! in_array('ndc', $tags, true)
+            && SabreFareBrandPresenter::collectBrandNames($pricingBlock, $grouped) !== []) {
+            $tags[] = 'ndc';
+        }
+
+        if ($tags === []) {
             $tags[] = 'published';
         }
 

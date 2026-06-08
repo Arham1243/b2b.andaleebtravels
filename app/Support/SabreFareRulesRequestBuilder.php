@@ -19,15 +19,20 @@ final class SabreFareRulesRequestBuilder
      *     departure_date: string
      * }>
      */
-    public static function fromPricingBlock(array $pricingBlock, array $grouped, ?string $fallbackDepartureDate = null): array
-    {
+    public static function fromPricingBlock(
+        array $pricingBlock,
+        array $grouped,
+        ?string $fallbackDepartureDate = null,
+        ?string $fallbackReturnDate = null,
+    ): array {
         $passengerFare = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo', []);
         $fareComponentById = collect($grouped['fareComponentDescs'] ?? [])->keyBy('id');
         $airline = self::resolveAirlineCode($pricingBlock);
-        $fallbackDate = self::normalizeDepartureDate($fallbackDepartureDate);
+        $outboundDate = self::normalizeDepartureDate($fallbackDepartureDate);
+        $returnDate = self::normalizeDepartureDate($fallbackReturnDate);
         $requests = [];
 
-        foreach (($passengerFare['fareComponents'] ?? []) as $component) {
+        foreach (($passengerFare['fareComponents'] ?? []) as $componentIndex => $component) {
             if (! is_array($component)) {
                 continue;
             }
@@ -45,9 +50,13 @@ final class SabreFareRulesRequestBuilder
                 continue;
             }
 
-            $departureDate = self::normalizeDepartureDate(
-                self::stringOrNull($desc['notValidBefore'] ?? null) ?? $fallbackDate
-            );
+            // OTA_AirRules expects the travel date; tariff notValidBefore/After windows often break LLS lookups.
+            $travelDate = $componentIndex === 1 && $returnDate !== null
+                ? $returnDate
+                : $outboundDate;
+
+            $departureDate = $travelDate
+                ?? self::normalizeDepartureDate(self::stringOrNull($desc['notValidBefore'] ?? null));
 
             if ($departureDate === null) {
                 continue;

@@ -6,6 +6,7 @@ use App\Models\B2bFlightBooking;
 use App\Models\Config;
 use App\Services\Travelport\TravelportBookingService;
 use App\Support\SabreAirRulesResponseParser;
+use App\Support\SabreStructuredFareRulesFallback;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -1894,7 +1895,7 @@ XML;
      *     text: string
      * }>
      */
-    public function fetchFareRulesText(array $ruleRequests): array
+    public function fetchFareRulesText(array $ruleRequests, ?array $structuredFallback = null): array
     {
         if ($ruleRequests === []) {
             return [];
@@ -1911,7 +1912,22 @@ XML;
                     throw new \InvalidArgumentException('Validating carrier is required to load fare rules.');
                 }
 
-                $sections = $this->resolveAirRulesSections($binaryToken, $request, $bearerToken);
+                try {
+                    $sections = $this->resolveAirRulesSections($binaryToken, $request, $bearerToken);
+                } catch (\Throwable $e) {
+                    $sections = $this->structuredFareRulesSectionsForRequest($structuredFallback, $request);
+
+                    if ($sections === []) {
+                        throw $e;
+                    }
+
+                    Log::warning('Sabre OTA_AirRulesLLS unavailable; using structured shop fallback', [
+                        'route' => $request['route_label'] ?? null,
+                        'fare_basis' => $request['fare_basis'] ?? null,
+                        'airline' => $request['airline'] ?? null,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
 
                 $components[] = [
                     'route' => (string) ($request['route_label'] ?? ''),
@@ -1925,6 +1941,43 @@ XML;
         }
 
         return $components;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $structuredFallback
+     * @param  array<string, mixed>  $request
+     * @return list<array{title: string, paragraphs: list<string>}>
+     */
+    private function structuredFareRulesSectionsForRequest(?array $structuredFallback, array $request): array
+    {
+        $fallbackComponents = SabreStructuredFareRulesFallback::toComponents($structuredFallback);
+        if ($fallbackComponents === []) {
+            return [];
+        }
+
+        $route = strtoupper(trim((string) ($request['route_label'] ?? '')));
+        $basis = strtoupper(trim((string) ($request['fare_basis'] ?? '')));
+
+        foreach ($fallbackComponents as $component) {
+            $componentRoute = strtoupper(trim((string) ($component['route'] ?? '')));
+            $componentBasis = strtoupper(trim((string) ($component['fare_basis'] ?? '')));
+
+            if ($route !== '' && $componentRoute !== '' && $route !== $componentRoute) {
+                continue;
+            }
+
+            if ($basis !== '' && $componentBasis !== '' && $basis !== $componentBasis) {
+                continue;
+            }
+
+            $sections = is_array($component['sections'] ?? null) ? $component['sections'] : [];
+
+            return $sections !== [] ? $sections : [];
+        }
+
+        $first = $fallbackComponents[0] ?? null;
+
+        return is_array($first) && is_array($first['sections'] ?? null) ? $first['sections'] : [];
     }
 
     /**
@@ -2041,9 +2094,12 @@ XML;
             Log::error('Sabre OTA_AirRulesLLS application error', [
                 'error' => $applicationError,
                 'route' => $request['route_label'] ?? null,
+                'fare_basis' => $request['fare_basis'] ?? null,
+                'airline' => $request['airline'] ?? null,
+                'departure_date' => $request['departure_date'] ?? null,
                 'body' => mb_substr($body, 0, 4000),
             ]);
-            throw new \Exception('Sabre fare rules request failed: ' . $applicationError);
+            throw new \RuntimeException('Sabre fare rules request failed: ' . $applicationError);
         }
 
         $fault = $this->extractSoapFault($body);
