@@ -123,6 +123,7 @@
         return $h ? ($r ? "{$h}h {$r}m" : "{$h}h") : "{$r}m";
     };
     $canEditBooking = \App\Support\B2bAdminPortalUi::can('flight_bookings_edit');
+    $adminDetails = $adminDetails ?? [];
     $needsFulfillmentRetry = $canEditBooking
         && $booking->isPaid()
         && $booking->ticket_status !== 'issued'
@@ -330,6 +331,8 @@
                             </div>
                         @endif
 
+                        @include('admin.flight-bookings.partials.fare-product-details', ['adminDetails' => $adminDetails ?? []])
+
                         @if (!empty($passengers))
                             <div class="bkpd-card mb-3">
                                 <div class="bkpd-card__section-head bkpd-card__section-head--purple"><i class="bx bx-group"></i> Passengers</div>
@@ -386,6 +389,23 @@
                             <div class="bkpd-card__section-head bkpd-card__section-head--green"><i class="bx bx-receipt"></i> Fare summary</div>
                             <div class="bkpd-fare">
                                 @include('admin.partials.vendor-discount-fare', ['booking' => $booking])
+                                @php
+                                    $adminDetails = $adminDetails ?? [];
+                                    $fareBase = $adminDetails['base_price'] ?? null;
+                                    $fareTaxes = $adminDetails['taxes'] ?? null;
+                                @endphp
+                                @if ($fareBase !== null)
+                                    <div class="bkpd-fare__row">
+                                        <span>Base fare</span>
+                                        <span>{!! formatPrice($fareBase) !!}</span>
+                                    </div>
+                                @endif
+                                @if ($fareTaxes !== null)
+                                    <div class="bkpd-fare__row">
+                                        <span>Taxes &amp; fees</span>
+                                        <span>{!! formatPrice($fareTaxes) !!}</span>
+                                    </div>
+                                @endif
                                 <div class="bkpd-fare__row">
                                     <span>Total <span style="color:#8492a6;font-weight:400;">(× {{ $totalPax }} pax)</span></span>
                                     <span>{!! formatPrice($booking->total_amount) !!}</span>
@@ -420,10 +440,22 @@
                                     <span class="bkpd-info-row__label">Provider</span>
                                     <span class="bkpd-info-row__val">{{ $booking->providerLabel() }}</span>
                                 </div>
+                                @if (!empty($adminDetails['travelport_universal_locator']))
+                                    <div class="bkpd-info-row">
+                                        <span class="bkpd-info-row__label">Universal record</span>
+                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $adminDetails['travelport_universal_locator'] }}</span>
+                                    </div>
+                                @endif
                                 @if ($booking->sabre_record_locator)
                                     <div class="bkpd-info-row">
                                         <span class="bkpd-info-row__label">PNR</span>
                                         <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $booking->sabre_record_locator }}</span>
+                                    </div>
+                                @endif
+                                @if (!empty($adminDetails['ticket_numbers']))
+                                    <div class="bkpd-info-row">
+                                        <span class="bkpd-info-row__label">Ticket number(s)</span>
+                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ implode(', ', $adminDetails['ticket_numbers']) }}</span>
                                     </div>
                                 @endif
                                 @if ($nonRefundable !== null)
@@ -444,6 +476,12 @@
                                     <span class="bkpd-info-row__label">Payment</span>
                                     <span class="bkpd-info-row__val">{{ $payLabel }}</span>
                                 </div>
+                                @if (!empty($adminDetails['payment_reference']))
+                                    <div class="bkpd-info-row">
+                                        <span class="bkpd-info-row__label">Payment reference</span>
+                                        <span class="bkpd-info-row__val" style="font-family:monospace;word-break:break-all;">{{ $adminDetails['payment_reference'] }}</span>
+                                    </div>
+                                @endif
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Passengers</span>
                                     <span class="bkpd-info-row__val">{{ $paxStr }}</span>
@@ -464,6 +502,12 @@
                                     <span class="bkpd-info-row__label">Booked on</span>
                                     <span class="bkpd-info-row__val">{{ $booking->created_at->format('d M Y, h:i A') }}</span>
                                 </div>
+                                @if (!empty($adminDetails['confirmation_email_sent_at']))
+                                    <div class="bkpd-info-row">
+                                        <span class="bkpd-info-row__label">Confirmation email</span>
+                                        <span class="bkpd-info-row__val">{{ $adminDetails['confirmation_email_sent_at']->format('d M Y, h:i A') }}</span>
+                                    </div>
+                                @endif
                                 @if ($booking->cancelled_at)
                                     <div class="bkpd-info-row">
                                         <span class="bkpd-info-row__label">Cancelled</span>

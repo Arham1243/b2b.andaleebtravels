@@ -73,12 +73,16 @@ final class SupplierFlightBookingDetailsPresenter
             ?? ($pricingData['carrier'] ?? '')
         ));
 
+        $ticketNumbers = FlightBookingTicketResolver::forBooking($booking);
+        $ticketValue = $ticketNumbers !== [] ? implode(', ', $ticketNumbers) : null;
+
         $confirmation = self::filterRows([
             self::row('Supplier status', $booking->displayBookingStatus(), ['badge' => true]),
             self::row('Air reservation locator', $booking->sabre_record_locator, ['mono' => true]),
             self::row('Universal record locator', data_get($booking->booking_response, 'travelport_universal_locator'), ['mono' => true]),
             self::row('Plating carrier', $platingCarrier !== '' ? strtoupper($platingCarrier) : null),
             self::row('Ticket status', $booking->ticket_status, ['badge' => true]),
+            self::row('Ticket number(s)', $ticketValue, ['mono' => true]),
             self::row('Latest ticketing time', data_get($pricingData, 'latest_ticketing_time')),
         ]);
 
@@ -134,7 +138,7 @@ final class SupplierFlightBookingDetailsPresenter
                 ?: data_get($bookingResponse, 'CreatePassengerNameRecordRS.ItineraryRef.ID'),
             'bookingStatus' => $booking->booking_status,
             'ticketStatus' => $booking->ticket_status,
-            'tickets' => self::extractTicketNumbers($ticketResponse),
+            'tickets' => FlightBookingTicketResolver::fromResponse($ticketResponse),
             'travelers' => [],
             'flights' => [],
         ];
@@ -241,34 +245,6 @@ final class SupplierFlightBookingDetailsPresenter
         $label = $expiry->format('d M Y, h:i A');
 
         return $expiry->isPast() ? "{$label} (expired)" : $label;
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $ticketResponse
-     * @return list<string>
-     */
-    private static function extractTicketNumbers(?array $ticketResponse): array
-    {
-        if ($ticketResponse === null) {
-            return [];
-        }
-
-        $numbers = [];
-
-        $single = data_get($ticketResponse, 'AirTicketRS.ETicketNumber')
-            ?? data_get($ticketResponse, 'eTicketNumber');
-        if (is_string($single) && $single !== '') {
-            $numbers[] = $single;
-        }
-
-        foreach (data_get($ticketResponse, 'AirTicketRS.TicketNumberInfo', []) as $info) {
-            $num = data_get($info, 'TicketNumber');
-            if (is_string($num) && $num !== '') {
-                $numbers[] = $num;
-            }
-        }
-
-        return array_values(array_unique($numbers));
     }
 
     /**

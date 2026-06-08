@@ -8,6 +8,7 @@ use App\Models\B2bVendor;
 use App\Services\FlightService;
 use App\Services\Travelport\TravelportApiClient;
 use App\Support\BookingCancellationEligibility;
+use App\Support\FlightBookingAdminPresenter;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
 use App\Support\SupplierFlightBookingDetailsPresenter;
@@ -45,8 +46,9 @@ class AdminFlightBookingController extends Controller
         // Admin uses saved Sabre responses only (no live GetReservation SOAP lookup).
         $supplierBookingDetails = SupplierFlightBookingDetailsPresenter::present($booking, null);
         $cancellation = BookingCancellationEligibility::forFlight($booking);
+        $adminDetails = FlightBookingAdminPresenter::present($booking);
 
-        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation'))
+        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails'))
             ->with('title', 'Booking ' . $booking->booking_number);
     }
 
