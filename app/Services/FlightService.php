@@ -6,6 +6,7 @@ use App\Models\B2bFlightBooking;
 use App\Models\Config;
 use App\Services\Travelport\TravelportBookingService;
 use App\Support\SabreAirRulesResponseParser;
+use App\Support\SabreApplicationResultsParser;
 use App\Support\SabreStructuredFareRulesFallback;
 use App\Support\FlightBookingTicketResolver;
 use Illuminate\Http\Client\PendingRequest;
@@ -573,6 +574,7 @@ class FlightService
                 'booking_response' => $responseData,
             ]);
 
+            $errorMessage = null;
             if ($locator) {
                 // Sabre does not return a ticketingDeadline in CreatePassengerNameRecordRS,
                 // so we default hold expiry to 1 hour from now as per airline standard policy.
@@ -584,11 +586,16 @@ class FlightService
                     'hold_expires_at'      => $holdExpiresAt,
                 ]);
             } else {
-                // PNR creation returned a response but no locator  -  log payload for debugging.
+                $messages = SabreApplicationResultsParser::messages($responseData);
+                $errorMessage = $messages !== []
+                    ? implode('; ', $messages)
+                    : 'Sabre PNR creation completed without a record locator.';
+
                 Log::error('Hold PNR creation failed', [
-                    'booking_id'   => $booking->id,
+                    'booking_id' => $booking->id,
                     'payload_json' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                    'result'       => ['success' => false, 'data' => $responseData, 'locator' => null],
+                    'sabre_messages' => $messages,
+                    'application_status' => data_get($responseData, 'CreatePassengerNameRecordRS.ApplicationResults.status'),
                 ]);
             }
 
@@ -596,6 +603,7 @@ class FlightService
                 'success' => (bool) $locator,
                 'data' => $responseData,
                 'locator' => $locator,
+                'error' => $locator ? null : ($errorMessage ?? 'Sabre PNR creation completed without a record locator.'),
             ];
         } catch (\Exception $e) {
             Log::error('Sabre PNR creation exception', [
@@ -1540,6 +1548,11 @@ class FlightService
 
     private function buildAirBookSegments(B2bFlightBooking $booking, array $grouped, array $itineraryRaw): array
     {
+        $storedSegments = $this->buildAirBookSegmentsFromStoredItinerary($booking);
+        if ($storedSegments !== []) {
+            return $storedSegments;
+        }
+
         $scheduleById = collect($grouped['scheduleDescs'] ?? [])->keyBy('id');
         $legById = collect($grouped['legDescs'] ?? [])->keyBy('id');
 
@@ -1562,17 +1575,17 @@ class FlightService
             }
 
             $legDate = $legDescriptions[$legIndex]['departureDate'] ?? null;
+            $dayAccumulator = 0;
 
             foreach ($leg['schedules'] ?? [] as $scheduleRef) {
+                $dayAccumulator += (int) ($scheduleRef['departureDateAdjustment'] ?? 0);
                 $schedule = $scheduleById->get($scheduleRef['ref'] ?? null);
                 if (!$schedule) {
                     continue;
                 }
 
                 $departureTime = $schedule['departure']['time'] ?? '00:00:00';
-                $departureDateTime = $legDate ? $legDate . 'T' . $departureTime : $departureTime;
-                // Sabre CreatePNR rejects timezone offsets here – must be local time, no TZ.
-                $departureDateTime = $this->normalizeSabreDateTime($departureDateTime);
+                $departureDateTime = $this->composeSabreSegmentDateTime($legDate, $departureTime, $dayAccumulator);
 
                 $segments[] = [
                     'DepartureDateTime' => $departureDateTime,
@@ -1597,6 +1610,83 @@ class FlightService
         }
 
         return $segments;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildAirBookSegmentsFromStoredItinerary(B2bFlightBooking $booking): array
+    {
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $totalPassengers = max(1, (int) ($booking->adults + $booking->children + $booking->infants));
+        $segments = [];
+
+        foreach ($itinerary['legs'] ?? [] as $leg) {
+            if (! is_array($leg)) {
+                continue;
+            }
+
+            foreach ($leg['segments'] ?? [] as $segment) {
+                if (! is_array($segment)) {
+                    continue;
+                }
+
+                $departureDateTime = trim((string) ($segment['departure_datetime'] ?? ''));
+                if ($departureDateTime === '') {
+                    return [];
+                }
+
+                try {
+                    $departureDateTime = $this->normalizeSabreDateTime(
+                        \Carbon\Carbon::parse($departureDateTime)->format('Y-m-d\TH:i:s'),
+                    );
+                } catch (\Throwable) {
+                    return [];
+                }
+
+                $carrier = strtoupper(trim((string) ($segment['carrier'] ?? '')));
+                $flightNumber = trim((string) ($segment['flight_number'] ?? ''));
+                $from = strtoupper(trim((string) ($segment['from'] ?? '')));
+                $to = strtoupper(trim((string) ($segment['to'] ?? '')));
+                $bookingCode = strtoupper(trim((string) ($segment['booking_code'] ?? 'Y')));
+
+                if ($carrier === '' || $flightNumber === '' || $from === '' || $to === '') {
+                    return [];
+                }
+
+                $segments[] = [
+                    'DepartureDateTime' => $departureDateTime,
+                    'FlightNumber' => $flightNumber,
+                    'NumberInParty' => (string) $totalPassengers,
+                    'ResBookDesigCode' => $bookingCode !== '' ? $bookingCode : 'Y',
+                    'Status' => 'NN',
+                    'DestinationLocation' => [
+                        'LocationCode' => $to,
+                    ],
+                    'MarketingAirline' => [
+                        'Code' => $carrier,
+                        'FlightNumber' => $flightNumber,
+                    ],
+                    'OriginLocation' => [
+                        'LocationCode' => $from,
+                    ],
+                ];
+            }
+        }
+
+        return $segments;
+    }
+
+    private function composeSabreSegmentDateTime(?string $legDate, string $departureTime, int $dayAdjustment = 0): string
+    {
+        if ($legDate) {
+            $date = \Carbon\Carbon::parse($legDate)->addDays($dayAdjustment)->format('Y-m-d');
+            $departureDateTime = $date . 'T' . $departureTime;
+        } else {
+            $departureDateTime = $departureTime;
+        }
+
+        return $this->normalizeSabreDateTime($departureDateTime);
     }
 
     private function extractBookingCodes(array $itineraryRaw, int $pricingIndex = 0): array

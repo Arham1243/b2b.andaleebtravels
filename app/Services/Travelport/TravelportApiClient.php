@@ -383,14 +383,6 @@ XML;
 
         $taxesXml = (string) ($pricingData['taxes_xml'] ?? '');
 
-        $paymentXml = '';
-        if ($totalPrice !== '') {
-            $paymentXml = <<<XML
-
-            <Payment xmlns="{$comNs}" Key="PAY1" Type="Itinerary" Amount="{$totalPrice}" FormOfPaymentRef="FOP1"/>
-XML;
-        }
-
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
     <soapenv:Header/>
@@ -425,7 +417,7 @@ XML;
                     ProviderCode="{$providerCode}">
                     {$fareInfosXml}
                     {$bookingInfosXml}
-                    {$taxesXml}{$passengerTypesXml}{$paymentXml}
+                    {$taxesXml}{$passengerTypesXml}
                 </AirPricingInfo>
                 {$hostTokensXml}
 
