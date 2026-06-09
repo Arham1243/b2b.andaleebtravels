@@ -440,7 +440,7 @@
                             $rpDur   = (int)($legs[0]['elapsedTime'] ?? 0);
                         @endphp
 
-                        <div class="rc"
+                        <div class="rc {{ $cardSupplier === 'travelport' ? 'rc--travelport-test' : '' }}"
                              data-rp-id="{{ $lid }}"
                              data-rp-meta='@json($meta)'
                              data-rp-stops="{{ $rpStops }}"
@@ -450,6 +450,11 @@
                              data-rp-arr-h="{{ $rpArrH }}"
                              data-rp-dur="{{ $rpDur }}"
                              data-rp-supplier="{{ $cardSupplier }}">
+
+                            {{-- TODO: remove — temporary Travelport test badge --}}
+                            @if ($cardSupplier === 'travelport')
+                                <span class="rc__provider-badge rc__provider-badge--travelport" title="Testing only">Travelport</span>
+                            @endif
 
                             {{-- ── per-leg rows ── --}}
                             @foreach ($legs as $li => $leg)
@@ -1190,6 +1195,27 @@
 .rc:hover {
     border-color: rgba(205, 27, 79, 0.22);
     box-shadow: 0 2px 8px rgba(26, 37, 64, 0.055);
+}
+
+/* TODO: remove — temporary Travelport test badge */
+.rc--travelport-test { position: relative; }
+.rc--travelport-test .rc__point--arr { padding-right: 5.5rem; }
+.rc__provider-badge {
+    position: absolute;
+    top: .45rem;
+    right: .6rem;
+    z-index: 2;
+    font-size: .6rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    padding: .18rem .4rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+.rc__provider-badge--travelport {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #6ee7b7;
 }
 
 .rc__hold--disabled,
