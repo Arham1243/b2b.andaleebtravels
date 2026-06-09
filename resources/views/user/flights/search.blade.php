@@ -1208,18 +1208,18 @@
 
 /* TODO: remove — temporary provider test badges */
 .rc--has-provider-badge { position: relative; }
-.rc--has-provider-badge .rc__point--arr { padding-right: 5.5rem; }
 .rc__provider-badge {
     position: absolute;
     top: .45rem;
     right: .6rem;
-    z-index: 2;
+    z-index: 3;
     font-size: .6rem;
     font-weight: 800;
     letter-spacing: .04em;
     padding: .18rem .4rem;
     border-radius: 4px;
     text-transform: uppercase;
+    pointer-events: none;
 }
 .rc__provider-badge--sabre {
     background: #e8f0fe;
