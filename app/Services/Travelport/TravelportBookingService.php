@@ -399,7 +399,18 @@ class TravelportBookingService
             (array) ($itineraryData['fare_tags'] ?? []),
         );
 
-        return in_array('ndc', $fareTags, true);
+        if (in_array('ndc', $fareTags, true)) {
+            return true;
+        }
+
+        $fareType = strtolower(trim((string) ($itineraryData['fare_type'] ?? '')));
+        if (str_contains($fareType, 'ndc')) {
+            return true;
+        }
+
+        $fareBasis = strtoupper(trim((string) ($itineraryData['fare_basis'] ?? '')));
+
+        return str_contains($fareBasis, 'NDC');
     }
 
     private function resolveTicketingPaymentAmount(B2bFlightBooking $booking): string
