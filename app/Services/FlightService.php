@@ -554,21 +554,43 @@ class FlightService
                 throw new \Exception('Unable to locate itinerary for booking.');
             }
 
-            $payload = $this->buildPnrPayload($booking, $searchResponse, $itineraryRaw);
+            $payload = $this->buildPnrPayload($booking, $searchResponse, $itineraryRaw, true);
+            $createResult = $this->postSabreCreatePnr($token, $payload);
+            $responseData = $createResult['data'];
+            $locator = $this->extractSabrePnrLocator($responseData);
 
-            $response = $this->sabreHttp()->withToken($token)
-                ->withHeaders(['Accept' => 'application/json'])
-                ->post('https://api.cert.platform.sabre.com/v2.5.0/passenger/records?mode=create', $payload);
+            if ($locator === null && $this->shouldRetrySabrePnrWithoutAirPrice($responseData)) {
+                Log::info('Retrying Sabre PNR create without embedded AirPrice', [
+                    'booking_id' => $booking->id,
+                ]);
 
-            if (!$response->successful()) {
-                throw new \Exception('Sabre PNR creation failed: ' . $response->body());
+                $payload = $this->buildPnrPayload($booking, $searchResponse, $itineraryRaw, false);
+                $createResult = $this->postSabreCreatePnr($token, $payload);
+                $responseData = $createResult['data'];
+                $locator = $this->extractSabrePnrLocator($responseData);
+
+                if ($locator !== null) {
+                    $booking->update([
+                        'booking_request' => $payload,
+                        'booking_response' => $responseData,
+                        'sabre_record_locator' => $locator,
+                        'hold_expires_at' => now()->addHour(),
+                    ]);
+
+                    $reprice = $this->storeSabrePriceQuotesOnPnr($booking->fresh(), $token);
+                    if (($reprice['records'] ?? []) === []) {
+                        Log::warning('Sabre hold PNR created but SOAP repricing stored no price quote', [
+                            'booking_id' => $booking->id,
+                            'locator' => $locator,
+                            'error' => $reprice['error'] ?? null,
+                        ]);
+                    }
+                }
             }
 
-            $responseData = $response->json();
-            $locator = data_get($responseData, 'CreatePassengerNameRecordRS.ItineraryRef.ID')
-                ?? data_get($responseData, 'CreatePassengerNameRecordRS.ItineraryRef[0].ID')
-                ?? data_get($responseData, 'TravelItineraryReadRS.ItineraryRef.ID')
-                ?? data_get($responseData, 'ItineraryRef.ID');
+            if (! ($createResult['successful'] ?? false) && $locator === null) {
+                throw new \Exception('Sabre PNR creation failed: ' . ($createResult['body'] ?? ''));
+            }
 
             $booking->update([
                 'booking_request' => $payload,
@@ -1617,7 +1639,7 @@ XML;
         return null;
     }
 
-    private function buildPnrPayload(B2bFlightBooking $booking, array $grouped, array $itineraryRaw): array
+    private function buildPnrPayload(B2bFlightBooking $booking, array $grouped, array $itineraryRaw, bool $includeAirPrice = true): array
     {
         $segments = $this->buildAirBookSegments($booking, $grouped, $itineraryRaw);
         $passengers = $booking->passengers_data['passengers'] ?? [];
@@ -1635,17 +1657,14 @@ XML;
             $index++;
         }
 
-        $passengerTypes = $this->buildPassengerTypes($booking);
-
         // Sabre rejects phone strings with spaces / parens / '+' – normalize to digits + dashes.
         $rawPhone = (string) ($lead['phone'] ?? '');
         $cleanPhone = preg_replace('/[^0-9\-]/', '', str_replace(['+', '(', ')', ' '], ['', '', '', '-'], $rawPhone));
         $cleanPhone = trim((string) $cleanPhone, '-') ?: '0000000000';
 
-        return [
-            'CreatePassengerNameRecordRQ' => [
+        $createRq = [
                 'version' => '2.5.0',
-                'haltOnAirPriceError' => true,
+                'haltOnAirPriceError' => $includeAirPrice,
                 'targetCity' => $this->sabrePcc,
                 'TravelItineraryAddInfo' => [
                     'AgencyInfo' => [
@@ -1672,14 +1691,6 @@ XML;
                         'FlightSegment' => $segments,
                     ],
                 ],
-                // Sabre JSON schema requires AirPrice to be an array.
-                // Avoid PassengerType and ValidatingCarrier in PricingQualifiers here —
-                // CreatePassengerNameRecord v2.5.0 rejects ValidatingCarrier in that block.
-                'AirPrice' => [
-                    [
-                        'PriceRequestInformation' => $this->buildSabreAirPriceRequestInformation($booking, true, false),
-                    ],
-                ],
                 'PostProcessing' => [
                     'EndTransaction' => [
                         'Source' => [
@@ -1687,8 +1698,70 @@ XML;
                         ],
                     ],
                 ],
-            ],
+            ];
+
+        if ($includeAirPrice) {
+            $createRq['AirPrice'] = [
+                [
+                    'PriceRequestInformation' => $this->buildSabreAirPriceRequestInformation(
+                        $booking,
+                        true,
+                        true,
+                        true,
+                        true,
+                        $itineraryRaw,
+                        $grouped,
+                    ),
+                ],
+            ];
+        }
+
+        return [
+            'CreatePassengerNameRecordRQ' => $createRq,
         ];
+    }
+
+    /**
+     * @return array{successful: bool, body: string, data: ?array}
+     */
+    private function postSabreCreatePnr(string $token, array $payload): array
+    {
+        $response = $this->sabreHttp()->withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post('https://api.cert.platform.sabre.com/v2.5.0/passenger/records?mode=create', $payload);
+
+        return [
+            'successful' => $response->successful(),
+            'body' => (string) $response->body(),
+            'data' => $response->json(),
+        ];
+    }
+
+    private function extractSabrePnrLocator(?array $responseData): ?string
+    {
+        $locator = data_get($responseData, 'CreatePassengerNameRecordRS.ItineraryRef.ID')
+            ?? data_get($responseData, 'CreatePassengerNameRecordRS.ItineraryRef[0].ID')
+            ?? data_get($responseData, 'TravelItineraryReadRS.ItineraryRef.ID')
+            ?? data_get($responseData, 'ItineraryRef.ID');
+
+        $locator = trim((string) $locator);
+
+        return $locator !== '' ? $locator : null;
+    }
+
+    private function shouldRetrySabrePnrWithoutAirPrice(?array $responseData): bool
+    {
+        if ($this->extractSabrePnrLocator($responseData) !== null) {
+            return false;
+        }
+
+        $messages = implode(' ', SabreApplicationResultsParser::messages($responseData));
+        $normalized = strtoupper($messages);
+
+        return str_contains($normalized, 'NO COMBINABLE FARES')
+            || str_contains($normalized, 'UNABLE TO PERFORM AIR BOOKING')
+            || str_contains($normalized, 'AIR PRICE')
+            || data_get($responseData, 'CreatePassengerNameRecordRS.ApplicationResults.status') === 'Incomplete';
     }
 
     private function buildRevalidatePayload(array $grouped, array $itineraryRaw, int $adults, int $children, int $infants, int $pricingIndex = 0): array
@@ -1896,9 +1969,29 @@ XML;
     /**
      * @return array<string, mixed>
      */
-    private function buildSabreAirPriceRequestInformation(B2bFlightBooking $booking, bool $retain, bool $includePassengerTypes = true): array
-    {
+    private function buildSabreAirPriceRequestInformation(
+        B2bFlightBooking $booking,
+        bool $retain,
+        bool $includePassengerTypes = true,
+        bool $includeFlightQualifiers = false,
+        bool $includeCommandPricing = false,
+        ?array $itineraryRaw = null,
+        ?array $grouped = null,
+    ): array {
         $request = ['Retain' => $retain];
+        $optionalQualifiers = [];
+
+        if ($includeFlightQualifiers) {
+            $validatingCarrier = $this->resolveSabreValidatingCarrier($booking);
+            if ($validatingCarrier !== null) {
+                $optionalQualifiers['FlightQualifiers'] = [
+                    'VendorPrefs' => [
+                        'Airline' => ['Code' => $validatingCarrier],
+                    ],
+                ];
+            }
+        }
+
         $pricingQualifiers = [];
 
         if ($includePassengerTypes) {
@@ -1910,13 +2003,71 @@ XML;
             }
         }
 
+        if ($includeCommandPricing) {
+            $fareBasis = $this->resolveSabreFareBasisCode($booking, $itineraryRaw, $grouped);
+            if ($fareBasis !== null) {
+                $pricingQualifiers['CommandPricing'] = [
+                    ['FareBasis' => ['Code' => $fareBasis]],
+                ];
+            }
+        }
+
         if ($pricingQualifiers !== []) {
-            $request['OptionalQualifiers'] = [
-                'PricingQualifiers' => $pricingQualifiers,
-            ];
+            $optionalQualifiers['PricingQualifiers'] = $pricingQualifiers;
+        }
+
+        if ($optionalQualifiers !== []) {
+            $request['OptionalQualifiers'] = $optionalQualifiers;
         }
 
         return $request;
+    }
+
+    private function resolveSabreFareBasisCode(B2bFlightBooking $booking, ?array $itineraryRaw = null, ?array $grouped = null): ?string
+    {
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $fareRules = is_array($itinerary['fare_rules'] ?? null) ? $itinerary['fare_rules'] : [];
+
+        foreach ($fareRules['components'] ?? [] as $component) {
+            if (! is_array($component)) {
+                continue;
+            }
+
+            $code = strtoupper(trim((string) ($component['fare_basis'] ?? '')));
+            if ($code !== '') {
+                return $code;
+            }
+        }
+
+        $summary = trim((string) ($itinerary['fare_basis'] ?? ''));
+        if ($summary !== '') {
+            $first = trim(explode('/', str_replace(' / ', '/', $summary))[0]);
+
+            return $first !== '' ? strtoupper($first) : null;
+        }
+
+        if ($itineraryRaw !== null || $grouped !== null) {
+            $pricingIndex = (int) data_get($itinerary, 'sabre_pricing_index', 0);
+            $pricingBlock = data_get($itineraryRaw, "pricingInformation.{$pricingIndex}")
+                ?? data_get($itineraryRaw, 'pricingInformation.0');
+            $components = data_get($pricingBlock, 'fare.passengerInfoList.0.passengerInfo.fareComponents', []);
+            $fareComponentById = collect($grouped['fareComponentDescs'] ?? [])->keyBy('id');
+
+            foreach (is_array($components) ? $components : [] as $component) {
+                if (! is_array($component)) {
+                    continue;
+                }
+
+                $ref = (int) ($component['ref'] ?? 0);
+                $desc = $fareComponentById->get($ref);
+                $code = strtoupper(trim((string) (is_array($desc) ? ($desc['fareBasisCode'] ?? '') : '')));
+                if ($code !== '') {
+                    return $code;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function resolveSabreValidatingCarrier(B2bFlightBooking $booking): ?string
