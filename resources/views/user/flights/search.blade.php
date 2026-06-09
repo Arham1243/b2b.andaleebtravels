@@ -472,8 +472,9 @@
                                     $dur        = fl_format_hm(isset($leg['elapsedTime']) ? (int)$leg['elapsedTime'] : null);
                                     $stopsLbl   = $stopsTotal === 0 ? 'Non stop'
                                                 : ($stopsTotal === 1 ? '1 stop' : $stopsTotal.' stops');
-                                    $isRedEye   = (bool)($s0['is_red_eye_segment'] ?? false);
-                                    $isMorning  = ! $isRedEye && flightClockIsMorning($s0['departure_clock'] ?? null);
+                                    $depClock   = $s0['departure_clock'] ?? null;
+                                    $isRedEye   = flightClockIsRedEye($depClock) || (bool) ($s0['is_red_eye_segment'] ?? false);
+                                    $isMorning  = ! $isRedEye && flightClockIsMorning($depClock);
                                     $nextDay    = (bool)($sLast['next_day_hint'] ?? false);
 
                                     $midApts = [];
@@ -503,9 +504,9 @@
                                         <div class="rc__time">
                                             {{ formatFlightClock($s0['departure_clock'] ?? null) }}
                                             @if ($isRedEye)
-                                                <i class="bx bxs-moon rc__moon"></i>
+                                                <i class="bx bxs-moon rc__time-icon rc__time-icon--moon" title="Night departure"></i>
                                             @elseif ($isMorning)
-                                                <i class="bx bxs-sun rc__sun"></i>
+                                                <i class="bx bxs-sun rc__time-icon rc__time-icon--sun" title="Morning departure"></i>
                                             @endif
                                         </div>
                                         <div class="rc__dt">{{ $s0['departure_weekday']??'' }}, {{ $s0['departure_label']??'' }}</div>
@@ -545,9 +546,9 @@
                                     {{-- time-of-day col --}}
                                     <div class="rc__redeyecol">
                                         @if ($isRedEye)
-                                            <i class="bx bxs-moon"></i>
+                                            <i class="bx bxs-moon rc__time-icon rc__time-icon--moon" title="Night departure"></i>
                                         @elseif ($isMorning)
-                                            <i class="bx bxs-sun rc__sun"></i>
+                                            <i class="bx bxs-sun rc__time-icon rc__time-icon--sun" title="Morning departure"></i>
                                         @endif
                                     </div>
                                 </div>
@@ -1255,7 +1256,7 @@
 /* leg row */
 .rc__leg {
     display: grid;
-    grid-template-columns: 165px 1fr 160px 1fr 28px;
+    grid-template-columns: 165px 1fr 160px 1fr 38px;
     align-items: center;
     gap: .35rem .75rem;
     padding: .55rem .85rem;
@@ -1290,10 +1291,34 @@
 .rc__time {
     font-family: var(--mono); font-size: 1.12rem; font-weight: 700;
     color: var(--c-ink); line-height: 1;
-    display: inline-flex; align-items: center; gap: .25rem;
+    display: inline-flex; align-items: center; gap: .35rem;
 }
-.rc__moon { font-size: .78rem; color: #6366f1; }
-.rc__sun { font-size: .78rem; color: #f59e0b; }
+.rc__time-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.rc__time-icon--sun {
+    background: #fef3c7;
+    color: #d97706;
+    box-shadow: 0 0 0 1px rgba(217, 119, 6, .18);
+}
+.rc__time-icon--moon {
+    background: #e0e7ff;
+    color: #4338ca;
+    box-shadow: 0 0 0 1px rgba(67, 56, 202, .16);
+}
+.rc__redeyecol .rc__time-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 1.2rem;
+}
 .rc__nextday {
     font-size: .58rem; font-weight: 700;
     background: var(--c-amber-soft); color: var(--c-amber);
@@ -1324,8 +1349,13 @@
 .rc__bstop--direct { background: var(--c-green-soft); color: var(--c-green); }
 .rc__bstop--via    { background: var(--c-amber-soft); color: var(--c-amber); }
 
-/* redeye col */
-.rc__redeyecol { display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #6366f1; }
+/* time-of-day col */
+.rc__redeyecol {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+}
 
 /* fare row */
 .rc__fares { border-top: 1px solid var(--c-line-inner); }

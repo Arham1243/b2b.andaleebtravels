@@ -345,6 +345,21 @@ if (! function_exists('flightClockIsMorning')) {
     }
 }
 
+if (! function_exists('flightClockIsRedEye')) {
+    /** Night departures (22:00–05:59), aligned with search time filters. */
+    function flightClockIsRedEye(mixed $clock): bool
+    {
+        $clock = trim((string) ($clock ?? ''));
+        if ($clock === '' || ! preg_match('/^(\d{1,2}):/', $clock, $matches)) {
+            return false;
+        }
+
+        $hour = (int) $matches[1];
+
+        return $hour >= 22 || $hour < 6;
+    }
+}
+
 if (! function_exists('flightAirportCityMap')) {
     /** @return array<string, string> */
     function flightAirportCityMap(): array
