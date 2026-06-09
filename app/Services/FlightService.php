@@ -591,11 +591,15 @@ class FlightService
                 // so we default hold expiry to 1 hour from now as per airline standard policy.
                 $holdExpiresAt = now()->addHour();
 
-                $booking->update([
+                $pnrUpdate = [
                     'sabre_record_locator' => $locator,
-                    'booking_status'       => 'confirmed',
                     'hold_expires_at'      => $holdExpiresAt,
-                ]);
+                ];
+                if ($booking->payment_method !== 'hold') {
+                    $pnrUpdate['booking_status'] = 'confirmed';
+                }
+
+                $booking->update($pnrUpdate);
             } else {
                 $messages = SabreApplicationResultsParser::messages($responseData);
                 $errorMessage = $messages !== []
@@ -1669,8 +1673,8 @@ XML;
                     ],
                 ],
                 // Sabre JSON schema requires AirPrice to be an array.
-                // Avoid PassengerType in OptionalQualifiers here (9+ level normalization bug).
-                // ValidatingCarrier alone is shallow enough and keeps PQ aligned with shop fare.
+                // Avoid PassengerType and ValidatingCarrier in PricingQualifiers here —
+                // CreatePassengerNameRecord v2.5.0 rejects ValidatingCarrier in that block.
                 'AirPrice' => [
                     [
                         'PriceRequestInformation' => $this->buildSabreAirPriceRequestInformation($booking, true, false),
@@ -1896,11 +1900,6 @@ XML;
     {
         $request = ['Retain' => $retain];
         $pricingQualifiers = [];
-
-        $validatingCarrier = $this->resolveSabreValidatingCarrier($booking);
-        if ($validatingCarrier !== null) {
-            $pricingQualifiers['ValidatingCarrier'] = ['Code' => $validatingCarrier];
-        }
 
         if ($includePassengerTypes) {
             foreach ($this->buildPassengerTypes($booking) as $type) {
