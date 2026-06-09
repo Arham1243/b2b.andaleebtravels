@@ -451,10 +451,10 @@
                              data-rp-dur="{{ $rpDur }}"
                              data-rp-supplier="{{ $cardSupplier }}">
 
-                            {{-- TODO: remove — temporary provider test badges --}}
-                            <span class="rc__provider-badge rc__provider-badge--{{ $cardSupplier }}" title="Testing only — GDS provider">
-                                {{ $cardSupplier === 'travelport' ? 'Travelport' : 'Sabre' }}
-                            </span>
+                            {{-- TODO: remove — temporary provider test strip --}}
+                            <div class="rc__provider-strip rc__provider-strip--{{ $cardSupplier }}" title="Testing only — GDS provider">
+                                <span class="rc__provider-strip__label">{{ $cardSupplier === 'travelport' ? 'Travelport' : 'Sabre' }}</span>
+                            </div>
 
                             {{-- ── per-leg rows ── --}}
                             @foreach ($legs as $li => $leg)
@@ -1206,30 +1206,41 @@
     box-shadow: 0 2px 8px rgba(26, 37, 64, 0.055);
 }
 
-/* TODO: remove — temporary provider test badges */
+/* TODO: remove — temporary provider test strip (corner ribbon) */
 .rc--has-provider-badge { position: relative; }
-.rc__provider-badge {
+.rc__provider-strip {
     position: absolute;
-    top: .45rem;
-    right: .6rem;
+    top: 0;
+    right: 0;
+    width: 5.25rem;
+    height: 5.25rem;
+    overflow: hidden;
     z-index: 3;
-    font-size: .6rem;
-    font-weight: 800;
-    letter-spacing: .04em;
-    padding: .18rem .4rem;
-    border-radius: 4px;
-    text-transform: uppercase;
     pointer-events: none;
 }
-.rc__provider-badge--sabre {
-    background: #e8f0fe;
-    color: #1a56db;
-    border: 1px solid #93b4f5;
+.rc__provider-strip__label {
+    position: absolute;
+    display: block;
+    width: 7.25rem;
+    padding: .26rem 0;
+    right: -1.85rem;
+    top: 1rem;
+    transform: rotate(45deg);
+    text-align: center;
+    font-size: .56rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .12);
 }
-.rc__provider-badge--travelport {
-    background: #ecfdf5;
-    color: #047857;
-    border: 1px solid #6ee7b7;
+.rc__provider-strip--sabre .rc__provider-strip__label {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #fff;
+}
+.rc__provider-strip--travelport .rc__provider-strip__label {
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    color: #fff;
 }
 
 .rc__hold--disabled,
