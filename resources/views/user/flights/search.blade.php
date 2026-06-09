@@ -473,8 +473,7 @@
                                     $stopsLbl   = $stopsTotal === 0 ? 'Non stop'
                                                 : ($stopsTotal === 1 ? '1 stop' : $stopsTotal.' stops');
                                     $depClock   = $s0['departure_clock'] ?? null;
-                                    $isRedEye   = flightClockIsRedEye($depClock) || (bool) ($s0['is_red_eye_segment'] ?? false);
-                                    $isMorning  = ! $isRedEye && flightClockIsMorning($depClock);
+                                    $depTimeSlot = flightDepartureTimeSlot($depClock);
                                     $nextDay    = (bool)($sLast['next_day_hint'] ?? false);
 
                                     $midApts = [];
@@ -502,12 +501,8 @@
                                     {{-- departure --}}
                                     <div class="rc__point">
                                         <div class="rc__time">
-                                            {{ formatFlightClock($s0['departure_clock'] ?? null) }}
-                                            @if ($isRedEye)
-                                                <i class="bx bxs-moon rc__time-icon rc__time-icon--moon" title="Night departure"></i>
-                                            @elseif ($isMorning)
-                                                <i class="bx bxs-sun rc__time-icon rc__time-icon--sun" title="Morning departure"></i>
-                                            @endif
+                                            {{ formatFlightClock($depClock) }}
+                                            @include('user.flights.partials.departure-time-icon', ['clock' => $depClock, 'slot' => $depTimeSlot])
                                         </div>
                                         <div class="rc__dt">{{ $s0['departure_weekday']??'' }}, {{ $s0['departure_label']??'' }}</div>
                                         <div class="rc__city">
@@ -545,11 +540,7 @@
 
                                     {{-- time-of-day col --}}
                                     <div class="rc__redeyecol">
-                                        @if ($isRedEye)
-                                            <i class="bx bxs-moon rc__time-icon rc__time-icon--moon" title="Night departure"></i>
-                                        @elseif ($isMorning)
-                                            <i class="bx bxs-sun rc__time-icon rc__time-icon--sun" title="Morning departure"></i>
-                                        @endif
+                                        @include('user.flights.partials.departure-time-icon', ['clock' => $depClock, 'slot' => $depTimeSlot])
                                     </div>
                                 </div>
                             @endforeach
@@ -1316,6 +1307,11 @@
     background: #e0e7ff;
     color: #4338ca;
     box-shadow: 0 0 0 1px rgba(67, 56, 202, .16);
+}
+.rc__time-icon--evening {
+    background: #f3e8ff;
+    color: #7c3aed;
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, .14);
 }
 .rc__redeyecol .rc__time-icon {
     width: 1.75rem;

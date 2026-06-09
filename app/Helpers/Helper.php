@@ -360,6 +360,31 @@ if (! function_exists('flightClockIsRedEye')) {
     }
 }
 
+if (! function_exists('flightDepartureTimeSlot')) {
+    /** Departure time bucket aligned with flight search filters. */
+    function flightDepartureTimeSlot(mixed $clock): ?string
+    {
+        $clock = trim((string) ($clock ?? ''));
+        if ($clock === '' || ! preg_match('/^(\d{1,2}):/', $clock, $matches)) {
+            return null;
+        }
+
+        $hour = (int) $matches[1];
+
+        if ($hour >= 0 && $hour < 6) {
+            return 'night';
+        }
+        if ($hour >= 6 && $hour < 12) {
+            return 'morning';
+        }
+        if ($hour >= 12 && $hour < 18) {
+            return 'afternoon';
+        }
+
+        return 'evening';
+    }
+}
+
 if (! function_exists('flightAirportCityMap')) {
     /** @return array<string, string> */
     function flightAirportCityMap(): array
