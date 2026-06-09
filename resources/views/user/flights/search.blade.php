@@ -413,7 +413,6 @@
                             $cardCur    = strtoupper((string) ($fareOptions[0]['currency'] ?? $result['currency'] ?? $currencyCode));
                             $totalPrice = (float) ($result['totalPrice'] ?? ($meta['price'] ?? 0));
                             $cardSupplier = strtolower((string) ($result['supplier'] ?? 'sabre'));
-                            $isTravelportCard = $cardSupplier === 'travelport';
 
                             // Modal tab labels from search endpoints (not expanded segment endpoints).
                             $searchFrom = strtoupper((string) ($query['from'] ?? ''));
@@ -441,7 +440,7 @@
                             $rpDur   = (int)($legs[0]['elapsedTime'] ?? 0);
                         @endphp
 
-                        <div class="rc {{ !empty($result['supplier']) ? 'rc--has-provider' : '' }}"
+                        <div class="rc"
                              data-rp-id="{{ $lid }}"
                              data-rp-meta='@json($meta)'
                              data-rp-stops="{{ $rpStops }}"
@@ -451,12 +450,6 @@
                              data-rp-arr-h="{{ $rpArrH }}"
                              data-rp-dur="{{ $rpDur }}"
                              data-rp-supplier="{{ $cardSupplier }}">
-
-                            @if (!empty($result['supplier']))
-                                <span class="rc__provider-badge rc__provider-badge--{{ $cardSupplier }}">
-                                    {{ strtoupper($result['supplier']) }}
-                                </span>
-                            @endif
 
                             {{-- ── per-leg rows ── --}}
                             @foreach ($legs as $li => $leg)
@@ -1199,37 +1192,6 @@
     box-shadow: 0 2px 8px rgba(26, 37, 64, 0.055);
 }
 
-.rc {
-    position: relative;
-}
-.rc__provider-badge {
-    position: absolute;
-    top: .55rem;
-    right: .65rem;
-    z-index: 2;
-    font-size: .62rem;
-    font-weight: 800;
-    letter-spacing: .04em;
-    padding: .2rem .45rem;
-    border-radius: 4px;
-    text-transform: uppercase;
-}
-.rc__provider-badge--sabre {
-    background: #e8f0fe;
-    color: #1a56db;
-    border: 1px solid #93b4f5;
-}
-.rc__provider-badge--travelport {
-    background: #ecfdf5;
-    color: #047857;
-    border: 1px solid #6ee7b7;
-}
-.rc--has-provider .rc__point--arr {
-    padding-right: 5.75rem;
-}
-.rc--has-provider .rc__time {
-    white-space: nowrap;
-}
 .rc__hold--disabled,
 .rc__cta--disabled,
 .fd-foot__hold--disabled,
