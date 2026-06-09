@@ -221,12 +221,17 @@ class TravelportBookingService
 
             $airPricingInfoKey = $this->resolveAirPricingInfoKey($booking);
             $gdsCommissionPercentage = $this->resolveGdsCommissionPercentage();
+            $paymentAmount = $this->resolveTicketPaymentAmount($booking);
+            if ($paymentAmount === '') {
+                throw new \RuntimeException('Missing Travelport stored fare amount for ticketing.');
+            }
 
             $ticketResponse = $this->client->airTicket(
                 $locator,
                 $airPricingInfoKey,
                 $platingCarrier,
                 $gdsCommissionPercentage,
+                $paymentAmount,
             );
             if (! ($ticketResponse['success'] ?? false)) {
                 Log::error('Travelport airTicket failed', [
@@ -235,6 +240,7 @@ class TravelportBookingService
                     'plating_carrier' => $platingCarrier,
                     'air_pricing_info_key' => $airPricingInfoKey,
                     'gds_commission_percentage' => $gdsCommissionPercentage,
+                    'payment_amount' => $paymentAmount,
                     'error_code' => $ticketResponse['error_code'] ?? null,
                     'trace_id' => $ticketResponse['trace_id'] ?? null,
                     'error' => $ticketResponse['error'] ?? null,
@@ -265,6 +271,7 @@ class TravelportBookingService
                     'air_pricing_info_key' => $airPricingInfoKey,
                     'plating_carrier' => $platingCarrier,
                     'gds_commission_percentage' => $gdsCommissionPercentage,
+                    'payment_amount' => $paymentAmount,
                 ],
                 'ticket_response' => $storedResponse,
                 'ticket_numbers' => $ticketNumbers,
@@ -407,6 +414,39 @@ class TravelportBookingService
         $cached = max(0.0, (float) ($config['TRAVELPORT_GDS_COMMISSION_PERCENTAGE'] ?? 0));
 
         return $cached;
+    }
+
+    private function resolveTicketPaymentAmount(B2bFlightBooking $booking): string
+    {
+        $candidates = [
+            data_get($booking->booking_request, 'pricing_data.total_price'),
+            data_get($booking->booking_response, 'UniversalRecord.AirReservation.AirPricingInfo.@attributes.TotalPrice'),
+            data_get($booking->booking_response, 'UniversalRecord.AirReservation.AirPricingInfo.TotalPrice'),
+            data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.AirPricingInfo.@attributes.TotalPrice'),
+            data_get($booking->booking_response, 'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.AirPricingInfo.TotalPrice'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $amount = trim((string) $candidate);
+            if ($amount !== '') {
+                return $amount;
+            }
+        }
+
+        $response = is_array($booking->booking_response) ? $booking->booking_response : [];
+        $raw = (string) ($response['raw'] ?? '');
+        if ($raw !== '' && preg_match('/<(?:[\w-]+:)?AirPricingInfo[^>]+TotalPrice="([^"]+)"/i', $raw, $match)) {
+            return trim($match[1]);
+        }
+
+        $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $currency = strtoupper(trim((string) ($itineraryData['currency'] ?? 'AED')));
+        $total = (float) ($booking->total_amount ?? 0);
+        if ($total > 0 && $currency !== '') {
+            return $currency . number_format($total, 2, '.', '');
+        }
+
+        return '';
     }
 
     private function resolveAirPricingInfoKey(B2bFlightBooking $booking): string

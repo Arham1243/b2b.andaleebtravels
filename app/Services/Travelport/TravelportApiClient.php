@@ -444,6 +444,7 @@ XML;
         string $airPricingInfoKey = '',
         string $platingCarrier = '',
         float $commissionPercentage = 0.0,
+        string $paymentAmount = '',
     ): array {
         $traceId = $this->generateTraceId();
         $authorizedBy = self::AUTHORIZED_BY;
@@ -461,9 +462,22 @@ XML;
 
         $platingCarrierAttr = $carrier !== '' ? " PlatingCarrier=\"{$carrier}\"" : '';
         $fopXml = $this->buildFormOfPaymentXml($comNs, 'FOP1', '                ');
+        $amount = $this->xmlEsc(trim($paymentAmount));
+        if ($amount === '') {
+            return [
+                'success' => false,
+                'httpCode' => 0,
+                'raw' => '',
+                'parsed' => null,
+                'error' => 'Missing Travelport payment amount for ticketing.',
+                'error_code' => '1005',
+                'trace_id' => $traceId,
+            ];
+        }
+
         $paymentXml = <<<XML
 
-                <Payment xmlns="{$comNs}" Key="PAY1" Type="Itinerary" FormOfPaymentRef="FOP1"/>
+                <Payment xmlns="{$comNs}" Key="PAY1" Type="Itinerary" FormOfPaymentRef="FOP1" Amount="{$amount}"/>
 XML;
         $modifiersXml = <<<XML
 
