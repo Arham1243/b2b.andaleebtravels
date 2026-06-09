@@ -1214,19 +1214,27 @@ class FlightService
 
     private function shouldRefreshSabrePriceQuote(B2bFlightBooking $booking): bool
     {
-        if ($booking->ticket_status === 'failed') {
-            return true;
-        }
+        $hadAuthCarrierError = false;
+        $hadInvalidPqError = false;
 
         $ticketResponse = is_array($booking->ticket_response) ? $booking->ticket_response : null;
-        if ($ticketResponse === null) {
+        if ($ticketResponse !== null) {
+            foreach (SabreApplicationResultsParser::messages($ticketResponse, 'AirTicketRS') as $message) {
+                if (str_contains($message, 'INVALID PQ NUMBER')) {
+                    $hadInvalidPqError = true;
+                }
+                if (str_contains($message, 'AUTH CARRIER INVLD')) {
+                    $hadAuthCarrierError = true;
+                }
+            }
+        }
+
+        if ($hadAuthCarrierError) {
             return false;
         }
 
-        foreach (SabreApplicationResultsParser::messages($ticketResponse, 'AirTicketRS') as $message) {
-            if (str_contains($message, 'INVALID PQ NUMBER') || str_contains($message, 'AUTH CARRIER INVLD')) {
-                return true;
-            }
+        if ($hadInvalidPqError || $booking->ticket_status === 'failed') {
+            return true;
         }
 
         return false;
@@ -1299,19 +1307,12 @@ class FlightService
             return ['records' => [], 'error' => 'Missing Sabre record locator.'];
         }
 
-        $restResult = $this->repriceSabrePnrViaRest($booking, $bearerToken);
-        if (($restResult['records'] ?? []) !== []) {
-            return $restResult;
-        }
-
-        $restError = $restResult['error'] ?? null;
-
         $session = $this->createSoapSession($bearerToken);
         $binaryToken = $session['token'] ?? null;
         if (! $binaryToken) {
             return [
                 'records' => [],
-                'error' => $restError ?: 'Unable to establish Sabre SOAP session for repricing.',
+                'error' => 'Unable to establish Sabre SOAP session for repricing.',
             ];
         }
 
@@ -1357,7 +1358,7 @@ class FlightService
 
             return [
                 'records' => $records,
-                'error' => $records === [] ? ($restError ?: 'Sabre repricing completed without active price quote records.') : null,
+                'error' => $records === [] ? 'Sabre repricing completed without active price quote records.' : null,
             ];
         } catch (\Throwable $e) {
             Log::error('Sabre repricing before ticketing failed', [
@@ -1368,7 +1369,7 @@ class FlightService
 
             return [
                 'records' => [],
-                'error' => $restError ?: $e->getMessage(),
+                'error' => $e->getMessage(),
             ];
         } finally {
             try {
@@ -1377,83 +1378,6 @@ class FlightService
                 // Ignore session close failures after repricing attempt.
             }
         }
-    }
-
-    /**
-     * @return array{records: list<int>, error: string|null, response?: array<string, mixed>|null}
-     */
-    private function repriceSabrePnrViaRest(B2bFlightBooking $booking, string $bearerToken): array
-    {
-        $locator = trim((string) $booking->sabre_record_locator);
-        if ($locator === '') {
-            return ['records' => [], 'error' => 'Missing Sabre record locator.'];
-        }
-
-        $payload = [
-            'CreatePassengerNameRecordRQ' => [
-                'version' => '2.5.0',
-                'haltOnAirPriceError' => true,
-                'targetCity' => $this->sabrePcc,
-                'Itinerary' => [
-                    'ID' => $locator,
-                ],
-                'AirPrice' => [
-                    [
-                        'PriceRequestInformation' => $this->buildSabreAirPriceRequestInformation($booking, true),
-                    ],
-                ],
-                'PostProcessing' => [
-                    'EndTransaction' => [
-                        'Source' => [
-                            'ReceivedFrom' => 'API REPRICE',
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
-        $response = $this->sabreHttp()->withToken($bearerToken)
-            ->withHeaders(['Accept' => 'application/json'])
-            ->post('https://api.cert.platform.sabre.com/v2.5.0/passenger/records?mode=update', $payload);
-
-        if (! $response->successful()) {
-            return [
-                'records' => [],
-                'error' => 'Sabre REST repricing failed: ' . $response->body(),
-            ];
-        }
-
-        $responseData = $response->json();
-        if (! is_array($responseData)) {
-            return [
-                'records' => [],
-                'error' => 'Sabre REST repricing returned an invalid response.',
-            ];
-        }
-
-        $messages = SabreApplicationResultsParser::messages($responseData, 'CreatePassengerNameRecordRS');
-        if ($messages === []) {
-            $messages = SabreApplicationResultsParser::messages($responseData, 'UpdatePassengerNameRecordRS');
-        }
-
-        $records = SabrePriceQuoteResolver::fromBookingResponse($responseData);
-        if ($records === []) {
-            $records = SabrePriceQuoteResolver::fromXml(json_encode($responseData, JSON_UNESCAPED_SLASHES) ?: '');
-        }
-
-        if ($records === [] && $messages !== []) {
-            return [
-                'records' => [],
-                'error' => implode('; ', $messages),
-                'response' => $responseData,
-            ];
-        }
-
-        return [
-            'records' => $records,
-            'error' => $records === [] ? 'Sabre REST repricing completed without price quote records.' : null,
-            'response' => $responseData,
-        ];
     }
 
     /**
@@ -1468,10 +1392,17 @@ class FlightService
             $passengerTypeXml .= "<PassengerType Code=\"{$code}\" Quantity=\"{$quantity}\"/>";
         }
 
-        $validatingCarrierXml = '';
+        $flightQualifiersXml = '';
         $validatingCarrier = $this->resolveSabreValidatingCarrier($booking);
         if ($validatingCarrier !== null) {
-            $validatingCarrierXml = '<ValidatingCarrier Code="' . htmlspecialchars($validatingCarrier, ENT_XML1) . '"/>';
+            $carrier = htmlspecialchars($validatingCarrier, ENT_XML1);
+            $flightQualifiersXml = <<<XML
+                <FlightQualifiers>
+                    <VendorPrefs>
+                        <Airline Code="{$carrier}"/>
+                    </VendorPrefs>
+                </FlightQualifiers>
+            XML;
         }
 
         $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
@@ -1499,8 +1430,8 @@ class FlightService
         <OTA_AirPriceRQ xmlns="http://webservices.sabre.com/sabreXML/2011/10" Version="2.17.0">
             <PriceRequestInformation Retain="true">
                 <OptionalQualifiers>
+                    {$flightQualifiersXml}
                     <PricingQualifiers>
-                        {$validatingCarrierXml}
                         {$passengerTypeXml}
                     </PricingQualifiers>
                 </OptionalQualifiers>
