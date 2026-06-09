@@ -76,8 +76,9 @@ class BookingController extends Controller
 
         $counts  = $this->bookingCounts();
         $cancellation = BookingCancellationEligibility::forFlight($booking);
+        $ticketDetails = $flightService->resolveTicketDetails($booking);
 
-        return view('user.bookings.flight-detail', compact('booking', 'counts', 'cancellation'));
+        return view('user.bookings.flight-detail', compact('booking', 'counts', 'cancellation', 'ticketDetails'));
     }
 
     public function hotels(Request $request)

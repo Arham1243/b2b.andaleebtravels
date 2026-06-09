@@ -178,6 +178,11 @@
                     <div>
                         @include('admin.hotel-bookings.partials.supplier-booking-details')
 
+                        @include('partials.flight-booking-ticket-details', [
+                            'booking' => $booking,
+                            'ticketDetails' => $ticketDetails ?? ['tickets' => []],
+                        ])
+
                         @include('admin.partials.booking-vendor-detail-card', ['vendor' => $booking->vendor])
 
                         <div class="bkpd-card mb-3">

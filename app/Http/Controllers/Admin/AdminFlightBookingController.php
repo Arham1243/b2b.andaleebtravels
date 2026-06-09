@@ -52,8 +52,9 @@ class AdminFlightBookingController extends Controller
         $supplierBookingDetails = SupplierFlightBookingDetailsPresenter::present($booking, null);
         $cancellation = BookingCancellationEligibility::forFlight($booking);
         $adminDetails = FlightBookingAdminPresenter::present($booking);
+        $ticketDetails = $flightService->resolveTicketDetails($booking);
 
-        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails'))
+        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails', 'ticketDetails'))
             ->with('title', 'Booking ' . $booking->booking_number);
     }
 

@@ -188,6 +188,11 @@
                             @endif
                         </div>
 
+                        @include('partials.flight-booking-ticket-details', [
+                            'booking' => $booking,
+                            'ticketDetails' => $ticketDetails ?? ['tickets' => []],
+                        ])
+
                         {{-- Flight legs --}}
                         @if(!empty($legs))
                         <div class="bkpd-card mb-3">

@@ -9,7 +9,10 @@ use App\Support\SabreAirRulesResponseParser;
 use App\Support\SabreApplicationResultsParser;
 use App\Support\SabreStructuredFareRulesFallback;
 use App\Support\SabrePriceQuoteResolver;
+use App\Support\FlightBookingTicketDetailsPresenter;
 use App\Support\FlightBookingTicketResolver;
+use App\Support\Travelport\TravelportTicketDetailsPresenter;
+use App\Services\Travelport\TravelportApiClient;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -926,6 +929,91 @@ class FlightService
         $booking->update(['ticket_numbers' => $numbers]);
 
         return $numbers;
+    }
+
+    /**
+     * @return array{source: ?string, error: ?string, tickets: list<array<string, mixed>>}
+     */
+    public function resolveTicketDetails(B2bFlightBooking $booking): array
+    {
+        if ($booking->ticket_status !== 'issued' || ! $booking->hasAirlinePnr()) {
+            return FlightBookingTicketDetailsPresenter::present($booking);
+        }
+
+        if ($booking->isTravelport()) {
+            return $this->resolveTravelportTicketDetails($booking);
+        }
+
+        if ($booking->isSabre()) {
+            $this->syncSabreTicketNumbersIfMissing($booking);
+            $booking->refresh();
+        }
+
+        $liveFetch = $booking->isSabre()
+            ? $this->fetchLiveSabreBookingDetails($booking)
+            : null;
+
+        return FlightBookingTicketDetailsPresenter::present($booking, $liveFetch);
+    }
+
+    /**
+     * @return array{source: ?string, error: ?string, tickets: list<array<string, mixed>>}
+     */
+    private function resolveTravelportTicketDetails(B2bFlightBooking $booking): array
+    {
+        $stored = TravelportTicketDetailsPresenter::fromTicketingResponse(
+            is_array($booking->ticket_response) ? $booking->ticket_response : null,
+            $booking,
+        );
+
+        if ($stored !== [] && self::travelportTicketsHaveCoupons($stored)) {
+            return FlightBookingTicketDetailsPresenter::present($booking);
+        }
+
+        $locator = trim((string) ($booking->sabre_record_locator ?? ''));
+        $ticketNumbers = $booking->resolvedTicketNumbers();
+        $client = new TravelportApiClient();
+
+        $response = $client->airRetrieveDocument(
+            $locator,
+            $ticketNumbers,
+            $locator,
+        );
+
+        if ($response['success'] ?? false) {
+            $liveTickets = TravelportTicketDetailsPresenter::fromRetrieveDocument(
+                is_array($response['parsed'] ?? null) ? $response['parsed'] : null,
+                $booking,
+            );
+
+            if ($liveTickets !== []) {
+                return FlightBookingTicketDetailsPresenter::present($booking, [
+                    'ok' => true,
+                    'tickets' => $liveTickets,
+                    'error' => null,
+                ]);
+            }
+        }
+
+        return FlightBookingTicketDetailsPresenter::present($booking, [
+            'ok' => false,
+            'tickets' => [],
+            'error' => $response['error'] ?? null,
+        ]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $tickets
+     */
+    private static function travelportTicketsHaveCoupons(array $tickets): bool
+    {
+        foreach ($tickets as $ticket) {
+            if (($ticket['coupons'] ?? []) !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

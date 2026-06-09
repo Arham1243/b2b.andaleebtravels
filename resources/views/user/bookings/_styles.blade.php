@@ -1000,6 +1000,107 @@
     line-height: 1.4;
 }
 
+/* E-ticket details */
+.bkpd-ticket-source {
+    margin-left: auto;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #047857;
+}
+
+.bkpd-ticket-note {
+    margin: 0 18px 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: .74rem;
+    line-height: 1.45;
+}
+
+.bkpd-ticket {
+    padding: 0 18px 16px;
+    border-bottom: 1px solid #eef1f5;
+}
+
+.bkpd-ticket:last-child { border-bottom: none; padding-bottom: 18px; }
+
+.bkpd-ticket__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding-top: 14px;
+}
+
+.bkpd-ticket__number {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1a2540;
+    letter-spacing: .04em;
+}
+
+.bkpd-ticket__pax {
+    margin-top: 4px;
+    font-size: .78rem;
+    color: #4a5568;
+    font-weight: 600;
+}
+
+.bkpd-info-rows--compact { padding-top: 8px; padding-bottom: 0; }
+
+.bkpd-ticket__coupons {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e4e9f0;
+}
+
+.bkpd-ticket__coupons-title {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #8492a6;
+    margin-bottom: 8px;
+}
+
+.bkpd-ticket-coupon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.bkpd-ticket-coupon {
+    border: 1px solid #e8edf3;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #f8fafc;
+}
+
+.bkpd-ticket-coupon__flight {
+    font-size: .82rem;
+    font-weight: 800;
+    color: #1a2540;
+}
+
+.bkpd-ticket-coupon__route {
+    font-size: .76rem;
+    color: #334155;
+    margin-top: 2px;
+    font-weight: 600;
+}
+
+.bkpd-ticket-coupon__meta {
+    font-size: .7rem;
+    color: #64748b;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
 /* Hotel stay visual */
 .bkpd-stay {
     display: flex;

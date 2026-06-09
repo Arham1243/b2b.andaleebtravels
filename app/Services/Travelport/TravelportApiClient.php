@@ -596,6 +596,80 @@ XML;
     }
 
     /**
+     * Retrieve issued ticket document(s) — SOAP equivalent of REST GET /air/ticket/tickets/{id}.
+     *
+     * @param  list<string>  $ticketNumbers
+     * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
+     */
+    public function airRetrieveDocument(
+        string $providerLocator,
+        array $ticketNumbers = [],
+        ?string $airReservationLocator = null,
+    ): array {
+        $providerLocator = trim($providerLocator);
+        $airReservationLocator = trim((string) $airReservationLocator);
+
+        if ($providerLocator === '' && $airReservationLocator === '' && $ticketNumbers === []) {
+            return [
+                'success' => false,
+                'httpCode' => 0,
+                'raw' => '',
+                'parsed' => null,
+                'error' => 'Missing locator or ticket number for document retrieve.',
+            ];
+        }
+
+        $traceId = $this->generateTraceId();
+        $authorizedBy = self::AUTHORIZED_BY;
+        $targetBranch = self::TARGET_BRANCH;
+        $airNs = self::AIR_NS;
+        $comNs = self::COM_NS;
+        $providerCode = self::PROVIDER_CODE;
+
+        $ticketNumbersXml = '';
+        foreach ($ticketNumbers as $number) {
+            $ticket = $this->xmlEsc(preg_replace('/\D+/', '', (string) $number) ?? '');
+            if ($ticket === '') {
+                continue;
+            }
+
+            $ticketNumbersXml .= "\n            <TicketNumber xmlns=\"{$comNs}\">{$ticket}</TicketNumber>";
+        }
+
+        $locatorAttrs = '';
+        if ($providerLocator !== '') {
+            $locatorAttrs .= ' ProviderLocatorCode="' . $this->xmlEsc($providerLocator) . '"';
+        }
+
+        if ($airReservationLocator !== '') {
+            $resLocator = $this->xmlEsc($airReservationLocator);
+            $resLocatorXml = "\n            <AirReservationLocatorCode>{$resLocator}</AirReservationLocatorCode>";
+        } else {
+            $resLocatorXml = '';
+        }
+
+        $soap = <<<XML
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <air:AirRetrieveDocumentReq
+            TraceId="{$traceId}"
+            AuthorizedBy="{$authorizedBy}"
+            TargetBranch="{$targetBranch}"
+            ProviderCode="{$providerCode}"
+            ReturnPricing="true"{$locatorAttrs}
+            xmlns:air="{$airNs}"
+            xmlns:com="{$comNs}">
+            <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>{$ticketNumbersXml}{$resLocatorXml}
+        </air:AirRetrieveDocumentReq>
+    </soapenv:Body>
+</soapenv:Envelope>
+XML;
+
+        return $this->sendRequest('AirService', $soap);
+    }
+
+    /**
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>
      */
