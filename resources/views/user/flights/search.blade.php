@@ -1262,7 +1262,7 @@
 }
 .rc__fbadge--ref { background: var(--c-green-soft); color: var(--c-green); }
 .rc__fbadge--nr  { background: #fff0f3; color: #c0143c; }
-.rc__fbadge--brand { background: #eef2ff; color: #4338ca; text-transform: none; letter-spacing: 0; font-size: .76rem; }
+.rc__fbadge--brand { background: #eef2ff; color: #4338ca; text-transform: uppercase; letter-spacing: 0; font-size: .76rem; }
 
 .rc__brand {
     font-size: .78rem; font-weight: 700; color: #4338ca;
