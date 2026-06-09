@@ -571,7 +571,9 @@
                         </div>{{-- /.rc --}}
 
                         {{-- ── FLIGHT DETAILS MODAL (fixed, escapes overflow) ── --}}
-                        <div class="fd-modal" id="fd-{{ $lid }}" hidden aria-modal="true" role="dialog">
+                        <div class="fd-modal" id="fd-{{ $lid }}" hidden aria-modal="true" role="dialog"
+                            data-fare-count="{{ count($fareOptions) }}"
+                            data-itinerary-id="{{ $lid }}">
                             <div class="fd-backdrop" data-fd-close="fd-{{ $lid }}"></div>
                             <div class="fd-box">
 
@@ -2519,13 +2521,27 @@
         const fareTabs = modal.querySelector('.fd-fare-tabs');
         if (fareTabs) {
             const singleFareMode = modal.dataset.singleFareMode === '1';
-            const showFareTabs = !singleFareMode && (panelKey === 'baggage' || panelKey === 'fare-rules');
+            const fareCount = parseInt(modal.dataset.fareCount || '0', 10);
+            const hasMultipleFares = fareCount > 1 || modal.querySelectorAll('.fd-fare-tab').length > 1;
+            const showFareTabs = !singleFareMode && hasMultipleFares && (panelKey === 'baggage' || panelKey === 'fare-rules');
             fareTabs.hidden = !showFareTabs;
         }
 
         if (String(panelKey) === 'fare-rules') {
             loadFullFareRules(modal);
         }
+    }
+
+    function syncModalWithFares(modal, fareCount) {
+        if (!modal) return;
+
+        modal.dataset.fareCount = String(fareCount ?? modal.querySelectorAll('.fd-fare-foot').length ?? 0);
+        modal.dataset.singleFareMode = '0';
+        modal.dataset.activeFare = '0';
+        modal.dataset.activePanel = '0';
+
+        setModalFareIndex(modal, '0');
+        activateModalTab(modal, modal.dataset.activePanel || '0');
     }
 
     function openModal(id, tabKey, fareIndex, singleFareMode = false){
@@ -2544,16 +2560,18 @@
         m.hidden = true;
         document.body.style.overflow = '';
     }
-    document.querySelectorAll('[data-fd-open]').forEach(btn=>{
-        btn.addEventListener('click', ()=> {
-            const singleFare = btn.dataset.fdFare !== undefined && btn.dataset.fdFare !== '';
-            openModal(
-                btn.dataset.fdOpen,
-                btn.dataset.fdOpenTab || null,
-                singleFare ? btn.dataset.fdFare : null,
-                singleFare,
-            );
-        });
+    document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('[data-fd-open]');
+        if (!btn) return;
+
+        e.preventDefault();
+        const singleFare = btn.dataset.fdFare !== undefined && btn.dataset.fdFare !== '';
+        openModal(
+            btn.dataset.fdOpen,
+            btn.dataset.fdOpenTab || null,
+            singleFare ? btn.dataset.fdFare : null,
+            singleFare,
+        );
     });
     document.querySelectorAll('[data-fd-close]').forEach(el=>{
         el.addEventListener('click', ()=> closeModal(el.dataset.fdClose));
@@ -2563,15 +2581,25 @@
             document.querySelectorAll('.fd-modal:not([hidden])').forEach(m=> closeModal(m.id));
         }
     });
+    document.addEventListener('click', (e)=>{
+        const fareTab = e.target.closest('.fd-fare-tab');
+        if (!fareTab) return;
+
+        const modal = fareTab.closest('.fd-modal');
+        if (modal) {
+            setModalFareIndex(modal, fareTab.dataset.fdFareTab);
+        }
+    });
     document.querySelectorAll('.fd-modal').forEach(modal=>{
+        if (!modal.dataset.activeFare) {
+            modal.dataset.activeFare = '0';
+        }
+        if (!modal.dataset.fareCount) {
+            modal.dataset.fareCount = String(modal.querySelectorAll('.fd-fare-foot').length || 1);
+        }
         modal.querySelectorAll('.fd-tab').forEach(tab=>{
             tab.addEventListener('click', ()=>{
                 activateModalTab(modal, tab.dataset.fdTab);
-            });
-        });
-        modal.querySelectorAll('.fd-fare-tab').forEach(tab=>{
-            tab.addEventListener('click', ()=>{
-                setModalFareIndex(modal, tab.dataset.fdFareTab);
             });
         });
     });
@@ -2646,15 +2674,13 @@
                         if (fdBody) {
                             fdBody.insertAdjacentHTML('beforeend', data.modal_fare_html);
                         }
-                        modal.querySelectorAll('.fd-fare-tab').forEach(tab=>{
-                            tab.addEventListener('click', ()=>{
-                                setModalFareIndex(modal, tab.dataset.fdFareTab);
-                            });
-                        });
                     }
                     if (modal && data.modal_foot_html) {
                         const footWrap = modal.querySelector('.fd-foot-wrap');
                         if (footWrap) footWrap.innerHTML = data.modal_foot_html;
+                    }
+                    if (modal) {
+                        syncModalWithFares(modal, data.fare_count ?? modal.querySelectorAll('.fd-fare-foot').length);
                     }
                 } catch (err) {
                     btn.classList.remove('is-loading');
