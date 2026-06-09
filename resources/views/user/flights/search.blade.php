@@ -556,7 +556,10 @@
                             </div>
 
                             {{-- ── fare rows (first visible, rest expandable) ── --}}
-                            @php $extraFareCount = max(0, count($fareOptions) - 1); @endphp
+                            @php
+                                $defaultVisibleFares = 3;
+                                $extraFareCount = max(0, count($fareOptions) - $defaultVisibleFares);
+                            @endphp
                             <div class="rc__fares" data-rc-fares>
                                 @foreach ($fareOptions as $fi => $fare)
                                     @php
@@ -577,7 +580,7 @@
                                             $bagNote,
                                         );
                                     @endphp
-                                    <div class="rc__fare {{ $fi > 0 && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
+                                    <div class="rc__fare {{ $fi >= $defaultVisibleFares && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
                                         data-rc-fare-row="{{ $fi }}">
                                         <div class="rc__fare-left {{ $isRoundTrip && count($fareLegRows) > 1 ? 'rc__fare-left--split' : '' }}">
                                             @if($isRoundTrip && count($fareLegRows) > 1)

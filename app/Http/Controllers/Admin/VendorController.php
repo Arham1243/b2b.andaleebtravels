@@ -96,7 +96,18 @@ class VendorController extends Controller
 
     public function create()
     {
-        return view('admin.vendors.create');
+        $config = Config::pluck('config_value', 'config_key')->toArray();
+        $adminProviders = $this->parseProviderConfig(
+            $config['HOTEL_SEARCH_PROVIDERS'] ?? null,
+            ['yalago', 'tbo', 'tripindeal']
+        ) ?? ['yalago', 'tbo', 'tripindeal'];
+        $adminFlightProviders = $this->parseProviderConfig(
+            $config['FLIGHT_SEARCH_PROVIDERS'] ?? null,
+            ['sabre', 'travelport']
+        ) ?? ['sabre', 'travelport'];
+        $vendor = new B2bVendor();
+
+        return view('admin.vendors.create', compact('vendor', 'adminProviders', 'adminFlightProviders'));
     }
 
     public function store(Request $request)
@@ -123,6 +134,14 @@ class VendorController extends Controller
             'agent_code' => $this->generateUniqueAgentCode(),
             'password' => Hash::make($plainPassword),
             'status' => $validated['status'],
+            'hotel_search_providers' => $this->parseProviderConfig(
+                $request->input('hotel_search_providers'),
+                ['yalago', 'tbo', 'tripindeal']
+            ),
+            'flight_search_providers' => $this->parseProviderConfig(
+                $request->input('flight_search_providers'),
+                ['sabre', 'travelport']
+            ),
         ]);
 
         try {

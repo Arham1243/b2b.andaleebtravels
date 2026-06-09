@@ -4,7 +4,6 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bVendor;
-use App\Models\Config;
 use App\Support\WalletLedgerResolver;
 use App\Traits\UploadImageTrait;
 use Illuminate\Http\Request;
@@ -22,13 +21,10 @@ class ProfileSettingsController extends Controller
     public function personalInfo()
     {
         $user = Auth::user();
-        $config = Config::pluck('config_value', 'config_key')->toArray();
-        $adminProviders = $this->parseProviderConfig($config['HOTEL_SEARCH_PROVIDERS'] ?? null, ['yalago', 'tbo', 'tripindeal']);
-        $adminFlightProviders = $this->parseProviderConfig($config['FLIGHT_SEARCH_PROVIDERS'] ?? null, ['sabre', 'travelport']) ?? ['sabre', 'travelport'];
 
         return view('user.profile-settings.personal-info')
             ->with('title', 'Personal Information')
-            ->with(compact('user', 'adminProviders', 'adminFlightProviders'));
+            ->with(compact('user'));
     }
 
     public function walletLedger(Request $request)
@@ -104,10 +100,6 @@ class ProfileSettingsController extends Controller
             'last_name' => 'required|string|max:255',
             'designation' => 'required|string|max:255',
             'agency_logo' => 'nullable|image|max:2048',
-            'hotel_search_providers' => 'nullable|array',
-            'hotel_search_providers.*' => 'in:yalago,tbo,tripindeal',
-            'flight_search_providers' => 'nullable|array',
-            'flight_search_providers.*' => 'in:sabre,travelport',
         ]);
 
         // Travel agency name, username, and trade license fields are admin-managed only.
@@ -123,40 +115,9 @@ class ProfileSettingsController extends Controller
             );
         }
 
-        $data['hotel_search_providers'] = $this->parseProviderConfig($request->input('hotel_search_providers'), ['yalago', 'tbo', 'tripindeal']);
-        $data['flight_search_providers'] = $this->parseProviderConfig($request->input('flight_search_providers'), ['sabre', 'travelport']);
-
         B2bVendor::where('id', Auth::user()->id)->update($data);
 
         return redirect()->back()->with('notify_success', 'Information Updated Successfully');
-    }
-
-    private function parseProviderConfig($raw, array $allowed): ?array
-    {
-        if (empty($raw)) {
-            return null;
-        }
-
-        $providers = [];
-
-        if (is_array($raw)) {
-            $providers = $raw;
-        } elseif (is_string($raw)) {
-            $decoded = json_decode($raw, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                $providers = $decoded;
-            } else {
-                $providers = array_map('trim', explode(',', $raw));
-            }
-        }
-
-        $providers = array_values(array_unique(array_filter(array_map(function ($value) {
-            return strtolower(trim((string) $value));
-        }, $providers))));
-
-        $providers = array_values(array_intersect($providers, $allowed));
-
-        return empty($providers) ? null : $providers;
     }
 
     public function changePassword()

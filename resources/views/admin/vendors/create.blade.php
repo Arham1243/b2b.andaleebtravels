@@ -20,6 +20,12 @@
                                 </div>
                             </div>
                         </div>
+
+                        @include('admin.vendors.partials._form-providers', [
+                            'vendor' => $vendor,
+                            'adminProviders' => $adminProviders,
+                            'adminFlightProviders' => $adminFlightProviders,
+                        ])
                     </div>
                     <div class="col-md-4">
                         <div class="seo-wrapper">
