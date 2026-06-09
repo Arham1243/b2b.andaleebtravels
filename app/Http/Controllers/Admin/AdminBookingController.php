@@ -296,7 +296,7 @@ class AdminBookingController extends Controller
             return redirect()->back()->with('notify_error', 'Retry is only available for paid bookings.');
         }
 
-        if ($bookingModel->ticket_status === 'issued') {
+        if ($bookingModel->hasVerifiedTicketIssue()) {
             return redirect()->back()->with('notify_success', 'Ticket is already issued for this booking.');
         }
 

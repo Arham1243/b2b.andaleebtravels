@@ -285,7 +285,7 @@ class FlightBookingController extends Controller
             $booking->reconcileStatusAfterHoldPayment();
 
             // Idempotent: do not re-verify payment or re-issue ticket on reload
-            if ($booking->payment_status === 'paid' && $booking->ticket_status === 'issued') {
+            if ($booking->payment_status === 'paid' && $booking->hasVerifiedTicketIssue()) {
                 return redirect()->route('user.flights.payment.success.view', ['booking' => $booking->id]);
             }
 

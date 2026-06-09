@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\FlightBookingTicketResolver;
+use App\Support\Travelport\TravelportAirTicketingResult;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -238,6 +239,33 @@ class B2bFlightBooking extends Model
     public function hasIssuedTicketNumbers(): bool
     {
         return $this->ticket_status === 'issued' && $this->resolvedTicketNumbers() !== [];
+    }
+
+    public function hasVerifiedTicketIssue(): bool
+    {
+        if ($this->ticket_status !== 'issued') {
+            return false;
+        }
+
+        if ($this->resolvedTicketNumbers() !== []) {
+            return true;
+        }
+
+        $response = is_array($this->ticket_response) ? $this->ticket_response : [];
+        if ($this->isTravelport() && TravelportAirTicketingResult::hasFailure($response)) {
+            return false;
+        }
+
+        return ! $this->isTravelport();
+    }
+
+    public function needsTicketFulfillmentRetry(): bool
+    {
+        if (! $this->isPaid() || $this->isCancelled() || $this->isOnHold()) {
+            return false;
+        }
+
+        return ! $this->hasVerifiedTicketIssue();
     }
 
     public function canCancelAtAirline(): bool

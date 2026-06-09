@@ -3,6 +3,7 @@
 namespace App\Services\Travelport;
 
 use App\Support\FlightCabinPreference;
+use App\Support\Travelport\TravelportAirTicketingResult;
 
 class TravelportApiClient
 {
@@ -431,10 +432,13 @@ XML;
     }
 
     /**
-     * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
+     * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string, error_code?: ?string, trace_id?: ?string}
      */
-    public function airTicket(string $airReservationLocator, string $platingCarrier): array
-    {
+    public function airTicket(
+        string $airReservationLocator,
+        string $platingCarrier = '',
+        string $paymentAmount = '',
+    ): array {
         $traceId = $this->generateTraceId();
         $authorizedBy = self::AUTHORIZED_BY;
         $targetBranch = self::TARGET_BRANCH;
@@ -442,6 +446,23 @@ XML;
         $comNs = self::COM_NS;
         $locator = $this->xmlEsc($airReservationLocator);
         $carrier = $this->xmlEsc($platingCarrier);
+        $amount = $this->xmlEsc($paymentAmount);
+
+        $platingCarrierAttr = $carrier !== '' ? ' PlatingCarrier="' . $carrier . '"' : '';
+
+        $fopXml = '';
+        if ($amount !== '') {
+            $fopXml = <<<XML
+
+            <com:FormOfPayment Key="FOP1" Type="Cash"/>
+            <air:Payment Key="PAY1" Type="Itinerary" FormOfPaymentRef="FOP1" Amount="{$amount}"/>
+XML;
+        } else {
+            $fopXml = <<<XML
+
+            <com:FormOfPayment Key="FOP1" Type="Cash"/>
+XML;
+        }
 
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -457,13 +478,50 @@ XML;
             BulkTicket="false">
             <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>
             <air:AirReservationLocatorCode>{$locator}</air:AirReservationLocatorCode>
-            <air:AirTicketingModifiers PlatingCarrier="{$carrier}"/>
+            <air:AirTicketingModifiers{$platingCarrierAttr}>{$fopXml}
+            </air:AirTicketingModifiers>
         </air:AirTicketingReq>
     </soapenv:Body>
 </soapenv:Envelope>
 XML;
 
-        return $this->sendRequest('AirService', $soap);
+        $result = $this->sendRequest('AirService', $soap);
+
+        return $this->finalizeAirTicketingResult($result);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function finalizeAirTicketingResult(array $result): array
+    {
+        if (! ($result['success'] ?? false)) {
+            return $result;
+        }
+
+        $parsed = is_array($result['parsed'] ?? null) ? $result['parsed'] : [];
+        $ticketingRsp = $parsed['Body']['AirTicketingRsp'] ?? [];
+        if (! is_array($ticketingRsp)) {
+            $ticketingRsp = [];
+        }
+
+        if (TravelportAirTicketingResult::hasFailure($ticketingRsp)) {
+            $error = TravelportAirTicketingResult::failureMessage($ticketingRsp);
+            $warnings = TravelportAirTicketingResult::warningMessages($ticketingRsp);
+            if ($warnings !== []) {
+                $error .= ' Warning: ' . implode(' ', $warnings);
+            }
+
+            return array_merge($result, [
+                'success' => false,
+                'error' => $error,
+                'error_code' => data_get($ticketingRsp, 'TicketFailureInfo.@attributes.Code')
+                    ?? data_get($ticketingRsp, 'TicketFailureInfo.Code'),
+            ]);
+        }
+
+        return $result;
     }
 
     /**

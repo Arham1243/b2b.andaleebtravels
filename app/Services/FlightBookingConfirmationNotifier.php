@@ -17,7 +17,7 @@ class FlightBookingConfirmationNotifier
             return false;
         }
 
-        if ($booking->payment_status !== 'paid' || $booking->ticket_status !== 'issued') {
+        if ($booking->payment_status !== 'paid' || ! $booking->hasVerifiedTicketIssue()) {
             return false;
         }
 

@@ -5,6 +5,7 @@ namespace App\Services\Travelport;
 use App\Models\B2bFlightBooking;
 use App\Support\FlightBookingTicketResolver;
 use App\Support\Travelport\TravelportAirPriceParser;
+use App\Support\Travelport\TravelportAirTicketingResult;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -213,11 +214,18 @@ class TravelportBookingService
             }
 
             $platingCarrier = $this->resolvePlatingCarrier($booking);
-            if ($platingCarrier === '') {
+            if ($platingCarrier === '' && ! $this->shouldOmitPlatingCarrier($booking)) {
                 throw new \RuntimeException('Missing validating carrier for Travelport ticketing.');
             }
 
-            $ticketResponse = $this->client->airTicket($locator, $platingCarrier);
+            $paymentAmount = $this->resolveTicketingPaymentAmount($booking);
+            $platingCarrierForRequest = $this->shouldOmitPlatingCarrier($booking) ? '' : $platingCarrier;
+
+            $ticketResponse = $this->client->airTicket(
+                $locator,
+                $platingCarrierForRequest,
+                $paymentAmount,
+            );
             if (! ($ticketResponse['success'] ?? false)) {
                 Log::error('Travelport airTicket failed', [
                     'booking_id' => $booking->id,
@@ -239,10 +247,19 @@ class TravelportBookingService
 
             $ticketNumbers = FlightBookingTicketResolver::fromResponse($storedResponse);
 
+            if (! TravelportAirTicketingResult::isSuccessful($storedResponse, $ticketNumbers)) {
+                $error = TravelportAirTicketingResult::hasFailure($storedResponse)
+                    ? TravelportAirTicketingResult::failureMessage($storedResponse)
+                    : 'Travelport ticketing completed without ticket numbers.';
+
+                throw new \RuntimeException($error);
+            }
+
             $ticketUpdate = [
                 'ticket_request' => [
                     'air_reservation_locator' => $locator,
-                    'plating_carrier' => $platingCarrier,
+                    'plating_carrier' => $platingCarrierForRequest !== '' ? $platingCarrierForRequest : $platingCarrier,
+                    'payment_amount' => $paymentAmount,
                 ],
                 'ticket_response' => $storedResponse,
                 'ticket_numbers' => $ticketNumbers,
@@ -372,6 +389,33 @@ class TravelportBookingService
             ?? data_get($booking->booking_request, 'pricing_data.carrier')
             ?? ''
         ));
+    }
+
+    private function shouldOmitPlatingCarrier(B2bFlightBooking $booking): bool
+    {
+        $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $fareTags = array_map(
+            static fn ($tag) => strtolower(trim((string) $tag)),
+            (array) ($itineraryData['fare_tags'] ?? []),
+        );
+
+        return in_array('ndc', $fareTags, true);
+    }
+
+    private function resolveTicketingPaymentAmount(B2bFlightBooking $booking): string
+    {
+        $pricingData = data_get($booking->booking_request, 'pricing_data');
+        if (is_array($pricingData)) {
+            $total = trim((string) ($pricingData['total_price'] ?? ''));
+            if ($total !== '') {
+                return $total;
+            }
+        }
+
+        $currency = strtoupper(trim((string) ($booking->currency ?? 'AED')));
+        $amount = number_format((float) $booking->total_amount, 2, '.', '');
+
+        return $currency . $amount;
     }
 
     /**

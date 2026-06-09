@@ -747,12 +747,20 @@ class FlightService
             ];
         }
 
-        if ($booking->ticket_status === 'issued') {
+        if ($booking->hasVerifiedTicketIssue()) {
             return [
                 'success' => true,
                 'already_complete' => true,
                 'pnr' => $booking->sabre_record_locator,
             ];
+        }
+
+        if ($booking->ticket_status === 'issued' && ! $booking->hasVerifiedTicketIssue()) {
+            $booking->update([
+                'ticket_status' => 'pending',
+                'ticket_numbers' => [],
+            ]);
+            $booking->refresh();
         }
 
         if (empty($booking->sabre_record_locator)) {

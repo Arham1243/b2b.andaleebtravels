@@ -125,8 +125,7 @@
     $canEditBooking = \App\Support\B2bAdminPortalUi::can('flight_bookings_edit');
     $adminDetails = $adminDetails ?? [];
     $needsFulfillmentRetry = $canEditBooking
-        && $booking->isPaid()
-        && $booking->ticket_status !== 'issued'
+        && $booking->needsTicketFulfillmentRetry()
         && ! $booking->isCancelled()
         && ! $booking->isOnHold();
 @endphp
