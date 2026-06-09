@@ -452,17 +452,11 @@ XML;
 
         $platingCarrierAttr = $carrier !== '' ? ' PlatingCarrier="' . $carrier . '"' : '';
 
-        $fopXml = '';
+        $paymentXml = '';
         if ($amount !== '') {
-            $fopXml = <<<XML
+            $paymentXml = <<<XML
 
-            <air:FormOfPayment Key="FOP1" Type="Cash"/>
             <air:Payment Key="PAY1" Type="Itinerary" FormOfPaymentRef="FOP1" Amount="{$amount}"/>
-XML;
-        } else {
-            $fopXml = <<<XML
-
-            <air:FormOfPayment Key="FOP1" Type="Cash"/>
 XML;
         }
 
@@ -479,8 +473,9 @@ XML;
             ReturnInfoOnFail="true"
             BulkTicket="false">
             <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>
+            <com:FormOfPayment Key="FOP1" Type="Cash"/>
             <air:AirReservationLocatorCode>{$locator}</air:AirReservationLocatorCode>
-            <air:AirTicketingModifiers{$platingCarrierAttr}>{$fopXml}
+            <air:AirTicketingModifiers{$platingCarrierAttr}>{$paymentXml}
             </air:AirTicketingModifiers>
         </air:AirTicketingReq>
     </soapenv:Body>
