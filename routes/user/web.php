@@ -74,6 +74,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
     Route::prefix('flights')->name('flights.')->group(function () {
         Route::get('/', [FlightController::class, 'index'])->name('index');
         Route::get('/search', [FlightController::class, 'search'])->name('search');
+        Route::get('/travelport-more-fares', [FlightController::class, 'travelportMoreFares'])->name('travelport-more-fares');
         Route::get('/fare-rules', [FlightController::class, 'fareRulesText'])->name('fare-rules');
         Route::get('/debug-baggage', [FlightController::class, 'debugBaggage'])->name('debug-baggage');
         Route::get('/checkout/{itinerary}', [FlightBookingController::class, 'checkout'])->name('checkout');

@@ -68,6 +68,56 @@ class TravelportSearchPresenter
     }
 
     /**
+     * @param  list<array<string, mixed>>  $cards
+     */
+    public static function findCardByRoutingSignature(array $cards, string $signature): ?array
+    {
+        foreach ($cards as $card) {
+            if (! is_array($card)) {
+                continue;
+            }
+
+            if (self::routingSignature($card) === $signature) {
+                return $card;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     * @param  list<array<string, mixed>>  $incomingFareOptions
+     * @return array<string, mixed>
+     */
+    public static function enrichCardFareOptions(array $card, array $incomingFareOptions): array
+    {
+        $mergedOptions = self::mergeFareOptions(
+            $card['fare_options'] ?? [],
+            $incomingFareOptions,
+        );
+
+        $card['fare_options'] = $mergedOptions;
+        $card['totalPrice'] = (float) ($mergedOptions[0]['totalPrice'] ?? $card['totalPrice'] ?? 0);
+        $card['supplierPrice'] = $card['totalPrice'];
+
+        $cheapest = $mergedOptions[0] ?? [];
+        $card['fare_brand'] = $cheapest['fare_brand'] ?? $card['fare_brand'] ?? null;
+        $card['baggage_details'] = $cheapest['baggage_details'] ?? $card['baggage_details'] ?? [];
+        $card['baggage_notes'] = $cheapest['baggage_notes'] ?? $card['baggage_notes'] ?? '';
+        $card['fare_rules'] = $cheapest['fare_rules'] ?? $card['fare_rules'] ?? [];
+        $card['non_refundable'] = (bool) ($cheapest['non_refundable'] ?? $card['non_refundable'] ?? false);
+        $card['fare_tags'] = $cheapest['fare_tags'] ?? $card['fare_tags'] ?? ['published'];
+        $card['listing_meta'] = FlightListingMetaBuilder::fromLegs(
+            $card['legs'] ?? [],
+            $card['totalPrice'],
+            ['tags' => $card['fare_tags']],
+        );
+
+        return $card;
+    }
+
+    /**
      * Rebuild AirFareRules request from a persisted LowFareSearch response.
      *
      * @param  array<string, mixed>  $searchResponse
@@ -668,7 +718,7 @@ class TravelportSearchPresenter
     /**
      * @param  array<string, mixed>  $card
      */
-    private static function routingSignature(array $card): string
+    public static function routingSignature(array $card): string
     {
         $parts = [];
 

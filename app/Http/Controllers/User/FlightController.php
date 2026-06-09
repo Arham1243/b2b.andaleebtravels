@@ -239,6 +239,79 @@ class FlightController extends Controller
         ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
 
+    public function travelportMoreFares(Request $request)
+    {
+        $validated = $request->validate([
+            'itinerary' => 'required|integer|min:1',
+        ]);
+
+        if (! $this->isProviderEnabled('travelport')) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Travelport is disabled for your account.',
+            ], 403);
+        }
+
+        $searchData = session('flight_search_params');
+        $results = session('flight_search_results', []);
+
+        if (! is_array($searchData) || $searchData === [] || ! is_array($results)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Search session expired. Please search again.',
+            ], 422);
+        }
+
+        $itineraryId = (int) $validated['itinerary'];
+        $card = $results[$itineraryId] ?? null;
+
+        if (! is_array($card) || strtolower((string) ($card['supplier'] ?? '')) !== 'travelport') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Travelport itinerary not found.',
+            ], 404);
+        }
+
+        if ($card['travelport_fares_expanded'] ?? false) {
+            return response()->json([
+                'success' => true,
+                'already_loaded' => true,
+                'fare_count' => count($card['fare_options'] ?? []),
+            ]);
+        }
+
+        try {
+            $provider = new TravelportFlightProvider();
+            $updated = $provider->loadMoreFares($searchData, $card);
+            $updated['id'] = $itineraryId;
+
+            if (vendorPricing()->pricingAdjustmentsEnabled(Auth::user())) {
+                $priced = applyFlightSearchPricing([$updated]);
+                $updated = $priced[0] ?? $updated;
+            }
+
+            $results[$itineraryId] = $updated;
+            session(['flight_search_results' => $results]);
+
+            $viewData = $this->flightCardFareViewData($updated, $itineraryId, $request->query());
+
+            return response()->json([
+                'success' => true,
+                'fare_count' => count($updated['fare_options'] ?? []),
+                'fares_html' => view('user.flights.partials.flight-card-fares', $viewData)->render(),
+                'modal_fare_html' => view('user.flights.partials.flight-card-fare-modal-chrome', $viewData)->render(),
+                'modal_foot_html' => view('user.flights.partials.flight-card-fare-modal-foot', $viewData)->render(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to load additional fares right now. Please try again.',
+            ], 500);
+        }
+    }
+
     public function fareRulesText(Request $request, FlightService $flightService)
     {
         $validated = $request->validate([
@@ -604,5 +677,60 @@ class FlightController extends Controller
         }
 
         return in_array(strtolower($provider), $this->enabledFlightProviders, true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function flightCardFareViewData(array $result, int $lid, array $query): array
+    {
+        $legs = $result['legs'] ?? [];
+        $firstSeg = $legs[0]['segments'][0] ?? [];
+        $fareOptions = $result['fare_options'] ?? [[
+            'fare_brand' => trim((string) ($result['fare_brand'] ?? '')),
+            'totalPrice' => (float) ($result['totalPrice'] ?? 0),
+            'currency' => strtoupper((string) ($result['currency'] ?? 'AED')),
+            'non_refundable' => (bool) ($result['non_refundable'] ?? false),
+            'baggage_notes' => $result['baggage_notes'] ?? '',
+            'baggage_details' => $result['baggage_details'] ?? [],
+            'fare_rules' => $result['fare_rules'] ?? [],
+            'fare_tags' => $result['fare_tags'] ?? [],
+            'cabin_code' => $firstSeg['cabin_code'] ?? null,
+            'booking_code' => $firstSeg['booking_code'] ?? null,
+        ]];
+        $cardCur = strtoupper((string) ($fareOptions[0]['currency'] ?? $result['currency'] ?? 'AED'));
+        $cardSupplier = strtolower((string) ($result['supplier'] ?? 'sabre'));
+        $tripType = $query['trip_type'] ?? session('flight_search_params.trip_type', 'one_way');
+        $isRoundTrip = $tripType === 'round_trip';
+        $searchFrom = strtoupper((string) ($query['from'] ?? ''));
+        $searchTo = strtoupper((string) ($query['to'] ?? ''));
+        $legRoutes = [];
+
+        foreach ($legs as $li2 => $lg2) {
+            $routeFrom = $li2 === 0 ? $searchFrom : $searchTo;
+            $routeTo = $li2 === 0 ? $searchTo : $searchFrom;
+            $legRoutes[] = [
+                'from' => $routeFrom !== '' ? $routeFrom : ($lg2['segments'][0]['from'] ?? ' - '),
+                'to' => $routeTo !== '' ? $routeTo : ($lg2['segments'][array_key_last($lg2['segments'] ?? [])]['to'] ?? ' - '),
+                'from_label' => resolveFlightCityLabel('', $routeFrom),
+                'to_label' => resolveFlightCityLabel('', $routeTo),
+                'label' => $li2 === 0 ? 'Outbound' : 'Return',
+                'icon' => $li2 === 0 ? 'bxs-plane-take-off' : 'bxs-plane-land',
+            ];
+        }
+
+        return [
+            'result' => $result,
+            'lid' => $lid,
+            'fareOptions' => $fareOptions,
+            'legs' => $legs,
+            'query' => $query,
+            'isRoundTrip' => $isRoundTrip,
+            'cardCur' => $cardCur,
+            'cardSupplier' => $cardSupplier,
+            'legRoutes' => $legRoutes,
+        ];
     }
 }

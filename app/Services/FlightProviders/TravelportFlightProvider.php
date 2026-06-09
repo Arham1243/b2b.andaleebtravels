@@ -5,6 +5,7 @@ namespace App\Services\FlightProviders;
 use App\Services\FlightProviders\Contracts\FlightProviderInterface;
 use App\Services\FlightProviders\DTO\FlightProviderSearchResult;
 use App\Services\Travelport\TravelportApiClient;
+use App\Support\FlightCabinPreference;
 use App\Support\Travelport\TravelportSearchPresenter;
 
 class TravelportFlightProvider implements FlightProviderInterface
@@ -24,12 +25,73 @@ class TravelportFlightProvider implements FlightProviderInterface
      */
     public function search(array $searchData): FlightProviderSearchResult
     {
-        $requestPayload = ['search_data' => $searchData];
+        return $this->executeSearch($searchData, lite: true);
+    }
+
+    /**
+     * Load NDC upsell + cross-cabin GDS/NDC fares for one itinerary card.
+     *
+     * @param  array<string, mixed>  $searchData
+     * @param  array<string, mixed>  $card
+     * @return array<string, mixed>
+     */
+    public function loadMoreFares(array $searchData, array $card): array
+    {
+        $signature = TravelportSearchPresenter::routingSignature($card);
+        $cabins = $this->moreFaresCabins($searchData);
+        $cardLists = [];
+
+        foreach ($cabins as $cabin) {
+            $cabinSearch = array_merge($searchData, ['onward_cabin_class' => $cabin]);
+            $gdsResponse = $this->client->lowFareSearch($cabinSearch, false, false);
+            $ndcResponse = $this->client->lowFareSearch($cabinSearch, true, true);
+
+            $gdsCards = ($gdsResponse['success'] ?? false)
+                ? TravelportSearchPresenter::toResultCards($gdsResponse['parsed'], $cabinSearch)
+                : [];
+            $ndcCards = ($ndcResponse['success'] ?? false)
+                ? TravelportSearchPresenter::toResultCards($ndcResponse['parsed'], $cabinSearch)
+                : [];
+
+            if ($gdsCards !== [] || $ndcCards !== []) {
+                $cardLists[] = TravelportSearchPresenter::mergeResultCardLists($gdsCards, $ndcCards);
+            }
+        }
+
+        if ($cardLists === []) {
+            $card['travelport_fares_expanded'] = true;
+
+            return $card;
+        }
+
+        $allCards = TravelportSearchPresenter::mergeResultCardLists(...$cardLists);
+        $matched = TravelportSearchPresenter::findCardByRoutingSignature($allCards, $signature);
+
+        if ($matched !== null) {
+            $card = TravelportSearchPresenter::enrichCardFareOptions($card, $matched['fare_options'] ?? []);
+        }
+
+        $card['travelport_fares_expanded'] = true;
+
+        return $card;
+    }
+
+    /**
+     * @param  array<string, mixed>  $searchData
+     */
+    private function executeSearch(array $searchData, bool $lite): FlightProviderSearchResult
+    {
+        $requestPayload = ['search_data' => $searchData, 'lite' => $lite];
         $messages = [];
 
-        // GDS published fares and NDC/branded upsell fares require separate LFS requests.
+        // Lite search: published GDS + one branded NDC fare per routing (fast initial list).
+        // Full upsell + cross-cabin fares load on demand via loadMoreFares().
         $gdsResponse = $this->client->lowFareSearch($searchData, false, false);
-        $ndcResponse = $this->client->lowFareSearch($searchData, true, true);
+        $ndcResponse = $this->client->lowFareSearch(
+            $searchData,
+            true,
+            $lite ? false : true,
+        );
 
         if (! ($gdsResponse['success'] ?? false) && ! ($ndcResponse['success'] ?? false)) {
             $error = $ndcResponse['error'] ?? $gdsResponse['error'] ?? 'Search failed.';
@@ -68,6 +130,10 @@ class TravelportFlightProvider implements FlightProviderInterface
             : [];
 
         $results = TravelportSearchPresenter::mergeResultCardLists($gdsCards, $ndcCards);
+        foreach ($results as &$card) {
+            $card['travelport_fares_expanded'] = ! $lite;
+        }
+        unset($card);
 
         return new FlightProviderSearchResult(
             provider: 'travelport',
@@ -86,5 +152,21 @@ class TravelportFlightProvider implements FlightProviderInterface
             requestPayload: $requestPayload,
             success: true,
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $searchData
+     * @return list<string>
+     */
+    private function moreFaresCabins(array $searchData): array
+    {
+        $primary = FlightCabinPreference::normalizeUiLabel($searchData['onward_cabin_class'] ?? 'Economy');
+        $cabins = [$primary];
+
+        if (! in_array($primary, ['Business', 'First'], true)) {
+            $cabins[] = 'Business';
+        }
+
+        return array_values(array_unique($cabins));
     }
 }
