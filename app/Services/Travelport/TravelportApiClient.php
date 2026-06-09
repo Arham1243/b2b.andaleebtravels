@@ -438,8 +438,8 @@ XML;
      */
     public function airTicket(
         string $airReservationLocator,
+        string $airPricingInfoKey = '',
         string $platingCarrier = '',
-        string $paymentAmount = '',
     ): array {
         $traceId = $this->generateTraceId();
         $authorizedBy = self::AUTHORIZED_BY;
@@ -447,42 +447,32 @@ XML;
         $airNs = self::AIR_NS;
         $comNs = self::COM_NS;
         $locator = $this->xmlEsc($airReservationLocator);
+        $pricingInfoKey = $this->xmlEsc($airPricingInfoKey);
         $carrier = $this->xmlEsc($platingCarrier);
-        $amount = $this->xmlEsc($paymentAmount);
 
-        $platingCarrierAttr = $carrier !== '' ? ' PlatingCarrier="' . $carrier . '"' : '';
+        $pricingInfoRefXml = $pricingInfoKey !== ''
+            ? "\n            <AirPricingInfoRef Key=\"{$pricingInfoKey}\"/>"
+            : '';
 
-        $paymentXml = '';
-        if ($amount !== '') {
-            $paymentXml = <<<XML
+        $modifiersXml = $carrier !== ''
+            ? "\n            <AirTicketingModifiers PlatingCarrier=\"{$carrier}\"/>"
+            : '';
 
-            <com:FormOfPayment Key="FOP1" Type="Cash"/>
-            <air:Payment Key="PAY1" Type="Itinerary" FormOfPaymentRef="FOP1" Amount="{$amount}"/>
-XML;
-        } else {
-            $paymentXml = <<<XML
-
-            <com:FormOfPayment Key="FOP1" Type="Cash"/>
-XML;
-        }
-
+        // Match Travelport 1G sample: locator + pricing ref only. FOP was set on hold.
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
     <soapenv:Header/>
     <soapenv:Body>
-        <air:AirTicketingReq
-            xmlns:air="{$airNs}"
-            xmlns:com="{$comNs}"
+        <AirTicketingReq
+            xmlns="{$airNs}"
             TargetBranch="{$targetBranch}"
             TraceId="{$traceId}"
             AuthorizedBy="{$authorizedBy}"
             ReturnInfoOnFail="true"
             BulkTicket="false">
-            <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>
-            <air:AirReservationLocatorCode>{$locator}</air:AirReservationLocatorCode>
-            <air:AirTicketingModifiers{$platingCarrierAttr}>{$paymentXml}
-            </air:AirTicketingModifiers>
-        </air:AirTicketingReq>
+            <BillingPointOfSaleInfo xmlns="{$comNs}" OriginApplication="UAPI"/>
+            <AirReservationLocatorCode>{$locator}</AirReservationLocatorCode>{$pricingInfoRefXml}{$modifiersXml}
+        </AirTicketingReq>
     </soapenv:Body>
 </soapenv:Envelope>
 XML;

@@ -218,19 +218,24 @@ class TravelportBookingService
                 throw new \RuntimeException('Missing validating carrier for Travelport ticketing.');
             }
 
-            $paymentAmount = $this->resolveTicketingPaymentAmount($booking);
+            $airPricingInfoKey = $this->resolveAirPricingInfoKey($booking);
+            if ($airPricingInfoKey === '') {
+                throw new \RuntimeException('Missing Travelport AirPricingInfo key for ticketing.');
+            }
+
             $platingCarrierForRequest = $this->shouldOmitPlatingCarrier($booking) ? '' : $platingCarrier;
 
             $ticketResponse = $this->client->airTicket(
                 $locator,
+                $airPricingInfoKey,
                 $platingCarrierForRequest,
-                $paymentAmount,
             );
             if (! ($ticketResponse['success'] ?? false)) {
                 Log::error('Travelport airTicket failed', [
                     'booking_id' => $booking->id,
                     'locator' => $locator,
                     'plating_carrier' => $platingCarrier,
+                    'air_pricing_info_key' => $airPricingInfoKey,
                     'error_code' => $ticketResponse['error_code'] ?? null,
                     'trace_id' => $ticketResponse['trace_id'] ?? null,
                     'error' => $ticketResponse['error'] ?? null,
@@ -258,8 +263,8 @@ class TravelportBookingService
             $ticketUpdate = [
                 'ticket_request' => [
                     'air_reservation_locator' => $locator,
+                    'air_pricing_info_key' => $airPricingInfoKey,
                     'plating_carrier' => $platingCarrierForRequest !== '' ? $platingCarrierForRequest : $platingCarrier,
-                    'payment_amount' => $paymentAmount,
                 ],
                 'ticket_response' => $storedResponse,
                 'ticket_numbers' => $ticketNumbers,
@@ -413,20 +418,34 @@ class TravelportBookingService
         return str_contains($fareBasis, 'NDC');
     }
 
-    private function resolveTicketingPaymentAmount(B2bFlightBooking $booking): string
+    private function resolveAirPricingInfoKey(B2bFlightBooking $booking): string
     {
-        $pricingData = data_get($booking->booking_request, 'pricing_data');
-        if (is_array($pricingData)) {
-            $total = trim((string) ($pricingData['total_price'] ?? ''));
-            if ($total !== '') {
-                return $total;
+        $fromRequest = trim((string) data_get($booking->booking_request, 'pricing_data.pricing_info_key', ''));
+        if ($fromRequest !== '') {
+            return $fromRequest;
+        }
+
+        $response = is_array($booking->booking_response) ? $booking->booking_response : [];
+        $candidates = [
+            data_get($response, 'UniversalRecord.AirReservation.AirPricingInfo.@attributes.Key'),
+            data_get($response, 'UniversalRecord.AirReservation.AirPricingInfo.Key'),
+            data_get($response, 'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.AirPricingInfo.@attributes.Key'),
+            data_get($response, 'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.AirPricingInfo.Key'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $key = trim((string) $candidate);
+            if ($key !== '') {
+                return $key;
             }
         }
 
-        $currency = strtoupper(trim((string) ($booking->currency ?? 'AED')));
-        $amount = number_format((float) $booking->total_amount, 2, '.', '');
+        $raw = (string) ($response['raw'] ?? '');
+        if ($raw !== '' && preg_match('/<(?:[\w-]+:)?AirPricingInfo[^>]+Key="([^"]+)"/i', $raw, $match)) {
+            return trim($match[1]);
+        }
 
-        return $currency . $amount;
+        return '';
     }
 
     /**
