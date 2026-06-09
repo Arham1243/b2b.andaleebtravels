@@ -440,7 +440,7 @@
                             $rpDur   = (int)($legs[0]['elapsedTime'] ?? 0);
                         @endphp
 
-                        <div class="rc {{ $cardSupplier === 'travelport' ? 'rc--travelport-test' : '' }}"
+                        <div class="rc rc--has-provider-badge"
                              data-rp-id="{{ $lid }}"
                              data-rp-meta='@json($meta)'
                              data-rp-stops="{{ $rpStops }}"
@@ -451,10 +451,10 @@
                              data-rp-dur="{{ $rpDur }}"
                              data-rp-supplier="{{ $cardSupplier }}">
 
-                            {{-- TODO: remove — temporary Travelport test badge --}}
-                            @if ($cardSupplier === 'travelport')
-                                <span class="rc__provider-badge rc__provider-badge--travelport" title="Testing only">Travelport</span>
-                            @endif
+                            {{-- TODO: remove — temporary provider test badges --}}
+                            <span class="rc__provider-badge rc__provider-badge--{{ $cardSupplier }}" title="Testing only — GDS provider">
+                                {{ $cardSupplier === 'travelport' ? 'Travelport' : 'Sabre' }}
+                            </span>
 
                             {{-- ── per-leg rows ── --}}
                             @foreach ($legs as $li => $leg)
@@ -1197,9 +1197,9 @@
     box-shadow: 0 2px 8px rgba(26, 37, 64, 0.055);
 }
 
-/* TODO: remove — temporary Travelport test badge */
-.rc--travelport-test { position: relative; }
-.rc--travelport-test .rc__point--arr { padding-right: 5.5rem; }
+/* TODO: remove — temporary provider test badges */
+.rc--has-provider-badge { position: relative; }
+.rc--has-provider-badge .rc__point--arr { padding-right: 5.5rem; }
 .rc__provider-badge {
     position: absolute;
     top: .45rem;
@@ -1211,6 +1211,11 @@
     padding: .18rem .4rem;
     border-radius: 4px;
     text-transform: uppercase;
+}
+.rc__provider-badge--sabre {
+    background: #e8f0fe;
+    color: #1a56db;
+    border: 1px solid #93b4f5;
 }
 .rc__provider-badge--travelport {
     background: #ecfdf5;
