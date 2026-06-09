@@ -29,7 +29,7 @@ class TravelportFlightProvider implements FlightProviderInterface
     }
 
     /**
-     * Load NDC upsell + cross-cabin GDS/NDC fares for one itinerary card.
+     * Load additional GDS + NDC upsell fares for one itinerary card in the searched cabin only.
      *
      * @param  array<string, mixed>  $searchData
      * @param  array<string, mixed>  $card
@@ -68,8 +68,13 @@ class TravelportFlightProvider implements FlightProviderInterface
         $matched = TravelportSearchPresenter::findCardByRoutingSignature($allCards, $signature);
 
         if ($matched !== null) {
-            $card = TravelportSearchPresenter::enrichCardFareOptions($card, $matched['fare_options'] ?? []);
+            $incoming = $this->filterFareOptionsBySearchCabins($matched['fare_options'] ?? [], $searchData);
+            $card = TravelportSearchPresenter::enrichCardFareOptions($card, $incoming);
         }
+
+        $filtered = $this->filterFareOptionsBySearchCabins($card['fare_options'] ?? [], $searchData);
+        $card['fare_options'] = [];
+        $card = TravelportSearchPresenter::enrichCardFareOptions($card, $filtered);
 
         $card['travelport_fares_expanded'] = true;
 
@@ -85,7 +90,7 @@ class TravelportFlightProvider implements FlightProviderInterface
         $messages = [];
 
         // Lite search: published GDS + one branded NDC fare per routing (fast initial list).
-        // Full upsell + cross-cabin fares load on demand via loadMoreFares().
+        // Additional upsell fares for the same cabin load on demand via loadMoreFares().
         $gdsResponse = $this->client->lowFareSearch($searchData, false, false);
         $ndcResponse = $this->client->lowFareSearch(
             $searchData,
@@ -155,18 +160,52 @@ class TravelportFlightProvider implements FlightProviderInterface
     }
 
     /**
+     * Cabins to request when loading more fares — matches the user's search filters only.
+     *
      * @param  array<string, mixed>  $searchData
      * @return list<string>
      */
     private function moreFaresCabins(array $searchData): array
     {
-        $primary = FlightCabinPreference::normalizeUiLabel($searchData['onward_cabin_class'] ?? 'Economy');
-        $cabins = [$primary];
+        $cabins = [
+            FlightCabinPreference::normalizeUiLabel($searchData['onward_cabin_class'] ?? 'Economy'),
+        ];
 
-        if (! in_array($primary, ['Business', 'First'], true)) {
-            $cabins[] = 'Business';
+        if (($searchData['trip_type'] ?? '') === 'round_trip') {
+            $returnCabin = FlightCabinPreference::normalizeUiLabel(
+                $searchData['return_cabin_class'] ?? ($searchData['onward_cabin_class'] ?? 'Economy'),
+            );
+
+            if (! in_array($returnCabin, $cabins, true)) {
+                $cabins[] = $returnCabin;
+            }
         }
 
-        return array_values(array_unique($cabins));
+        return $cabins;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $fareOptions
+     * @param  array<string, mixed>  $searchData
+     * @return list<array<string, mixed>>
+     */
+    private function filterFareOptionsBySearchCabins(array $fareOptions, array $searchData): array
+    {
+        $allowed = $this->moreFaresCabins($searchData);
+
+        $filtered = array_values(array_filter($fareOptions, static function (array $option) use ($allowed): bool {
+            $cabin = FlightCabinPreference::normalizeUiLabel((string) ($option['cabin_code'] ?? 'Economy'));
+
+            return in_array($cabin, $allowed, true);
+        }));
+
+        usort($filtered, static fn (array $a, array $b): int => ((float) ($a['totalPrice'] ?? 0)) <=> ((float) ($b['totalPrice'] ?? 0)));
+
+        foreach ($filtered as $index => &$option) {
+            $option['travelport_pricing_index'] = $index;
+        }
+        unset($option);
+
+        return $filtered;
     }
 }
