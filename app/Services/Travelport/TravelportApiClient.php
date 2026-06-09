@@ -383,9 +383,6 @@ XML;
 
         $taxesXml = (string) ($pricingData['taxes_xml'] ?? '');
         $fopXml = $this->buildFormOfPaymentXml($comNs, 'FOP1', '            ');
-        $paymentXml = $totalPrice !== ''
-            ? "\n            <Payment xmlns=\"{$comNs}\" Key=\"PAY1\" Type=\"Itinerary\" FormOfPaymentRef=\"FOP1\" Amount=\"{$totalPrice}\"/>"
-            : '';
 
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -401,7 +398,7 @@ XML;
 
             <BillingPointOfSaleInfo xmlns="{$comNs}" OriginApplication="UAPI"/>
             {$travelersXml}
-            {$fopXml}{$paymentXml}
+            {$fopXml}
 
             <AirPricingSolution
                 xmlns="{$airNs}"
