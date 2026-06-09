@@ -3,6 +3,7 @@
 namespace App\Services\Travelport;
 
 use App\Models\B2bFlightBooking;
+use App\Models\Config;
 use App\Support\FlightBookingTicketResolver;
 use App\Support\Travelport\TravelportAirPriceParser;
 use App\Support\Travelport\TravelportAirTicketingResult;
@@ -214,21 +215,18 @@ class TravelportBookingService
             }
 
             $platingCarrier = $this->resolvePlatingCarrier($booking);
-            if ($platingCarrier === '' && ! $this->shouldOmitPlatingCarrier($booking)) {
+            if ($platingCarrier === '') {
                 throw new \RuntimeException('Missing validating carrier for Travelport ticketing.');
             }
 
             $airPricingInfoKey = $this->resolveAirPricingInfoKey($booking);
-            if ($airPricingInfoKey === '') {
-                throw new \RuntimeException('Missing Travelport AirPricingInfo key for ticketing.');
-            }
-
-            $platingCarrierForRequest = $this->shouldOmitPlatingCarrier($booking) ? '' : $platingCarrier;
+            $gdsCommissionPercentage = $this->resolveGdsCommissionPercentage();
 
             $ticketResponse = $this->client->airTicket(
                 $locator,
                 $airPricingInfoKey,
-                $platingCarrierForRequest,
+                $platingCarrier,
+                $gdsCommissionPercentage,
             );
             if (! ($ticketResponse['success'] ?? false)) {
                 Log::error('Travelport airTicket failed', [
@@ -236,6 +234,7 @@ class TravelportBookingService
                     'locator' => $locator,
                     'plating_carrier' => $platingCarrier,
                     'air_pricing_info_key' => $airPricingInfoKey,
+                    'gds_commission_percentage' => $gdsCommissionPercentage,
                     'error_code' => $ticketResponse['error_code'] ?? null,
                     'trace_id' => $ticketResponse['trace_id'] ?? null,
                     'error' => $ticketResponse['error'] ?? null,
@@ -264,7 +263,8 @@ class TravelportBookingService
                 'ticket_request' => [
                     'air_reservation_locator' => $locator,
                     'air_pricing_info_key' => $airPricingInfoKey,
-                    'plating_carrier' => $platingCarrierForRequest !== '' ? $platingCarrierForRequest : $platingCarrier,
+                    'plating_carrier' => $platingCarrier,
+                    'gds_commission_percentage' => $gdsCommissionPercentage,
                 ],
                 'ticket_response' => $storedResponse,
                 'ticket_numbers' => $ticketNumbers,
@@ -396,26 +396,17 @@ class TravelportBookingService
         ));
     }
 
-    private function shouldOmitPlatingCarrier(B2bFlightBooking $booking): bool
+    private function resolveGdsCommissionPercentage(): float
     {
-        $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
-        $fareTags = array_map(
-            static fn ($tag) => strtolower(trim((string) $tag)),
-            (array) ($itineraryData['fare_tags'] ?? []),
-        );
-
-        if (in_array('ndc', $fareTags, true)) {
-            return true;
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
         }
 
-        $fareType = strtolower(trim((string) ($itineraryData['fare_type'] ?? '')));
-        if (str_contains($fareType, 'ndc')) {
-            return true;
-        }
+        $config = Config::pluck('config_value', 'config_key')->toArray();
+        $cached = max(0.0, (float) ($config['TRAVELPORT_GDS_COMMISSION_PERCENTAGE'] ?? 0));
 
-        $fareBasis = strtoupper(trim((string) ($itineraryData['fare_basis'] ?? '')));
-
-        return str_contains($fareBasis, 'NDC');
+        return $cached;
     }
 
     private function resolveAirPricingInfoKey(B2bFlightBooking $booking): string

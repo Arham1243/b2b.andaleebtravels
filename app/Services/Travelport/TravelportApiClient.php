@@ -440,6 +440,7 @@ XML;
         string $airReservationLocator,
         string $airPricingInfoKey = '',
         string $platingCarrier = '',
+        float $commissionPercentage = 0.0,
     ): array {
         $traceId = $this->generateTraceId();
         $authorizedBy = self::AUTHORIZED_BY;
@@ -449,16 +450,21 @@ XML;
         $locator = $this->xmlEsc($airReservationLocator);
         $pricingInfoKey = $this->xmlEsc($airPricingInfoKey);
         $carrier = $this->xmlEsc($platingCarrier);
+        $commissionPct = $this->xmlEsc($this->formatTravelportCommissionPercentage($commissionPercentage));
 
         $pricingInfoRefXml = $pricingInfoKey !== ''
             ? "\n            <AirPricingInfoRef Key=\"{$pricingInfoKey}\"/>"
             : '';
 
-        $modifiersXml = $carrier !== ''
-            ? "\n            <AirTicketingModifiers PlatingCarrier=\"{$carrier}\"/>"
-            : '';
+        $platingCarrierAttr = $carrier !== '' ? " PlatingCarrier=\"{$carrier}\"" : '';
+        $modifiersXml = <<<XML
 
-        // Match Travelport 1G sample: locator + pricing ref only. FOP was set on hold.
+            <AirTicketingModifiers{$platingCarrierAttr}>
+                <Commission xmlns="{$comNs}" Level="Fare" Type="PercentBase" Percentage="{$commissionPct}"/>
+            </AirTicketingModifiers>
+XML;
+
+        // FOP was set on hold. Commission is required by Galileo (1G) when ticketing stored fares.
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
     <soapenv:Header/>
@@ -787,6 +793,17 @@ XML;
         }
 
         return (string) preg_replace('/\.\d{3}(\+|-)/', '$1', $time);
+    }
+
+    private function formatTravelportCommissionPercentage(float $percentage): string
+    {
+        $percentage = max(0.0, $percentage);
+
+        if (abs($percentage - round($percentage)) < 0.00001) {
+            return (string) (int) round($percentage);
+        }
+
+        return number_format($percentage, 2, '.', '');
     }
 
     private function xmlEsc(string $value, bool $escapeQuotes = true): string
