@@ -149,7 +149,7 @@
                 @endphp
 
                 {{-- Fare count full-width above filters/results --}}
-                <div class="row g-2 rp-listing-prelude">
+                <div class="row g-3 rp-listing-prelude">
                     <div class="col-12 rp-listing-prelude__count-wrap">
                         <span class="rp-bar__count">
                             Showing <strong>{{ $itineraryCount }}</strong> of <strong>{{ $itineraryCount }}</strong> Fares found
@@ -1080,18 +1080,17 @@
 .rp-shell { padding-top: 2rem; }
 
 .rp-listing-prelude {
-    --rp-prelude-gap: 0.5rem;
+    --rp-prelude-gap: 0.75rem;
     margin-bottom: var(--rp-prelude-gap);
 }
 .rp-listing-prelude__count-wrap {
-    padding: .45rem 0 .35rem;
+    padding: .45rem 0 .5rem;
 }
 .rp-advisory {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: .85rem;
-    align-items: start;
-    padding: .85rem 1rem .85rem .95rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 1.25rem 1.05rem;
     border-radius: 12px;
     border: 1px solid rgba(205, 27, 79, .14);
     background:
@@ -1103,44 +1102,50 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.35rem;
-    height: 2.35rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-top: .1rem;
     border-radius: 10px;
     background: var(--c-brand-soft);
     color: var(--c-brand);
     flex-shrink: 0;
 }
 .rp-advisory__mark i {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     line-height: 1;
 }
 .rp-advisory__body {
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    padding-top: .05rem;
 }
 .rp-advisory__tag {
     display: inline-block;
-    margin-bottom: .28rem;
-    padding: .12rem .45rem;
+    align-self: flex-start;
+    padding: .18rem .55rem;
     border-radius: 999px;
     background: rgba(205, 27, 79, .08);
     color: var(--c-brand2);
-    font-size: .62rem;
+    font-size: .64rem;
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
 .rp-advisory__title {
-    margin: 0 0 .2rem;
-    font-size: .84rem;
+    margin: 0;
+    font-size: .92rem;
     font-weight: 700;
-    line-height: 1.35;
+    line-height: 1.4;
     color: var(--c-ink);
 }
 .rp-advisory__text {
     margin: 0;
-    font-size: .78rem;
-    line-height: 1.5;
+    font-size: .8rem;
+    line-height: 1.65;
     color: var(--c-slate);
+    max-width: 68rem;
 }
 
 /* =========================================================
