@@ -64,10 +64,16 @@ class BookingController extends Controller
         return view('user.bookings.flights', compact('flightBookings', 'counts', 'status', 'search'));
     }
 
-    public function flightDetail(int $id)
+    public function flightDetail(int $id, FlightService $flightService)
     {
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($id);
         $booking->reconcileStatusAfterHoldPayment();
+
+        if ($booking->isSabre() && $booking->hasAirlinePnr()) {
+            $flightService->syncSabreTicketNumbersIfMissing($booking);
+            $booking->refresh();
+        }
+
         $counts  = $this->bookingCounts();
         $cancellation = BookingCancellationEligibility::forFlight($booking);
 

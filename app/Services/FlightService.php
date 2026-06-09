@@ -675,6 +675,19 @@ class FlightService
             $responseData = $response->json();
             $ticketNumbers = FlightBookingTicketResolver::fromResponse(is_array($responseData) ? $responseData : null);
 
+            if ($ticketNumbers === []) {
+                $ticketNumbers = $this->fetchSabreTicketNumbersFromGetBooking($booking);
+            }
+
+            if ($ticketNumbers === []) {
+                $messages = SabreApplicationResultsParser::messages(is_array($responseData) ? $responseData : null, 'AirTicketRS');
+                $error = $messages !== []
+                    ? implode('; ', $messages)
+                    : 'Sabre ticketing completed without ticket numbers.';
+
+                throw new \Exception($error);
+            }
+
             $ticketUpdate = [
                 'ticket_request' => $payload,
                 'ticket_response' => $responseData,
@@ -830,6 +843,45 @@ class FlightService
             'success' => true,
             'pnr' => $booking->sabre_record_locator,
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function syncSabreTicketNumbersIfMissing(B2bFlightBooking $booking): array
+    {
+        if (! $booking->isSabre() || ! $booking->hasAirlinePnr()) {
+            return [];
+        }
+
+        $existing = $booking->resolvedTicketNumbers();
+        if ($existing !== []) {
+            return $existing;
+        }
+
+        $numbers = $this->fetchSabreTicketNumbersFromGetBooking($booking);
+        if ($numbers === []) {
+            return [];
+        }
+
+        $booking->update(['ticket_numbers' => $numbers]);
+
+        return $numbers;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function fetchSabreTicketNumbersFromGetBooking(B2bFlightBooking $booking): array
+    {
+        $fetch = $this->fetchLiveSabreBookingDetails($booking);
+        if (! ($fetch['ok'] ?? false)) {
+            return [];
+        }
+
+        $response = is_array($fetch['response'] ?? null) ? $fetch['response'] : [];
+
+        return FlightBookingTicketResolver::normalizeList($response['tickets'] ?? []);
     }
 
     /**
@@ -1042,6 +1094,18 @@ class FlightService
                 $tickets[] = $number;
             }
         }
+
+        foreach ((array) data_get($booking, 'accountingItems', []) as $item) {
+            $number = data_get($item, 'ticketNumber') ?? data_get($item, 'documentNumber');
+            if (is_string($number) && $number !== '') {
+                $tickets[] = $number;
+            }
+        }
+
+        $tickets = array_values(array_unique(array_filter(array_map(
+            static fn ($number) => preg_replace('/\D+/', '', (string) $number),
+            $tickets,
+        ))));
 
         return [
             'confirmationId' => data_get($booking, 'confirmationId') ?? data_get($body, 'confirmationId'),

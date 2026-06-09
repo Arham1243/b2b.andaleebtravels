@@ -256,7 +256,7 @@ class B2bFlightBooking extends Model
             return false;
         }
 
-        return ! $this->isTravelport();
+        return false;
     }
 
     public function needsTicketFulfillmentRetry(): bool

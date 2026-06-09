@@ -138,7 +138,7 @@ final class SupplierFlightBookingDetailsPresenter
                 ?: data_get($bookingResponse, 'CreatePassengerNameRecordRS.ItineraryRef.ID'),
             'bookingStatus' => $booking->booking_status,
             'ticketStatus' => $booking->ticket_status,
-            'tickets' => FlightBookingTicketResolver::fromResponse($ticketResponse),
+            'tickets' => FlightBookingTicketResolver::forBooking($booking),
             'travelers' => [],
             'flights' => [],
         ];

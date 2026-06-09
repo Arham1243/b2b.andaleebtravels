@@ -38,10 +38,15 @@ class AdminFlightBookingController extends Controller
             ->with('title', 'Flight Bookings');
     }
 
-    public function show(int $id)
+    public function show(int $id, FlightService $flightService)
     {
         $booking = B2bFlightBooking::with(['vendor.parentVendor'])->findOrFail($id);
         $booking->reconcileStatusAfterHoldPayment();
+
+        if ($booking->isSabre() && $booking->hasAirlinePnr()) {
+            $flightService->syncSabreTicketNumbersIfMissing($booking);
+            $booking->refresh();
+        }
 
         // Admin uses saved Sabre responses only (no live GetReservation SOAP lookup).
         $supplierBookingDetails = SupplierFlightBookingDetailsPresenter::present($booking, null);

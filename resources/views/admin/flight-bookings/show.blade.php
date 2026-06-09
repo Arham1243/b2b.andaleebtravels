@@ -464,6 +464,11 @@
                                         <span class="bkpd-info-row__label">Ticket number(s)</span>
                                         <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ implode(', ', $adminDetails['ticket_numbers']) }}</span>
                                     </div>
+                                @elseif ($booking->ticket_status === 'issued' && $booking->isPaid())
+                                    <div class="bkpd-info-row">
+                                        <span class="bkpd-info-row__label">Ticket number(s)</span>
+                                        <span class="bkpd-info-row__val" style="color:#b45309;font-weight:600;">Not returned by Sabre yet — PNR {{ $booking->sabre_record_locator }} is confirmed; use Retry Booking to re-run ticketing or check Sabre for e-ticket document.</span>
+                                    </div>
                                 @endif
                                 @if ($nonRefundable !== null)
                                     <div class="bkpd-info-row bkpd-info-row--refund">
