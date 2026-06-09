@@ -61,7 +61,26 @@ final class TravelportStoredFareRuleResolver
             return null;
         }
 
-        return TravelportSearchPresenter::fareRuleRequestForPricePoint($searchResponse, $pricePointKey, $legs);
+        $responses = [];
+        if (isset($searchResponse['gds']) || isset($searchResponse['ndc'])) {
+            if (is_array($searchResponse['gds'] ?? null)) {
+                $responses[] = $searchResponse['gds'];
+            }
+            if (is_array($searchResponse['ndc'] ?? null)) {
+                $responses[] = $searchResponse['ndc'];
+            }
+        } elseif ($searchResponse !== []) {
+            $responses[] = $searchResponse;
+        }
+
+        foreach ($responses as $response) {
+            $ruleRequest = TravelportSearchPresenter::fareRuleRequestForPricePoint($response, $pricePointKey, $legs);
+            if ($ruleRequest !== null) {
+                return $ruleRequest;
+            }
+        }
+
+        return null;
     }
 
     /**

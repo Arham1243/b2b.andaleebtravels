@@ -49,6 +49,25 @@ class TravelportSearchPresenter
     }
 
     /**
+     * @param  list<list<array<string, mixed>>>  $cardLists
+     * @return list<array<string, mixed>>
+     */
+    public static function mergeResultCardLists(array ...$cardLists): array
+    {
+        $allCards = [];
+
+        foreach ($cardLists as $cards) {
+            foreach ($cards as $card) {
+                if (is_array($card)) {
+                    $allCards[] = $card;
+                }
+            }
+        }
+
+        return self::groupCardsByRouting($allCards);
+    }
+
+    /**
      * Rebuild AirFareRules request from a persisted LowFareSearch response.
      *
      * @param  array<string, mixed>  $searchResponse
@@ -691,6 +710,7 @@ class TravelportSearchPresenter
                 (string) ($option['fare_basis'] ?? ''),
                 (string) ($option['fare_brand'] ?? ''),
                 (string) ($option['totalPrice'] ?? ''),
+                implode(',', $option['fare_tags'] ?? []),
                 (string) ($option['travelport_price_point_key'] ?? ''),
             ]);
 
@@ -755,6 +775,8 @@ class TravelportSearchPresenter
         if ($brand !== null
             && strtolower((string) self::attr($brand, 'BrandedDetailsAvailable', '')) === 'true') {
             $tags[] = 'ndc';
+        } else {
+            $tags[] = 'gds';
         }
 
         return ['tags' => array_values(array_unique($tags))];

@@ -24,8 +24,11 @@ class TravelportApiClient
      * @param  array<string, mixed>  $searchData
      * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
      */
-    public function lowFareSearch(array $searchData): array
-    {
+    public function lowFareSearch(
+        array $searchData,
+        bool $returnBrandedFares = true,
+        bool $returnUpsellFare = true,
+    ): array {
         $traceId = $this->generateTraceId();
         $legsXml = $this->buildSearchAirLegsXml($searchData);
         $passengersXml = $this->buildSearchPassengersXml($searchData);
@@ -35,6 +38,8 @@ class TravelportApiClient
         $targetBranch = self::TARGET_BRANCH;
         $airNs = self::AIR_NS;
         $comNs = self::COM_NS;
+        $brandedAttr = $returnBrandedFares ? 'true' : 'false';
+        $upsellAttr = $returnUpsellFare ? 'true' : 'false';
 
         // ReturnUpsellFare returns additional branded fares (e.g. Economy Light + Smart)
         // for the same routing so cards can show "+N More Fares" like Sabre.
@@ -46,8 +51,8 @@ class TravelportApiClient
             TraceId="{$traceId}"
             AuthorizedBy="{$authorizedBy}"
             TargetBranch="{$targetBranch}"
-            ReturnBrandedFares="true"
-            ReturnUpsellFare="true"
+            ReturnBrandedFares="{$brandedAttr}"
+            ReturnUpsellFare="{$upsellAttr}"
             xmlns:air="{$airNs}"
             xmlns:com="{$comNs}">
             <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>

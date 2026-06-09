@@ -879,6 +879,10 @@ if (! function_exists('flightFareBasisListingLabel')) {
             return $basis . '/NDC';
         }
 
+        if (in_array('gds', $normalizedTags, true) && ! str_contains(strtoupper($basis), '/GDS')) {
+            return $basis . '/GDS';
+        }
+
         return $basis;
     }
 }
