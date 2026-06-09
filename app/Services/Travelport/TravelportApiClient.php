@@ -382,6 +382,10 @@ XML;
         }
 
         $taxesXml = (string) ($pricingData['taxes_xml'] ?? '');
+        $fopXml = $this->buildFormOfPaymentXml($comNs, 'FOP1', '            ');
+        $paymentXml = $totalPrice !== ''
+            ? "\n            <Payment xmlns=\"{$comNs}\" Key=\"PAY1\" Type=\"Itinerary\" FormOfPaymentRef=\"FOP1\" Amount=\"{$totalPrice}\"/>"
+            : '';
 
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -397,8 +401,7 @@ XML;
 
             <BillingPointOfSaleInfo xmlns="{$comNs}" OriginApplication="UAPI"/>
             {$travelersXml}
-
-            <FormOfPayment xmlns="{$comNs}" Key="FOP1" Type="Cash"/>
+            {$fopXml}{$paymentXml}
 
             <AirPricingSolution
                 xmlns="{$airNs}"
@@ -457,14 +460,20 @@ XML;
             : '';
 
         $platingCarrierAttr = $carrier !== '' ? " PlatingCarrier=\"{$carrier}\"" : '';
+        $fopXml = $this->buildFormOfPaymentXml($comNs, 'FOP1', '                ');
+        $paymentXml = <<<XML
+
+                <Payment xmlns="{$comNs}" Key="PAY1" Type="Itinerary" FormOfPaymentRef="FOP1"/>
+XML;
         $modifiersXml = <<<XML
 
             <AirTicketingModifiers{$platingCarrierAttr}>
                 <Commission xmlns="{$comNs}" Level="Fare" Type="PercentBase" Percentage="{$commissionPct}"/>
+                {$fopXml}{$paymentXml}
             </AirTicketingModifiers>
 XML;
 
-        // FOP was set on hold. Commission is required by Galileo (1G) when ticketing stored fares.
+        // Credit FOP on hold + ticket (legacy airBook). Cash is restricted for many 1G agencies.
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
     <soapenv:Header/>
@@ -804,6 +813,49 @@ XML;
         }
 
         return number_format($percentage, 2, '.', '');
+    }
+
+    /**
+     * @return array{type: string, card_type: string, card_number: string, card_exp: string, card_cvv: string, card_holder: string}
+     */
+    private function formOfPaymentConfig(): array
+    {
+        $type = strtolower(trim((string) config('services.travelport.fop_type', 'Credit')));
+
+        return [
+            'type' => $type === 'check' ? 'Check' : 'Credit',
+            'card_type' => trim((string) config('services.travelport.card_type', 'VI')),
+            'card_number' => trim((string) config('services.travelport.card_number', '4111111111111111')),
+            'card_exp' => trim((string) config('services.travelport.card_exp', '2028-01')),
+            'card_cvv' => trim((string) config('services.travelport.card_cvv', '123')),
+            'card_holder' => trim((string) config('services.travelport.card_holder', 'Andaleeb Travel Agency')),
+        ];
+    }
+
+    private function buildFormOfPaymentXml(string $comNs, string $key, string $indent): string
+    {
+        $config = $this->formOfPaymentConfig();
+        $fopKey = $this->xmlEsc($key);
+
+        if ($config['type'] === 'Check') {
+            return <<<XML
+
+{$indent}<FormOfPayment xmlns="{$comNs}" Key="{$fopKey}" Type="Check"/>
+XML;
+        }
+
+        $cardType = $this->xmlEsc($config['card_type']);
+        $cardNumber = $this->xmlEsc($config['card_number']);
+        $cardExp = $this->xmlEsc($config['card_exp']);
+        $cardCvv = $this->xmlEsc($config['card_cvv']);
+        $cardHolder = $this->xmlEsc($config['card_holder']);
+
+        return <<<XML
+
+{$indent}<FormOfPayment xmlns="{$comNs}" Key="{$fopKey}" Type="Credit">
+{$indent}    <CreditCard Type="{$cardType}" Number="{$cardNumber}" ExpDate="{$cardExp}" CVV="{$cardCvv}" Name="{$cardHolder}"/>
+{$indent}</FormOfPayment>
+XML;
     }
 
     private function xmlEsc(string $value, bool $escapeQuotes = true): string

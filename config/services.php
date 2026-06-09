@@ -70,4 +70,16 @@ return [
         'ticket_printer_lniata' => env('SABRE_TICKET_PRINTER_LNIATA', 'FA8CFB'),
         'ticket_printer_country_code' => env('SABRE_TICKET_PRINTER_COUNTRY_CODE', 'TG'),
     ],
+
+    /*
+    | Agency FOP sent to Travelport on hold + ticket (legacy airBook used Credit, not Cash).
+    */
+    'travelport' => [
+        'fop_type' => env('TRAVELPORT_FOP_TYPE', 'Credit'),
+        'card_type' => env('TRAVELPORT_CARD_TYPE', 'VI'),
+        'card_number' => env('TRAVELPORT_CARD_NUMBER', '4111111111111111'),
+        'card_exp' => env('TRAVELPORT_CARD_EXP', '2028-01'),
+        'card_cvv' => env('TRAVELPORT_CARD_CVV', '123'),
+        'card_holder' => env('TRAVELPORT_CARD_HOLDER', 'Andaleeb Travel Agency'),
+    ],
 ];
