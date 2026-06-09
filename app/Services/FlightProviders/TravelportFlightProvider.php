@@ -6,6 +6,8 @@ use App\Services\FlightProviders\Contracts\FlightProviderInterface;
 use App\Services\FlightProviders\DTO\FlightProviderSearchResult;
 use App\Services\Travelport\TravelportApiClient;
 use App\Support\FlightCabinPreference;
+use App\Support\Travelport\TravelportAirPricePresenter;
+use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use App\Support\Travelport\TravelportSearchPresenter;
 
 class TravelportFlightProvider implements FlightProviderInterface
@@ -71,6 +73,8 @@ class TravelportFlightProvider implements FlightProviderInterface
             $incoming = $this->filterFareOptionsBySearchCabins($matched['fare_options'] ?? [], $searchData);
             $card = TravelportSearchPresenter::enrichCardFareOptions($card, $incoming);
         }
+
+        $card = $this->appendFareFamilyAirPriceOptions($searchData, $card);
 
         $filtered = $this->filterFareOptionsBySearchCabins($card['fare_options'] ?? [], $searchData);
         $card['fare_options'] = [];
@@ -157,6 +161,43 @@ class TravelportFlightProvider implements FlightProviderInterface
             requestPayload: $requestPayload,
             success: true,
         );
+    }
+
+    /**
+     * AirPrice FareFamily returns full brand tiers (e.g. ECO FLEXPLUS) that LFS upsell omits.
+     *
+     * @param  array<string, mixed>  $searchData
+     * @param  array<string, mixed>  $card
+     * @return array<string, mixed>
+     */
+    private function appendFareFamilyAirPriceOptions(array $searchData, array $card): array
+    {
+        $segments = TravelportHoldPayloadBuilder::buildAirPriceSegments($card);
+        if ($segments === []) {
+            return $card;
+        }
+
+        $airPriceResponse = $this->client->airPriceFareFamily(
+            $segments,
+            TravelportHoldPayloadBuilder::passengerCounts($searchData),
+        );
+
+        if (! ($airPriceResponse['success'] ?? false)) {
+            return $card;
+        }
+
+        $legs = is_array($card['legs'] ?? null) ? $card['legs'] : [];
+        $airPriceOptions = TravelportAirPricePresenter::toFareOptions(
+            $airPriceResponse['parsed'],
+            $searchData,
+            $legs,
+        );
+
+        if ($airPriceOptions === []) {
+            return $card;
+        }
+
+        return TravelportSearchPresenter::enrichCardFareOptions($card, $airPriceOptions);
     }
 
     /**

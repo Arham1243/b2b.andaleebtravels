@@ -213,6 +213,105 @@ XML;
     }
 
     /**
+     * Return all filed branded fares (e.g. ECO SAVER / FLEX / FLEXPLUS) for specific segments.
+     *
+     * @param  list<array<string, mixed>>  $segments
+     * @param  array<string, int>  $passengerCounts
+     * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
+     */
+    public function airPriceFareFamily(array $segments, array $passengerCounts): array
+    {
+        if ($segments === []) {
+            return [
+                'success' => false,
+                'httpCode' => 0,
+                'raw' => '',
+                'parsed' => null,
+                'error' => 'No flight segments provided for pricing.',
+            ];
+        }
+
+        $traceId = $this->generateTraceId();
+        $authorizedBy = self::AUTHORIZED_BY;
+        $targetBranch = self::TARGET_BRANCH;
+        $airNs = self::AIR_NS;
+        $comNs = self::COM_NS;
+
+        $airSegmentsXml = '';
+        foreach ($segments as $seg) {
+            $key = $this->xmlEsc((string) ($seg['Key'] ?? ''));
+            $group = $this->xmlEsc((string) ($seg['Group'] ?? '0'));
+            $provider = $this->xmlEsc((string) ($seg['ProviderCode'] ?? self::PROVIDER_CODE));
+            $carrier = $this->xmlEsc((string) ($seg['Carrier'] ?? ''));
+            $flightNumber = $this->xmlEsc((string) ($seg['FlightNumber'] ?? ''));
+            $origin = $this->xmlEsc((string) ($seg['Origin'] ?? ''));
+            $destination = $this->xmlEsc((string) ($seg['Destination'] ?? ''));
+            $departure = $this->xmlEsc($this->normalizeTravelportTime((string) ($seg['DepartureTime'] ?? '')));
+            $arrival = $this->xmlEsc($this->normalizeTravelportTime((string) ($seg['ArrivalTime'] ?? '')));
+            $classOfService = $this->xmlEsc((string) ($seg['ClassOfService'] ?? ''));
+            $equipment = $this->xmlEsc((string) ($seg['Equipment'] ?? '320'));
+
+            $airSegmentsXml .= <<<XML
+
+                    <air:AirSegment
+                        Key="{$key}"
+                        Group="{$group}"
+                        ProviderCode="{$provider}"
+                        Carrier="{$carrier}"
+                        FlightNumber="{$flightNumber}"
+                        Origin="{$origin}"
+                        Destination="{$destination}"
+                        DepartureTime="{$departure}"
+                        ArrivalTime="{$arrival}"
+                        ClassOfService="{$classOfService}"
+                        Status="SS"
+                        SeatAvail="Available"
+                        ETicketability="Yes"
+                        Equipment="{$equipment}"/>
+XML;
+        }
+
+        $passengersXml = '';
+        $travelerIdx = 1;
+        foreach (['ADT', 'CNN', 'INF'] as $code) {
+            $count = max(0, (int) ($passengerCounts[$code] ?? 0));
+            for ($i = 0; $i < $count; $i++) {
+                $ref = "traveler_{$travelerIdx}";
+                $passengersXml .= "\n            <com:SearchPassenger Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"/>";
+                $travelerIdx++;
+            }
+        }
+
+        $soap = <<<XML
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <air:AirPriceReq
+            TraceId="{$traceId}"
+            AuthorizedBy="{$authorizedBy}"
+            TargetBranch="{$targetBranch}"
+            xmlns:air="{$airNs}"
+            xmlns:com="{$comNs}">
+            <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>
+            <air:AirItinerary>
+                {$airSegmentsXml}
+            </air:AirItinerary>
+            <air:AirPricingModifiers ETicketability="Required" FaresIndicator="PublicFaresOnly">
+                <air:BrandModifiers>
+                    <air:FareFamilyDisplay ModifierType="FareFamily"/>
+                </air:BrandModifiers>
+            </air:AirPricingModifiers>
+            {$passengersXml}
+            <air:AirPricingCommand/>
+        </air:AirPriceReq>
+    </soapenv:Body>
+</soapenv:Envelope>
+XML;
+
+        return $this->sendRequest('AirService', $soap);
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $travelers
      * @param  array<string, mixed>  $pricingData
      * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
