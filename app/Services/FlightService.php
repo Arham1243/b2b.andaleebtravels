@@ -8,6 +8,7 @@ use App\Services\Travelport\TravelportBookingService;
 use App\Support\SabreAirRulesResponseParser;
 use App\Support\SabreApplicationResultsParser;
 use App\Support\SabreStructuredFareRulesFallback;
+use App\Support\SabrePriceQuoteResolver;
 use App\Support\FlightBookingTicketResolver;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
@@ -574,6 +575,16 @@ class FlightService
                 'booking_response' => $responseData,
             ]);
 
+            $storedPriceQuotes = SabrePriceQuoteResolver::fromBookingResponse(
+                is_array($responseData) ? $responseData : null,
+            );
+            if ($locator && $storedPriceQuotes === []) {
+                Log::warning('Sabre PNR created without stored price quote', [
+                    'booking_id' => $booking->id,
+                    'locator' => $locator,
+                ]);
+            }
+
             $errorMessage = null;
             if ($locator) {
                 // Sabre does not return a ticketingDeadline in CreatePassengerNameRecordRS,
@@ -628,6 +639,20 @@ class FlightService
                 throw new \Exception('Missing Sabre record locator for ticketing.');
             }
 
+            $priceQuoteRecords = $this->resolveSabrePriceQuoteRecords($booking, $token);
+            if ($priceQuoteRecords === []) {
+                Log::info('Repricing Sabre PNR before ticketing', [
+                    'booking_id' => $booking->id,
+                    'locator' => $locator,
+                ]);
+
+                $priceQuoteRecords = $this->storeSabrePriceQuotesOnPnr($booking, $token);
+            }
+
+            if ($priceQuoteRecords === []) {
+                throw new \Exception('No active Sabre price quote found on PNR. Repricing failed.');
+            }
+
             $payload = [
                 'AirTicketRQ' => [
                     'version' => '1.3.0',
@@ -646,13 +671,7 @@ class FlightService
                                 'BasicFOP' => ['Type' => 'CK'],
                             ],
                             'PricingQualifiers' => [
-                                'PriceQuote' => [
-                                    [
-                                        'Record' => [
-                                            ['Number' => 1],
-                                        ],
-                                    ],
-                                ],
+                                'PriceQuote' => SabrePriceQuoteResolver::buildAirTicketPriceQuotePayload($priceQuoteRecords),
                             ],
                         ],
                     ],
@@ -1179,6 +1198,214 @@ class FlightService
         return $data;
     }
 
+    /**
+     * @return list<int>
+     */
+    private function resolveSabrePriceQuoteRecords(B2bFlightBooking $booking, string $bearerToken): array
+    {
+        $fromBooking = SabrePriceQuoteResolver::fromBookingResponse(
+            is_array($booking->booking_response) ? $booking->booking_response : null,
+        );
+        if ($fromBooking !== []) {
+            return $fromBooking;
+        }
+
+        $locator = trim((string) $booking->sabre_record_locator);
+        if ($locator === '') {
+            return [];
+        }
+
+        return $this->fetchSabrePriceQuotesFromPnr($bearerToken, $locator);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function fetchSabrePriceQuotesFromPnr(string $bearerToken, string $locator): array
+    {
+        try {
+            $session = $this->createSoapSession($bearerToken);
+        } catch (\Throwable $e) {
+            Log::warning('Sabre PQ lookup session failed', [
+                'locator' => $locator,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
+
+        $binaryToken = $session['token'] ?? null;
+        if (! $binaryToken) {
+            return [];
+        }
+
+        try {
+            $reservation = $this->getReservation($binaryToken, $locator, $bearerToken);
+            if (! ($reservation['success'] ?? false)) {
+                return [];
+            }
+
+            return SabrePriceQuoteResolver::fromXml((string) ($reservation['response'] ?? ''));
+        } finally {
+            try {
+                $this->closeSession($binaryToken, $bearerToken);
+            } catch (\Throwable) {
+                // Read-only lookup; ignore session close failures.
+            }
+        }
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function storeSabrePriceQuotesOnPnr(B2bFlightBooking $booking, string $bearerToken): array
+    {
+        $locator = trim((string) $booking->sabre_record_locator);
+        if ($locator === '') {
+            return [];
+        }
+
+        $session = $this->createSoapSession($bearerToken);
+        $binaryToken = $session['token'] ?? null;
+        if (! $binaryToken) {
+            return [];
+        }
+
+        try {
+            $reservation = $this->getReservation($binaryToken, $locator, $bearerToken);
+            if (! ($reservation['success'] ?? false)) {
+                throw new \Exception($reservation['error'] ?? 'Unable to retrieve Sabre reservation for repricing.');
+            }
+
+            $priceResult = $this->otaAirPriceRetain(
+                $binaryToken,
+                $this->buildPassengerTypes($booking),
+                $bearerToken,
+            );
+            if (! ($priceResult['success'] ?? false)) {
+                throw new \Exception($priceResult['error'] ?? 'Sabre repricing failed.');
+            }
+
+            $records = SabrePriceQuoteResolver::fromXml((string) ($priceResult['response'] ?? ''));
+            $end = $this->endTransaction($binaryToken, $bearerToken);
+            if (! ($end['success'] ?? false)) {
+                Log::warning('Sabre end transaction after repricing failed', [
+                    'booking_id' => $booking->id,
+                    'locator' => $locator,
+                    'error' => $end['error'] ?? null,
+                ]);
+            }
+
+            if ($records === []) {
+                $reservationAfterPrice = $this->getReservation($binaryToken, $locator, $bearerToken);
+                if ($reservationAfterPrice['success'] ?? false) {
+                    $records = SabrePriceQuoteResolver::fromXml((string) ($reservationAfterPrice['response'] ?? ''));
+                }
+            }
+
+            return $records;
+        } catch (\Throwable $e) {
+            Log::error('Sabre repricing before ticketing failed', [
+                'booking_id' => $booking->id,
+                'locator' => $locator,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        } finally {
+            try {
+                $this->closeSession($binaryToken, $bearerToken);
+            } catch (\Throwable) {
+                // Ignore session close failures after repricing attempt.
+            }
+        }
+    }
+
+    /**
+     * @param  list<array{Code: string, Quantity: string}>  $passengerTypes
+     * @return array{success: bool, response?: string, error?: string}
+     */
+    private function otaAirPriceRetain(string $binaryToken, array $passengerTypes, ?string $bearerToken = null): array
+    {
+        $passengerTypeXml = '';
+        foreach ($passengerTypes as $type) {
+            $code = htmlspecialchars((string) ($type['Code'] ?? 'ADT'), ENT_XML1);
+            $quantity = htmlspecialchars((string) ($type['Quantity'] ?? '1'), ENT_XML1);
+            $passengerTypeXml .= "<PassengerType Code=\"{$code}\" Quantity=\"{$quantity}\"/>";
+        }
+
+        $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
+
+        $xml = <<<XML
+<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:eb="http://www.ebxml.org/namespaces/messageHeader" xmlns:wsse="http://schemas.xmlsoap.org/ws/2002/12/secext">
+    <soap-env:Header>
+        <eb:MessageHeader soap-env:mustUnderstand="1" eb:version="1.0.0">
+            <eb:From><eb:PartyId>WebServiceClient</eb:PartyId></eb:From>
+            <eb:To><eb:PartyId>Sabre</eb:PartyId></eb:To>
+            <eb:CPAId>{$this->sabrePcc}</eb:CPAId>
+            <eb:ConversationId>OTA_AirPrice_Retain</eb:ConversationId>
+            <eb:Service>OTA_AirPriceLLSRQ</eb:Service>
+            <eb:Action>OTA_AirPriceLLSRQ</eb:Action>
+            <eb:MessageData>
+                <eb:MessageId>price-{$timestamp}</eb:MessageId>
+                <eb:Timestamp>{$timestamp}</eb:Timestamp>
+            </eb:MessageData>
+        </eb:MessageHeader>
+        <wsse:Security>
+            <wsse:BinarySecurityToken valueType="String" EncodingType="wsse:Base64Binary">{$binaryToken}</wsse:BinarySecurityToken>
+        </wsse:Security>
+    </soap-env:Header>
+    <soap-env:Body>
+        <OTA_AirPriceRQ xmlns="http://webservices.sabre.com/sabreXML/2011/10" Version="2.17.0">
+            <PriceRequestInformation Retain="true">
+                <OptionalQualifiers>
+                    <PricingQualifiers>
+                        {$passengerTypeXml}
+                    </PricingQualifiers>
+                </OptionalQualifiers>
+            </PriceRequestInformation>
+        </OTA_AirPriceRQ>
+    </soap-env:Body>
+</soap-env:Envelope>
+XML;
+
+        $headers = [
+            'Content-Type' => 'text/xml; charset=utf-8',
+            'SOAPAction' => 'OTA_AirPriceLLSRQ',
+        ];
+
+        if ($bearerToken) {
+            $headers['Authorization'] = 'Bearer ' . $bearerToken;
+        }
+
+        $response = $this->sabreHttp()->withHeaders($headers)
+            ->withBody($xml, 'text/xml')
+            ->post('https://sws-crt.cert.sabre.com');
+
+        if (! $response->successful()) {
+            return [
+                'success' => false,
+                'error' => 'OTA_AirPrice failed: ' . $response->body(),
+            ];
+        }
+
+        $body = $response->body();
+        if (stripos($body, '<stl:Error') !== false || stripos($body, 'Error=') !== false) {
+            $fault = $this->extractSoapFault($body);
+
+            return [
+                'success' => false,
+                'error' => $fault ?: 'OTA_AirPrice returned an error response.',
+                'response' => $body,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'response' => $body,
+        ];
+    }
+
     public function cancelSabreBooking(B2bFlightBooking $booking): array
     {
         $locator = $booking->sabre_record_locator;
@@ -1341,6 +1568,7 @@ class FlightService
         return [
             'CreatePassengerNameRecordRQ' => [
                 'version' => '2.5.0',
+                'haltOnAirPriceError' => true,
                 'targetCity' => $this->sabrePcc,
                 'TravelItineraryAddInfo' => [
                     'AgencyInfo' => [
