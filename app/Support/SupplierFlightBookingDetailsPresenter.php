@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\B2bFlightBooking;
+use Carbon\Carbon;
 
 final class SupplierFlightBookingDetailsPresenter
 {
@@ -83,7 +84,7 @@ final class SupplierFlightBookingDetailsPresenter
             self::row('Plating carrier', $platingCarrier !== '' ? strtoupper($platingCarrier) : null),
             self::row('Ticket status', $booking->ticket_status, ['badge' => true]),
             self::row('Ticket number(s)', $ticketValue, ['mono' => true]),
-            self::row('Latest ticketing time', data_get($pricingData, 'latest_ticketing_time')),
+            self::row('Latest ticketing time', self::formatTravelportDateTime(data_get($pricingData, 'latest_ticketing_time'))),
         ]);
 
         $refundability = self::resolveRefundability($booking);
@@ -245,6 +246,20 @@ final class SupplierFlightBookingDetailsPresenter
         $label = $expiry->format('d M Y, h:i A');
 
         return $expiry->isPast() ? "{$label} (expired)" : $label;
+    }
+
+    private static function formatTravelportDateTime(mixed $value): ?string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($raw)->format('d M Y, h:i A');
+        } catch (\Throwable) {
+            return $raw;
+        }
     }
 
     /**
