@@ -706,12 +706,19 @@ class TravelportSearchPresenter
                 continue;
             }
 
+            // Travelport may return multiple AirPricePoint keys for the same published fare.
+            // Dedupe on visible fare identity, not the opaque price-point key.
             $dedupeKey = implode('|', [
-                (string) ($option['fare_basis'] ?? ''),
-                (string) ($option['fare_brand'] ?? ''),
-                (string) ($option['totalPrice'] ?? ''),
-                implode(',', $option['fare_tags'] ?? []),
-                (string) ($option['travelport_price_point_key'] ?? ''),
+                strtoupper((string) ($option['fare_basis'] ?? '')),
+                strtoupper((string) ($option['fare_brand'] ?? '')),
+                number_format((float) ($option['totalPrice'] ?? 0), 2, '.', ''),
+                implode(',', array_values(array_unique(array_map(
+                    static fn ($tag): string => strtolower((string) $tag),
+                    is_array($option['fare_tags'] ?? null) ? $option['fare_tags'] : [],
+                )))),
+                strtoupper((string) ($option['booking_code'] ?? '')),
+                strtoupper((string) ($option['cabin_code'] ?? '')),
+                ($option['non_refundable'] ?? false) ? '1' : '0',
             ]);
 
             if (isset($seen[$dedupeKey])) {
