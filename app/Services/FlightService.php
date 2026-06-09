@@ -7,6 +7,7 @@ use App\Models\Config;
 use App\Services\Travelport\TravelportBookingService;
 use App\Support\SabreAirRulesResponseParser;
 use App\Support\SabreStructuredFareRulesFallback;
+use App\Support\FlightBookingTicketResolver;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -664,10 +665,12 @@ class FlightService
             }
 
             $responseData = $response->json();
+            $ticketNumbers = FlightBookingTicketResolver::fromResponse(is_array($responseData) ? $responseData : null);
 
             $ticketUpdate = [
                 'ticket_request' => $payload,
                 'ticket_response' => $responseData,
+                'ticket_numbers' => $ticketNumbers,
                 'ticket_status' => 'issued',
             ];
 

@@ -200,9 +200,9 @@
     elseif ($payMethod === 'WALLET') $payMethod = 'Wallet';
     else $payMethod = ucfirst(strtolower($payMethod));
 
-    $eTicket = data_get($booking->ticket_response, 'AirTicketRS.ETicketNumber')
-        ?? data_get($booking->ticket_response, 'eTicketNumber')
-        ?? null;
+    $eTicketNumbers = $booking->resolvedTicketNumbers();
+    $eTicket = $eTicketNumbers !== [] ? implode(', ', $eTicketNumbers) : null;
+    $providerLabel = $booking->providerLabel();
 @endphp
 
 <div class="hs-page">
@@ -217,7 +217,7 @@
         </svg>
       </div>
       <h1 class="hs-title">Booking Confirmed!</h1>
-      <p class="hs-sub">Payment received &nbsp;·&nbsp; Ticket issued on Sabre</p>
+      <p class="hs-sub">Payment received &nbsp;·&nbsp; Ticket issued on {{ $providerLabel }}</p>
     </div>
 
     {{-- Body --}}

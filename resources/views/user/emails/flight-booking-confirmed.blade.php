@@ -24,6 +24,7 @@
         e($booking->booking_number) .
         '</strong>.';
     $companyCurrency = $companyCurrency ?? companyCurrency();
+    $ticketNumbers = $booking->resolvedTicketNumbers();
 @endphp
 <!DOCTYPE html
     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -86,7 +87,7 @@
                         </td>
                         <td valign="top" width="50%" class="mob-full" style="padding:8px 0;">
                             @if ($booking->sabre_record_locator)
-                                <div class="label">PNR (Sabre)</div>
+                                <div class="label">PNR ({{ $booking->providerLabel() }})</div>
                                 <div class="data-text conf-ref">{{ $booking->sabre_record_locator }}</div>
                             @else
                                 <div class="label">PNR</div>
@@ -94,6 +95,14 @@
                             @endif
                         </td>
                     </tr>
+                    @if (count($ticketNumbers) > 0)
+                    <tr>
+                        <td colspan="2" style="padding:8px 0;">
+                            <div class="label">Ticket number{{ count($ticketNumbers) > 1 ? 's' : '' }}</div>
+                            <div class="data-text conf-ref">{{ implode(', ', $ticketNumbers) }}</div>
+                        </td>
+                    </tr>
+                    @endif
                     <tr>
                         <td colspan="2" style="padding:8px 0;">
                             <div class="label">Route</div>

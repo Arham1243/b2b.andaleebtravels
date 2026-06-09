@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\FlightBookingTicketResolver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +33,7 @@ class B2bFlightBooking extends Model
         'booking_response',
         'ticket_request',
         'ticket_response',
+        'ticket_numbers',
         'cancel_response',
         'total_amount',
         'original_amount',
@@ -68,6 +70,7 @@ class B2bFlightBooking extends Model
         'booking_response' => 'array',
         'ticket_request' => 'array',
         'ticket_response' => 'array',
+        'ticket_numbers' => 'array',
         'cancel_response' => 'array',
         'payment_response' => 'array',
         'total_amount' => 'decimal:2',
@@ -222,6 +225,19 @@ class B2bFlightBooking extends Model
     public function hasAirlinePnr(): bool
     {
         return trim((string) ($this->sabre_record_locator ?? '')) !== '';
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function resolvedTicketNumbers(): array
+    {
+        return FlightBookingTicketResolver::forBooking($this);
+    }
+
+    public function hasIssuedTicketNumbers(): bool
+    {
+        return $this->ticket_status === 'issued' && $this->resolvedTicketNumbers() !== [];
     }
 
     public function canCancelAtAirline(): bool

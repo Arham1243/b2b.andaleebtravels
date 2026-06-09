@@ -223,6 +223,14 @@
                                     </div>
                                 </div>
                             @endif
+                            @if (!empty($adminDetails['ticket_numbers']))
+                                <div class="bkpd-pnr-row">
+                                    <div>
+                                        <div class="bkpd-pnr-label">Ticket number{{ count($adminDetails['ticket_numbers']) > 1 ? 's' : '' }}</div>
+                                        <div class="bkpd-pnr-value">{{ implode(', ', $adminDetails['ticket_numbers']) }}</div>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
 
                         @if (!empty($legs))

@@ -64,6 +64,7 @@
         $nonRefundable = (bool) ($itinerary['non_refundable'] ?? false);
     }
     $fareRulesSummary = is_array($itinerary['fare_rules'] ?? null) ? $itinerary['fare_rules'] : [];
+    $ticketNumbers = $booking->resolvedTicketNumbers();
 @endphp
 
 <div class="bkp">
@@ -171,6 +172,17 @@
                                 </div>
                                 <button class="bkpd-pnr-copy" onclick="copyPnr()" id="detCopyBtn" title="Copy PNR">
                                     <i class="bx bx-copy" id="detCopyIcon"></i>
+                                </button>
+                            </div>
+                            @endif
+                            @if(!empty($ticketNumbers))
+                            <div class="bkpd-pnr-row">
+                                <div>
+                                    <div class="bkpd-pnr-label">Ticket number{{ count($ticketNumbers) > 1 ? 's' : '' }}</div>
+                                    <div class="bkpd-pnr-value" id="detTicketNumbers">{{ implode(', ', $ticketNumbers) }}</div>
+                                </div>
+                                <button class="bkpd-pnr-copy" onclick="copyTicketNumbers()" id="detTicketCopyBtn" title="Copy ticket number(s)">
+                                    <i class="bx bx-copy" id="detTicketCopyIcon"></i>
                                 </button>
                             </div>
                             @endif
@@ -369,6 +381,12 @@
                                     <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $booking->sabre_record_locator }}</span>
                                 </div>
                                 @endif
+                                @if(!empty($ticketNumbers))
+                                <div class="bkpd-info-row">
+                                    <span class="bkpd-info-row__label">Ticket number{{ count($ticketNumbers) > 1 ? 's' : '' }}</span>
+                                    <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ implode(', ', $ticketNumbers) }}</span>
+                                </div>
+                                @endif
                                 @if($nonRefundable !== null)
                                 <div class="bkpd-info-row">
                                     <span class="bkpd-info-row__label">Fare type</span>
@@ -469,6 +487,17 @@ function copyPnr() {
     const icon = document.getElementById('detCopyIcon');
     if (!pnr) return;
     navigator.clipboard.writeText(pnr).then(() => {
+        btn.classList.add('copied');
+        icon.className = 'bx bx-check';
+        setTimeout(() => { btn.classList.remove('copied'); icon.className = 'bx bx-copy'; }, 2000);
+    });
+}
+function copyTicketNumbers() {
+    const tickets = document.getElementById('detTicketNumbers')?.innerText?.trim();
+    const btn  = document.getElementById('detTicketCopyBtn');
+    const icon = document.getElementById('detTicketCopyIcon');
+    if (!tickets) return;
+    navigator.clipboard.writeText(tickets).then(() => {
         btn.classList.add('copied');
         icon.className = 'bx bx-check';
         setTimeout(() => { btn.classList.remove('copied'); icon.className = 'bx bx-copy'; }, 2000);

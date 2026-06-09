@@ -3,6 +3,7 @@
 namespace App\Services\Travelport;
 
 use App\Models\B2bFlightBooking;
+use App\Support\FlightBookingTicketResolver;
 use App\Support\Travelport\TravelportAirPriceParser;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use Carbon\Carbon;
@@ -230,12 +231,21 @@ class TravelportBookingService
             }
 
             $parsed = is_array($ticketResponse['parsed'] ?? null) ? $ticketResponse['parsed'] : [];
+            $ticketingRsp = $parsed['Body']['AirTicketingRsp'] ?? $parsed;
+            $storedResponse = is_array($ticketingRsp) ? $ticketingRsp : [];
+            if (is_string($ticketResponse['raw'] ?? null) && ($ticketResponse['raw'] ?? '') !== '') {
+                $storedResponse['raw'] = $ticketResponse['raw'];
+            }
+
+            $ticketNumbers = FlightBookingTicketResolver::fromResponse($storedResponse);
+
             $ticketUpdate = [
                 'ticket_request' => [
                     'air_reservation_locator' => $locator,
                     'plating_carrier' => $platingCarrier,
                 ],
-                'ticket_response' => $parsed['Body']['AirTicketingRsp'] ?? $parsed,
+                'ticket_response' => $storedResponse,
+                'ticket_numbers' => $ticketNumbers,
                 'ticket_status' => 'issued',
             ];
 
