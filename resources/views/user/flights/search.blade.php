@@ -473,6 +473,7 @@
                                     $stopsLbl   = $stopsTotal === 0 ? 'Non stop'
                                                 : ($stopsTotal === 1 ? '1 stop' : $stopsTotal.' stops');
                                     $isRedEye   = (bool)($s0['is_red_eye_segment'] ?? false);
+                                    $isMorning  = ! $isRedEye && flightClockIsMorning($s0['departure_clock'] ?? null);
                                     $nextDay    = (bool)($sLast['next_day_hint'] ?? false);
 
                                     $midApts = [];
@@ -501,7 +502,11 @@
                                     <div class="rc__point">
                                         <div class="rc__time">
                                             {{ formatFlightClock($s0['departure_clock'] ?? null) }}
-                                            @if ($isRedEye)<i class="bx bxs-moon rc__moon"></i>@endif
+                                            @if ($isRedEye)
+                                                <i class="bx bxs-moon rc__moon"></i>
+                                            @elseif ($isMorning)
+                                                <i class="bx bxs-sun rc__sun"></i>
+                                            @endif
                                         </div>
                                         <div class="rc__dt">{{ $s0['departure_weekday']??'' }}, {{ $s0['departure_label']??'' }}</div>
                                         <div class="rc__city">
@@ -537,9 +542,13 @@
                                         </div>
                                     </div>
 
-                                    {{-- moon col --}}
+                                    {{-- time-of-day col --}}
                                     <div class="rc__redeyecol">
-                                        @if($isRedEye)<i class="bx bxs-moon"></i>@endif
+                                        @if ($isRedEye)
+                                            <i class="bx bxs-moon"></i>
+                                        @elseif ($isMorning)
+                                            <i class="bx bxs-sun rc__sun"></i>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
@@ -1273,6 +1282,7 @@
     display: inline-flex; align-items: center; gap: .25rem;
 }
 .rc__moon { font-size: .78rem; color: #6366f1; }
+.rc__sun { font-size: .78rem; color: #f59e0b; }
 .rc__nextday {
     font-size: .58rem; font-weight: 700;
     background: var(--c-amber-soft); color: var(--c-amber);
