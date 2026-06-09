@@ -149,7 +149,7 @@
                 @endphp
 
                 {{-- Fare count full-width above filters/results --}}
-                <div class="row g-3 rp-listing-prelude">
+                <div class="row g-2 rp-listing-prelude">
                     <div class="col-12 rp-listing-prelude__count-wrap">
                         <span class="rp-bar__count">
                             Showing <strong>{{ $itineraryCount }}</strong> of <strong>{{ $itineraryCount }}</strong> Fares found
@@ -1080,17 +1080,17 @@
 .rp-shell { padding-top: 2rem; }
 
 .rp-listing-prelude {
-    --rp-prelude-gap: 0.75rem;
+    --rp-prelude-gap: 1.5rem;
     margin-bottom: var(--rp-prelude-gap);
 }
 .rp-listing-prelude__count-wrap {
-    padding: .45rem 0 .5rem;
+    padding: .2rem 0 .1rem;
 }
 .rp-advisory {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
-    padding: 1rem 1.25rem 1.05rem;
+    gap: .75rem;
+    padding: .65rem 1rem .7rem;
     border-radius: 12px;
     border: 1px solid rgba(205, 27, 79, .14);
     background:
@@ -1102,29 +1102,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    margin-top: .1rem;
+    width: 2.15rem;
+    height: 2.15rem;
     border-radius: 10px;
     background: var(--c-brand-soft);
     color: var(--c-brand);
     flex-shrink: 0;
 }
 .rp-advisory__mark i {
-    font-size: 1.35rem;
+    font-size: 1.15rem;
     line-height: 1;
 }
 .rp-advisory__body {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: .45rem;
-    padding-top: .05rem;
+    gap: .28rem;
 }
 .rp-advisory__tag {
     display: inline-block;
     align-self: flex-start;
-    padding: .18rem .55rem;
+    padding: .12rem .45rem;
     border-radius: 999px;
     background: rgba(205, 27, 79, .08);
     color: var(--c-brand2);
@@ -1135,15 +1133,15 @@
 }
 .rp-advisory__title {
     margin: 0;
-    font-size: .92rem;
+    font-size: .88rem;
     font-weight: 700;
-    line-height: 1.4;
+    line-height: 1.35;
     color: var(--c-ink);
 }
 .rp-advisory__text {
     margin: 0;
-    font-size: .8rem;
-    line-height: 1.65;
+    font-size: .78rem;
+    line-height: 1.55;
     color: var(--c-slate);
     max-width: 68rem;
 }
