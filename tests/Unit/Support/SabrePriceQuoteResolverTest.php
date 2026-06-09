@@ -61,6 +61,21 @@ XML;
         $this->assertSame([1], SabrePriceQuoteResolver::fromXml($xml));
     }
 
+    public function test_extracts_price_quote_numbers_from_ota_air_price_xml_without_rph_attribute(): void
+    {
+        $xml = <<<'XML'
+<OTA_AirPriceRS>
+  <PriceQuote>
+    <PricedItinerary RPH="1" StatusCode="A">
+      <AirItineraryPricingInfo/>
+    </PricedItinerary>
+  </PriceQuote>
+</OTA_AirPriceRS>
+XML;
+
+        $this->assertSame([1], SabrePriceQuoteResolver::fromXml($xml));
+    }
+
     public function test_builds_consecutive_air_ticket_price_quote_payload(): void
     {
         $payload = SabrePriceQuoteResolver::buildAirTicketPriceQuotePayload([1, 2, 3]);

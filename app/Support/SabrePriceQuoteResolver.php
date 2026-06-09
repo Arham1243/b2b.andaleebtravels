@@ -31,6 +31,17 @@ final class SabrePriceQuoteResolver
             }
         }
 
+        foreach (self::asList(data_get($response, 'UpdatePassengerNameRecordRS.AirPrice')) as $airPrice) {
+            if (! is_array($airPrice)) {
+                continue;
+            }
+
+            $records = self::extractFromPriceQuoteNodes($airPrice['PriceQuote'] ?? null);
+            if ($records !== []) {
+                return $records;
+            }
+        }
+
         return [];
     }
 
@@ -48,17 +59,34 @@ final class SabrePriceQuoteResolver
         }
 
         $records = [];
+        $fallbackRecord = 1;
+
         foreach ($blocks as $block) {
             $attributes = $block[1];
             $body = $block[2];
 
-            if (preg_match('/\bStatus="(?!ACTIVE\b)[^"]+"/i', $body)) {
+            if (self::hasInactiveSignatureLine($body)) {
                 continue;
             }
 
+            $recordNumber = 0;
             if (preg_match('/\bRPH="(\d+)"/i', $attributes, $match)) {
-                $records[] = (int) $match[1];
+                $recordNumber = (int) $match[1];
             }
+
+            if ($recordNumber <= 0 && preg_match('/<(?:[\w-]+:)?PricedItinerary\b[^>]*\bRPH="(\d+)"/i', $body, $pricedMatch)) {
+                $recordNumber = (int) $pricedMatch[1];
+            }
+
+            if ($recordNumber <= 0) {
+                $recordNumber = $fallbackRecord;
+            }
+
+            if ($recordNumber > 0) {
+                $records[] = $recordNumber;
+            }
+
+            $fallbackRecord++;
         }
 
         return self::normalizeRecords($records);
@@ -140,12 +168,42 @@ final class SabrePriceQuoteResolver
             }
 
             $rph = (int) ($quote['RPH'] ?? 0);
+            if ($rph <= 0) {
+                foreach (self::asList($quote['PricedItinerary'] ?? null) as $pricedItinerary) {
+                    if (! is_array($pricedItinerary)) {
+                        continue;
+                    }
+
+                    $rph = (int) ($pricedItinerary['RPH'] ?? 0);
+                    if ($rph > 0) {
+                        break;
+                    }
+                }
+            }
+
             if ($rph > 0) {
                 $records[] = $rph;
             }
         }
 
         return self::normalizeRecords($records);
+    }
+
+    private static function hasInactiveSignatureLine(string $body): bool
+    {
+        if (! preg_match_all('/<(?:[\w-]+:)?SignatureLine\b([^>]*)>/i', $body, $matches)) {
+            return false;
+        }
+
+        foreach ($matches[1] as $attributes) {
+            if (preg_match('/\bStatus="([^"]+)"/i', $attributes, $statusMatch)) {
+                if (strtoupper($statusMatch[1]) !== 'ACTIVE') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static function priceQuoteStatus(array $quote): ?string

@@ -646,11 +646,13 @@ class FlightService
                     'locator' => $locator,
                 ]);
 
-                $priceQuoteRecords = $this->storeSabrePriceQuotesOnPnr($booking, $token);
+                $repriceResult = $this->storeSabrePriceQuotesOnPnr($booking, $token);
+                $priceQuoteRecords = $repriceResult['records'] ?? [];
             }
 
             if ($priceQuoteRecords === []) {
-                throw new \Exception('No active Sabre price quote found on PNR. Repricing failed.');
+                $repriceError = $repriceResult['error'] ?? null;
+                throw new \Exception($repriceError ?: 'No active Sabre price quote found on PNR. Repricing failed.');
             }
 
             $payload = [
@@ -1256,19 +1258,29 @@ class FlightService
     }
 
     /**
-     * @return list<int>
+     * @return array{records: list<int>, error: string|null}
      */
     private function storeSabrePriceQuotesOnPnr(B2bFlightBooking $booking, string $bearerToken): array
     {
         $locator = trim((string) $booking->sabre_record_locator);
         if ($locator === '') {
-            return [];
+            return ['records' => [], 'error' => 'Missing Sabre record locator.'];
         }
+
+        $restResult = $this->repriceSabrePnrViaRest($booking, $bearerToken);
+        if (($restResult['records'] ?? []) !== []) {
+            return $restResult;
+        }
+
+        $restError = $restResult['error'] ?? null;
 
         $session = $this->createSoapSession($bearerToken);
         $binaryToken = $session['token'] ?? null;
         if (! $binaryToken) {
-            return [];
+            return [
+                'records' => [],
+                'error' => $restError ?: 'Unable to establish Sabre SOAP session for repricing.',
+            ];
         }
 
         try {
@@ -1283,7 +1295,7 @@ class FlightService
                 $bearerToken,
             );
             if (! ($priceResult['success'] ?? false)) {
-                throw new \Exception($priceResult['error'] ?? 'Sabre repricing failed.');
+                throw new \Exception($priceResult['error'] ?? 'Sabre SOAP repricing failed.');
             }
 
             $records = SabrePriceQuoteResolver::fromXml((string) ($priceResult['response'] ?? ''));
@@ -1303,7 +1315,18 @@ class FlightService
                 }
             }
 
-            return $records;
+            if ($records === []) {
+                Log::warning('Sabre repricing returned no price quote records', [
+                    'booking_id' => $booking->id,
+                    'locator' => $locator,
+                    'response_excerpt' => mb_substr((string) ($priceResult['response'] ?? ''), 0, 2000),
+                ]);
+            }
+
+            return [
+                'records' => $records,
+                'error' => $records === [] ? ($restError ?: 'Sabre repricing completed without active price quote records.') : null,
+            ];
         } catch (\Throwable $e) {
             Log::error('Sabre repricing before ticketing failed', [
                 'booking_id' => $booking->id,
@@ -1311,7 +1334,10 @@ class FlightService
                 'error' => $e->getMessage(),
             ]);
 
-            return [];
+            return [
+                'records' => [],
+                'error' => $restError ?: $e->getMessage(),
+            ];
         } finally {
             try {
                 $this->closeSession($binaryToken, $bearerToken);
@@ -1319,6 +1345,85 @@ class FlightService
                 // Ignore session close failures after repricing attempt.
             }
         }
+    }
+
+    /**
+     * @return array{records: list<int>, error: string|null, response?: array<string, mixed>|null}
+     */
+    private function repriceSabrePnrViaRest(B2bFlightBooking $booking, string $bearerToken): array
+    {
+        $locator = trim((string) $booking->sabre_record_locator);
+        if ($locator === '') {
+            return ['records' => [], 'error' => 'Missing Sabre record locator.'];
+        }
+
+        $payload = [
+            'CreatePassengerNameRecordRQ' => [
+                'version' => '2.5.0',
+                'haltOnAirPriceError' => true,
+                'targetCity' => $this->sabrePcc,
+                'Itinerary' => [
+                    'ID' => $locator,
+                ],
+                'AirPrice' => [
+                    [
+                        'PriceRequestInformation' => [
+                            'Retain' => true,
+                        ],
+                    ],
+                ],
+                'PostProcessing' => [
+                    'EndTransaction' => [
+                        'Source' => [
+                            'ReceivedFrom' => 'API REPRICE',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $response = $this->sabreHttp()->withToken($bearerToken)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post('https://api.cert.platform.sabre.com/v2.5.0/passenger/records?mode=update', $payload);
+
+        if (! $response->successful()) {
+            return [
+                'records' => [],
+                'error' => 'Sabre REST repricing failed: ' . $response->body(),
+            ];
+        }
+
+        $responseData = $response->json();
+        if (! is_array($responseData)) {
+            return [
+                'records' => [],
+                'error' => 'Sabre REST repricing returned an invalid response.',
+            ];
+        }
+
+        $messages = SabreApplicationResultsParser::messages($responseData, 'CreatePassengerNameRecordRS');
+        if ($messages === []) {
+            $messages = SabreApplicationResultsParser::messages($responseData, 'UpdatePassengerNameRecordRS');
+        }
+
+        $records = SabrePriceQuoteResolver::fromBookingResponse($responseData);
+        if ($records === []) {
+            $records = SabrePriceQuoteResolver::fromXml(json_encode($responseData, JSON_UNESCAPED_SLASHES) ?: '');
+        }
+
+        if ($records === [] && $messages !== []) {
+            return [
+                'records' => [],
+                'error' => implode('; ', $messages),
+                'response' => $responseData,
+            ];
+        }
+
+        return [
+            'records' => $records,
+            'error' => $records === [] ? 'Sabre REST repricing completed without price quote records.' : null,
+            'response' => $responseData,
+        ];
     }
 
     /**
@@ -1390,7 +1495,8 @@ XML;
         }
 
         $body = $response->body();
-        if (stripos($body, '<stl:Error') !== false || stripos($body, 'Error=') !== false) {
+        if (preg_match('/<(?:[\w-]+:)?ApplicationResults[^>]*\bstatus="(?:NotProcessed|Incomplete)"/i', $body)
+            || preg_match('/<(?:[\w-]+:)?Error\b/i', $body)) {
             $fault = $this->extractSoapFault($body);
 
             return [
