@@ -383,6 +383,14 @@ XML;
 
         $taxesXml = (string) ($pricingData['taxes_xml'] ?? '');
 
+        $paymentXml = '';
+        if ($totalPrice !== '') {
+            $paymentXml = <<<XML
+
+            <Payment xmlns="{$comNs}" Key="PAY1" Type="Itinerary" Amount="{$totalPrice}" FormOfPaymentRef="FOP1"/>
+XML;
+        }
+
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
     <soapenv:Header/>
@@ -397,6 +405,8 @@ XML;
 
             <BillingPointOfSaleInfo xmlns="{$comNs}" OriginApplication="UAPI"/>
             {$travelersXml}
+
+            <FormOfPayment xmlns="{$comNs}" Key="FOP1" Type="Cash"/>
 
             <AirPricingSolution
                 xmlns="{$airNs}"
@@ -415,7 +425,7 @@ XML;
                     ProviderCode="{$providerCode}">
                     {$fareInfosXml}
                     {$bookingInfosXml}
-                    {$taxesXml}{$passengerTypesXml}
+                    {$taxesXml}{$passengerTypesXml}{$paymentXml}
                 </AirPricingInfo>
                 {$hostTokensXml}
 
@@ -454,13 +464,13 @@ XML;
         if ($amount !== '') {
             $fopXml = <<<XML
 
-            <com:FormOfPayment Key="FOP1" Type="Cash"/>
+            <air:FormOfPayment Key="FOP1" Type="Cash"/>
             <air:Payment Key="PAY1" Type="Itinerary" FormOfPaymentRef="FOP1" Amount="{$amount}"/>
 XML;
         } else {
             $fopXml = <<<XML
 
-            <com:FormOfPayment Key="FOP1" Type="Cash"/>
+            <air:FormOfPayment Key="FOP1" Type="Cash"/>
 XML;
         }
 
