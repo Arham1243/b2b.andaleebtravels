@@ -639,7 +639,9 @@ class FlightService
                 throw new \Exception('Missing Sabre record locator for ticketing.');
             }
 
-            $priceQuoteRecords = $this->resolveSabrePriceQuoteRecords($booking, $token);
+            $priceQuoteRecords = $this->shouldRefreshSabrePriceQuote($booking)
+                ? []
+                : $this->resolveSabrePriceQuoteRecords($booking, $token);
             if ($priceQuoteRecords === []) {
                 Log::info('Repricing Sabre PNR before ticketing', [
                     'booking_id' => $booking->id,
@@ -660,8 +662,8 @@ class FlightService
                     'version' => '1.3.0',
                     'DesignatePrinter' => [
                         'Printers' => [
-                            'Hardcopy' => ['LNIATA' => 'FA8CFB'],
-                            'Ticket' => ['CountryCode' => 'TG'],
+                            'Hardcopy' => ['LNIATA' => (string) config('services.sabre.ticket_printer_lniata', 'FA8CFB')],
+                            'Ticket' => ['CountryCode' => (string) config('services.sabre.ticket_printer_country_code', 'TG')],
                         ],
                     ],
                     'Itinerary' => [
@@ -728,6 +730,16 @@ class FlightService
                 'data' => $responseData,
             ];
         } catch (\Exception $e) {
+            if (str_contains($e->getMessage(), 'AUTH CARRIER INVLD')) {
+                Log::error('Sabre ticketing authority error', [
+                    'booking_id' => $booking->id,
+                    'locator' => $booking->sabre_record_locator,
+                    'validating_carrier' => $this->resolveSabreValidatingCarrier($booking),
+                    'pcc' => $this->sabrePcc,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             Log::error('Sabre ticketing failed', [
                 'booking_id' => $booking->id,
                 'error' => $e->getMessage(),
@@ -1200,6 +1212,26 @@ class FlightService
         return $data;
     }
 
+    private function shouldRefreshSabrePriceQuote(B2bFlightBooking $booking): bool
+    {
+        if ($booking->ticket_status === 'failed') {
+            return true;
+        }
+
+        $ticketResponse = is_array($booking->ticket_response) ? $booking->ticket_response : null;
+        if ($ticketResponse === null) {
+            return false;
+        }
+
+        foreach (SabreApplicationResultsParser::messages($ticketResponse, 'AirTicketRS') as $message) {
+            if (str_contains($message, 'INVALID PQ NUMBER') || str_contains($message, 'AUTH CARRIER INVLD')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @return list<int>
      */
@@ -1291,7 +1323,7 @@ class FlightService
 
             $priceResult = $this->otaAirPriceRetain(
                 $binaryToken,
-                $this->buildPassengerTypes($booking),
+                $booking,
                 $bearerToken,
             );
             if (! ($priceResult['success'] ?? false)) {
@@ -1367,9 +1399,7 @@ class FlightService
                 ],
                 'AirPrice' => [
                     [
-                        'PriceRequestInformation' => [
-                            'Retain' => true,
-                        ],
+                        'PriceRequestInformation' => $this->buildSabreAirPriceRequestInformation($booking, true),
                     ],
                 ],
                 'PostProcessing' => [
@@ -1427,16 +1457,21 @@ class FlightService
     }
 
     /**
-     * @param  list<array{Code: string, Quantity: string}>  $passengerTypes
      * @return array{success: bool, response?: string, error?: string}
      */
-    private function otaAirPriceRetain(string $binaryToken, array $passengerTypes, ?string $bearerToken = null): array
+    private function otaAirPriceRetain(string $binaryToken, B2bFlightBooking $booking, ?string $bearerToken = null): array
     {
         $passengerTypeXml = '';
-        foreach ($passengerTypes as $type) {
+        foreach ($this->buildPassengerTypes($booking) as $type) {
             $code = htmlspecialchars((string) ($type['Code'] ?? 'ADT'), ENT_XML1);
             $quantity = htmlspecialchars((string) ($type['Quantity'] ?? '1'), ENT_XML1);
             $passengerTypeXml .= "<PassengerType Code=\"{$code}\" Quantity=\"{$quantity}\"/>";
+        }
+
+        $validatingCarrierXml = '';
+        $validatingCarrier = $this->resolveSabreValidatingCarrier($booking);
+        if ($validatingCarrier !== null) {
+            $validatingCarrierXml = '<ValidatingCarrier Code="' . htmlspecialchars($validatingCarrier, ENT_XML1) . '"/>';
         }
 
         $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
@@ -1465,6 +1500,7 @@ class FlightService
             <PriceRequestInformation Retain="true">
                 <OptionalQualifiers>
                     <PricingQualifiers>
+                        {$validatingCarrierXml}
                         {$passengerTypeXml}
                     </PricingQualifiers>
                 </OptionalQualifiers>
@@ -1702,16 +1738,11 @@ XML;
                     ],
                 ],
                 // Sabre JSON schema requires AirPrice to be an array.
-                // OptionalQualifiers.PricingQualifiers.PassengerType pushes the path
-                // to 9+ levels when combined with the AirBook response nesting, causing
-                // Sabre's internal "Over 9 levels deep, aborting normalization" error for
-                // multi-pax bookings. Retain:true without OptionalQualifiers is sufficient
-                // – Sabre derives passenger types from the PersonName entries above.
+                // Avoid PassengerType in OptionalQualifiers here (9+ level normalization bug).
+                // ValidatingCarrier alone is shallow enough and keeps PQ aligned with shop fare.
                 'AirPrice' => [
                     [
-                        'PriceRequestInformation' => [
-                            'Retain' => true,
-                        ],
+                        'PriceRequestInformation' => $this->buildSabreAirPriceRequestInformation($booking, true, false),
                     ],
                 ],
                 'PostProcessing' => [
@@ -1925,6 +1956,65 @@ XML;
         }
 
         return $normalized;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildSabreAirPriceRequestInformation(B2bFlightBooking $booking, bool $retain, bool $includePassengerTypes = true): array
+    {
+        $request = ['Retain' => $retain];
+        $pricingQualifiers = [];
+
+        $validatingCarrier = $this->resolveSabreValidatingCarrier($booking);
+        if ($validatingCarrier !== null) {
+            $pricingQualifiers['ValidatingCarrier'] = ['Code' => $validatingCarrier];
+        }
+
+        if ($includePassengerTypes) {
+            foreach ($this->buildPassengerTypes($booking) as $type) {
+                $pricingQualifiers['PassengerType'][] = [
+                    'Code' => $type['Code'],
+                    'Quantity' => $type['Quantity'],
+                ];
+            }
+        }
+
+        if ($pricingQualifiers !== []) {
+            $request['OptionalQualifiers'] = [
+                'PricingQualifiers' => $pricingQualifiers,
+            ];
+        }
+
+        return $request;
+    }
+
+    private function resolveSabreValidatingCarrier(B2bFlightBooking $booking): ?string
+    {
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $carrier = strtoupper(trim((string) ($itinerary['validating_carrier'] ?? '')));
+        if (strlen($carrier) === 2) {
+            return $carrier;
+        }
+
+        foreach ($itinerary['legs'] ?? [] as $leg) {
+            if (! is_array($leg)) {
+                continue;
+            }
+
+            foreach ($leg['segments'] ?? [] as $segment) {
+                if (! is_array($segment)) {
+                    continue;
+                }
+
+                $marketing = strtoupper(trim((string) ($segment['carrier'] ?? '')));
+                if (strlen($marketing) === 2) {
+                    return $marketing;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function buildPassengerTypes(B2bFlightBooking $booking): array

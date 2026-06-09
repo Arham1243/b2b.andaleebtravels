@@ -67,5 +67,7 @@ return [
     'sabre' => [
         'http_timeout' => (int) env('SABRE_HTTP_TIMEOUT', 90),
         'http_connect_timeout' => (int) env('SABRE_HTTP_CONNECT_TIMEOUT', 30),
+        'ticket_printer_lniata' => env('SABRE_TICKET_PRINTER_LNIATA', 'FA8CFB'),
+        'ticket_printer_country_code' => env('SABRE_TICKET_PRINTER_COUNTRY_CODE', 'TG'),
     ],
 ];
