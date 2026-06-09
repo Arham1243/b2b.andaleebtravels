@@ -1180,8 +1180,8 @@
 #rp-list {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    padding: .5rem .35rem 1rem;
+    gap: 1rem;
+    padding: .35rem .35rem .75rem;
     margin: 0 -.35rem;
     border-radius: 16px;
 }
@@ -1242,53 +1242,53 @@
 /* leg row */
 .rc__leg {
     display: grid;
-    grid-template-columns: 175px 1fr 170px 1fr 28px;
+    grid-template-columns: 165px 1fr 160px 1fr 28px;
     align-items: center;
-    gap: .5rem 1rem;
-    padding: .9rem 1.1rem;
+    gap: .35rem .75rem;
+    padding: .55rem .85rem;
     border-bottom: 1px solid var(--c-line-inner);
 }
 .rc__leg--ret { background: #fafbfd; }
 
 /* airline */
-.rc__airline { display: flex; gap: .7rem; align-items: center; min-width: 0; }
+.rc__airline { display: flex; gap: .5rem; align-items: center; min-width: 0; }
 
 .rc__logo-wrap {
-    width: 52px; height: 52px; flex-shrink: 0;
-    border-radius: 12px;
+    width: 44px; height: 44px; flex-shrink: 0;
+    border-radius: 10px;
     border: 1.5px solid var(--c-line);
     background: #fff;
     box-shadow: 0 1px 3px rgba(26, 37, 64, 0.05);
     display: flex; align-items: center; justify-content: center;
-    padding: 4px;
+    padding: 3px;
     overflow: hidden;
 }
 .rc__logo { width: 100%; height: 100%; object-fit: contain; display: block; }
 
 .rc__aname {
-    font-size: .84rem; font-weight: 700; color: var(--c-ink);
-    line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: .8rem; font-weight: 700; color: var(--c-ink);
+    line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.rc__aflight { font-family: var(--mono); font-size: .69rem; color: var(--c-muted); margin-top: .08rem; }
+.rc__aflight { font-family: var(--mono); font-size: .66rem; color: var(--c-muted); margin-top: .04rem; }
 
 /* dep / arr */
 .rc__point { min-width: 0; }
 .rc__point--arr { text-align: right; }
 .rc__time {
-    font-family: var(--mono); font-size: 1.3rem; font-weight: 700;
+    font-family: var(--mono); font-size: 1.12rem; font-weight: 700;
     color: var(--c-ink); line-height: 1;
-    display: inline-flex; align-items: center; gap: .3rem;
+    display: inline-flex; align-items: center; gap: .25rem;
 }
-.rc__moon { font-size: .85rem; color: #6366f1; }
+.rc__moon { font-size: .78rem; color: #6366f1; }
 .rc__nextday {
     font-size: .58rem; font-weight: 700;
     background: var(--c-amber-soft); color: var(--c-amber);
     padding: .05rem .3rem; border-radius: 4px; margin-left: .2rem;
     letter-spacing: .04em; text-transform: uppercase; font-family: var(--sans);
 }
-.rc__dt { font-size: .71rem; color: var(--c-muted); margin-top: .18rem; white-space: nowrap; }
+.rc__dt { font-size: .68rem; color: var(--c-muted); margin-top: .12rem; white-space: nowrap; }
 .rc__city {
-    font-size: .74rem; color: var(--c-slate); font-weight: 500; margin-top: .05rem;
+    font-size: .7rem; color: var(--c-slate); font-weight: 500; margin-top: .02rem;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -1320,8 +1320,8 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: nowrap;
-    gap: .75rem 1.25rem;
-    padding: .65rem 1.1rem;
+    gap: .45rem .75rem;
+    padding: .38rem .85rem;
     background: linear-gradient(180deg, #f6f8fc 0%, #f0f3f9 100%);
     border-top: 1px solid var(--c-line-inner);
 }
@@ -1332,10 +1332,10 @@
     border-top: 1px dashed var(--c-line-inner);
 }
 .rc__more-fares {
-    display: flex; align-items: center; justify-content: center; gap: .35rem;
+    display: flex; align-items: center; justify-content: center; gap: .3rem;
     width: 100%; border: none; background: var(--c-blue-soft);
-    color: var(--c-blue); font: inherit; font-size: .78rem; font-weight: 700;
-    padding: .55rem 1rem; cursor: pointer;
+    color: var(--c-blue); font: inherit; font-size: .72rem; font-weight: 700;
+    padding: .38rem .75rem; cursor: pointer;
     border-top: 1px solid var(--c-line-inner);
     transition: background .14s, color .14s;
 }
@@ -1349,7 +1349,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: .18rem;
+    gap: .1rem;
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -1369,18 +1369,18 @@
 .rc__fare-lines {
     display: flex;
     flex-direction: column;
-    gap: .16rem;
+    gap: .1rem;
     flex: 1 1 auto;
     min-width: 0;
 }
 .rc__fare-line {
     display: flex;
     align-items: center;
-    gap: .28rem;
+    gap: .22rem;
     flex-wrap: wrap;
     width: 100%;
     min-width: 0;
-    min-height: 1.15rem;
+    min-height: 1rem;
 }
 .rc__fare-line--return {
     padding-left: 0;
@@ -1416,7 +1416,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: .6rem;
+    gap: .38rem;
     flex: 0 0 auto;
     margin-left: auto;
     flex-wrap: nowrap;
@@ -1429,18 +1429,18 @@
 }
 .rc__details-mini {
     border: 1px solid var(--c-line); background: #fff; color: var(--c-slate);
-    font: inherit; font-size: .68rem; font-weight: 700; border-radius: 999px;
-    padding: .28rem .62rem; cursor: pointer;
+    font: inherit; font-size: .64rem; font-weight: 700; border-radius: 999px;
+    padding: .2rem .52rem; cursor: pointer;
 }
 .rc__details-mini:hover { border-color: var(--c-brand); color: var(--c-brand); }
 
 .rc__fbadge {
-    font-size: .6rem; font-weight: 700; padding: .17rem .52rem;
+    font-size: .58rem; font-weight: 700; padding: .12rem .42rem;
     border-radius: 4px; text-transform: uppercase; letter-spacing: .06em;
 }
 .rc__fbadge--tick {
-    min-width: 1.2rem;
-    height: 1.2rem;
+    min-width: 1.05rem;
+    height: 1.05rem;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -1483,7 +1483,7 @@
 }
 .rc__fbadge--ref { background: var(--c-green-soft); color: var(--c-green); }
 .rc__fbadge--nr  { background: #fff0f3; color: #c0143c; }
-.rc__fbadge--brand { background: #eef2ff; color: #4338ca; text-transform: none; letter-spacing: 0; font-size: .68rem; }
+.rc__fbadge--brand { background: #eef2ff; color: #4338ca; text-transform: none; letter-spacing: 0; font-size: .64rem; }
 
 .rc__brand {
     font-size: .72rem; font-weight: 700; color: #4338ca;
@@ -1491,12 +1491,12 @@
 }
 
 .rc__ftag {
-    display: inline-flex; align-items: center; gap: .15rem;
-    font-size: .64rem; font-weight: 600; background: #edf0f7;
-    color: var(--c-slate); padding: .1rem .38rem; border-radius: 4px;
-    line-height: 1.2;
+    display: inline-flex; align-items: center; gap: .12rem;
+    font-size: .62rem; font-weight: 600; background: #edf0f7;
+    color: var(--c-slate); padding: .06rem .32rem; border-radius: 4px;
+    line-height: 1.15;
 }
-.rc__ftag i { font-size: .74rem; flex-shrink: 0; }
+.rc__ftag i { font-size: .7rem; flex-shrink: 0; }
 .rc__ftag--bag { background: #f1f5f9; }
 .rc__ftag--basis {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -1513,16 +1513,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: .35rem 0;
+    padding: .18rem 0;
     border-top: 1px solid var(--c-line-inner);
     border-bottom: 1px solid var(--c-line-inner);
     background: #fff;
 }
 .rc__details-link {
     border: none; background: transparent; font: inherit;
-    font-size: .76rem; font-weight: 600; color: var(--c-brand);
-    cursor: pointer; display: inline-flex; align-items: center; gap: .28rem;
-    padding: .15rem .4rem;
+    font-size: .72rem; font-weight: 600; color: var(--c-brand);
+    cursor: pointer; display: inline-flex; align-items: center; gap: .22rem;
+    padding: .08rem .35rem;
     text-decoration: underline; text-underline-offset: 2px;
     text-decoration-color: transparent;
     transition: text-decoration-color .14s, opacity .14s;
@@ -1534,13 +1534,13 @@
 
 /* price */
 .rc__price-label {
-    font-size: .55rem; font-weight: 700; letter-spacing: .14em;
-    text-transform: uppercase; color: var(--c-brand); margin-bottom: .06rem;
+    font-size: .52rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--c-brand); margin-bottom: .02rem;
 }
 .rc__price-amount {
-    font-family: var(--mono); font-size: 1.32rem; font-weight: 700;
+    font-family: var(--mono); font-size: 1.08rem; font-weight: 700;
     color: var(--c-brand); line-height: 1;
-    display: flex; align-items: baseline; gap: .08rem;
+    display: flex; align-items: baseline; gap: .06rem;
 }
 .rc__price-cur { font-size: .72rem; color: var(--c-slate); font-weight: 600; }
 
@@ -1556,18 +1556,18 @@
 
 /* Hold button */
 .rc__hold {
-    border: 2px solid var(--c-amber);
+    border: 1.5px solid var(--c-amber);
     background: transparent;
     color: var(--c-amber);
     font: inherit;
-    font-size: .82rem;
+    font-size: .74rem;
     font-weight: 700;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: .28rem;
-    padding: .52rem .95rem;
-    border-radius: 8px;
+    gap: .22rem;
+    padding: .34rem .72rem;
+    border-radius: 7px;
     white-space: nowrap;
     transition: background .13s, color .13s;
 }
@@ -1575,10 +1575,10 @@
 
 /* Book Now CTA */
 .rc__cta {
-    display: inline-flex; align-items: center; gap: .28rem;
-    padding: .55rem 1.15rem; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: .22rem;
+    padding: .36rem .85rem; border-radius: 7px;
     background: linear-gradient(180deg, var(--c-brand) 0%, var(--c-brand2) 100%);
-    color: #fff !important; font-weight: 700; font-size: .84rem;
+    color: #fff !important; font-weight: 700; font-size: .76rem;
     white-space: nowrap;
     box-shadow: 0 2px 6px rgba(205, 27, 79, 0.18);
     transition: transform .13s, box-shadow .13s;
