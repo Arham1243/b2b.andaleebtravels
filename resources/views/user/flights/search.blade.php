@@ -1363,8 +1363,9 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: nowrap;
-    gap: .45rem .75rem;
-    padding: .38rem .85rem;
+    gap: .5rem .85rem;
+    padding: .48rem .9rem;
+    background: linear-gradient(180deg, #f6f8fc 0%, #f0f3f9 100%);
     border-top: 1px solid var(--c-line-inner);
 }
 .rc__fares .rc__fare:first-child { border-top: none; }
@@ -1391,7 +1392,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: .1rem;
+    gap: .14rem;
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -1418,11 +1419,11 @@
 .rc__fare-line {
     display: flex;
     align-items: center;
-    gap: .22rem;
+    gap: .28rem;
     flex-wrap: wrap;
     width: 100%;
     min-width: 0;
-    min-height: 1rem;
+    min-height: 1.2rem;
 }
 .rc__fare-line--return {
     padding-left: 0;
@@ -1471,23 +1472,23 @@
 }
 .rc__details-mini {
     border: 1px solid var(--c-line); background: #fff; color: var(--c-slate);
-    font: inherit; font-size: .64rem; font-weight: 700; border-radius: 999px;
-    padding: .2rem .52rem; cursor: pointer;
+    font: inherit; font-size: .72rem; font-weight: 700; border-radius: 999px;
+    padding: .24rem .58rem; cursor: pointer;
 }
 .rc__details-mini:hover { border-color: var(--c-brand); color: var(--c-brand); }
 
 .rc__fbadge {
-    font-size: .58rem; font-weight: 700; padding: .12rem .42rem;
+    font-size: .66rem; font-weight: 700; padding: .14rem .48rem;
     border-radius: 4px; text-transform: uppercase; letter-spacing: .06em;
 }
 .rc__fbadge--tick {
-    min-width: 1.05rem;
-    height: 1.05rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: .62rem;
+    font-size: .68rem;
     letter-spacing: 0;
     cursor: help;
 }
@@ -1525,30 +1526,30 @@
 }
 .rc__fbadge--ref { background: var(--c-green-soft); color: var(--c-green); }
 .rc__fbadge--nr  { background: #fff0f3; color: #c0143c; }
-.rc__fbadge--brand { background: #eef2ff; color: #4338ca; text-transform: none; letter-spacing: 0; font-size: .64rem; }
+.rc__fbadge--brand { background: #eef2ff; color: #4338ca; text-transform: none; letter-spacing: 0; font-size: .76rem; }
 
 .rc__brand {
-    font-size: .72rem; font-weight: 700; color: #4338ca;
+    font-size: .78rem; font-weight: 700; color: #4338ca;
     margin-top: .08rem; line-height: 1.25;
 }
 
 .rc__ftag {
-    display: inline-flex; align-items: center; gap: .12rem;
-    font-size: .62rem; font-weight: 600; background: #edf0f7;
-    color: var(--c-slate); padding: .06rem .32rem; border-radius: 4px;
-    line-height: 1.15;
+    display: inline-flex; align-items: center; gap: .15rem;
+    font-size: .74rem; font-weight: 600; background: #edf0f7;
+    color: var(--c-slate); padding: .1rem .4rem; border-radius: 4px;
+    line-height: 1.2;
 }
-.rc__ftag i { font-size: .7rem; flex-shrink: 0; }
+.rc__ftag i { font-size: .82rem; flex-shrink: 0; }
 .rc__ftag--bag { background: #f1f5f9; }
 .rc__ftag--basis {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: .65rem;
+    font-size: .72rem;
     font-weight: 700;
     letter-spacing: .02em;
     background: #f8fafc;
     color: #475569;
 }
-.rc__ftag--seat { background: var(--c-amber-soft); color: var(--c-amber); min-width: 1.65rem; justify-content: center; }
+.rc__ftag--seat { background: var(--c-amber-soft); color: var(--c-amber); min-width: 1.75rem; justify-content: center; }
 
 /* flight details centered link */
 .rc__details-center {
@@ -1576,11 +1577,11 @@
 
 /* price */
 .rc__price-label {
-    font-size: .52rem; font-weight: 700; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--c-brand); margin-bottom: .02rem;
+    font-size: .58rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--c-brand); margin-bottom: .04rem;
 }
 .rc__price-amount {
-    font-family: var(--mono); font-size: 1.08rem; font-weight: 700;
+    font-family: var(--mono); font-size: 1.15rem; font-weight: 700;
     color: var(--c-brand); line-height: 1;
     display: flex; align-items: baseline; gap: .06rem;
 }
@@ -1602,13 +1603,13 @@
     background: transparent;
     color: var(--c-amber);
     font: inherit;
-    font-size: .74rem;
+    font-size: .78rem;
     font-weight: 700;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: .22rem;
-    padding: .34rem .72rem;
+    gap: .24rem;
+    padding: .4rem .78rem;
     border-radius: 7px;
     white-space: nowrap;
     transition: background .13s, color .13s;
@@ -1617,10 +1618,10 @@
 
 /* Book Now CTA */
 .rc__cta {
-    display: inline-flex; align-items: center; gap: .22rem;
-    padding: .36rem .85rem; border-radius: 7px;
+    display: inline-flex; align-items: center; gap: .24rem;
+    padding: .42rem .9rem; border-radius: 7px;
     background: linear-gradient(180deg, var(--c-brand) 0%, var(--c-brand2) 100%);
-    color: #fff !important; font-weight: 700; font-size: .76rem;
+    color: #fff !important; font-weight: 700; font-size: .8rem;
     white-space: nowrap;
     box-shadow: 0 2px 6px rgba(205, 27, 79, 0.18);
     transition: transform .13s, box-shadow .13s;
