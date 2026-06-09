@@ -1284,7 +1284,6 @@
     flex-wrap: nowrap;
     gap: .45rem .75rem;
     padding: .38rem .85rem;
-    background: linear-gradient(180deg, #f6f8fc 0%, #f0f3f9 100%);
     border-top: 1px solid var(--c-line-inner);
 }
 .rc__fares .rc__fare:first-child { border-top: none; }
