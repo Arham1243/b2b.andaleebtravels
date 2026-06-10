@@ -159,7 +159,7 @@ final class FlightEticketPresenter
         $fromCity = trim((string) ($first['departure_city'] ?? $first['from'] ?? ''));
         $toCity = trim((string) ($last['arrival_city'] ?? $last['to'] ?? ''));
 
-        return $fromCity . ' → ' . $toCity;
+        return $fromCity . ' &#8594; ' . $toCity;
     }
 
     private static function directionMetaLine(?Carbon $date, int $stops, int $durMins): string

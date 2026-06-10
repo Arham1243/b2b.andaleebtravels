@@ -45,15 +45,44 @@
             margin-bottom: 10px;
         }
 
+        .company-logo {
+            margin-bottom: 8px;
+        }
+
         .company-logo img {
             max-width: 120px;
             height: auto;
+            display: block;
         }
 
         .company-details {
             font-size: 14px;
             color: #555;
             line-height: 1.4;
+        }
+
+        .block-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            font-family: sans-serif;
+            margin: 14px 0 8px;
+        }
+
+        .block-title--inline {
+            margin: 0 0 8px;
+        }
+
+        .block-title.in-box {
+            margin: 0 0 8px;
+        }
+
+        .direction-head--attached {
+            border-bottom: none;
+        }
+
+        .traveler-table--attached {
+            border-top: none;
         }
 
         .doc-title {
@@ -87,12 +116,12 @@
 
         .direction-head {
             background: #e5e7eb;
-            padding: 6px 10px;
+            padding: 8px 10px;
             font-weight: bold;
-            font-size: 11px;
-            color: #111;
+            font-size: 14px;
+            color: #333;
             border: 1px solid #cbd5e1;
-            border-bottom: none;
+            border-top: none;
             font-family: sans-serif;
         }
 
@@ -104,29 +133,32 @@
             border-bottom: none;
         }
 
-        table.direction-head td.direction-head__inner {
-            padding: 4px 10px;
-            text-align: center;
+        table.direction-head td {
+            padding: 8px 10px;
             vertical-align: middle;
             font-family: sans-serif;
-            line-height: 1.2;
         }
 
-        .direction-head__label {
-            display: inline-block;
+        .direction-head__label-cell {
             font-weight: bold;
-            font-size: 10px;
-            color: #111;
-            margin-right: 8px;
-            vertical-align: middle;
+            font-size: 14px;
+            color: #333;
+            text-align: left;
+            width: 30%;
+        }
+
+        .direction-head__refs-cell {
+            text-align: right;
+            white-space: nowrap;
+            width: 70%;
         }
 
         table.direction-head .ref-pill {
-            margin: 0 4px;
-            padding: 2px 8px;
-            font-size: 14px;
+            margin-left: 6px;
+            padding: 3px 10px;
+            font-size: 12px;
             font-weight: normal;
-            line-height: 1.2;
+            line-height: 1.3;
             vertical-align: middle;
         }
 
@@ -137,14 +169,15 @@
         .direction-route {
             padding: 10px;
             border: 1px solid #cbd5e1;
+            border-top: none;
             border-bottom: none;
             background: #fafafa;
         }
 
         .direction-route .route-title {
             font-size: 14px;
-            margin: 0 0 4px;
-            color: #111;
+            margin: 0 0 8px;
+            color: #333;
             font-weight: bold;
             font-family: sans-serif;
         }
@@ -192,10 +225,18 @@
             font-weight: normal;
         }
 
+        .info-grid .field {
+            margin-bottom: 10px;
+        }
+
+        .info-grid .field:last-child {
+            margin-bottom: 0;
+        }
+
         .info-grid .label {
-            color: #555;
+            color: #333;
             font-size: 14px;
-            font-weight: normal;
+            font-weight: bold;
             font-family: sans-serif;
         }
 
@@ -212,28 +253,28 @@
             table-layout: fixed;
         }
 
+        .flight-table th,
+        .flight-table td {
+            font-size: 11px;
+            color: #333;
+            font-family: sans-serif;
+            padding: 6px 4px;
+            line-height: 1.35;
+            vertical-align: top;
+        }
+
         .flight-table th {
             background: #f3f4f6;
-            font-size: 14px;
-            color: #333;
             font-weight: bold;
-            padding: 8px 6px;
             border-bottom: 1px solid #cbd5e1;
             text-align: left;
-            white-space: nowrap;
-            font-family: sans-serif;
-            line-height: 1.2;
+            white-space: normal;
         }
 
         .flight-table td {
-            padding: 6px 5px;
-            border-bottom: 1px solid #e5e7eb;
-            vertical-align: top;
-            font-size: 14px;
             font-weight: normal;
-            color: #333;
+            border-bottom: 1px solid #e5e7eb;
             word-wrap: break-word;
-            line-height: 1.1;
         }
 
         .flight-table tr:last-child td {
@@ -250,14 +291,15 @@
 
         .flight-table .muted {
             margin-top: 0;
-            line-height: 1.1;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: normal;
+            color: #555;
+            line-height: 1.35;
         }
 
         .muted {
             color: #555;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: normal;
             margin-top: 2px;
         }
@@ -265,7 +307,7 @@
         .section-title {
             font-size: 14px;
             font-weight: bold;
-            margin: 14px 0 6px;
+            margin: 14px 0 8px;
             color: #333;
             font-family: sans-serif;
         }
@@ -337,14 +379,23 @@
             font-weight: normal;
             color: #333;
             background: #fafafa;
+            line-height: 1.6;
         }
 
         .baggage-box .title {
-            font-weight: bold;
-            margin-bottom: 5px;
             font-size: 14px;
+            font-weight: bold;
             color: #333;
-            text-transform: uppercase;
+            margin: 0 0 8px;
+        }
+
+        .baggage-box .baggage-line {
+            margin-bottom: 8px;
+            line-height: 1.65;
+        }
+
+        .baggage-box .baggage-line:last-child {
+            margin-bottom: 0;
         }
 
         .fare-box {
@@ -357,8 +408,8 @@
 
         .fare-box .fare-title {
             margin: 0 0 8px;
-            font-size: 12px;
-            color: #cd1b4f;
+            font-size: 14px;
+            color: #333;
             font-weight: bold;
             font-family: sans-serif;
         }
@@ -396,13 +447,19 @@
             page-break-inside: avoid;
         }
 
+        .notes .block-title {
+            margin: 0 0 8px;
+        }
+
         .notes p {
             margin: 0 0 5px;
             line-height: 1.5;
         }
 
         .notes strong {
-            color: #111827;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
         }
     </style>
 </head>
@@ -420,30 +477,26 @@
     <table class="header-table" cellpadding="0" cellspacing="0">
         <tr>
             <td style="width: 50%; vertical-align: top;">
-                <table cellpadding="0" cellspacing="0">
-                    <tr>
-                        @if (!empty($agency['logo_data_uri']))
-                            <td class="company-logo" style="width: 100px; padding-right: 15px; vertical-align: top;">
-                                <img src="{{ $agency['logo_data_uri'] }}" alt="Logo">
-                            </td>
-                        @endif
-                        <td class="company-details" style="vertical-align: top;">
-                            <strong>{{ $agency['legal_name'] ?? ($agency['name'] ?? '') }}</strong><br>
-                            @if (!empty($agency['address']))
-                                {{ $agency['address'] }}<br>
-                            @endif
-                            @if (!empty($agency['country']))
-                                {{ $agency['country'] }}<br>
-                            @endif
-                            @if (!empty($agency['phone']))
-                                {{ $agency['phone'] }}<br>
-                            @endif
-                            @if (!empty($agency['email']))
-                                {{ $agency['email'] }}
-                            @endif
-                        </td>
-                    </tr>
-                </table>
+                @if (!empty($agency['logo_data_uri']))
+                    <div class="company-logo">
+                        <img src="{{ $agency['logo_data_uri'] }}" alt="Logo">
+                    </div>
+                @endif
+                <div class="company-details">
+                    <strong>{{ $agency['legal_name'] ?? ($agency['name'] ?? '') }}</strong><br>
+                    @if (!empty($agency['address']))
+                        {{ $agency['address'] }}<br>
+                    @endif
+                    @if (!empty($agency['country']))
+                        {{ $agency['country'] }}<br>
+                    @endif
+                    @if (!empty($agency['phone']))
+                        {{ $agency['phone'] }}<br>
+                    @endif
+                    @if (!empty($agency['email']))
+                        {{ $agency['email'] }}
+                    @endif
+                </div>
             </td>
             <td style="width: 50%; vertical-align: top;">
                 <div class="doc-title">E-TICKET</div>
@@ -467,8 +520,8 @@
         <div class="direction-block">
             <table class="direction-head" cellpadding="0" cellspacing="0">
                 <tr>
-                    <td class="direction-head__inner">
-                        <span class="direction-head__label">{{ $direction['label'] ?? 'FLIGHT' }}</span>
+                    <td class="direction-head__label-cell">{{ $direction['label'] ?? 'FLIGHT' }}</td>
+                    <td class="direction-head__refs-cell">
                         @if (!empty($direction['airline_ref']))
                             <span class="ref-pill">
                                 <span class="ref-pill__key">Airline Ref:</span>{{ $direction['airline_ref'] }}
@@ -483,21 +536,29 @@
                 </tr>
             </table>
             <div class="direction-route">
-                <div class="route-title">{{ $direction['route_title'] ?? '' }}</div>
+                <div class="block-title block-title--inline route-title">{!! $direction['route_title'] ?? '' !!}</div>
                 <div class="sub">{{ $direction['meta_line'] ?? '' }}</div>
                 <table class="info-grid" cellpadding="0" cellspacing="0">
                     <tr>
                         <td>
-                            <div class="label">Airline</div>
-                            <div class="value">{{ $direction['airline'] ?? '—' }}</div>
-                            <div class="label" style="margin-top:6px;">Travel Class</div>
-                            <div class="value">{{ $direction['travel_class'] ?? 'Economy' }}</div>
+                            <div class="field">
+                                <div class="label">Airline</div>
+                                <div class="value">{{ $direction['airline'] ?? '—' }}</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Travel Class</div>
+                                <div class="value">{{ $direction['travel_class'] ?? 'Economy' }}</div>
+                            </div>
                         </td>
                         <td>
-                            <div class="label">Check-In Baggage</div>
-                            <div class="value">{{ $direction['check_in_baggage'] ?? 'Refer to airline policy' }}</div>
-                            <div class="label" style="margin-top:6px;">Cabin Baggage</div>
-                            <div class="value">{{ $direction['cabin_baggage'] ?? 'Refer to airline policy' }}</div>
+                            <div class="field">
+                                <div class="label">Check-In Baggage</div>
+                                <div class="value">{{ $direction['check_in_baggage'] ?? 'Refer to airline policy' }}</div>
+                            </div>
+                            <div class="field">
+                                <div class="label">Cabin Baggage</div>
+                                <div class="value">{{ $direction['cabin_baggage'] ?? 'Refer to airline policy' }}</div>
+                            </div>
                         </td>
                     </tr>
                 </table>
@@ -505,12 +566,12 @@
 
             <table class="flight-table">
                 <colgroup>
-                    <col width="11%">
-                    <col width="20%">
-                    <col width="17%">
                     <col width="12%">
-                    <col width="20%">
-                    <col width="20%">
+                    <col width="18%">
+                    <col width="18%">
+                    <col width="12%">
+                    <col width="18%">
+                    <col width="22%">
                 </colgroup>
                 <thead>
                     <tr>
@@ -567,9 +628,9 @@
                 </tbody>
             </table>
 
-            <div class="section-title">Traveler(s) Information</div>
-            <div class="direction-head">{{ $direction['label'] ?? '' }}</div>
-            <table class="traveler-table">
+            <div class="block-title section-title">Traveler(s) Information</div>
+            <div class="direction-head direction-head--attached">{{ $direction['label'] ?? '' }}</div>
+            <table class="traveler-table traveler-table--attached">
                 <thead>
                     <tr>
                         <th width="22%">Code</th>
@@ -598,15 +659,15 @@
             </table>
 
             <div class="baggage-box">
-                <div class="title">Baggage</div>
+                <div class="block-title in-box">BAGGAGE</div>
                 @if (!empty($direction['cabin_baggage']))
-                    <div>Carry-On: {{ $direction['cabin_baggage'] }}</div>
+                    <div class="baggage-line">Carry-On: {{ $direction['cabin_baggage'] }}</div>
                 @endif
                 @if (!empty($direction['check_in_baggage']))
-                    <div>Baggage Allowance: {{ $direction['check_in_baggage'] }}</div>
+                    <div class="baggage-line">Baggage Allowance: {{ $direction['check_in_baggage'] }}</div>
                 @endif
                 @foreach ($direction['baggage_notes'] ?? [] as $note)
-                    <div>{{ $note }}</div>
+                    <div class="baggage-line">{{ $note }}</div>
                 @endforeach
             </div>
         </div>
@@ -618,7 +679,7 @@
         @endphp
         @if (!empty($fareTraveler['total']) || !empty($fareTraveler['base']) || !empty($fareTraveler['taxes']))
             <div class="fare-box">
-                <div class="fare-title">Fare Details</div>
+                <div class="block-title in-box">Fare Details</div>
                 <table class="fare-row" cellpadding="0" cellspacing="0">
                     @if (!empty($fareTraveler['base']))
                         <tr>
@@ -657,8 +718,9 @@
 
     @if (!empty($notes))
         <div class="notes">
+            <div class="block-title">Important Note</div>
             @foreach ($notes as $note)
-                <p><strong>Important Note:</strong> {{ $note }}</p>
+                <p>{{ $note }}</p>
             @endforeach
         </div>
     @endif
