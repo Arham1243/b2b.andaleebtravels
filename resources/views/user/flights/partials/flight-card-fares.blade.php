@@ -16,6 +16,7 @@
         $bagNote    = $fare['baggage_notes'] ?? '';
         $farePrice  = (float) ($fare['totalPrice'] ?? 0);
         $fareCur    = strtoupper((string) ($fare['currency'] ?? $cardCur));
+        $fareChannel = flightFareChannel($fare);
         $fareLegRows = flightFareLegDisplayRows(
             $fare,
             $legs,
@@ -27,7 +28,9 @@
         );
     @endphp
     <div class="rc__fare {{ $fi >= $defaultVisibleFares && $extraFareCount > 0 ? 'rc__fare--collapsed' : '' }}"
-        data-rc-fare-row="{{ $fi }}">
+        data-rc-fare-row="{{ $fi }}"
+        data-rc-fare-channel="{{ $fareChannel }}"
+        data-rc-fare-price="{{ $farePrice }}">
         <div class="rc__fare-left {{ $isRoundTrip && count($fareLegRows) > 1 ? 'rc__fare-left--split' : '' }}">
             @if($isRoundTrip && count($fareLegRows) > 1)
                 <div class="rc__fare-leg-tags" aria-hidden="true">

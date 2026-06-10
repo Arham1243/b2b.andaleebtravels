@@ -146,6 +146,19 @@
                             $sfRefundCounts['refundable']++;
                         }
                     }
+
+                    $sfChannelCounts = ['ndc' => 0, 'gds' => 0];
+                    foreach ($results as $_r) {
+                        $_fareOptions = $_r['fare_options'] ?? [[
+                            'fare_tags' => $_r['fare_tags'] ?? [],
+                        ]];
+                        foreach ($_fareOptions as $_fare) {
+                            if (! is_array($_fare)) {
+                                continue;
+                            }
+                            $sfChannelCounts[flightFareChannel($_fare)]++;
+                        }
+                    }
                 @endphp
 
                 {{-- Fare count full-width above filters/results --}}
@@ -252,6 +265,25 @@
                         </div>
                     </div>
                     @endif
+
+                    {{-- NDC / GDS (client-side fare row filter; API still loads all fares) --}}
+                    <div class="sf__section">
+                        <div class="sf__sechead"><i class="bx bx-layer"></i> Fare Channel</div>
+                        <div class="sf__stop-row">
+                            <label class="sf__stoplbl">
+                                <input type="checkbox" class="sf__stopchk" data-sf="channel" value="ndc">
+                                <span class="sf__stoppill">
+                                    NDC <span class="sf__pillcnt">({{ $sfChannelCounts['ndc'] }})</span>
+                                </span>
+                            </label>
+                            <label class="sf__stoplbl">
+                                <input type="checkbox" class="sf__stopchk" data-sf="channel" value="gds">
+                                <span class="sf__stoppill">
+                                    GDS <span class="sf__pillcnt">({{ $sfChannelCounts['gds'] }})</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
 
                     {{-- Departure Time --}}
                     <div class="sf__section">
@@ -2130,6 +2162,8 @@
 /* filtered-out cards */
 .rc.as-hidden  { display: none; }
 .rc.sf-hidden  { display: none; }
+.rc__fare--channel-hidden { display: none !important; }
+.rc__fares--channel-empty .rc__more-fares { display: none; }
 
 /* =========================================================
    RESPONSIVE
@@ -2266,8 +2300,61 @@
         depSlotsR     : new Set(),    // return departure
         arrSlotsR     : new Set(),    // return arrival
         refund        : new Set(),    // empty = all; values: '0', '1'
+        channels      : new Set(),    // empty = all; values: 'ndc', 'gds'
         maxDur        : Infinity,
     };
+
+    function fareRowMatchesChannel(row){
+        if (!state.channels.size) return true;
+        const channel = row.dataset.rcFareChannel || 'gds';
+        return state.channels.has(channel);
+    }
+
+    function applyFareChannelFilter(card){
+        const wrap = card.querySelector('[data-rc-fares]');
+        if (!wrap) {
+            return { visibleCount: 1, minPrice: parseFloat(cd(card, 'rpPrice')) || 0 };
+        }
+
+        let visibleCount = 0;
+        let minPrice = null;
+
+        wrap.querySelectorAll('.rc__fare[data-rc-fare-row]').forEach(row=>{
+            const show = fareRowMatchesChannel(row);
+            row.classList.toggle('rc__fare--channel-hidden', !show);
+            if (show) {
+                visibleCount++;
+                const rowPrice = parseFloat(row.dataset.rcFarePrice || '0') || 0;
+                if (minPrice === null || rowPrice < minPrice) minPrice = rowPrice;
+            }
+        });
+
+        wrap.classList.toggle('rc__fares--channel-empty', visibleCount === 0);
+
+        const moreBtn = wrap.querySelector('[data-rc-more-fares]');
+        if (moreBtn && !wrap.classList.contains('is-expanded')) {
+            const label = moreBtn.querySelector('.rc__more-fares__label');
+            const matchingCollapsed = [...wrap.querySelectorAll('.rc__fare--collapsed')].filter(fareRowMatchesChannel).length;
+            if (matchingCollapsed > 0) {
+                moreBtn.style.display = '';
+                if (label) {
+                    label.textContent = `+${matchingCollapsed} More Fare${matchingCollapsed === 1 ? '' : 's'}`;
+                }
+            } else {
+                moreBtn.style.display = 'none';
+            }
+        }
+
+        const travelportBtn = wrap.querySelector('[data-rc-travelport-more-fares]');
+        if (travelportBtn) {
+            travelportBtn.style.display = visibleCount > 0 ? '' : 'none';
+        }
+
+        return {
+            visibleCount,
+            minPrice: minPrice !== null ? minPrice : (parseFloat(cd(card, 'rpPrice')) || 0),
+        };
+    }
 
     /* ─────────────────────────────────────────────────────
        APPLY FILTERS - single source of truth
@@ -2275,17 +2362,18 @@
     function applyFilters(){
         let visible = 0;
         allCards.forEach(card=>{
-            const price  = parseFloat(cd(card,'rpPrice'))  || 0;
+            const fareState = applyFareChannelFilter(card);
+            const price  = fareState.minPrice;
             const refund = cd(card,'rpRefund');
             const dur    = parseInt(cd(card,'rpDur'),10)   || 0;
             const meta   = parseMeta(card);
             const als    = Array.isArray(meta.al) ? meta.al.map(c=>String(c).toUpperCase()) : [];
 
-            let ok = true;
+            let ok = fareState.visibleCount > 0;
 
             // airline slider
-            if (state.sliderAirline !== 'all' && !als.includes(state.sliderAirline)) ok = false;
-            // price
+            if (ok && state.sliderAirline !== 'all' && !als.includes(state.sliderAirline)) ok = false;
+            // price (lowest visible fare after channel filter)
             if (ok && (price < state.priceMin || price > state.priceMax)) ok = false;
             // stops (worst leg on round trip)
             if (ok && state.stops.size > 0){
@@ -2325,6 +2413,7 @@
         if (state.depSlotsR.size) n++;
         if (state.arrSlotsR.size) n++;
         if (state.refund.size)   n++;
+        if (state.channels.size) n++;
         if (state.maxDur !== Infinity) n++;
         return n;
     }
@@ -2640,6 +2729,7 @@
                     if (modal) {
                         syncModalWithFares(modal, data.fare_count ?? modal.querySelectorAll('.fd-fare-foot').length);
                     }
+                    applyFilters();
                 } catch (err) {
                     btn.classList.remove('is-loading');
                     btn.disabled = false;
@@ -2783,6 +2873,15 @@
         });
     });
 
+    /* NDC / GDS channel checkboxes */
+    document.querySelectorAll('[data-sf="channel"]').forEach(chk=>{
+        chk.addEventListener('change', ()=>{
+            const v = chk.value;
+            chk.checked ? state.channels.add(v) : state.channels.delete(v);
+            applyFilters();
+        });
+    });
+
     /* Duration slider */
     const durSlider = document.getElementById('sf-dur');
     const durLbl    = document.getElementById('sf-dur-lbl');
@@ -2811,6 +2910,7 @@
             state.depSlotsR.clear();
             state.arrSlotsR.clear();
             state.refund.clear();
+            state.channels.clear();
             state.maxDur        = Infinity;
 
             // reset airline slider
@@ -2831,6 +2931,7 @@
 
             // reset fare checkboxes
             document.querySelectorAll('[data-sf="refund"]').forEach(c=>{ c.checked = false; });
+            document.querySelectorAll('[data-sf="channel"]').forEach(c=>{ c.checked = false; });
 
             // reset duration
             if (durSlider){

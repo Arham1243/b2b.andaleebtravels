@@ -862,6 +862,21 @@ if (! function_exists('flightFareRulesComponentForLeg')) {
     }
 }
 
+if (! function_exists('flightFareChannel')) {
+    /**
+     * @param  array<string, mixed>  $fare
+     */
+    function flightFareChannel(array $fare): string
+    {
+        $tags = array_map(
+            static fn ($tag) => strtolower(trim((string) $tag)),
+            is_array($fare['fare_tags'] ?? null) ? $fare['fare_tags'] : [],
+        );
+
+        return in_array('ndc', $tags, true) ? 'ndc' : 'gds';
+    }
+}
+
 if (! function_exists('flightFareBasisListingLabel')) {
     /**
      * @param  list<string>  $fareTags
