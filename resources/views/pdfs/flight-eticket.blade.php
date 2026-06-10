@@ -133,6 +133,37 @@
             font-family: DejaVu Sans, sans-serif;
         }
 
+        .direction-route__head {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .direction-route__head td {
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .direction-refs {
+            text-align: right;
+            font-size: 10px;
+            color: #444;
+            white-space: nowrap;
+        }
+
+        .direction-refs span {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 3px 8px;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 3px;
+        }
+
+        .direction-refs strong {
+            color: #111;
+        }
+
         .info-grid {
             width: 100%;
             border-collapse: collapse;
@@ -397,8 +428,24 @@
         <div class="direction-block">
             <div class="direction-head">{{ $direction['label'] ?? 'FLIGHT' }}</div>
             <div class="direction-route">
-                <div class="route-title">{{ $direction['route_title'] ?? '' }}</div>
-                <div class="sub">{{ $direction['meta_line'] ?? '' }}</div>
+                <table class="direction-route__head" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td>
+                            <div class="route-title">{{ $direction['route_title'] ?? '' }}</div>
+                            <div class="sub">{{ $direction['meta_line'] ?? '' }}</div>
+                        </td>
+                        @if (!empty($direction['airline_ref']) || !empty($direction['crs_ref']))
+                            <td class="direction-refs">
+                                @if (!empty($direction['airline_ref']))
+                                    <span>Airline Ref: <strong>{{ $direction['airline_ref'] }}</strong></span>
+                                @endif
+                                @if (!empty($direction['crs_ref']))
+                                    <span>CRS Ref: <strong>{{ $direction['crs_ref'] }}</strong></span>
+                                @endif
+                            </td>
+                        @endif
+                    </tr>
+                </table>
                 <table class="info-grid" cellpadding="0" cellspacing="0">
                     <tr>
                         <td>
@@ -420,11 +467,12 @@
             <table class="flight-table">
                 <thead>
                     <tr>
-                        <th width="14%">Flight Number</th>
-                        <th width="28%">From (Terminal)</th>
-                        <th width="22%">Departure</th>
-                        <th width="10%">Stops</th>
-                        <th width="26%">To (Terminal) / Arrival</th>
+                        <th width="12%">Flight Number</th>
+                        <th width="22%">From (Terminal)</th>
+                        <th width="16%">Departure date &amp; time</th>
+                        <th width="14%">Stops</th>
+                        <th width="22%">To (Terminal)</th>
+                        <th width="14%">Arrival date &amp; time</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -438,11 +486,11 @@
                             </td>
                             <td>
                                 <strong>{{ $segment['from_code'] ?? '' }}</strong>
+                                @if (!empty($segment['from_terminal']))
+                                    <div class="muted">Terminal {{ $segment['from_terminal'] }}</div>
+                                @endif
                                 @if (!empty($segment['from_airport']))
                                     <div class="muted">{{ $segment['from_airport'] }}</div>
-                                @endif
-                                @if (!empty($segment['from_country']))
-                                    <div class="muted">{{ $segment['from_country'] }}</div>
                                 @endif
                             </td>
                             <td>
@@ -451,21 +499,18 @@
                                     <div class="muted">{{ $segment['departure_date'] }}</div>
                                 @endif
                             </td>
-                            <td>
-                                <strong>{{ $segment['stops_label'] ?? 'Non Stop' }}</strong>
-                                @if (!empty($segment['duration_label']))
-                                    <div class="muted">({{ $segment['duration_label'] }})</div>
-                                @endif
-                            </td>
+                            <td>{{ $segment['stops_display'] ?? ($segment['stops_label'] ?? 'Non Stop') }}</td>
                             <td>
                                 <strong>{{ $segment['to_code'] ?? '' }}</strong>
+                                @if (!empty($segment['to_terminal']))
+                                    <div class="muted">Terminal {{ $segment['to_terminal'] }}</div>
+                                @endif
                                 @if (!empty($segment['to_airport']))
                                     <div class="muted">{{ $segment['to_airport'] }}</div>
                                 @endif
-                                @if (!empty($segment['to_country']))
-                                    <div class="muted">{{ $segment['to_country'] }}</div>
-                                @endif
-                                <div style="margin-top:4px;"><strong>{{ $segment['arrival_time'] ?? '—' }}</strong></div>
+                            </td>
+                            <td>
+                                <strong>{{ $segment['arrival_time'] ?? '—' }}</strong>
                                 @if (!empty($segment['arrival_date']))
                                     <div class="muted">{{ $segment['arrival_date'] }}</div>
                                 @endif

@@ -22,6 +22,9 @@ class FlightEticketPresenterTest extends TestCase
         $this->assertCount(2, $withFare['travelers']);
         $this->assertSame('1761234567890', $withFare['filename_ticket_number']);
         $this->assertNotEmpty($withFare['directions']);
+        $firstSegment = $withFare['directions'][0]['segments'][0] ?? [];
+        $this->assertSame('Non Stop , (05h:45m)', $firstSegment['stops_display'] ?? null);
+        $this->assertSame('Abu Dhabi [AUH]', $firstSegment['from_code'] ?? null);
         $this->assertNotNull($withoutFare);
         $this->assertFalse($withoutFare['include_fare']);
     }

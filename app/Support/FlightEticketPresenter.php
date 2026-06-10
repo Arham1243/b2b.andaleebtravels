@@ -133,11 +133,13 @@ final class FlightEticketPresenter
                 'label' => $index === 0 ? 'ONWARD' : 'RETURN',
                 'route_title' => self::routeTitle($first, $last),
                 'meta_line' => self::directionMetaLine($departureDate, $stops, $durMins),
+                'airline_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
+                'crs_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
                 'airline' => self::airlineLabel($first),
                 'travel_class' => trim((string) ($first['cabin_code'] ?? $itinerary['cabin'] ?? 'Economy')),
                 'check_in_baggage' => self::baggageLine($baggage, false),
                 'cabin_baggage' => self::baggageLine($baggage, true),
-                'segments' => self::mapSegments($segments),
+                'segments' => self::mapSegments($segments, $durMins),
                 'baggage_notes' => self::baggageNotes($baggage),
                 'first_segment' => $first,
                 'departure_date' => $departureDate?->format('Y-m-d'),
@@ -231,9 +233,10 @@ final class FlightEticketPresenter
      * @param  list<array<string, mixed>>  $segments
      * @return list<array<string, mixed>>
      */
-    private static function mapSegments(array $segments): array
+    private static function mapSegments(array $segments, int $legElapsedMins = 0): array
     {
         $mapped = [];
+        $segmentCount = count($segments);
 
         foreach ($segments as $segment) {
             if (! is_array($segment)) {
@@ -245,28 +248,136 @@ final class FlightEticketPresenter
             $carrier = strtoupper(trim((string) ($segment['carrier'] ?? '')));
             $flightNumber = trim((string) ($segment['flight_number'] ?? ''));
 
+            $fromCity = trim((string) ($segment['departure_city'] ?? ''));
+            if ($fromCity === '' && $from !== '') {
+                $fromCity = resolveFlightCityLabel('', $from);
+            }
+
+            $toCity = trim((string) ($segment['arrival_city'] ?? ''));
+            if ($toCity === '' && $to !== '') {
+                $toCity = resolveFlightCityLabel('', $to);
+            }
+
+            $durationMins = self::segmentDurationMinutes($segment);
+            if ($durationMins <= 0 && $segmentCount === 1 && $legElapsedMins > 0) {
+                $durationMins = $legElapsedMins;
+            }
+
+            $durationLabel = self::formatDurationCompact($durationMins);
+            $stopsLabel = 'Non Stop';
+            $stopsDisplay = $durationLabel !== null
+                ? $stopsLabel . ' , (' . $durationLabel . ')'
+                : $stopsLabel;
+
+            $operatingName = trim((string) (
+                $segment['operating_carrier_name']
+                ?? $segment['carrier_name']
+                ?? $segment['carrier_display']
+                ?? $carrier
+            ));
+
             $mapped[] = [
                 'flight_number' => trim($carrier . ' ' . $flightNumber),
-                'operated_by' => trim((string) ($segment['carrier_display'] ?? $segment['carrier_name'] ?? $carrier)),
-                'from_code' => $from,
-                'from_airport' => trim((string) ($segment['departure_city'] ?? $segment['from_airport'] ?? '')),
-                'from_country' => trim((string) ($segment['departure_country'] ?? '')),
+                'operated_by' => $operatingName,
+                'from_code' => self::locationLabel($fromCity, $from),
+                'from_airport' => self::airportDetailLine($fromCity, $from, $segment['departure_country'] ?? null),
                 'from_terminal' => trim((string) ($segment['departure_terminal'] ?? '')),
-                'departure_time' => trim((string) ($segment['departure_clock'] ?? '')),
-                'departure_date' => trim((string) ($segment['departure_display'] ?? '')),
-                'stops_label' => 'Non Stop',
-                'duration_label' => trim((string) ($segment['duration_display'] ?? '')),
-                'to_code' => $to,
-                'to_airport' => trim((string) ($segment['arrival_city'] ?? $segment['to_airport'] ?? '')),
-                'to_country' => trim((string) ($segment['arrival_country'] ?? '')),
+                'departure_time' => formatFlightClock($segment['departure_clock'] ?? ''),
+                'departure_date' => self::segmentDateLabel($segment, 'departure'),
+                'stops_label' => $stopsLabel,
+                'duration_label' => $durationLabel,
+                'stops_display' => $stopsDisplay,
+                'to_code' => self::locationLabel($toCity, $to),
+                'to_airport' => self::airportDetailLine($toCity, $to, $segment['arrival_country'] ?? null),
                 'to_terminal' => trim((string) ($segment['arrival_terminal'] ?? '')),
-                'arrival_time' => trim((string) ($segment['arrival_clock'] ?? '')),
-                'arrival_date' => trim((string) ($segment['arrival_display'] ?? '')),
+                'arrival_time' => formatFlightClock($segment['arrival_clock'] ?? ''),
+                'arrival_date' => self::segmentDateLabel($segment, 'arrival'),
                 'raw' => $segment,
             ];
         }
 
         return $mapped;
+    }
+
+    /**
+     * @param  array<string, mixed>  $segment
+     */
+    private static function segmentDurationMinutes(array $segment): int
+    {
+        $elapsed = (int) ($segment['elapsedTime'] ?? 0);
+        if ($elapsed > 0) {
+            return $elapsed;
+        }
+
+        $display = trim((string) ($segment['duration_display'] ?? ''));
+        if ($display !== '' && preg_match('/(\d+)\s*h(?:\s*(\d+)\s*m)?/i', $display, $matches)) {
+            return ((int) ($matches[1] ?? 0) * 60) + (int) ($matches[2] ?? 0);
+        }
+
+        try {
+            $departure = Carbon::parse((string) ($segment['departure_datetime'] ?? ''));
+            $arrival = Carbon::parse((string) ($segment['arrival_datetime'] ?? ''));
+            $minutes = (int) $departure->diffInMinutes($arrival, false);
+
+            return max(0, $minutes);
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private static function formatDurationCompact(int $minutes): ?string
+    {
+        if ($minutes < 1) {
+            return null;
+        }
+
+        $hours = intdiv($minutes, 60);
+        $mins = $minutes % 60;
+
+        return sprintf('%02dh:%02dm', $hours, $mins);
+    }
+
+    private static function locationLabel(string $city, string $code): string
+    {
+        if ($city !== '' && $code !== '') {
+            return $city . ' [' . $code . ']';
+        }
+
+        return $code !== '' ? $code : $city;
+    }
+
+    private static function airportDetailLine(string $city, string $code, mixed $country): string
+    {
+        $cityLabel = $city !== '' ? $city : resolveFlightCityLabel('', $code);
+        $parts = array_values(array_filter([$cityLabel, trim((string) ($country ?? ''))]));
+
+        return $parts !== [] ? implode(', ', $parts) : '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $segment
+     */
+    private static function segmentDateLabel(array $segment, string $direction): string
+    {
+        $displayKey = $direction === 'departure' ? 'departure_display' : 'arrival_display';
+        $labelKey = $direction === 'departure' ? 'departure_label' : 'arrival_label';
+        $weekdayKey = $direction === 'departure' ? 'departure_weekday' : 'arrival_weekday';
+        $datetimeKey = $direction === 'departure' ? 'departure_datetime' : 'arrival_datetime';
+
+        $label = trim((string) ($segment[$displayKey] ?? $segment[$labelKey] ?? ''));
+        if ($label !== '') {
+            return $label;
+        }
+
+        try {
+            $date = Carbon::parse((string) ($segment[$datetimeKey] ?? ''));
+
+            return $date->format('D, d M y');
+        } catch (\Throwable) {
+            $weekday = trim((string) ($segment[$weekdayKey] ?? ''));
+
+            return $weekday;
+        }
     }
 
     /**
