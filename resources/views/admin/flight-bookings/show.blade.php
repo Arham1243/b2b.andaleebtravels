@@ -134,6 +134,12 @@
     <div class="dashboard-content">
         {{ Breadcrumbs::render('admin.flight-bookings.show', $booking) }}
 
+        @include('partials.flight-eticket-export', [
+            'booking' => $booking,
+            'exportRoute' => route('admin.flight-bookings.eticket-pdf', $booking->id),
+            'variant' => 'compact',
+        ])
+
         <div class="bkp bkp--admin">
             <div class="bkp-main">
                 @if ($needsFulfillmentRetry)
@@ -181,11 +187,6 @@
                         @include('partials.flight-booking-ticket-details', [
                             'booking' => $booking,
                             'ticketDetails' => $ticketDetails ?? ['tickets' => []],
-                        ])
-
-                        @include('partials.flight-eticket-export', [
-                            'booking' => $booking,
-                            'exportRoute' => route('admin.flight-bookings.eticket-pdf', $booking->id),
                         ])
 
                         @include('admin.partials.booking-vendor-detail-card', ['vendor' => $booking->vendor])

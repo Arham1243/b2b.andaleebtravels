@@ -81,6 +81,12 @@
                     <span>{{ $booking->booking_number }}</span>
                 </nav>
 
+                @include('partials.flight-eticket-export', [
+                    'booking' => $booking,
+                    'exportRoute' => route('user.bookings.flights.eticket-pdf', $booking->id),
+                    'variant' => 'compact',
+                ])
+
                 {{-- Hold expiry banner --}}
                 @if($isHold && $status !== 'cancelled')
                 <div class="bkpd-hold-expiry {{ $ttlExpired ? 'bkpd-hold-expiry--expired' : ($ttlUrgent ? 'bkpd-hold-expiry--urgent' : '') }}">
@@ -191,11 +197,6 @@
                         @include('partials.flight-booking-ticket-details', [
                             'booking' => $booking,
                             'ticketDetails' => $ticketDetails ?? ['tickets' => []],
-                        ])
-
-                        @include('partials.flight-eticket-export', [
-                            'booking' => $booking,
-                            'exportRoute' => route('user.bookings.flights.eticket-pdf', $booking->id),
                         ])
 
                         {{-- Flight legs --}}

@@ -66,10 +66,12 @@ final class FlightEticketPresenter
             'booking' => [
                 'ref' => $booking->booking_number,
                 'date' => $booking->created_at?->format('d M Y') ?? '—',
-                'status' => strtoupper($booking->displayBookingStatus()),
                 'pnr' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
                 'airline_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
                 'crs_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
+                'view_url' => $booking->id
+                    ? route('user.bookings.flights.detail', $booking->id, absolute: true)
+                    : null,
             ],
             'include_fare' => $includeFare,
             'directions' => self::buildDirections($booking, $legs, $baggage, $itinerary),
@@ -157,7 +159,7 @@ final class FlightEticketPresenter
         $fromCity = trim((string) ($first['departure_city'] ?? $first['from'] ?? ''));
         $toCity = trim((string) ($last['arrival_city'] ?? $last['to'] ?? ''));
 
-        return $fromCity . ' → ' . $toCity;
+        return $fromCity . ' - ' . $toCity;
     }
 
     private static function directionMetaLine(?Carbon $date, int $stops, int $durMins): string

@@ -3,19 +3,29 @@
 
 <head>
     <meta charset="utf-8">
-    <title>E-Ticket {{ $eticket['booking']['ref'] ?? '' }}</title>
+    <title>{{ $eticket['filename_ticket_number'] ?? ($eticket['travelers'][0]['ticket_number'] ?? '') }}</title>
     <style>
         @page {
             margin: 16px 20px;
         }
 
-        body {
-            font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
+        body,
+        table,
+        td,
+        th,
+        div,
+        span,
+        p,
+        a {
+            font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
-            color: #111827;
+            color: #333;
+        }
+
+        body {
             margin: 0;
             padding: 0;
-            line-height: 1.5;
+            line-height: 1.45;
         }
 
         .header {
@@ -29,63 +39,68 @@
             vertical-align: top;
         }
 
-        .header-logo-cell {
-            width: 58%;
-        }
-
-        .header-meta-cell {
-            width: 42%;
+        .company-logo {
+            width: 100px;
+            padding-right: 12px;
         }
 
         .logo {
-            max-width: 200px;
-            max-height: 58px;
-            margin-bottom: 8px;
+            max-width: 100px;
+            max-height: 42px;
         }
 
-        .agency-legal {
+        .company-details {
             font-size: 11px;
-            font-weight: bold;
-            color: #111827;
-            margin: 0 0 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.2px;
-        }
-
-        .agency-meta {
-            font-size: 11px;
-            color: #1f2937;
-            margin: 0 0 3px;
+            color: #444;
             line-height: 1.45;
         }
 
-        .agency-meta strong {
-            color: #111827;
+        .company-details strong {
+            color: #111;
+            font-size: 12px;
         }
 
-        .booking-meta {
-            text-align: right;
-            font-size: 11px;
-            color: #1f2937;
-        }
-
-        .booking-meta-row {
-            margin-bottom: 5px;
-        }
-
-        .booking-meta-row strong {
-            color: #111827;
-        }
-
-        .status-pill {
-            display: inline-block;
-            background: #d1fae5;
-            color: #065f46;
+        .doc-title {
+            color: #cd1b4f;
             font-weight: bold;
-            font-size: 10px;
-            padding: 3px 10px;
-            border-radius: 10px;
-            text-transform: uppercase;
+            font-size: 18px;
+            text-align: right;
+            margin-bottom: 8px;
+            font-family: DejaVu Sans, sans-serif;
+        }
+
+        .doc-details-table {
+            width: auto;
+            margin-left: auto;
+            border-collapse: collapse;
+        }
+
+        .doc-details-table td {
+            padding: 2px 0 2px 14px;
+            text-align: right;
+            white-space: nowrap;
+            font-size: 11px;
+            color: #333;
+        }
+
+        .doc-details-table td:first-child {
+            color: #555;
+        }
+
+        .doc-details-table td strong {
+            color: #111;
+        }
+
+        .btn-web {
+            display: inline-block;
+            padding: 6px 14px;
+            background: #cd1b4f;
+            color: #fff !important;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 4px;
         }
 
         .direction-block {
@@ -98,11 +113,10 @@
             padding: 6px 10px;
             font-weight: bold;
             font-size: 11px;
-            letter-spacing: 0.5px;
-            color: #111827;
+            color: #111;
             border: 1px solid #cbd5e1;
             border-bottom: none;
-            text-transform: uppercase;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .direction-route {
@@ -112,18 +126,20 @@
             background: #fafafa;
         }
 
-        .direction-route h2 {
+        .direction-route .route-title {
             font-size: 14px;
-            margin: 0 0 3px;
-            color: #111827;
+            margin: 0 0 4px;
+            color: #111;
             font-weight: bold;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .direction-route .sub {
             font-size: 11px;
-            color: #374151;
+            color: #444;
             margin: 0 0 8px;
-            font-weight: 600;
+            font-weight: normal;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .info-grid {
@@ -139,11 +155,10 @@
         }
 
         .info-grid .label {
-            color: #374151;
+            color: #444;
             font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.2px;
+            font-weight: bold;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .info-grid .value {
@@ -161,12 +176,12 @@
         .flight-table th {
             background: #f3f4f6;
             font-size: 10px;
-            text-transform: uppercase;
-            color: #374151;
+            color: #444;
             font-weight: bold;
             padding: 7px 8px;
             border-bottom: 1px solid #cbd5e1;
             text-align: left;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .flight-table td {
@@ -197,9 +212,8 @@
             font-size: 12px;
             font-weight: bold;
             margin: 14px 0 6px;
-            color: #111827;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            color: #111;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .traveler-table {
@@ -211,12 +225,12 @@
         .traveler-table th {
             background: #f3f4f6;
             font-size: 10px;
-            text-transform: uppercase;
-            color: #374151;
+            color: #444;
             font-weight: bold;
             padding: 7px 8px;
             border-bottom: 1px solid #cbd5e1;
             text-align: left;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .traveler-table td {
@@ -283,12 +297,12 @@
             background: #fafafa;
         }
 
-        .fare-box h3 {
+        .fare-box .fare-title {
             margin: 0 0 8px;
             font-size: 12px;
             color: #cd1b4f;
             font-weight: bold;
-            text-transform: uppercase;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .fare-row {
@@ -341,36 +355,61 @@
 
     <table class="header" width="100%" cellpadding="0" cellspacing="0">
         <tr>
-            <td class="header-logo-cell">
-                @if (!empty($agency['logo_data_uri']))
-                    <img src="{{ $agency['logo_data_uri'] }}" alt="Logo" class="logo">
-                @endif
-                @if (!empty($agency['legal_name']))
-                    <p class="agency-legal">{{ $agency['legal_name'] }}</p>
-                @elseif (!empty($agency['name']))
-                    <p class="agency-legal">{{ $agency['name'] }}</p>
-                @endif
-                @if (!empty($agency['address']))
-                    <p class="agency-meta"><strong>Address:</strong> {{ $agency['address'] }}</p>
-                @endif
-                @if (!empty($agency['phone']))
-                    <p class="agency-meta"><strong>Tel:</strong> {{ $agency['phone'] }}</p>
-                @endif
-                @if (!empty($agency['email']))
-                    <p class="agency-meta"><strong>Email:</strong> {{ $agency['email'] }}</p>
-                @endif
+            <td width="50%" valign="top">
+                <table cellpadding="0" cellspacing="0">
+                    <tr>
+                        @if (!empty($agency['logo_data_uri']))
+                            <td class="company-logo" valign="top">
+                                <img src="{{ $agency['logo_data_uri'] }}" alt="Logo" class="logo">
+                            </td>
+                        @endif
+                        <td class="company-details" valign="top">
+                            <strong>{{ $agency['legal_name'] ?? ($agency['name'] ?? '') }}</strong><br>
+                            @if (!empty($agency['address']))
+                                {{ $agency['address'] }}<br>
+                            @endif
+                            @if (!empty($agency['phone']))
+                                {{ $agency['phone'] }}<br>
+                            @endif
+                            @if (!empty($agency['email']))
+                                {{ $agency['email'] }}
+                            @endif
+                        </td>
+                    </tr>
+                </table>
             </td>
-            <td class="header-meta-cell booking-meta">
-                <div class="booking-meta-row">
-                    Date of Booking: <strong>{{ $booking['date'] ?? '—' }}</strong>
-                </div>
-                <div class="booking-meta-row">
-                    Status: <span class="status-pill">{{ $booking['status'] ?? 'CONFIRMED' }}</span>
-                </div>
-                @if (!empty($booking['pnr']))
-                    <div class="booking-meta-row">Airline Ref: <strong>{{ $booking['airline_ref'] }}</strong></div>
-                    <div class="booking-meta-row">CRS Ref: <strong>{{ $booking['crs_ref'] }}</strong></div>
-                @endif
+            <td width="50%" valign="top">
+                <div class="doc-title">E-TICKET</div>
+                <table class="doc-details-table" cellpadding="0" cellspacing="0">
+                    @if (!empty($booking['ref']))
+                        <tr>
+                            <td>System Ref:</td>
+                            <td><strong>{{ $booking['ref'] }}</strong></td>
+                        </tr>
+                    @endif
+                    <tr>
+                        <td>Date of Booking:</td>
+                        <td><strong>{{ $booking['date'] ?? '—' }}</strong></td>
+                    </tr>
+                    @if (!empty($booking['pnr']))
+                        <tr>
+                            <td>Airline Ref:</td>
+                            <td><strong>{{ $booking['airline_ref'] }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>CRS Ref:</td>
+                            <td><strong>{{ $booking['crs_ref'] }}</strong></td>
+                        </tr>
+                    @endif
+                    @if (!empty($booking['view_url']))
+                        <tr>
+                            <td></td>
+                            <td>
+                                <a href="{{ $booking['view_url'] }}" class="btn-web">View on Web</a>
+                            </td>
+                        </tr>
+                    @endif
+                </table>
             </td>
         </tr>
     </table>
@@ -379,8 +418,8 @@
         <div class="direction-block">
             <div class="direction-head">{{ $direction['label'] ?? 'FLIGHT' }}</div>
             <div class="direction-route">
-                <h2>{{ $direction['route_title'] ?? '' }}</h2>
-                <p class="sub">{{ $direction['meta_line'] ?? '' }}</p>
+                <div class="route-title">{{ $direction['route_title'] ?? '' }}</div>
+                <div class="sub">{{ $direction['meta_line'] ?? '' }}</div>
                 <table class="info-grid" cellpadding="0" cellspacing="0">
                     <tr>
                         <td>
@@ -508,7 +547,7 @@
         @endphp
         @if (!empty($fareTraveler['total']) || !empty($fareTraveler['base']) || !empty($fareTraveler['taxes']))
             <div class="fare-box">
-                <h3>Fare Details</h3>
+                <div class="fare-title">Fare Details</div>
                 <table class="fare-row" cellpadding="0" cellspacing="0">
                     @if (!empty($fareTraveler['base']))
                         <tr>
