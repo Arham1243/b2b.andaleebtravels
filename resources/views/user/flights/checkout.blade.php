@@ -522,7 +522,7 @@
 
                         @include('user.flights.partials.hp-session-timer', [
                             'timerRedirectUrl' => $searchBackUrl,
-                            'timerStorageKey' => 'flight_checkout_session_expires',
+                            'timerStorageKey' => 'flight_booking_session_expires',
                         ])
                         </div>
                     </div>

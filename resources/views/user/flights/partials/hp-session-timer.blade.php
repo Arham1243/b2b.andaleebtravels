@@ -122,11 +122,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const progressEl = document.getElementById('hp-session-timer-progress');
     if (!timerEl || !labelEl || !progressEl) return;
 
+    const navEntry = performance.getEntriesByType('navigation')[0];
+    const navType = navEntry && navEntry.type ? navEntry.type : 'navigate';
+    const isReload = navType === 'reload';
+
     let startedAt = Number(sessionStorage.getItem(startKey) || 0);
     let expiresAt = Number(sessionStorage.getItem(storageKey) || 0);
     const now = Date.now();
+    const hasActiveTimer = startedAt > 0 && expiresAt > now;
+    const keepExisting = isReload && hasActiveTimer;
 
-    if (!startedAt || !expiresAt || expiresAt <= now) {
+    if (!keepExisting) {
         startedAt = now;
         expiresAt = now + totalMs;
         sessionStorage.setItem(startKey, String(startedAt));
