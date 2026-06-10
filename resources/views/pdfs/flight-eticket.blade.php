@@ -114,7 +114,11 @@
             page-break-inside: avoid;
         }
 
-        .direction-head {
+        .direction-block:first-of-type {
+            margin-top: 14px;
+        }
+
+        div.direction-head {
             background: #e5e7eb;
             padding: 8px 10px;
             font-weight: bold;
@@ -129,12 +133,14 @@
             width: 100%;
             border-collapse: collapse;
             background: #e5e7eb;
+            border: none;
         }
 
         table.direction-head td {
             padding: 8px 10px;
             vertical-align: middle;
             font-family: sans-serif;
+            border: none;
         }
 
         .direction-head__label-cell {
