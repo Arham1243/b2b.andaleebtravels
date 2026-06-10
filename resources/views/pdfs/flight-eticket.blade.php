@@ -42,7 +42,7 @@
         }
 
         .header-table {
-            margin-bottom: 10px;
+            margin-bottom: 24px;
         }
 
         .company-logo {
@@ -112,10 +112,6 @@
         .direction-block {
             margin-bottom: 16px;
             page-break-inside: avoid;
-        }
-
-        .direction-block:first-of-type {
-            margin-top: 24px;
         }
 
         div.direction-head {
