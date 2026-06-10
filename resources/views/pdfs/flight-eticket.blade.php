@@ -115,7 +115,7 @@
         }
 
         .direction-block:first-of-type {
-            margin-top: 14px;
+            margin-top: 24px;
         }
 
         div.direction-head {
@@ -315,7 +315,7 @@
         .section-title {
             font-size: 14px;
             font-weight: bold;
-            margin: 14px 0 8px;
+            margin: 24px 0 8px;
             color: #333;
             font-family: sans-serif;
         }
@@ -406,7 +406,7 @@
         }
 
         .fare-box {
-            margin-top: 14px;
+            margin-top: 24px;
             border: 1px solid #cbd5e1;
             padding: 10px;
             page-break-inside: avoid;
