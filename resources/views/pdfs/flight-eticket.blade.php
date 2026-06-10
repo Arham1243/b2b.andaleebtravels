@@ -52,22 +52,23 @@
         }
 
         .company-details {
-            font-size: 11px;
-            color: #444;
-            line-height: 1.45;
+            font-size: 12px;
+            color: #555;
+            line-height: 1.4;
         }
 
         .company-details strong {
-            color: #111;
+            color: #555;
+            font-weight: bold;
             font-size: 12px;
         }
 
         .doc-title {
             color: #cd1b4f;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 20px;
             text-align: right;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-family: DejaVu Sans, sans-serif;
         }
 
@@ -78,19 +79,16 @@
         }
 
         .doc-details-table td {
-            padding: 2px 0 2px 14px;
+            padding: 2px 0 2px 15px;
             text-align: right;
             white-space: nowrap;
-            font-size: 11px;
+            font-size: 12px;
             color: #333;
+            font-weight: normal;
         }
 
         .doc-details-table td:first-child {
             color: #555;
-        }
-
-        .doc-details-table td strong {
-            color: #111;
         }
 
         .direction-block {
@@ -107,6 +105,35 @@
             border: 1px solid #cbd5e1;
             border-bottom: none;
             font-family: DejaVu Sans, sans-serif;
+        }
+
+        table.direction-head {
+            width: 100%;
+            border-collapse: collapse;
+            background: #e5e7eb;
+            border: 1px solid #cbd5e1;
+            border-bottom: none;
+        }
+
+        table.direction-head td {
+            padding: 6px 10px;
+            vertical-align: middle;
+            font-family: DejaVu Sans, sans-serif;
+        }
+
+        .direction-head__label {
+            font-weight: bold;
+            font-size: 11px;
+            color: #111;
+        }
+
+        .direction-head__refs {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        table.direction-head .ref-pill {
+            margin: 0 0 0 8px;
         }
 
         .direction-route {
@@ -134,8 +161,6 @@
 
         .ref-pill {
             display: inline-block;
-            margin-top: 6px;
-            margin-bottom: 2px;
             padding: 4px 10px;
             background: #ecfdf5;
             border: 1px solid #a7f3d0;
@@ -253,21 +278,25 @@
 
         .traveler-table th {
             background: #f3f4f6;
-            font-size: 10px;
+            font-size: 9px;
             color: #444;
             font-weight: bold;
-            padding: 7px 8px;
+            padding: 6px 5px;
             border-bottom: 1px solid #cbd5e1;
             text-align: left;
+            white-space: nowrap;
             font-family: DejaVu Sans, sans-serif;
+            line-height: 1.2;
         }
 
         .traveler-table td {
-            padding: 10px 8px;
+            padding: 6px 5px;
             border-bottom: 1px solid #e5e7eb;
             vertical-align: middle;
-            font-size: 11px;
+            font-size: 10px;
             color: #111827;
+            line-height: 1.1;
+            font-family: DejaVu Sans, sans-serif;
         }
 
         .traveler-table tr:last-child td {
@@ -279,11 +308,17 @@
             height: auto;
         }
 
-        .traveler-name {
+        .traveler-name,
+        .ticket-no {
+            font-family: DejaVu Sans, sans-serif;
             font-weight: bold;
-            text-transform: uppercase;
             color: #111827;
-            font-size: 12px;
+            font-size: 10px;
+            line-height: 1.15;
+        }
+
+        .traveler-name {
+            text-transform: uppercase;
         }
 
         .traveler-table th.ticket-col,
@@ -291,14 +326,6 @@
             text-align: left;
             vertical-align: middle;
             white-space: nowrap;
-        }
-
-        .ticket-no {
-            font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
-            font-weight: bold;
-            color: #111827;
-            font-size: 12px;
-            letter-spacing: 0.3px;
         }
 
         .baggage-box {
@@ -395,6 +422,9 @@
                     @if (!empty($agency['address']))
                         {{ $agency['address'] }}<br>
                     @endif
+                    @if (!empty($agency['country']))
+                        {{ $agency['country'] }}<br>
+                    @endif
                     @if (!empty($agency['phone']))
                         {{ $agency['phone'] }}<br>
                     @endif
@@ -409,12 +439,12 @@
                     @if (!empty($booking['ref']))
                         <tr>
                             <td>System Ref:</td>
-                            <td><strong>{{ $booking['ref'] }}</strong></td>
+                            <td>{{ $booking['ref'] }}</td>
                         </tr>
                     @endif
                     <tr>
                         <td>Date of Booking:</td>
-                        <td><strong>{{ $booking['date'] ?? '—' }}</strong></td>
+                        <td>{{ $booking['date'] ?? '—' }}</td>
                     </tr>
                 </table>
             </td>
@@ -423,7 +453,25 @@
 
     @foreach ($directions as $direction)
         <div class="direction-block">
-            <div class="direction-head">{{ $direction['label'] ?? 'FLIGHT' }}</div>
+            <table class="direction-head" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="direction-head__label">{{ $direction['label'] ?? 'FLIGHT' }}</td>
+                    @if (!empty($direction['airline_ref']) || !empty($direction['crs_ref']))
+                        <td class="direction-head__refs">
+                            @if (!empty($direction['airline_ref']))
+                                <span class="ref-pill">
+                                    <span class="ref-pill__key">Airline Ref:</span><strong>{{ $direction['airline_ref'] }}</strong>
+                                </span>
+                            @endif
+                            @if (!empty($direction['crs_ref']))
+                                <span class="ref-pill">
+                                    <span class="ref-pill__key">CRS Ref:</span><strong>{{ $direction['crs_ref'] }}</strong>
+                                </span>
+                            @endif
+                        </td>
+                    @endif
+                </tr>
+            </table>
             <div class="direction-route">
                 <div class="route-title">{{ $direction['route_title'] ?? '' }}</div>
                 <div class="sub">{{ $direction['meta_line'] ?? '' }}</div>
@@ -432,22 +480,12 @@
                         <td>
                             <div class="label">Airline</div>
                             <div class="value">{{ $direction['airline'] ?? '—' }}</div>
-                            @if (!empty($direction['airline_ref']))
-                                <div class="ref-pill">
-                                    <span class="ref-pill__key">Airline Ref:</span><strong>{{ $direction['airline_ref'] }}</strong>
-                                </div>
-                            @endif
                             <div class="label" style="margin-top:6px;">Travel Class</div>
                             <div class="value">{{ $direction['travel_class'] ?? 'Economy' }}</div>
                         </td>
                         <td>
                             <div class="label">Check-In Baggage</div>
                             <div class="value">{{ $direction['check_in_baggage'] ?? 'Refer to airline policy' }}</div>
-                            @if (!empty($direction['crs_ref']))
-                                <div class="ref-pill">
-                                    <span class="ref-pill__key">CRS Ref:</span><strong>{{ $direction['crs_ref'] }}</strong>
-                                </div>
-                            @endif
                             <div class="label" style="margin-top:6px;">Cabin Baggage</div>
                             <div class="value">{{ $direction['cabin_baggage'] ?? 'Refer to airline policy' }}</div>
                         </td>
@@ -542,8 +580,8 @@
                                     —
                                 @endif
                             </td>
-                            <td><span class="traveler-name">{{ $traveler['name'] ?? '—' }}</span></td>
-                            <td class="ticket-col"><span class="ticket-no">{{ $traveler['ticket_number'] ?? '—' }}</span></td>
+                            <td><strong class="traveler-name">{{ $traveler['name'] ?? '—' }}</strong></td>
+                            <td class="ticket-col"><strong class="ticket-no">{{ $traveler['ticket_number'] ?? '—' }}</strong></td>
                         </tr>
                     @endforeach
                 </tbody>

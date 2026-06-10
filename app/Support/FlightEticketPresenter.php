@@ -77,7 +77,7 @@ final class FlightEticketPresenter
     }
 
     /**
-     * @return array{name: string, legal_name: string, address: string, phone: string, email: string, logo_data_uri: ?string}
+     * @return array{name: string, legal_name: string, address: string, country: string, phone: string, email: string, logo_data_uri: ?string}
      */
     private static function agencyBlock(): array
     {
@@ -93,6 +93,7 @@ final class FlightEticketPresenter
             'name' => (string) config('eticket.agency_name', config('app.name', 'Andaleeb Travel Agency')),
             'legal_name' => (string) config('eticket.agency_legal_name', config('app.name', 'Andaleeb Travel Agency')),
             'address' => (string) config('eticket.address', ''),
+            'country' => (string) config('eticket.country', 'United Arab Emirates'),
             'phone' => (string) config('eticket.phone', ''),
             'email' => (string) config('eticket.email', ''),
             'logo_data_uri' => $logoDataUri,
