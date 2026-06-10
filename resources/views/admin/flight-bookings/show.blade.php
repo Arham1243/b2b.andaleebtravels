@@ -132,13 +132,18 @@
 
 <div class="col-md-12">
     <div class="dashboard-content">
-        {{ Breadcrumbs::render('admin.flight-bookings.show', $booking) }}
+        <div class="bkpd-page-toolbar">
+            <div class="bkpd-page-toolbar__trail">
+                {{ Breadcrumbs::render('admin.flight-bookings.show', $booking) }}
+            </div>
 
-        @include('partials.flight-eticket-export', [
-            'booking' => $booking,
-            'exportRoute' => route('admin.flight-bookings.eticket-pdf', $booking->id),
-            'variant' => 'compact',
-        ])
+            @include('partials.flight-eticket-export', [
+                'booking' => $booking,
+                'exportRoute' => route('admin.flight-bookings.eticket-pdf', $booking->id),
+                'variant' => 'compact',
+                'toolbar' => true,
+            ])
+        </div>
 
         <div class="bkp bkp--admin">
             <div class="bkp-main">

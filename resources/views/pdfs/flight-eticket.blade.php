@@ -31,7 +31,7 @@
         .header {
             width: 100%;
             border-bottom: 2px solid #cd1b4f;
-            padding-bottom: 12px;
+            padding-bottom: 20px;
             margin-bottom: 16px;
         }
 
@@ -39,9 +39,12 @@
             vertical-align: top;
         }
 
-        .company-logo {
-            width: 100px;
-            padding-right: 12px;
+        .header-left {
+            padding-right: 16px;
+        }
+
+        .company-logo-wrap {
+            margin-bottom: 8px;
         }
 
         .logo {
@@ -355,28 +358,24 @@
 
     <table class="header" width="100%" cellpadding="0" cellspacing="0">
         <tr>
-            <td width="50%" valign="top">
-                <table cellpadding="0" cellspacing="0">
-                    <tr>
-                        @if (!empty($agency['logo_data_uri']))
-                            <td class="company-logo" valign="top">
-                                <img src="{{ $agency['logo_data_uri'] }}" alt="Logo" class="logo">
-                            </td>
-                        @endif
-                        <td class="company-details" valign="top">
-                            <strong>{{ $agency['legal_name'] ?? ($agency['name'] ?? '') }}</strong><br>
-                            @if (!empty($agency['address']))
-                                {{ $agency['address'] }}<br>
-                            @endif
-                            @if (!empty($agency['phone']))
-                                {{ $agency['phone'] }}<br>
-                            @endif
-                            @if (!empty($agency['email']))
-                                {{ $agency['email'] }}
-                            @endif
-                        </td>
-                    </tr>
-                </table>
+            <td width="50%" valign="top" class="header-left">
+                @if (!empty($agency['logo_data_uri']))
+                    <div class="company-logo-wrap">
+                        <img src="{{ $agency['logo_data_uri'] }}" alt="Logo" class="logo">
+                    </div>
+                @endif
+                <div class="company-details">
+                    <strong>{{ $agency['legal_name'] ?? ($agency['name'] ?? '') }}</strong><br>
+                    @if (!empty($agency['address']))
+                        {{ $agency['address'] }}<br>
+                    @endif
+                    @if (!empty($agency['phone']))
+                        {{ $agency['phone'] }}<br>
+                    @endif
+                    @if (!empty($agency['email']))
+                        {{ $agency['email'] }}
+                    @endif
+                </div>
             </td>
             <td width="50%" valign="top">
                 <div class="doc-title">E-TICKET</div>
@@ -405,7 +404,7 @@
                         <tr>
                             <td></td>
                             <td>
-                                <a href="{{ $booking['view_url'] }}" class="btn-web">View on Web</a>
+                                <a href="{{ $booking['view_url'] }}" class="btn-web">View Online</a>
                             </td>
                         </tr>
                     @endif

@@ -573,6 +573,100 @@
 
 .bkp-crumb span { font-weight: 600; color: #1a2540; }
 
+.bkpd-page-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.bkpd-page-toolbar .bkp-crumb,
+.bkpd-page-toolbar .breadcrumb {
+    margin-bottom: 0;
+}
+
+.bkpd-page-toolbar__trail {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.eticket-export--toolbar {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.eticket-export__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.eticket-export button.eticket-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0 10px;
+    margin: 0;
+    border: 1px solid #e4e9f0;
+    border-radius: 999px;
+    background: #fff;
+    color: #1a2540;
+    font-family: inherit;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    transition: border-color .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.eticket-export button.eticket-icon-btn i {
+    font-size: .95rem;
+    color: var(--c-brand, #cd1b4f);
+    line-height: 1;
+}
+
+.eticket-export button.eticket-icon-btn:hover {
+    border-color: var(--c-brand, #cd1b4f);
+    background: #fff5f8;
+    color: var(--c-brand, #cd1b4f);
+    box-shadow: 0 2px 8px rgba(205, 27, 79, .12);
+}
+
+.eticket-export button.eticket-icon-btn--muted i {
+    color: #64748b;
+}
+
+.eticket-export button.eticket-icon-btn--muted:hover i {
+    color: var(--c-brand, #cd1b4f);
+}
+
+.eticket-export button.eticket-icon-btn--icon-only {
+    position: relative;
+    width: 32px;
+    padding: 0;
+}
+
+.eticket-export button.eticket-icon-btn--icon-only span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* ── Detail grid ─────────────────────────────────────────── */
 .bkpd-grid {
     display: grid;

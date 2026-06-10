@@ -75,17 +75,19 @@
 
             <main class="bkp-main">
 
-                {{-- Breadcrumb --}}
-                <nav class="bkp-crumb">
-                    <a href="{{ route('user.bookings.flights') }}"><i class="bx bx-chevron-left"></i> Flight Bookings</a>
-                    <span>{{ $booking->booking_number }}</span>
-                </nav>
+                <div class="bkpd-page-toolbar">
+                    <nav class="bkp-crumb">
+                        <a href="{{ route('user.bookings.flights') }}"><i class="bx bx-chevron-left"></i> Flight Bookings</a>
+                        <span>{{ $booking->booking_number }}</span>
+                    </nav>
 
-                @include('partials.flight-eticket-export', [
-                    'booking' => $booking,
-                    'exportRoute' => route('user.bookings.flights.eticket-pdf', $booking->id),
-                    'variant' => 'compact',
-                ])
+                    @include('partials.flight-eticket-export', [
+                        'booking' => $booking,
+                        'exportRoute' => route('user.bookings.flights.eticket-pdf', $booking->id),
+                        'variant' => 'compact',
+                        'toolbar' => true,
+                    ])
+                </div>
 
                 {{-- Hold expiry banner --}}
                 @if($isHold && $status !== 'cancelled')

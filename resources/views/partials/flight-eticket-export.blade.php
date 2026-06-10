@@ -4,17 +4,28 @@
         $ticketNumbers = $booking->resolvedTicketNumbers();
         $exportRoute = $exportRoute ?? route('user.bookings.flights.eticket-pdf', $booking->id);
         $variant = $variant ?? 'compact';
+        $toolbar = $toolbar ?? false;
         $isCompact = $variant === 'compact';
+        $iconOnly = $iconOnly ?? ($toolbar && $isCompact);
+        $exportWrapperClass = 'eticket-export';
+        if ($toolbar) {
+            $exportWrapperClass .= ' eticket-export--toolbar';
+        } elseif ($isCompact) {
+            $exportWrapperClass .= ' eticket-export--compact mb-3';
+        } else {
+            $exportWrapperClass .= ' mb-3';
+        }
     @endphp
 
-    <div class="eticket-export {{ $isCompact ? 'eticket-export--compact mb-3' : 'mb-3' }}">
-        <div class="d-flex flex-wrap {{ $isCompact ? 'eticket-export__actions' : 'gap-2' }}">
+    <div class="{{ $exportWrapperClass }}">
+        <div class="{{ $isCompact ? 'eticket-export__actions' : 'd-flex flex-wrap gap-2' }}">
             <button type="button"
-                class="{{ $isCompact ? 'eticket-icon-btn' : 'themeBtn eticket-export__btn' }}"
+                class="{{ $isCompact ? 'eticket-icon-btn' . ($iconOnly ? ' eticket-icon-btn--icon-only' : '') : 'themeBtn eticket-export__btn' }}"
                 data-eticket-action="download"
                 data-bs-toggle="modal"
                 data-bs-target="#{{ $modalId }}"
-                title="Download E-Ticket">
+                title="Download E-Ticket"
+                aria-label="Download E-Ticket">
                 <i class="bx bx-download"></i>
                 @if ($isCompact)
                     <span>Download</span>
@@ -23,11 +34,12 @@
                 @endif
             </button>
             <button type="button"
-                class="{{ $isCompact ? 'eticket-icon-btn eticket-icon-btn--muted' : 'themeBtn eticket-export__btn' }}"
+                class="{{ $isCompact ? 'eticket-icon-btn eticket-icon-btn--muted' . ($iconOnly ? ' eticket-icon-btn--icon-only' : '') : 'themeBtn eticket-export__btn' }}"
                 data-eticket-action="print"
                 data-bs-toggle="modal"
                 data-bs-target="#{{ $modalId }}"
-                title="Print E-Ticket">
+                title="Print E-Ticket"
+                aria-label="Print E-Ticket">
                 <i class="bx bx-printer"></i>
                 @if ($isCompact)
                     <span>Print</span>
@@ -96,59 +108,6 @@
             </div>
         </div>
     </div>
-
-    @once
-        @push('css')
-            <style>
-                .eticket-export--compact {
-                    margin-top: 0;
-                    margin-bottom: 12px;
-                }
-
-                .eticket-export__actions {
-                    gap: 8px;
-                }
-
-                .eticket-icon-btn {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    height: 34px;
-                    padding: 0 12px;
-                    border: 1px solid #e4e9f0;
-                    border-radius: 999px;
-                    background: #fff;
-                    color: #1a2540;
-                    font-size: .78rem;
-                    font-weight: 600;
-                    line-height: 1;
-                    cursor: pointer;
-                    transition: all .15s ease;
-                    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
-                }
-
-                .eticket-icon-btn i {
-                    font-size: 1rem;
-                    color: var(--c-brand, #cd1b4f);
-                }
-
-                .eticket-icon-btn:hover {
-                    border-color: var(--c-brand, #cd1b4f);
-                    background: #fff5f8;
-                    color: var(--c-brand, #cd1b4f);
-                    box-shadow: 0 2px 8px rgba(205, 27, 79, .12);
-                }
-
-                .eticket-icon-btn--muted i {
-                    color: #64748b;
-                }
-
-                .eticket-icon-btn--muted:hover i {
-                    color: var(--c-brand, #cd1b4f);
-                }
-            </style>
-        @endpush
-    @endonce
 
     @once
         @push('js')
