@@ -273,9 +273,7 @@
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'required' => $requireTravelportDob,
-                                        'hint' => $requireTravelportDob
-                                            ? 'Required for Travelport hold bookings'
-                                            : 'Age calculated as per travel date',
+                                        'hint' => $requireTravelportDob ? null : 'Age calculated as per travel date',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -465,6 +463,7 @@
                          RIGHT  col-4  -  sticky fare summary
                          =================================================== --}}
                     <div class="col-lg-4">
+                        <div class="hp-sidebar-sticky" id="hp-sidebar-sticky">
                         <div class="hp-summary" id="hp-summary-sticky">
                             <div class="hp-summary__head">
                                 <i class="bx bx-receipt"></i>
@@ -566,6 +565,7 @@
                             'timerRedirectUrl' => $searchBackUrl,
                             'timerStorageKey' => 'flight_hold_session_expires',
                         ])
+                        </div>
                     </div>
 
                 </div>{{-- /.row --}}
@@ -813,13 +813,21 @@
 /* =========================================================
    RIGHT: SUMMARY
    ========================================================= */
+.hp-sidebar-sticky {
+    position: sticky;
+    top: 90px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+}
 .hp-summary {
     background: var(--c-white);
     border: 1px solid var(--c-line);
     border-radius: 14px;
     box-shadow: var(--c-shadow);
     overflow: hidden;
-    position: sticky; top: 90px;
+    position: static;
 }
 .hp-summary__head {
     padding: .85rem 1.1rem;
@@ -965,7 +973,7 @@
     .hp-leg__bridge { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: .5rem; }
     .hp-leg__bridge-track { width: 160px; }
     .hp-leg__pt--arr { text-align: left; }
-    .hp-summary { position: static; }
+    .hp-sidebar-sticky { position: static; }
 }
 
 @include('user.flights.partials.hp-pax-autocomplete-styles')

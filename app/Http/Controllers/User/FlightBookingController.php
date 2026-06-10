@@ -124,7 +124,7 @@ class FlightBookingController extends Controller
                 if (empty($pax['dob'])) {
                     return redirect()
                         ->route('user.flights.checkout', ['itinerary' => $itineraryId, 'fare' => $fareIndex])
-                        ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required for Travelport bookings.'])
+                        ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required.'])
                         ->withInput();
                 }
             }
@@ -132,7 +132,7 @@ class FlightBookingController extends Controller
             $revalidate = app(TravelportBookingService::class)->revalidateItinerary($itineraryData, $params);
             if (! ($revalidate['success'] ?? false)) {
                 return redirect()->route('user.flights.index')
-                    ->with('notify_error', $revalidate['error'] ?? 'Unable to revalidate Travelport fare. Please search again.');
+                    ->with('notify_error', $revalidate['error'] ?? 'Unable to revalidate fare. Please search again.');
             }
         } else {
             [$sabreItineraryId, $sabreGroupIndex] = $this->resolveSabreItineraryLookup($itineraryData, $itineraryId);
@@ -526,7 +526,7 @@ class FlightBookingController extends Controller
                     ]);
 
                     return $this->holdCheckoutRedirect($itineraryId, $fareIndex)
-                        ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required for Travelport hold bookings.'])
+                        ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required.'])
                         ->withInput();
                 }
             }

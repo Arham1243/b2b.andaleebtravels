@@ -7,8 +7,8 @@
 <div class="hp-session-timer" id="hp-session-timer" aria-live="polite">
     <div class="hp-session-timer__ring">
         <svg viewBox="0 0 80 80" class="hp-session-timer__svg" aria-hidden="true">
-            <circle class="hp-session-timer__track" cx="40" cy="40" r="34" />
-            <circle class="hp-session-timer__progress" id="hp-session-timer-progress" cx="40" cy="40" r="34" />
+            <circle class="hp-session-timer__track" cx="40" cy="40" r="32" pathLength="100" />
+            <circle class="hp-session-timer__progress" id="hp-session-timer-progress" cx="40" cy="40" r="32" pathLength="100" />
         </svg>
         <div class="hp-session-timer__time" id="hp-session-timer-label">
             <span class="hp-session-timer__mins">{{ str_pad((string) $timerMinutes, 2, '0', STR_PAD_LEFT) }}</span>
@@ -30,17 +30,17 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-top: .85rem;
     padding: 1rem 1.15rem;
     background: var(--c-white, #fff);
     border: 1px solid var(--c-line, #dde3ef);
     border-radius: 14px;
     box-shadow: var(--c-shadow, 0 2px 8px rgba(26,37,64,.07));
+    flex-shrink: 0;
 }
 .hp-session-timer__ring {
     position: relative;
-    width: 72px;
-    height: 72px;
+    width: 76px;
+    height: 76px;
     flex-shrink: 0;
 }
 .hp-session-timer__svg {
@@ -51,17 +51,19 @@
 .hp-session-timer__track,
 .hp-session-timer__progress {
     fill: none;
-    stroke-width: 5;
+    stroke-width: 6;
 }
 .hp-session-timer__track {
     stroke: #e8edf5;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
 }
 .hp-session-timer__progress {
     stroke: var(--c-brand, #cd1b4f);
     stroke-linecap: round;
-    stroke-dasharray: 213.628;
+    stroke-dasharray: 100;
     stroke-dashoffset: 0;
-    transition: stroke-dashoffset .9s linear, stroke .25s ease;
+    transition: stroke-dashoffset 1s linear, stroke .3s ease;
 }
 .hp-session-timer__time {
     position: absolute;
@@ -70,7 +72,7 @@
     align-items: center;
     justify-content: center;
     font-family: var(--mono, ui-monospace, monospace);
-    font-size: .95rem;
+    font-size: .92rem;
     font-weight: 800;
     color: var(--c-ink, #1a2540);
     line-height: 1;
@@ -113,14 +115,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const storageKey = @json($timerStorageKey);
     const totalMs = {{ max(1, $timerMinutes) }} * 60 * 1000;
     const startKey = storageKey + '_start';
-    const RING_LEN = 2 * Math.PI * 34;
+    const RING_MAX = 100;
 
     const timerEl = document.getElementById('hp-session-timer');
     const labelEl = document.getElementById('hp-session-timer-label');
     const progressEl = document.getElementById('hp-session-timer-progress');
     if (!timerEl || !labelEl || !progressEl) return;
-
-    progressEl.style.strokeDasharray = String(RING_LEN);
 
     let startedAt = Number(sessionStorage.getItem(startKey) || 0);
     let expiresAt = Number(sessionStorage.getItem(storageKey) || 0);
@@ -138,6 +138,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function pad(n) { return String(n).padStart(2, '0'); }
 
+    function setRingProgress(pct) {
+        const clamped = Math.max(0, Math.min(1, pct));
+        progressEl.style.strokeDasharray = String(RING_MAX);
+        progressEl.style.strokeDashoffset = String(RING_MAX * (1 - clamped));
+    }
+
     function tick() {
         const remaining = expiresAt - Date.now();
         if (remaining <= 0) {
@@ -154,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (minsEl) minsEl.textContent = pad(mins);
         if (secsEl) secsEl.textContent = pad(secs);
-        progressEl.style.strokeDashoffset = String(RING_LEN * (1 - pct));
+        setRingProgress(pct);
         timerEl.classList.toggle('hp-session-timer--urgent', remaining < 120000);
     }
 

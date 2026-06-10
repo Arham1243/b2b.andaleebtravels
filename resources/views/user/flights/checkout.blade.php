@@ -192,9 +192,7 @@
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'required' => $requireTravelportDob,
-                                        'hint' => $requireTravelportDob
-                                            ? 'Required for Travelport bookings'
-                                            : 'Age calculated as per travel date',
+                                        'hint' => $requireTravelportDob ? null : 'Age calculated as per travel date',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -457,6 +455,7 @@
                     </div>
 
                     <div class="col-lg-4">
+                        <div class="hp-sidebar-sticky" id="hp-sidebar-sticky">
                         <div class="hp-summary" id="hp-summary-sticky">
                             <div class="hp-summary__head">
                                 <i class="bx bx-receipt"></i>
@@ -537,6 +536,7 @@
                             'timerRedirectUrl' => $searchBackUrl,
                             'timerStorageKey' => 'flight_checkout_session_expires',
                         ])
+                        </div>
                     </div>
 
                 </div>
