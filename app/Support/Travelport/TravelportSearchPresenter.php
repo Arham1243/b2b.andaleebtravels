@@ -118,6 +118,57 @@ class TravelportSearchPresenter
     }
 
     /**
+     * Drop generic GDS "Economy" when a branded GDS fare exists for the same fare basis.
+     *
+     * @param  list<array<string, mixed>>  $fareOptions
+     * @return list<array<string, mixed>>
+     */
+    public static function collapseRedundantGdsEconomyFares(array $fareOptions): array
+    {
+        $brandedGdsBases = [];
+        foreach ($fareOptions as $option) {
+            if (! is_array($option)) {
+                continue;
+            }
+
+            $tags = is_array($option['fare_tags'] ?? null) ? $option['fare_tags'] : [];
+            if (! in_array('gds', array_map('strtolower', $tags), true)) {
+                continue;
+            }
+
+            $brand = strtoupper(trim((string) ($option['fare_brand'] ?? '')));
+            if ($brand === '' || $brand === 'ECONOMY') {
+                continue;
+            }
+
+            $basis = strtoupper(trim((string) ($option['fare_basis'] ?? '')));
+            if ($basis !== '') {
+                $brandedGdsBases[$basis] = true;
+            }
+        }
+
+        if ($brandedGdsBases === []) {
+            return $fareOptions;
+        }
+
+        return array_values(array_filter($fareOptions, static function (array $option) use ($brandedGdsBases): bool {
+            $tags = is_array($option['fare_tags'] ?? null) ? $option['fare_tags'] : [];
+            if (! in_array('gds', array_map('strtolower', $tags), true)) {
+                return true;
+            }
+
+            $brand = strtoupper(trim((string) ($option['fare_brand'] ?? '')));
+            if ($brand !== 'ECONOMY') {
+                return true;
+            }
+
+            $basis = strtoupper(trim((string) ($option['fare_basis'] ?? '')));
+
+            return $basis === '' || ! isset($brandedGdsBases[$basis]);
+        }));
+    }
+
+    /**
      * Rebuild AirFareRules request from a persisted LowFareSearch response.
      *
      * @param  array<string, mixed>  $searchResponse

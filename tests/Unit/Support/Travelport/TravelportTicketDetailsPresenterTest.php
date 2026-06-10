@@ -3,6 +3,7 @@
 namespace Tests\Unit\Support\Travelport;
 
 use App\Models\B2bFlightBooking;
+use App\Support\Travelport\TravelportAirPricePresenter;
 use App\Support\Travelport\TravelportTicketDetailsPresenter;
 use PHPUnit\Framework\TestCase;
 
@@ -77,5 +78,32 @@ class TravelportTicketDetailsPresenterTest extends TestCase
         $this->assertCount(1, $tickets[0]['coupons']);
         $this->assertSame('EK 600', $tickets[0]['coupons'][0]['flight']);
         $this->assertSame('DXB → KHI', $tickets[0]['coupons'][0]['route']);
+    }
+
+    public function test_air_price_fare_tags_default_to_gds_for_gfb_host_token(): void
+    {
+        $parsed = [
+            'Body' => [
+                'AirPriceRsp' => [
+                    'AirPriceResult' => [
+                        'AirPricingSolution' => [
+                            '@attributes' => ['Key' => 's1', 'TotalPrice' => 'AED525'],
+                            'AirPricingInfo' => [
+                                '@attributes' => ['BasePrice' => 'AED200', 'Taxes' => 'AED325', 'PlatingCarrier' => 'EK'],
+                                'FareInfo' => [
+                                    '@attributes' => ['FareBasis' => 'LLEOPAE1'],
+                                    'Brand' => ['@attributes' => ['Name' => 'ECO SAVER']],
+                                ],
+                            ],
+                            'HostToken' => 'GFB10101ADT01OW01LLEOPAE1',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $options = TravelportAirPricePresenter::toFareOptions($parsed, ['onward_cabin_class' => 'Economy'], []);
+
+        $this->assertSame(['published', 'gds'], $options[0]['fare_tags'] ?? []);
     }
 }

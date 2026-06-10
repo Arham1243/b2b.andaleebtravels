@@ -10,10 +10,15 @@ class TravelportAirPricePresenter
      * @param  array<string, mixed>|null  $parsed
      * @param  array<string, mixed>  $searchData
      * @param  list<array<string, mixed>>  $legs
+     * @param  list<string>|null  $fareTagsOverride
      * @return list<array<string, mixed>>
      */
-    public static function toFareOptions(?array $parsed, array $searchData, array $legs): array
-    {
+    public static function toFareOptions(
+        ?array $parsed,
+        array $searchData,
+        array $legs,
+        ?array $fareTagsOverride = null,
+    ): array {
         if (! is_array($parsed)) {
             return [];
         }
@@ -26,7 +31,7 @@ class TravelportAirPricePresenter
                 continue;
             }
 
-            $option = self::buildFareOption($solution, $legs);
+            $option = self::buildFareOption($solution, $legs, $fareTagsOverride);
             if ($option !== null) {
                 $options[] = $option;
             }
@@ -45,9 +50,10 @@ class TravelportAirPricePresenter
     /**
      * @param  array<string, mixed>  $solution
      * @param  list<array<string, mixed>>  $legs
+     * @param  list<string>|null  $fareTagsOverride
      * @return array<string, mixed>|null
      */
-    private static function buildFareOption(array $solution, array $legs): ?array
+    private static function buildFareOption(array $solution, array $legs, ?array $fareTagsOverride = null): ?array
     {
         $solutionKey = (string) self::attr($solution, 'Key', '');
         $totalMoney = self::parseMoney(self::attr($solution, 'TotalPrice') ?: self::attr($solution, 'ApproximateTotalPrice'));
@@ -91,9 +97,9 @@ class TravelportAirPricePresenter
             $cabinClass,
         );
         $fareRuleRequest = TravelportFareRulesPresenter::fareRuleRequest($fareInfo, $pricingInfo, $legs);
-        $fareTags = self::inferFareTags($brandNode);
 
         $hostToken = is_string($solution['HostToken'] ?? null) ? trim($solution['HostToken']) : '';
+        $fareTags = $fareTagsOverride ?? self::inferFareTags($brandNode, $hostToken);
 
         return [
             'travelport_pricing_index' => 0,
@@ -173,17 +179,33 @@ class TravelportAirPricePresenter
     }
 
     /**
+     * AirPrice FareFamily host tokens (GFB…) are GDS booking paths even when brand content is rich.
+     *
      * @return list<string>
      */
-    private static function inferFareTags(?array $brandNode): array
+    private static function inferFareTags(?array $brandNode, string $hostToken = ''): array
     {
-        $tags = ['published', 'ndc'];
+        $tags = ['published'];
+
+        if ($hostToken !== '' && str_starts_with(strtoupper($hostToken), 'GFB')) {
+            $tags[] = 'gds';
+
+            return $tags;
+        }
 
         if ($brandNode === null) {
             $tags[] = 'gds';
 
-            return array_values(array_unique($tags));
+            return $tags;
         }
+
+        if (strtolower((string) self::attr($brandNode, 'BrandedDetailsAvailable', '')) === 'true') {
+            $tags[] = 'ndc';
+
+            return $tags;
+        }
+
+        $tags[] = 'gds';
 
         return $tags;
     }

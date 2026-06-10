@@ -45,38 +45,41 @@ class TravelportFlightProvider implements FlightProviderInterface
 
         foreach ($cabins as $cabin) {
             $cabinSearch = array_merge($searchData, ['onward_cabin_class' => $cabin]);
-            $gdsResponse = $this->client->lowFareSearch($cabinSearch, false, false);
+            // NDC branded upsell tiers (Saver, Flex). Flex Plus is not in LFS upsell for EK.
             $ndcResponse = $this->client->lowFareSearch($cabinSearch, true, true);
 
-            $gdsCards = ($gdsResponse['success'] ?? false)
-                ? TravelportSearchPresenter::toResultCards($gdsResponse['parsed'], $cabinSearch)
-                : [];
             $ndcCards = ($ndcResponse['success'] ?? false)
                 ? TravelportSearchPresenter::toResultCards($ndcResponse['parsed'], $cabinSearch)
                 : [];
 
-            if ($gdsCards !== [] || $ndcCards !== []) {
-                $cardLists[] = TravelportSearchPresenter::mergeResultCardLists($gdsCards, $ndcCards);
+            if ($ndcCards !== []) {
+                $cardLists[] = $this->filterCardsFareOptionsByTag($ndcCards, 'ndc');
             }
         }
 
-        if ($cardLists === []) {
-            $card['travelport_fares_expanded'] = true;
+        if ($cardLists !== []) {
+            $allCards = TravelportSearchPresenter::mergeResultCardLists(...$cardLists);
+            $matched = TravelportSearchPresenter::findCardByRoutingSignature($allCards, $signature);
 
-            return $card;
+            if ($matched !== null) {
+                $incoming = $this->filterFareOptionsBySearchCabins($matched['fare_options'] ?? [], $searchData);
+                $card = TravelportSearchPresenter::enrichCardFareOptions($card, $incoming);
+            }
         }
 
-        $allCards = TravelportSearchPresenter::mergeResultCardLists(...$cardLists);
-        $matched = TravelportSearchPresenter::findCardByRoutingSignature($allCards, $signature);
+        $airPriceOptions = $this->fetchAirPriceFamilyOptions($searchData, $card);
 
-        if ($matched !== null) {
-            $incoming = $this->filterFareOptionsBySearchCabins($matched['fare_options'] ?? [], $searchData);
-            $card = TravelportSearchPresenter::enrichCardFareOptions($card, $incoming);
+        if ($airPriceOptions !== []) {
+            $card = TravelportSearchPresenter::enrichCardFareOptions($card, $airPriceOptions);
+            $card = TravelportSearchPresenter::enrichCardFareOptions(
+                $card,
+                $this->ndcSupplementFromAirPrice($card, $airPriceOptions),
+            );
         }
 
-        $card = $this->appendFareFamilyAirPriceOptions($searchData, $card);
-
-        $filtered = $this->filterFareOptionsBySearchCabins($card['fare_options'] ?? [], $searchData);
+        $filtered = TravelportSearchPresenter::collapseRedundantGdsEconomyFares(
+            $this->filterFareOptionsBySearchCabins($card['fare_options'] ?? [], $searchData),
+        );
         $card['fare_options'] = [];
         $card = TravelportSearchPresenter::enrichCardFareOptions($card, $filtered);
 
@@ -164,17 +167,17 @@ class TravelportFlightProvider implements FlightProviderInterface
     }
 
     /**
-     * AirPrice FareFamily returns full brand tiers (e.g. ECO FLEXPLUS) that LFS upsell omits.
+     * GDS branded tiers (Saver / Flex / Flex Plus) via AirPrice FareFamily — not returned by LFS GDS shop.
      *
      * @param  array<string, mixed>  $searchData
      * @param  array<string, mixed>  $card
-     * @return array<string, mixed>
+     * @return list<array<string, mixed>>
      */
-    private function appendFareFamilyAirPriceOptions(array $searchData, array $card): array
+    private function fetchAirPriceFamilyOptions(array $searchData, array $card): array
     {
         $segments = TravelportHoldPayloadBuilder::buildAirPriceSegments($card);
         if ($segments === []) {
-            return $card;
+            return [];
         }
 
         $airPriceResponse = $this->client->airPriceFareFamily(
@@ -183,21 +186,89 @@ class TravelportFlightProvider implements FlightProviderInterface
         );
 
         if (! ($airPriceResponse['success'] ?? false)) {
-            return $card;
+            return [];
         }
 
         $legs = is_array($card['legs'] ?? null) ? $card['legs'] : [];
-        $airPriceOptions = TravelportAirPricePresenter::toFareOptions(
+
+        return TravelportAirPricePresenter::toFareOptions(
             $airPriceResponse['parsed'],
             $searchData,
             $legs,
         );
+    }
 
-        if ($airPriceOptions === []) {
-            return $card;
+    /**
+     * NDC upsell from LFS omits some tiers (e.g. ECO FLEXPLUS). Re-offer them with an NDC tag.
+     *
+     * @param  array<string, mixed>  $card
+     * @param  list<array<string, mixed>>  $airPriceOptions
+     * @return list<array<string, mixed>>
+     */
+    private function ndcSupplementFromAirPrice(array $card, array $airPriceOptions): array
+    {
+        $existingNdcBases = [];
+        foreach ($card['fare_options'] ?? [] as $option) {
+            if (! is_array($option) || ! $this->fareOptionHasTag($option, 'ndc')) {
+                continue;
+            }
+
+            $basis = strtoupper(trim((string) ($option['fare_basis'] ?? '')));
+            if ($basis !== '') {
+                $existingNdcBases[$basis] = true;
+            }
         }
 
-        return TravelportSearchPresenter::enrichCardFareOptions($card, $airPriceOptions);
+        $supplement = [];
+        foreach ($airPriceOptions as $option) {
+            if (! is_array($option)) {
+                continue;
+            }
+
+            $basis = strtoupper(trim((string) ($option['fare_basis'] ?? '')));
+            if ($basis === '' || isset($existingNdcBases[$basis])) {
+                continue;
+            }
+
+            $copy = $option;
+            $copy['fare_tags'] = ['published', 'ndc'];
+            $supplement[] = $copy;
+        }
+
+        return $supplement;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $cards
+     * @return list<array<string, mixed>>
+     */
+    private function filterCardsFareOptionsByTag(array $cards, string $tag): array
+    {
+        $filtered = [];
+        foreach ($cards as $card) {
+            if (! is_array($card)) {
+                continue;
+            }
+
+            $copy = $card;
+            $copy['fare_options'] = array_values(array_filter(
+                $card['fare_options'] ?? [],
+                fn (array $option): bool => $this->fareOptionHasTag($option, $tag),
+            ));
+            $filtered[] = $copy;
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * @param  array<string, mixed>  $option
+     */
+    private function fareOptionHasTag(array $option, string $tag): bool
+    {
+        $tags = is_array($option['fare_tags'] ?? null) ? $option['fare_tags'] : [];
+
+        return in_array(strtolower($tag), array_map('strtolower', $tags), true);
     }
 
     /**
