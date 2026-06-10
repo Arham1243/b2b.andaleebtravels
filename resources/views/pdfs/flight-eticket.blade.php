@@ -181,7 +181,7 @@
             margin: 0 0 8px;
             color: #333;
             font-weight: bold;
-            font-family: sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
         }
 
         .direction-route .sub {
@@ -533,7 +533,7 @@
                 </tr>
             </table>
             <div class="direction-route">
-                <div class="block-title block-title--inline route-title">{!! $direction['route_title'] ?? '' !!}</div>
+                <div class="block-title block-title--inline route-title">{{ $direction['route_title'] ?? '' }}</div>
                 <div class="sub">{{ $direction['meta_line'] ?? '' }}</div>
                 <table class="info-grid" cellpadding="0" cellspacing="0">
                     <tr>

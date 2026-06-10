@@ -91,8 +91,8 @@ final class FlightEticketPresenter
 
         return [
             'name' => (string) config('eticket.agency_name', config('app.name', 'Andaleeb Travel Agency')),
-            'legal_name' => (string) config('eticket.agency_legal_name', config('app.name', 'Andaleeb Travel Agency')),
-            'address' => (string) config('eticket.address', ''),
+            'legal_name' => self::titleCaseName((string) config('eticket.agency_legal_name', config('app.name', 'Andaleeb Travel Agency'))),
+            'address' => self::titleCaseName((string) config('eticket.address', '')),
             'country' => (string) config('eticket.country', 'United Arab Emirates'),
             'phone' => (string) config('eticket.phone', ''),
             'email' => (string) config('eticket.email', ''),
@@ -159,7 +159,7 @@ final class FlightEticketPresenter
         $fromCity = trim((string) ($first['departure_city'] ?? $first['from'] ?? ''));
         $toCity = trim((string) ($last['arrival_city'] ?? $last['to'] ?? ''));
 
-        return $fromCity . ' &#8594; ' . $toCity;
+        return $fromCity . ' → ' . $toCity;
     }
 
     private static function directionMetaLine(?Carbon $date, int $stops, int $durMins): string
@@ -511,5 +511,26 @@ final class FlightEticketPresenter
         $notes[] = 'Important Note: Transit Visa is a mandatory requirement if there are via TWO Schengen countries or TWO stop in same countries';
 
         return array_values(array_unique($notes));
+    }
+
+    private static function titleCaseName(string $name): string
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return '';
+        }
+
+        $acronyms = ['fze', 'llc', 'ltd', 'uae'];
+
+        $words = preg_split('/\s+/', $name) ?: [];
+
+        return implode(' ', array_map(function (string $word) use ($acronyms) {
+            $lower = strtolower($word);
+            if (in_array($lower, $acronyms, true)) {
+                return strtoupper($lower);
+            }
+
+            return ucfirst($lower);
+        }, $words));
     }
 }
