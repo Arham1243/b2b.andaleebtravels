@@ -94,6 +94,11 @@
             color: #111;
         }
 
+        .doc-details-table .btn-web-row td {
+            padding-top: 6px;
+            padding-bottom: 14px;
+        }
+
         .btn-web {
             display: inline-block;
             padding: 6px 14px;
@@ -103,7 +108,6 @@
             border-radius: 3px;
             font-size: 11px;
             font-weight: bold;
-            margin-top: 4px;
         }
 
         .direction-block {
@@ -401,10 +405,10 @@
                         </tr>
                     @endif
                     @if (!empty($booking['view_url']))
-                        <tr>
+                        <tr class="btn-web-row">
                             <td></td>
                             <td>
-                                <a href="{{ $booking['view_url'] }}" class="btn-web">View Online</a>
+                                <a target="_blank" href="{{ $booking['view_url'] }}" class="btn-web">View Online</a>
                             </td>
                         </tr>
                     @endif

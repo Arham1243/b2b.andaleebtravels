@@ -6,7 +6,6 @@
         $variant = $variant ?? 'compact';
         $toolbar = $toolbar ?? false;
         $isCompact = $variant === 'compact';
-        $iconOnly = $iconOnly ?? ($toolbar && $isCompact);
         $exportWrapperClass = 'eticket-export';
         if ($toolbar) {
             $exportWrapperClass .= ' eticket-export--toolbar';
@@ -20,32 +19,22 @@
     <div class="{{ $exportWrapperClass }}">
         <div class="{{ $isCompact ? 'eticket-export__actions' : 'd-flex flex-wrap gap-2' }}">
             <button type="button"
-                class="{{ $isCompact ? 'eticket-icon-btn' . ($iconOnly ? ' eticket-icon-btn--icon-only' : '') : 'themeBtn eticket-export__btn' }}"
+                class="{{ $isCompact ? 'eticket-action-btn eticket-action-btn--primary' : 'themeBtn eticket-export__btn' }}"
                 data-eticket-action="download"
                 data-bs-toggle="modal"
                 data-bs-target="#{{ $modalId }}"
-                title="Download E-Ticket"
-                aria-label="Download E-Ticket">
+                title="Download E-Ticket">
                 <i class="bx bx-download"></i>
-                @if ($isCompact)
-                    <span>Download</span>
-                @else
-                    Download E-Ticket
-                @endif
+                <span>Download E-Ticket</span>
             </button>
             <button type="button"
-                class="{{ $isCompact ? 'eticket-icon-btn eticket-icon-btn--muted' . ($iconOnly ? ' eticket-icon-btn--icon-only' : '') : 'themeBtn eticket-export__btn' }}"
+                class="{{ $isCompact ? 'eticket-action-btn eticket-action-btn--secondary' : 'themeBtn eticket-export__btn' }}"
                 data-eticket-action="print"
                 data-bs-toggle="modal"
                 data-bs-target="#{{ $modalId }}"
-                title="Print E-Ticket"
-                aria-label="Print E-Ticket">
+                title="Print E-Ticket">
                 <i class="bx bx-printer"></i>
-                @if ($isCompact)
-                    <span>Print</span>
-                @else
-                    Print E-Ticket
-                @endif
+                <span>Print E-Ticket</span>
             </button>
         </div>
     </div>

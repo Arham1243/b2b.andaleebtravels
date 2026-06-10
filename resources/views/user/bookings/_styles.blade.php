@@ -601,70 +601,80 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
-.eticket-export button.eticket-icon-btn {
+.eticket-export button.eticket-action-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    height: 32px;
-    min-width: 32px;
-    padding: 0 10px;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
     margin: 0;
-    border: 1px solid #e4e9f0;
-    border-radius: 999px;
-    background: #fff;
-    color: #1a2540;
+    border-radius: 8px;
     font-family: inherit;
-    font-size: .75rem;
-    font-weight: 600;
+    font-size: .84rem;
+    font-weight: 700;
     line-height: 1;
+    letter-spacing: .01em;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
-    transition: border-color .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
+    white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .15s ease;
 }
 
-.eticket-export button.eticket-icon-btn i {
-    font-size: .95rem;
-    color: var(--c-brand, #cd1b4f);
+.eticket-export button.eticket-action-btn i {
+    font-size: 1.1rem;
     line-height: 1;
 }
 
-.eticket-export button.eticket-icon-btn:hover {
-    border-color: var(--c-brand, #cd1b4f);
-    background: #fff5f8;
+.eticket-export button.eticket-action-btn--primary {
+    background: var(--c-brand, #cd1b4f);
+    border: 2px solid var(--c-brand, #cd1b4f);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(205, 27, 79, .28);
+}
+
+.eticket-export button.eticket-action-btn--primary i {
+    color: #fff;
+}
+
+.eticket-export button.eticket-action-btn--primary:hover {
+    background: #b01644;
+    border-color: #b01644;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(205, 27, 79, .36);
+    transform: translateY(-1px);
+}
+
+.eticket-export button.eticket-action-btn--secondary {
+    background: #fff;
+    border: 2px solid var(--c-brand, #cd1b4f);
     color: var(--c-brand, #cd1b4f);
     box-shadow: 0 2px 8px rgba(205, 27, 79, .12);
 }
 
-.eticket-export button.eticket-icon-btn--muted i {
-    color: #64748b;
-}
-
-.eticket-export button.eticket-icon-btn--muted:hover i {
+.eticket-export button.eticket-action-btn--secondary i {
     color: var(--c-brand, #cd1b4f);
 }
 
-.eticket-export button.eticket-icon-btn--icon-only {
-    position: relative;
-    width: 32px;
-    padding: 0;
+.eticket-export button.eticket-action-btn--secondary:hover {
+    background: #fff5f8;
+    border-color: #b01644;
+    color: #b01644;
+    box-shadow: 0 4px 14px rgba(205, 27, 79, .18);
+    transform: translateY(-1px);
 }
 
-.eticket-export button.eticket-icon-btn--icon-only span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+@media (max-width: 640px) {
+    .eticket-export button.eticket-action-btn {
+        flex: 1 1 calc(50% - 5px);
+        min-width: 140px;
+        padding: 0 12px;
+        font-size: .78rem;
+    }
 }
 
 /* ── Detail grid ─────────────────────────────────────────── */
