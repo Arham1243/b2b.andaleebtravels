@@ -163,17 +163,20 @@ class TravelportAirPriceParser
             $segmentRefs = $refMatches[1] ?? [];
         }
 
+        $addedSegmentKeys = [];
         foreach ($segmentRefs as $refKey) {
-            if (isset($segmentsByKey[$refKey])) {
-                $seg = $segmentsByKey[$refKey];
-                foreach ($pd['booking_infos'] as $bi) {
-                    if (($bi['segment_ref'] ?? '') === $refKey && ($bi['booking_code'] ?? '') !== '') {
-                        $seg['booking_code'] = $bi['booking_code'];
-                        break;
-                    }
-                }
-                $pd['segments'][] = $seg;
+            if ($refKey === '' || isset($addedSegmentKeys[$refKey]) || ! isset($segmentsByKey[$refKey])) {
+                continue;
             }
+            $seg = $segmentsByKey[$refKey];
+            foreach ($pd['booking_infos'] as $bi) {
+                if (($bi['segment_ref'] ?? '') === $refKey && ($bi['booking_code'] ?? '') !== '') {
+                    $seg['booking_code'] = $bi['booking_code'];
+                    break;
+                }
+            }
+            $pd['segments'][] = $seg;
+            $addedSegmentKeys[$refKey] = true;
         }
 
         if ($pd['segments'] === []) {

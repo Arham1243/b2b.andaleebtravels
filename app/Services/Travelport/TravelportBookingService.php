@@ -454,6 +454,25 @@ class TravelportBookingService
             return $pricingData;
         }
 
+        $uniqueSegments = [];
+        $seenSegmentKeys = [];
+        foreach ($pricingData['segments'] ?? [] as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+            $key = (string) ($segment['key'] ?? '');
+            if ($key === '' || isset($seenSegmentKeys[$key])) {
+                continue;
+            }
+            $seenSegmentKeys[$key] = true;
+            $uniqueSegments[] = $segment;
+        }
+        $pricingData['segments'] = $uniqueSegments;
+        $segmentKeys = array_values(array_filter(array_map(
+            static fn ($seg) => is_array($seg) ? (string) ($seg['key'] ?? '') : '',
+            $pricingData['segments'],
+        )));
+
         $bookingInfos = [];
         foreach ($pricingData['booking_infos'] ?? [] as $bookingInfo) {
             if (! is_array($bookingInfo)) {

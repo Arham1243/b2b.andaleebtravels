@@ -440,7 +440,7 @@
                             $rpDur   = (int)($legs[0]['elapsedTime'] ?? 0);
                         @endphp
 
-                        <div class="rc rc--has-provider-badge"
+                        <div class="rc"
                              data-rp-id="{{ $lid }}"
                              data-rp-meta='@json($meta)'
                              data-rp-stops="{{ $rpStops }}"
@@ -450,11 +450,6 @@
                              data-rp-arr-h="{{ $rpArrH }}"
                              data-rp-dur="{{ $rpDur }}"
                              data-rp-supplier="{{ $cardSupplier }}">
-
-                            {{-- TODO: remove — temporary provider test strip --}}
-                            <div class="rc__provider-strip rc__provider-strip--{{ $cardSupplier }}" title="Testing only — GDS provider">
-                                <span class="rc__provider-strip__label">{{ $cardSupplier === 'travelport' ? 'Travelport' : 'Sabre' }}</span>
-                            </div>
 
                             {{-- ── per-leg rows ── --}}
                             @foreach ($legs as $li => $leg)
@@ -925,43 +920,6 @@
 .rc:hover {
     border-color: rgba(205, 27, 79, 0.22);
     box-shadow: 0 2px 8px rgba(26, 37, 64, 0.055);
-}
-
-/* TODO: remove — temporary provider test strip (corner ribbon) */
-.rc--has-provider-badge { position: relative; }
-.rc__provider-strip {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 5.25rem;
-    height: 5.25rem;
-    overflow: hidden;
-    z-index: 3;
-    pointer-events: none;
-}
-.rc__provider-strip__label {
-    position: absolute;
-    display: block;
-    width: 7.25rem;
-    padding: .26rem 0;
-    right: -1.85rem;
-    top: 1rem;
-    transform: rotate(45deg);
-    text-align: center;
-    font-size: .56rem;
-    font-weight: 800;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    line-height: 1;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, .12);
-}
-.rc__provider-strip--sabre .rc__provider-strip__label {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: #fff;
-}
-.rc__provider-strip--travelport .rc__provider-strip__label {
-    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
-    color: #fff;
 }
 
 .rc__hold--disabled,

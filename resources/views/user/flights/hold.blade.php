@@ -270,19 +270,13 @@
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]"
                                             placeholder="Enter last name" required autocomplete="family-name">
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="hp-label">Date of Birth @if($requireTravelportDob)<span class="hp-req">*</span>@endif</label>
-                                        @php $dobKey = 'passengers.'.$pIndex.'.dob'; @endphp
-                                        <input type="date" class="hp-input{{ $errors->has($dobKey) ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][dob]" value="{{ old($dobKey) }}" @if($requireTravelportDob) required @endif>
-                                        @if($requireTravelportDob)
-                                            <span class="hp-hint">Required for Travelport hold bookings</span>
-                                        @else
-                                            <span class="hp-hint">Age calculated as per travel date</span>
-                                        @endif
-                                        @if($errors->has($dobKey))
-                                            <span class="hp-field-error">{{ $errors->first($dobKey) }}</span>
-                                        @endif
-                                    </div>
+                                    @include('user.flights.partials.hp-dob-field', [
+                                        'pIndex' => $pIndex,
+                                        'required' => $requireTravelportDob,
+                                        'hint' => $requireTravelportDob
+                                            ? 'Required for Travelport hold bookings'
+                                            : 'Age calculated as per travel date',
+                                    ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
                                         'label' => 'Nationality',
@@ -340,14 +334,10 @@
                                         <label class="hp-label">Last Name <span class="hp-req">*</span></label>
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" placeholder="Enter last name" required>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="hp-label">Date of Birth @if($requireTravelportDob)<span class="hp-req">*</span>@endif</label>
-                                        @php $dobKey = 'passengers.'.$pIndex.'.dob'; @endphp
-                                        <input type="date" class="hp-input{{ $errors->has($dobKey) ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][dob]" value="{{ old($dobKey) }}" @if($requireTravelportDob) required @endif>
-                                        @if($errors->has($dobKey))
-                                            <span class="hp-field-error">{{ $errors->first($dobKey) }}</span>
-                                        @endif
-                                    </div>
+                                    @include('user.flights.partials.hp-dob-field', [
+                                        'pIndex' => $pIndex,
+                                        'required' => $requireTravelportDob,
+                                    ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
                                         'label' => 'Nationality',
@@ -398,14 +388,10 @@
                                         <label class="hp-label">Last Name <span class="hp-req">*</span></label>
                                         <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" placeholder="Enter last name" required>
                                     </div>
-                                    <div class="col-md-4">
-                                        <label class="hp-label">Date of Birth @if($requireTravelportDob)<span class="hp-req">*</span>@endif</label>
-                                        @php $dobKey = 'passengers.'.$pIndex.'.dob'; @endphp
-                                        <input type="date" class="hp-input{{ $errors->has($dobKey) ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][dob]" value="{{ old($dobKey) }}" @if($requireTravelportDob) required @endif>
-                                        @if($errors->has($dobKey))
-                                            <span class="hp-field-error">{{ $errors->first($dobKey) }}</span>
-                                        @endif
-                                    </div>
+                                    @include('user.flights.partials.hp-dob-field', [
+                                        'pIndex' => $pIndex,
+                                        'required' => $requireTravelportDob,
+                                    ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
                                         'label' => 'Nationality',
@@ -415,6 +401,15 @@
                                         'name' => 'passengers['.$pIndex.'][issuing_country]',
                                         'label' => 'Issuing Country',
                                         'required' => true,
+                                    ])
+                                    <div class="col-md-4">
+                                        <label class="hp-label">Passport Number</label>
+                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]" placeholder="Passport number">
+                                    </div>
+                                    @include('user.flights.partials.hp-passport-expiry-field', [
+                                        'pIndex' => $pIndex,
+                                        'paxLabel' => 'Infant ' . ($i + 1),
+                                        'minDate' => $passportExpiryMinDate,
                                     ])
                                 </div>
                             </div>
@@ -471,6 +466,10 @@
                          =================================================== --}}
                     <div class="col-lg-4">
                         <div class="hp-summary" id="hp-summary-sticky">
+                            @include('user.flights.partials.hp-session-timer', [
+                                'timerRedirectUrl' => $searchBackUrl,
+                                'timerStorageKey' => 'flight_hold_session_expires',
+                            ])
 
                             <div class="hp-summary__head">
                                 <i class="bx bx-receipt"></i>
@@ -577,6 +576,7 @@
 @endsection
 
 @push('css')
+<link rel="stylesheet" href="{{ asset('user/assets/css/daterangepicker.css') }}" />
 <style>
 /* =========================================================
    TOKENS
@@ -635,7 +635,6 @@
     border: 1px solid var(--c-line);
     border-radius: 14px;
     box-shadow: var(--c-shadow);
-    overflow: hidden;
 }
 
 .hp-card__head {
@@ -971,14 +970,19 @@
 
 @include('user.flights.partials.hp-pax-autocomplete-styles')
 @include('user.flights.partials.hp-passport-expiry-styles')
+@include('user.flights.partials.hp-date-picker-styles')
 @include('user.flights.partials.fare-rules-styles')
 </style>
 @endpush
 
 @push('js')
+    <script src="{{ asset('user/assets/js/moment.min.js') }}"></script>
+    <script src="{{ asset('user/assets/js/daterangepicker.min.js') }}"></script>
     @include('user.flights.partials.fare-rules-scripts')
     @include('user.flights.partials.hp-pax-autocomplete-scripts')
     @include('user.flights.partials.hp-passport-expiry-scripts')
+    @include('user.flights.partials.hp-date-picker-scripts')
+    @include('user.flights.partials.hp-form-submit-scripts')
 <script>
 (function () {
     /* Mirror passenger[0] into lead hidden fields */
@@ -1008,9 +1012,18 @@
         countries: @json($countries),
     });
 
+    HpDatePicker.init({ maxDate: moment().startOf('day') });
+
     HpPassportExpiry.init({
         formSelector: '#holdForm',
         travelDate: @json($travelDateIso),
+    });
+
+    HpFormSubmit.bind({
+        formSelector: '#holdForm',
+        buttonSelector: '.hp-btn-hold',
+        resetOnErrors: @json($errors->any()),
+        loadingHtml: '<i class="bx bx-loader-alt bx-spin"></i> Processing…',
     });
 
     @if ($errors->any())
@@ -1020,16 +1033,8 @@
     }
     @endif
 
-    /* Disable button on submit */
     document.getElementById('holdForm').addEventListener('submit', function () {
         syncLead();
-        if (document.querySelector('#holdForm .js-passport-exp.is-invalid')) {
-            return;
-        }
-        document.querySelectorAll('.hp-btn-hold').forEach(function (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing…';
-        });
     });
 })();
 </script>

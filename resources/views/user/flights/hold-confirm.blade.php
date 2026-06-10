@@ -491,7 +491,7 @@
 .hcf-hold-notice i { font-size:1.2rem; color:var(--c-amber); flex-shrink:0; }
 
 /* ── Card shell ── */
-.hp-card { background:var(--c-white); border:1px solid var(--c-line); border-radius:14px; box-shadow:var(--c-shadow); overflow:hidden; }
+.hp-card { background:var(--c-white); border:1px solid var(--c-line); border-radius:14px; box-shadow:var(--c-shadow); }
 .hp-card__head { display:flex; align-items:center; gap:.75rem; padding:.8rem 1.1rem; border-bottom:1px solid var(--c-line); background:linear-gradient(135deg,rgba(205,27,79,.035) 0%,transparent 70%); }
 .hp-card__head-icon { font-size:1.35rem; color:var(--c-brand); flex-shrink:0; }
 .hp-card__eyebrow { font-size:.58rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--c-muted); line-height:1; }
@@ -636,6 +636,7 @@
 @endpush
 
 @push('js')
+    @include('user.flights.partials.hp-form-submit-scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const total         = @json($totalAmount);
@@ -730,13 +731,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     recalc();
 
-    /* Disable button on submit */
+    HpFormSubmit.bind({
+        formSelector: '#confirmPayForm',
+        buttonSelector: '#pay-btn',
+        resetOnErrors: @json($errors->any() ?? false),
+        loadingHtml: '<i class="bx bx-loader-alt bx-spin"></i> Processing…',
+    });
+
     document.getElementById('confirmPayForm').addEventListener('submit', function () {
         recalc();
-        if (els.payBtn) {
-            els.payBtn.disabled = true;
-            els.payBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing…';
-        }
     });
 });
 </script>

@@ -211,6 +211,13 @@
                     return;
                 }
                 let next = value;
+                if (typeof next === 'string') {
+                    next = next.substring(0, 10);
+                }
+                if (el.classList.contains('js-hp-date-value') && window.HpDatePicker) {
+                    window.HpDatePicker.setValue(el, next);
+                    return;
+                }
                 if (el.type === 'date' && typeof next === 'string') {
                     next = next.substring(0, 10);
                 }

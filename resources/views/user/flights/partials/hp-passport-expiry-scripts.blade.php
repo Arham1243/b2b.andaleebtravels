@@ -75,9 +75,14 @@
             }, true);
         },
 
+        fieldContainer: function (input) {
+            return input.closest('.col-md-4') || input.parentElement;
+        },
+
         validateField: function (input, travel, today, sixMonthThreshold) {
-            const errorEl = input.parentElement.querySelector('.hp-passport-exp-error');
-            const infoEl = input.parentElement.querySelector('.hp-passport-exp-info');
+            const container = HpPassportExpiry.fieldContainer(input);
+            const errorEl = container ? container.querySelector('.hp-passport-exp-error') : null;
+            const infoEl = container ? container.querySelector('.hp-passport-exp-info') : null;
             const paxLabel = input.dataset.paxLabel || 'Passenger';
             const value = (input.value || '').trim();
 

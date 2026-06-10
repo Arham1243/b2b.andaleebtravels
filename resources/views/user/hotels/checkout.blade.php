@@ -486,6 +486,7 @@
 @endsection
 
 @push('js')
+    @include('user.flights.partials.hp-form-submit-scripts')
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const roomsTotal = @json($total_price);
@@ -677,16 +678,19 @@
                 });
             }
 
-            // Submit handler
             const form = document.getElementById('checkoutForm');
-            const payBtn = document.getElementById('pay-btn');
-            if (form && payBtn) {
+            if (form) {
                 form.addEventListener('submit', function() {
                     recalcWallet();
-                    payBtn.disabled = true;
-                    payBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing...';
                 });
             }
+
+            HpFormSubmit.bind({
+                formSelector: '#checkoutForm',
+                buttonSelector: '#pay-btn',
+                resetOnErrors: false,
+                loadingHtml: '<i class="bx bx-loader-alt bx-spin"></i> Processing...',
+            });
 
             recalcTotals();
         });

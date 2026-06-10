@@ -7,16 +7,28 @@
     $hasServerError = $errors->has($fieldKey);
 @endphp
 <div class="col-md-4">
-    <label class="hp-label" for="{{ $fieldId }}">Passport Expiry</label>
-    <input
-        type="date"
-        id="{{ $fieldId }}"
-        class="hp-input js-passport-exp{{ $hasServerError ? ' is-invalid' : '' }}"
-        name="{{ $fieldName }}"
-        value="{{ $fieldValue }}"
-        data-pax-label="{{ $paxLabel }}"
-        @if (!empty($minDate)) min="{{ $minDate }}" @endif
-    >
+    <label class="hp-label" for="{{ $fieldId }}-display">Passport Expiry</label>
+    <div class="hp-date-field" id="{{ $fieldId }}-wrap">
+        <input
+            type="text"
+            id="{{ $fieldId }}-display"
+            class="hp-input hp-date-field__display js-hp-date-display"
+            value=""
+            placeholder="Select date"
+            readonly
+            autocomplete="off"
+            @if (!empty($minDate)) data-min-date="{{ $minDate }}" @endif
+        >
+        <input
+            type="hidden"
+            id="{{ $fieldId }}-value"
+            class="hp-input js-passport-exp js-hp-date-value{{ $hasServerError ? ' is-invalid' : '' }}"
+            name="{{ $fieldName }}"
+            value="{{ $fieldValue }}"
+            data-pax-label="{{ $paxLabel }}"
+        >
+        <i class="bx bx-calendar hp-date-field__icon"></i>
+    </div>
     <span class="hp-passport-exp-error" role="alert" @unless($hasServerError) hidden @endunless>{{ $hasServerError ? $errors->first($fieldKey) : '' }}</span>
     <span class="hp-passport-exp-info" hidden>
         <i class="bx bx-info-circle"></i>
