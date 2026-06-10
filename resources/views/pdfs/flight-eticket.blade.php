@@ -30,8 +30,7 @@
 
         .header {
             width: 100%;
-            border-bottom: 2px solid #cd1b4f;
-            padding-bottom: 20px;
+            padding-bottom: 16px;
             margin-bottom: 16px;
         }
 
@@ -133,34 +132,23 @@
             font-family: DejaVu Sans, sans-serif;
         }
 
-        .direction-route__head {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 8px;
-        }
-
-        .direction-route__head td {
-            vertical-align: top;
-            padding: 0;
-        }
-
-        .direction-refs {
-            text-align: right;
+        .direction-ref-pills {
+            margin-top: 10px;
+            margin-bottom: 2px;
             font-size: 10px;
             color: #444;
-            white-space: nowrap;
         }
 
-        .direction-refs span {
+        .direction-ref-pills span {
             display: inline-block;
-            margin-left: 8px;
-            padding: 3px 8px;
+            margin-right: 8px;
+            padding: 4px 10px;
             background: #ecfdf5;
             border: 1px solid #a7f3d0;
-            border-radius: 3px;
+            border-radius: 999px;
         }
 
-        .direction-refs strong {
+        .direction-ref-pills strong {
             color: #111;
         }
 
@@ -193,25 +181,29 @@
             width: 100%;
             border-collapse: collapse;
             border: 1px solid #cbd5e1;
+            table-layout: fixed;
         }
 
         .flight-table th {
             background: #f3f4f6;
-            font-size: 10px;
+            font-size: 9px;
             color: #444;
             font-weight: bold;
-            padding: 7px 8px;
+            padding: 6px 5px;
             border-bottom: 1px solid #cbd5e1;
             text-align: left;
+            white-space: nowrap;
             font-family: DejaVu Sans, sans-serif;
+            line-height: 1.2;
         }
 
         .flight-table td {
-            padding: 8px;
+            padding: 8px 5px;
             border-bottom: 1px solid #e5e7eb;
             vertical-align: top;
-            font-size: 11px;
+            font-size: 10px;
             color: #111827;
+            word-wrap: break-word;
         }
 
         .flight-table tr:last-child td {
@@ -409,16 +401,6 @@
                         <td>Date of Booking:</td>
                         <td><strong>{{ $booking['date'] ?? '—' }}</strong></td>
                     </tr>
-                    @if (!empty($booking['pnr']))
-                        <tr>
-                            <td>Airline Ref:</td>
-                            <td><strong>{{ $booking['airline_ref'] }}</strong></td>
-                        </tr>
-                        <tr>
-                            <td>CRS Ref:</td>
-                            <td><strong>{{ $booking['crs_ref'] }}</strong></td>
-                        </tr>
-                    @endif
                 </table>
             </td>
         </tr>
@@ -428,24 +410,8 @@
         <div class="direction-block">
             <div class="direction-head">{{ $direction['label'] ?? 'FLIGHT' }}</div>
             <div class="direction-route">
-                <table class="direction-route__head" cellpadding="0" cellspacing="0">
-                    <tr>
-                        <td>
-                            <div class="route-title">{{ $direction['route_title'] ?? '' }}</div>
-                            <div class="sub">{{ $direction['meta_line'] ?? '' }}</div>
-                        </td>
-                        @if (!empty($direction['airline_ref']) || !empty($direction['crs_ref']))
-                            <td class="direction-refs">
-                                @if (!empty($direction['airline_ref']))
-                                    <span>Airline Ref: <strong>{{ $direction['airline_ref'] }}</strong></span>
-                                @endif
-                                @if (!empty($direction['crs_ref']))
-                                    <span>CRS Ref: <strong>{{ $direction['crs_ref'] }}</strong></span>
-                                @endif
-                            </td>
-                        @endif
-                    </tr>
-                </table>
+                <div class="route-title">{{ $direction['route_title'] ?? '' }}</div>
+                <div class="sub">{{ $direction['meta_line'] ?? '' }}</div>
                 <table class="info-grid" cellpadding="0" cellspacing="0">
                     <tr>
                         <td>
@@ -462,17 +428,35 @@
                         </td>
                     </tr>
                 </table>
+                @if (!empty($direction['airline_ref']) || !empty($direction['crs_ref']))
+                    <div class="direction-ref-pills">
+                        @if (!empty($direction['airline_ref']))
+                            <span>Airline Ref: <strong>{{ $direction['airline_ref'] }}</strong></span>
+                        @endif
+                        @if (!empty($direction['crs_ref']))
+                            <span>CRS Ref: <strong>{{ $direction['crs_ref'] }}</strong></span>
+                        @endif
+                    </div>
+                @endif
             </div>
 
             <table class="flight-table">
+                <colgroup>
+                    <col width="11%">
+                    <col width="20%">
+                    <col width="17%">
+                    <col width="12%">
+                    <col width="20%">
+                    <col width="20%">
+                </colgroup>
                 <thead>
                     <tr>
-                        <th width="12%">Flight Number</th>
-                        <th width="22%">From (Terminal)</th>
-                        <th width="16%">Departure date &amp; time</th>
-                        <th width="14%">Stops</th>
-                        <th width="22%">To (Terminal)</th>
-                        <th width="14%">Arrival date &amp; time</th>
+                        <th>Flight Number</th>
+                        <th>From (Terminal)</th>
+                        <th>Departure date &amp; time</th>
+                        <th>Stops</th>
+                        <th>To (Terminal)</th>
+                        <th>Arrival date &amp; time</th>
                     </tr>
                 </thead>
                 <tbody>

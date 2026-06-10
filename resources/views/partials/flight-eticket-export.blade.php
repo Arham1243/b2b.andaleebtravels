@@ -19,7 +19,7 @@
     <div class="{{ $exportWrapperClass }}">
         <div class="{{ $isCompact ? 'eticket-export__actions' : 'd-flex flex-wrap gap-2' }}">
             <button type="button"
-                class="{{ $isCompact ? 'eticket-action-btn eticket-action-btn--primary' : 'themeBtn eticket-export__btn' }}"
+                class="{{ $isCompact ? 'eticket-icon-btn' : 'themeBtn eticket-export__btn' }}"
                 data-eticket-action="download"
                 data-bs-toggle="modal"
                 data-bs-target="#{{ $modalId }}"
@@ -28,7 +28,7 @@
                 <span>Download E-Ticket</span>
             </button>
             <button type="button"
-                class="{{ $isCompact ? 'eticket-action-btn eticket-action-btn--secondary' : 'themeBtn eticket-export__btn' }}"
+                class="{{ $isCompact ? 'eticket-icon-btn eticket-icon-btn--muted' : 'themeBtn eticket-export__btn' }}"
                 data-eticket-action="print"
                 data-bs-toggle="modal"
                 data-bs-target="#{{ $modalId }}"
