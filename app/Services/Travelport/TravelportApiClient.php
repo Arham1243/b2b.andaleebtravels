@@ -480,41 +480,77 @@ XML;
     }
 
     /**
+     * @param  list<string>  $airPricingInfoKeys
      * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string, error_code?: ?string, trace_id?: ?string}
      */
     public function airTicket(
         string $airReservationLocator,
-        string $airPricingInfoKey = '',
+        array $airPricingInfoKeys = [],
         string $platingCarrier = '',
         float $commissionPercentage = 0.0,
     ): array {
-        $traceId = $this->generateTraceId();
+        $soap = $this->buildAirTicketRequestXml(
+            $airReservationLocator,
+            $airPricingInfoKeys,
+            $platingCarrier,
+            $commissionPercentage,
+            $this->generateTraceId(),
+        );
+
+        $result = $this->sendRequest('AirService', $soap);
+
+        return $this->finalizeAirTicketingResult($result);
+    }
+
+    /**
+     * @param  list<string>  $airPricingInfoKeys
+     */
+    public function buildAirTicketRequestXml(
+        string $airReservationLocator,
+        array $airPricingInfoKeys,
+        string $platingCarrier,
+        float $commissionPercentage,
+        string $traceId,
+    ): string {
         $authorizedBy = self::AUTHORIZED_BY;
         $targetBranch = self::TARGET_BRANCH;
         $airNs = self::AIR_NS;
         $comNs = self::COM_NS;
         $locator = $this->xmlEsc($airReservationLocator);
-        $pricingInfoKey = $this->xmlEsc($airPricingInfoKey);
         $carrier = $this->xmlEsc($platingCarrier);
         $commissionPct = $this->xmlEsc($this->formatTravelportCommissionPercentage($commissionPercentage));
 
-        $pricingInfoRefXml = $pricingInfoKey !== ''
-            ? "\n            <AirPricingInfoRef Key=\"{$pricingInfoKey}\"/>"
-            : '';
+        $uniqueKeys = [];
+        foreach ($airPricingInfoKeys as $key) {
+            $normalized = trim((string) $key);
+            if ($normalized !== '' && ! in_array($normalized, $uniqueKeys, true)) {
+                $uniqueKeys[] = $normalized;
+            }
+        }
+
+        $pricingInfoRefXml = '';
+        $modifierPricingRefsXml = '';
+        foreach ($uniqueKeys as $key) {
+            $escapedKey = $this->xmlEsc($key);
+            if (count($uniqueKeys) === 1) {
+                $pricingInfoRefXml = "\n            <AirPricingInfoRef Key=\"{$escapedKey}\"/>";
+                break;
+            }
+
+            $modifierPricingRefsXml .= "\n                <AirPricingInfoRef Key=\"{$escapedKey}\"/>";
+        }
 
         $platingCarrierAttr = $carrier !== '' ? " PlatingCarrier=\"{$carrier}\"" : '';
         $fopXml = $this->buildFormOfPaymentXml($comNs, 'FOP1', '                ');
-        // Single AirPricingInfoRef + single FOP: FormOfPayment only (3831 if Payment is included).
         $modifiersXml = <<<XML
 
-            <AirTicketingModifiers{$platingCarrierAttr}>
+            <AirTicketingModifiers{$platingCarrierAttr}>{$modifierPricingRefsXml}
                 <Commission xmlns="{$comNs}" Level="Fare" Type="PercentBase" Percentage="{$commissionPct}"/>
                 {$fopXml}
             </AirTicketingModifiers>
 XML;
 
-        // Credit FOP on hold + ticket (legacy airBook). Cash is restricted for many 1G agencies.
-        $soap = <<<XML
+        return <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
     <soapenv:Header/>
     <soapenv:Body>
@@ -531,10 +567,6 @@ XML;
     </soapenv:Body>
 </soapenv:Envelope>
 XML;
-
-        $result = $this->sendRequest('AirService', $soap);
-
-        return $this->finalizeAirTicketingResult($result);
     }
 
     /**

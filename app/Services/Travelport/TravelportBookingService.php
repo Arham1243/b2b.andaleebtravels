@@ -8,6 +8,7 @@ use App\Support\FlightBookingTicketResolver;
 use App\Support\Travelport\TravelportAirPriceParser;
 use App\Support\Travelport\TravelportAirTicketingResult;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
+use App\Support\Travelport\TravelportHoldPricingInfoParser;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -159,11 +160,13 @@ class TravelportBookingService
             }
 
             $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
+            $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractKeys($holdResponse);
             $parsedHold = is_array($holdResponse['parsed'] ?? null) ? $holdResponse['parsed'] : [];
             $bookingResponse = $parsedHold['Body']['AirCreateReservationRsp'] ?? $parsedHold;
             if (is_array($bookingResponse)) {
                 $bookingResponse['travelport_universal_locator'] = $locators['universal_locator'] ?? null;
                 $bookingResponse['travelport_universal_version'] = $locators['universal_version'] ?? null;
+                $bookingResponse['raw'] = (string) ($holdResponse['raw'] ?? $bookingResponse['raw'] ?? '');
             } else {
                 $bookingResponse = [
                     'raw' => $holdResponse['raw'] ?? '',
@@ -178,6 +181,7 @@ class TravelportBookingService
                     'passenger_counts' => $passengerCounts,
                     'pricing_data' => $pricingData,
                     'travelers' => $travelers,
+                    'hold_air_pricing_info_keys' => $holdPricingInfoKeys,
                 ],
                 'booking_response' => $bookingResponse,
                 'sabre_record_locator' => $locators['air_reservation_locator'],
@@ -219,12 +223,12 @@ class TravelportBookingService
                 throw new \RuntimeException('Missing validating carrier for Travelport ticketing.');
             }
 
-            $airPricingInfoKey = $this->resolveAirPricingInfoKey($booking);
+            $airPricingInfoKeys = $this->resolveAirPricingInfoKeys($booking);
             $gdsCommissionPercentage = $this->resolveGdsCommissionPercentage();
 
             $ticketResponse = $this->client->airTicket(
                 $locator,
-                $airPricingInfoKey,
+                $airPricingInfoKeys,
                 $platingCarrier,
                 $gdsCommissionPercentage,
             );
@@ -233,7 +237,7 @@ class TravelportBookingService
                     'booking_id' => $booking->id,
                     'locator' => $locator,
                     'plating_carrier' => $platingCarrier,
-                    'air_pricing_info_key' => $airPricingInfoKey,
+                    'air_pricing_info_keys' => $airPricingInfoKeys,
                     'gds_commission_percentage' => $gdsCommissionPercentage,
                     'error_code' => $ticketResponse['error_code'] ?? null,
                     'trace_id' => $ticketResponse['trace_id'] ?? null,
@@ -262,7 +266,8 @@ class TravelportBookingService
             $ticketUpdate = [
                 'ticket_request' => [
                     'air_reservation_locator' => $locator,
-                    'air_pricing_info_key' => $airPricingInfoKey,
+                    'air_pricing_info_keys' => $airPricingInfoKeys,
+                    'air_pricing_info_key' => $airPricingInfoKeys[0] ?? '',
                     'plating_carrier' => $platingCarrier,
                     'gds_commission_percentage' => $gdsCommissionPercentage,
                 ],
@@ -409,34 +414,15 @@ class TravelportBookingService
         return $cached;
     }
 
-    private function resolveAirPricingInfoKey(B2bFlightBooking $booking): string
+    /**
+     * @return list<string>
+     */
+    private function resolveAirPricingInfoKeys(B2bFlightBooking $booking): array
     {
-        $fromRequest = trim((string) data_get($booking->booking_request, 'pricing_data.pricing_info_key', ''));
-        if ($fromRequest !== '') {
-            return $fromRequest;
-        }
+        $bookingRequest = is_array($booking->booking_request) ? $booking->booking_request : [];
+        $bookingResponse = is_array($booking->booking_response) ? $booking->booking_response : [];
 
-        $response = is_array($booking->booking_response) ? $booking->booking_response : [];
-        $candidates = [
-            data_get($response, 'UniversalRecord.AirReservation.AirPricingInfo.@attributes.Key'),
-            data_get($response, 'UniversalRecord.AirReservation.AirPricingInfo.Key'),
-            data_get($response, 'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.AirPricingInfo.@attributes.Key'),
-            data_get($response, 'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.AirPricingInfo.Key'),
-        ];
-
-        foreach ($candidates as $candidate) {
-            $key = trim((string) $candidate);
-            if ($key !== '') {
-                return $key;
-            }
-        }
-
-        $raw = (string) ($response['raw'] ?? '');
-        if ($raw !== '' && preg_match('/<(?:[\w-]+:)?AirPricingInfo[^>]+Key="([^"]+)"/i', $raw, $match)) {
-            return trim($match[1]);
-        }
-
-        return '';
+        return TravelportHoldPricingInfoParser::resolveKeysForTicketing($bookingRequest, $bookingResponse);
     }
 
     /**

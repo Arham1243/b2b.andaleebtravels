@@ -147,18 +147,6 @@
                         }
                     }
 
-                    $sfChannelCounts = ['ndc' => 0, 'gds' => 0];
-                    foreach ($results as $_r) {
-                        $_fareOptions = $_r['fare_options'] ?? [[
-                            'fare_tags' => $_r['fare_tags'] ?? [],
-                        ]];
-                        foreach ($_fareOptions as $_fare) {
-                            if (! is_array($_fare)) {
-                                continue;
-                            }
-                            $sfChannelCounts[flightFareChannel($_fare)]++;
-                        }
-                    }
                 @endphp
 
                 {{-- Fare count full-width above filters/results --}}
@@ -272,15 +260,11 @@
                         <div class="sf__stop-row">
                             <label class="sf__stoplbl">
                                 <input type="checkbox" class="sf__stopchk" data-sf="channel" value="ndc">
-                                <span class="sf__stoppill">
-                                    NDC <span class="sf__pillcnt">({{ $sfChannelCounts['ndc'] }})</span>
-                                </span>
+                                <span class="sf__stoppill">NDC</span>
                             </label>
                             <label class="sf__stoplbl">
                                 <input type="checkbox" class="sf__stopchk" data-sf="channel" value="gds">
-                                <span class="sf__stoppill">
-                                    GDS <span class="sf__pillcnt">({{ $sfChannelCounts['gds'] }})</span>
-                                </span>
+                                <span class="sf__stoppill">GDS</span>
                             </label>
                         </div>
                     </div>
