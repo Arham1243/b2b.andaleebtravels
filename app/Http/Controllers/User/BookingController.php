@@ -81,21 +81,7 @@ class BookingController extends Controller
         $counts  = $this->bookingCounts();
         $cancellation = BookingCancellationEligibility::forFlight($booking);
         $ticketDetails = $flightService->resolveTicketDetails($booking);
-        $referenceCoupons = [];
-        foreach ($ticketDetails['tickets'] ?? [] as $ticket) {
-            if (! is_array($ticket) || ($ticket['coupons'] ?? []) === []) {
-                continue;
-            }
-
-            $referenceCoupons = $ticket['coupons'];
-            break;
-        }
-
-        $legs = FlightItineraryLegsNormalizer::normalize(
-            is_array($booking->itinerary_data['legs'] ?? null) ? $booking->itinerary_data['legs'] : [],
-            $booking,
-            $referenceCoupons,
-        );
+        $legs = FlightItineraryLegsNormalizer::forBooking($booking, $ticketDetails);
 
         return view('user.bookings.flight-detail', compact('booking', 'counts', 'cancellation', 'ticketDetails', 'legs'));
     }

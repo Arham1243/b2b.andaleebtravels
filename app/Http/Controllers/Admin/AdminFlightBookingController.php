@@ -10,6 +10,7 @@ use App\Services\FlightService;
 use App\Services\Travelport\TravelportApiClient;
 use App\Support\BookingCancellationEligibility;
 use App\Support\FlightBookingAdminPresenter;
+use App\Support\FlightItineraryLegsNormalizer;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
 use App\Support\SupplierFlightBookingDetailsPresenter;
@@ -55,8 +56,9 @@ class AdminFlightBookingController extends Controller
         $cancellation = BookingCancellationEligibility::forFlight($booking);
         $adminDetails = FlightBookingAdminPresenter::present($booking);
         $ticketDetails = $flightService->resolveTicketDetails($booking);
+        $legs = FlightItineraryLegsNormalizer::forBooking($booking, $ticketDetails);
 
-        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails', 'ticketDetails'))
+        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails', 'ticketDetails', 'legs'))
             ->with('title', 'Booking ' . $booking->booking_number);
     }
 

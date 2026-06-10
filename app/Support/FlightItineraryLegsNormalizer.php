@@ -8,6 +8,28 @@ use Carbon\Carbon;
 final class FlightItineraryLegsNormalizer
 {
     /**
+     * @param  array{source: ?string, error: ?string, tickets: list<array<string, mixed>>}  $ticketDetails
+     * @return list<array<string, mixed>>
+     */
+    public static function forBooking(B2bFlightBooking $booking, array $ticketDetails = []): array
+    {
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $legs = is_array($itinerary['legs'] ?? null) ? $itinerary['legs'] : [];
+        $coupons = [];
+
+        foreach ($ticketDetails['tickets'] ?? [] as $ticket) {
+            if (! is_array($ticket) || ($ticket['coupons'] ?? []) === []) {
+                continue;
+            }
+
+            $coupons = $ticket['coupons'];
+            break;
+        }
+
+        return self::normalize($legs, $booking, $coupons);
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $legs
      * @param  list<array<string, mixed>>  $coupons
      * @return list<array<string, mixed>>
@@ -134,7 +156,6 @@ final class FlightItineraryLegsNormalizer
                 trim((string) ($segment['departure_clock'] ?? '')),
                 strtoupper(trim((string) ($segment['from'] ?? ''))),
                 strtoupper(trim((string) ($segment['to'] ?? ''))),
-                trim((string) ($segment['departure_datetime'] ?? '')),
             ]);
         }
 
