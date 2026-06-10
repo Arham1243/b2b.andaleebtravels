@@ -38,11 +38,50 @@ final class FlightItineraryLegsNormalizer
     {
         $normalized = self::dedupeExactLegs($legs);
 
-        if ($booking->return_date === null) {
+        if (! self::isRoundTrip($booking, $legs)) {
             return $normalized;
         }
 
         return self::ensureRoundTripLegs($normalized, $booking, $coupons);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $legs
+     */
+    private static function isRoundTrip(B2bFlightBooking $booking, array $legs): bool
+    {
+        if (self::resolveReturnDate($booking) !== null) {
+            return true;
+        }
+
+        $tripType = strtolower(trim((string) data_get($booking->search_request, 'trip_type', '')));
+        if ($tripType === 'round_trip') {
+            return true;
+        }
+
+        if (count($legs) > 1) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static function resolveReturnDate(B2bFlightBooking $booking): ?Carbon
+    {
+        if ($booking->return_date instanceof Carbon) {
+            return $booking->return_date;
+        }
+
+        $searchReturn = trim((string) data_get($booking->search_request, 'return_date', ''));
+        if ($searchReturn === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($searchReturn);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -179,7 +218,7 @@ final class FlightItineraryLegsNormalizer
                 continue;
             }
 
-            $leg = self::legFromCoupon($coupon, $template, $onward, $booking->return_date);
+            $leg = self::legFromCoupon($coupon, $template, $onward, self::resolveReturnDate($booking));
             if ($leg !== null && self::legRouteDiffers($onward, $leg)) {
                 return $leg;
             }
@@ -190,7 +229,7 @@ final class FlightItineraryLegsNormalizer
                 continue;
             }
 
-            $leg = self::legFromCoupon($coupon, $template, $onward, $booking->return_date);
+            $leg = self::legFromCoupon($coupon, $template, $onward, self::resolveReturnDate($booking));
             if ($leg !== null && self::legRouteDiffers($onward, $leg)) {
                 return $leg;
             }
@@ -300,7 +339,7 @@ final class FlightItineraryLegsNormalizer
                 continue;
             }
 
-            $reversed[] = self::reverseSegment($segment, $booking->return_date);
+            $reversed[] = self::reverseSegment($segment, self::resolveReturnDate($booking));
         }
 
         if ($reversed === []) {
@@ -309,6 +348,10 @@ final class FlightItineraryLegsNormalizer
 
         $from = strtoupper(trim((string) ($booking->from_airport ?? '')));
         $to = strtoupper(trim((string) ($booking->to_airport ?? '')));
+        if ($from === '' || $to === '') {
+            $from = strtoupper(trim((string) data_get($booking->search_request, 'from', '')));
+            $to = strtoupper(trim((string) data_get($booking->search_request, 'to', '')));
+        }
         if ($from !== '' && $to !== '') {
             $first = &$reversed[0];
             $last = &$reversed[array_key_last($reversed)];

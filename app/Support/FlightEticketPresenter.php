@@ -172,9 +172,24 @@ final class FlightEticketPresenter
             return $segmentDate;
         }
 
-        $bookingDate = $index === 0 ? $booking->departure_date : $booking->return_date;
+        if ($index === 0) {
+            return $booking->departure_date instanceof Carbon ? $booking->departure_date : null;
+        }
 
-        return $bookingDate instanceof Carbon ? $bookingDate : null;
+        if ($booking->return_date instanceof Carbon) {
+            return $booking->return_date;
+        }
+
+        $searchReturn = trim((string) data_get($booking->search_request, 'return_date', ''));
+        if ($searchReturn === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($searchReturn);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
