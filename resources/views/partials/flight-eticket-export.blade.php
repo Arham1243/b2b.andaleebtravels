@@ -11,7 +11,7 @@
                 data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
                 <i class="bx bx-download"></i> Download E-Ticket
             </button>
-            <button type="button" class="themeBtn themeBtn--outline eticket-export__btn" data-eticket-action="print"
+            <button type="button" class="themeBtn eticket-export__btn" data-eticket-action="print"
                 data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
                 <i class="bx bx-printer"></i> Print E-Ticket
             </button>
