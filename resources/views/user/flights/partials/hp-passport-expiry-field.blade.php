@@ -12,17 +12,18 @@
         <input
             type="text"
             id="{{ $fieldId }}-display"
-            class="hp-input hp-date-field__display js-hp-date-display"
+            class="hp-input hp-date-field__display hp-date-picker-input js-hp-date-display"
             value=""
             placeholder="Select date"
             readonly
             autocomplete="off"
+            data-date-role="passport-exp"
             @if (!empty($minDate)) data-min-date="{{ $minDate }}" @endif
         >
         <input
             type="hidden"
             id="{{ $fieldId }}-value"
-            class="hp-input js-passport-exp js-hp-date-value{{ $hasServerError ? ' is-invalid' : '' }}"
+            class="js-passport-exp js-hp-date-value{{ $hasServerError ? ' is-invalid' : '' }}"
             name="{{ $fieldName }}"
             value="{{ $fieldValue }}"
             data-pax-label="{{ $paxLabel }}"

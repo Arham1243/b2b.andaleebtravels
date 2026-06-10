@@ -466,11 +466,6 @@
                          =================================================== --}}
                     <div class="col-lg-4">
                         <div class="hp-summary" id="hp-summary-sticky">
-                            @include('user.flights.partials.hp-session-timer', [
-                                'timerRedirectUrl' => $searchBackUrl,
-                                'timerStorageKey' => 'flight_hold_session_expires',
-                            ])
-
                             <div class="hp-summary__head">
                                 <i class="bx bx-receipt"></i>
                                 Fare Summary
@@ -566,6 +561,11 @@
                             </div>
 
                         </div>
+
+                        @include('user.flights.partials.hp-session-timer', [
+                            'timerRedirectUrl' => $searchBackUrl,
+                            'timerStorageKey' => 'flight_hold_session_expires',
+                        ])
                     </div>
 
                 </div>{{-- /.row --}}

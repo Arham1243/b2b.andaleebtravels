@@ -12,11 +12,12 @@
         <input
             type="text"
             id="{{ $fieldId }}-display"
-            class="hp-input hp-date-field__display js-hp-date-display"
+            class="hp-input hp-date-field__display hp-date-picker-input js-hp-date-display"
             value=""
             placeholder="Select date"
             readonly
             autocomplete="off"
+            data-date-role="dob"
             data-date-target="#{{ $fieldId }}-value"
         >
         <input

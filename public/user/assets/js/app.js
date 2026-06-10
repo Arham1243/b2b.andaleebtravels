@@ -1,6 +1,6 @@
 $(function () {
     if ($(".date-picker").length) {
-        $(".date-picker")
+        $(".date-picker").not(".js-hp-date-display")
             .daterangepicker({
                 singleDatePicker: true,
                 showCalendar: false,

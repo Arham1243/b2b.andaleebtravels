@@ -86,8 +86,11 @@
             const paxLabel = input.dataset.paxLabel || 'Passenger';
             const value = (input.value || '').trim();
 
+            const displayEl = input.closest('.hp-date-field')?.querySelector('.js-hp-date-display');
+
             const clearError = function () {
                 input.classList.remove('is-invalid');
+                if (displayEl) displayEl.classList.remove('is-invalid');
                 if (errorEl) {
                     errorEl.textContent = '';
                     errorEl.hidden = true;
@@ -96,6 +99,7 @@
 
             const setError = function (message) {
                 input.classList.add('is-invalid');
+                if (displayEl) displayEl.classList.add('is-invalid');
                 if (errorEl) {
                     errorEl.textContent = message;
                     errorEl.hidden = false;
