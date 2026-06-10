@@ -132,23 +132,24 @@
             font-family: DejaVu Sans, sans-serif;
         }
 
-        .direction-ref-pills {
-            margin-top: 10px;
-            margin-bottom: 2px;
-            font-size: 10px;
-            color: #444;
-        }
-
-        .direction-ref-pills span {
+        .ref-pill {
             display: inline-block;
-            margin-right: 8px;
+            margin-top: 6px;
+            margin-bottom: 2px;
             padding: 4px 10px;
             background: #ecfdf5;
             border: 1px solid #a7f3d0;
             border-radius: 999px;
+            font-size: 10px;
+            color: #444;
+            line-height: 1.3;
         }
 
-        .direction-ref-pills strong {
+        .ref-pill__key {
+            margin-right: 5px;
+        }
+
+        .ref-pill strong {
             color: #111;
         }
 
@@ -198,16 +199,30 @@
         }
 
         .flight-table td {
-            padding: 8px 5px;
+            padding: 6px 5px;
             border-bottom: 1px solid #e5e7eb;
             vertical-align: top;
             font-size: 10px;
             color: #111827;
             word-wrap: break-word;
+            line-height: 1.1;
         }
 
         .flight-table tr:last-child td {
             border-bottom: none;
+        }
+
+        .flight-table td strong,
+        .flight-table .flight-no {
+            display: block;
+            line-height: 1.15;
+            margin: 0;
+        }
+
+        .flight-table .muted {
+            margin-top: 0;
+            line-height: 1.1;
+            font-size: 9px;
         }
 
         .flight-no {
@@ -417,27 +432,27 @@
                         <td>
                             <div class="label">Airline</div>
                             <div class="value">{{ $direction['airline'] ?? '—' }}</div>
+                            @if (!empty($direction['airline_ref']))
+                                <div class="ref-pill">
+                                    <span class="ref-pill__key">Airline Ref:</span><strong>{{ $direction['airline_ref'] }}</strong>
+                                </div>
+                            @endif
                             <div class="label" style="margin-top:6px;">Travel Class</div>
                             <div class="value">{{ $direction['travel_class'] ?? 'Economy' }}</div>
                         </td>
                         <td>
                             <div class="label">Check-In Baggage</div>
                             <div class="value">{{ $direction['check_in_baggage'] ?? 'Refer to airline policy' }}</div>
+                            @if (!empty($direction['crs_ref']))
+                                <div class="ref-pill">
+                                    <span class="ref-pill__key">CRS Ref:</span><strong>{{ $direction['crs_ref'] }}</strong>
+                                </div>
+                            @endif
                             <div class="label" style="margin-top:6px;">Cabin Baggage</div>
                             <div class="value">{{ $direction['cabin_baggage'] ?? 'Refer to airline policy' }}</div>
                         </td>
                     </tr>
                 </table>
-                @if (!empty($direction['airline_ref']) || !empty($direction['crs_ref']))
-                    <div class="direction-ref-pills">
-                        @if (!empty($direction['airline_ref']))
-                            <span>Airline Ref: <strong>{{ $direction['airline_ref'] }}</strong></span>
-                        @endif
-                        @if (!empty($direction['crs_ref']))
-                            <span>CRS Ref: <strong>{{ $direction['crs_ref'] }}</strong></span>
-                        @endif
-                    </div>
-                @endif
             </div>
 
             <table class="flight-table">
