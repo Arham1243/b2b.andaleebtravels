@@ -6,108 +6,124 @@
     <title>E-Ticket {{ $eticket['booking']['ref'] ?? '' }}</title>
     <style>
         @page {
-            margin: 18px 22px;
+            margin: 16px 20px;
         }
 
         body {
             font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
-            font-size: 10px;
-            color: #1a2540;
+            font-size: 12px;
+            color: #111827;
             margin: 0;
             padding: 0;
-            line-height: 1.45;
+            line-height: 1.5;
         }
 
         .header {
             width: 100%;
             border-bottom: 2px solid #cd1b4f;
-            padding-bottom: 10px;
-            margin-bottom: 14px;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
         }
 
         .header td {
             vertical-align: top;
         }
 
-        .logo {
-            max-width: 150px;
-            max-height: 52px;
+        .header-logo-cell {
+            width: 58%;
         }
 
-        .agency-name {
-            font-size: 13px;
-            font-weight: bold;
-            color: #cd1b4f;
-            margin: 0 0 2px;
+        .header-meta-cell {
+            width: 42%;
+        }
+
+        .logo {
+            max-width: 200px;
+            max-height: 58px;
+            margin-bottom: 8px;
         }
 
         .agency-legal {
-            font-size: 9px;
+            font-size: 11px;
             font-weight: bold;
-            color: #333;
-            margin: 0 0 4px;
+            color: #111827;
+            margin: 0 0 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
         }
 
         .agency-meta {
-            font-size: 8.5px;
-            color: #555;
-            margin: 0;
+            font-size: 11px;
+            color: #1f2937;
+            margin: 0 0 3px;
+            line-height: 1.45;
+        }
+
+        .agency-meta strong {
+            color: #111827;
         }
 
         .booking-meta {
             text-align: right;
-            font-size: 8.5px;
+            font-size: 11px;
+            color: #1f2937;
         }
 
-        .booking-meta .ref {
-            font-size: 12px;
-            font-weight: bold;
-            color: #1a2540;
+        .booking-meta-row {
+            margin-bottom: 5px;
+        }
+
+        .booking-meta-row strong {
+            color: #111827;
         }
 
         .status-pill {
             display: inline-block;
-            background: #ecfdf5;
-            color: #047857;
+            background: #d1fae5;
+            color: #065f46;
             font-weight: bold;
-            font-size: 8px;
-            padding: 2px 8px;
+            font-size: 10px;
+            padding: 3px 10px;
             border-radius: 10px;
             text-transform: uppercase;
-            margin-top: 4px;
         }
 
         .direction-block {
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             page-break-inside: avoid;
         }
 
         .direction-head {
-            background: #eef1f5;
-            padding: 5px 8px;
+            background: #e5e7eb;
+            padding: 6px 10px;
             font-weight: bold;
-            font-size: 9px;
-            letter-spacing: 0.4px;
-            border: 1px solid #d8dee6;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: #111827;
+            border: 1px solid #cbd5e1;
             border-bottom: none;
+            text-transform: uppercase;
         }
 
         .direction-route {
-            padding: 8px;
-            border: 1px solid #d8dee6;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
             border-bottom: none;
+            background: #fafafa;
         }
 
         .direction-route h2 {
-            font-size: 11px;
-            margin: 0 0 2px;
-            color: #1a2540;
+            font-size: 14px;
+            margin: 0 0 3px;
+            color: #111827;
+            font-weight: bold;
         }
 
         .direction-route .sub {
-            font-size: 8.5px;
-            color: #666;
-            margin: 0 0 6px;
+            font-size: 11px;
+            color: #374151;
+            margin: 0 0 8px;
+            font-weight: 600;
         }
 
         .info-grid {
@@ -118,40 +134,47 @@
         .info-grid td {
             width: 50%;
             vertical-align: top;
-            padding: 2px 8px 2px 0;
-            font-size: 8.5px;
+            padding: 3px 10px 3px 0;
+            font-size: 11px;
         }
 
         .info-grid .label {
-            color: #666;
-            font-size: 8px;
+            color: #374151;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
         }
 
         .info-grid .value {
             font-weight: bold;
+            color: #111827;
+            margin-top: 2px;
         }
 
         .flight-table {
             width: 100%;
             border-collapse: collapse;
-            border: 1px solid #d8dee6;
+            border: 1px solid #cbd5e1;
         }
 
         .flight-table th {
-            background: #f8f9fb;
-            font-size: 7.5px;
+            background: #f3f4f6;
+            font-size: 10px;
             text-transform: uppercase;
-            color: #666;
-            padding: 5px 6px;
-            border-bottom: 1px solid #d8dee6;
+            color: #374151;
+            font-weight: bold;
+            padding: 7px 8px;
+            border-bottom: 1px solid #cbd5e1;
             text-align: left;
         }
 
         .flight-table td {
-            padding: 6px;
-            border-bottom: 1px solid #eef1f5;
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
             vertical-align: top;
-            font-size: 8.5px;
+            font-size: 11px;
+            color: #111827;
         }
 
         .flight-table tr:last-child td {
@@ -160,42 +183,48 @@
 
         .flight-no {
             font-weight: bold;
-            font-size: 9px;
+            font-size: 12px;
+            color: #111827;
         }
 
         .muted {
-            color: #666;
-            font-size: 7.5px;
+            color: #4b5563;
+            font-size: 10px;
+            margin-top: 2px;
         }
 
         .section-title {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
             margin: 14px 0 6px;
-            color: #1a2540;
+            color: #111827;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
 
         .traveler-table {
             width: 100%;
             border-collapse: collapse;
-            border: 1px solid #d8dee6;
+            border: 1px solid #cbd5e1;
         }
 
         .traveler-table th {
-            background: #f8f9fb;
-            font-size: 7.5px;
+            background: #f3f4f6;
+            font-size: 10px;
             text-transform: uppercase;
-            color: #666;
-            padding: 5px 6px;
-            border-bottom: 1px solid #d8dee6;
+            color: #374151;
+            font-weight: bold;
+            padding: 7px 8px;
+            border-bottom: 1px solid #cbd5e1;
             text-align: left;
         }
 
         .traveler-table td {
-            padding: 8px 6px;
-            border-bottom: 1px solid #eef1f5;
+            padding: 10px 8px;
+            border-bottom: 1px solid #e5e7eb;
             vertical-align: middle;
-            font-size: 9px;
+            font-size: 11px;
+            color: #111827;
         }
 
         .traveler-table tr:last-child td {
@@ -203,46 +232,63 @@
         }
 
         .barcode {
-            width: 88px;
+            width: 96px;
             height: auto;
         }
 
         .traveler-name {
             font-weight: bold;
             text-transform: uppercase;
+            color: #111827;
+            font-size: 12px;
+        }
+
+        .traveler-table th.ticket-col,
+        .traveler-table td.ticket-col {
+            text-align: left;
+            vertical-align: middle;
+            white-space: nowrap;
         }
 
         .ticket-no {
-            font-family: DejaVu Sans Mono, monospace;
+            font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
             font-weight: bold;
-            text-align: right;
+            color: #111827;
+            font-size: 12px;
+            letter-spacing: 0.3px;
         }
 
         .baggage-box {
-            border: 1px solid #d8dee6;
+            border: 1px solid #cbd5e1;
             border-top: none;
-            padding: 8px;
-            font-size: 8px;
-            color: #444;
+            padding: 10px;
+            font-size: 11px;
+            color: #1f2937;
+            background: #fafafa;
         }
 
         .baggage-box .title {
             font-weight: bold;
-            margin-bottom: 4px;
-            font-size: 8.5px;
+            margin-bottom: 5px;
+            font-size: 11px;
+            color: #111827;
+            text-transform: uppercase;
         }
 
         .fare-box {
-            margin-top: 12px;
-            border: 1px solid #d8dee6;
-            padding: 8px;
+            margin-top: 14px;
+            border: 1px solid #cbd5e1;
+            padding: 10px;
             page-break-inside: avoid;
+            background: #fafafa;
         }
 
         .fare-box h3 {
-            margin: 0 0 6px;
-            font-size: 9px;
+            margin: 0 0 8px;
+            font-size: 12px;
             color: #cd1b4f;
+            font-weight: bold;
+            text-transform: uppercase;
         }
 
         .fare-row {
@@ -251,27 +297,34 @@
         }
 
         .fare-row td {
-            padding: 2px 0;
-            font-size: 8.5px;
+            padding: 3px 0;
+            font-size: 11px;
+            color: #1f2937;
         }
 
         .fare-row td:last-child {
             text-align: right;
             font-weight: bold;
+            color: #111827;
         }
 
         .notes {
-            margin-top: 14px;
-            padding: 8px;
-            background: #fff8f0;
+            margin-top: 16px;
+            padding: 10px;
+            background: #fff7ed;
             border-left: 3px solid #f59e0b;
-            font-size: 7.5px;
-            color: #555;
+            font-size: 10px;
+            color: #374151;
             page-break-inside: avoid;
         }
 
         .notes p {
-            margin: 0 0 4px;
+            margin: 0 0 5px;
+            line-height: 1.5;
+        }
+
+        .notes strong {
+            color: #111827;
         }
     </style>
 </head>
@@ -288,13 +341,14 @@
 
     <table class="header" width="100%" cellpadding="0" cellspacing="0">
         <tr>
-            <td width="55%">
+            <td class="header-logo-cell">
                 @if (!empty($agency['logo_data_uri']))
-                    <img src="{{ $agency['logo_data_uri'] }}" alt="Logo" class="logo"><br>
+                    <img src="{{ $agency['logo_data_uri'] }}" alt="Logo" class="logo">
                 @endif
-                <p class="agency-name">{{ $agency['name'] ?? '' }}</p>
-                @if (!empty($agency['legal_name']) && ($agency['legal_name'] ?? '') !== ($agency['name'] ?? ''))
+                @if (!empty($agency['legal_name']))
                     <p class="agency-legal">{{ $agency['legal_name'] }}</p>
+                @elseif (!empty($agency['name']))
+                    <p class="agency-legal">{{ $agency['name'] }}</p>
                 @endif
                 @if (!empty($agency['address']))
                     <p class="agency-meta"><strong>Address:</strong> {{ $agency['address'] }}</p>
@@ -306,13 +360,16 @@
                     <p class="agency-meta"><strong>Email:</strong> {{ $agency['email'] }}</p>
                 @endif
             </td>
-            <td width="45%" class="booking-meta">
-                <div class="ref">Ref. No: {{ $booking['ref'] ?? '—' }}</div>
-                <div>Date of Booking: <strong>{{ $booking['date'] ?? '—' }}</strong></div>
-                <div>Status: <span class="status-pill">{{ $booking['status'] ?? 'CONFIRMED' }}</span></div>
+            <td class="header-meta-cell booking-meta">
+                <div class="booking-meta-row">
+                    Date of Booking: <strong>{{ $booking['date'] ?? '—' }}</strong>
+                </div>
+                <div class="booking-meta-row">
+                    Status: <span class="status-pill">{{ $booking['status'] ?? 'CONFIRMED' }}</span>
+                </div>
                 @if (!empty($booking['pnr']))
-                    <div style="margin-top:6px;">Airline Ref: <strong>{{ $booking['airline_ref'] }}</strong></div>
-                    <div>CRS Ref: <strong>{{ $booking['crs_ref'] }}</strong></div>
+                    <div class="booking-meta-row">Airline Ref: <strong>{{ $booking['airline_ref'] }}</strong></div>
+                    <div class="booking-meta-row">CRS Ref: <strong>{{ $booking['crs_ref'] }}</strong></div>
                 @endif
             </td>
         </tr>
@@ -327,13 +384,15 @@
                 <table class="info-grid" cellpadding="0" cellspacing="0">
                     <tr>
                         <td>
-                            <div class="label">{{ $direction['airline'] ?? '' }}</div>
-                            <div class="value">Travel Class: {{ $direction['travel_class'] ?? 'Economy' }}</div>
+                            <div class="label">Airline</div>
+                            <div class="value">{{ $direction['airline'] ?? '—' }}</div>
+                            <div class="label" style="margin-top:6px;">Travel Class</div>
+                            <div class="value">{{ $direction['travel_class'] ?? 'Economy' }}</div>
                         </td>
                         <td>
                             <div class="label">Check-In Baggage</div>
                             <div class="value">{{ $direction['check_in_baggage'] ?? 'Refer to airline policy' }}</div>
-                            <div class="label" style="margin-top:4px;">Cabin Baggage</div>
+                            <div class="label" style="margin-top:6px;">Cabin Baggage</div>
                             <div class="value">{{ $direction['cabin_baggage'] ?? 'Refer to airline policy' }}</div>
                         </td>
                     </tr>
@@ -375,7 +434,7 @@
                                 @endif
                             </td>
                             <td>
-                                {{ $segment['stops_label'] ?? 'Non Stop' }}
+                                <strong>{{ $segment['stops_label'] ?? 'Non Stop' }}</strong>
                                 @if (!empty($segment['duration_label']))
                                     <div class="muted">({{ $segment['duration_label'] }})</div>
                                 @endif
@@ -405,7 +464,7 @@
                     <tr>
                         <th width="22%">Code</th>
                         <th width="48%">Name</th>
-                        <th width="30%">Ticket No.</th>
+                        <th width="30%" class="ticket-col">Ticket No.</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -422,7 +481,7 @@
                                 @endif
                             </td>
                             <td><span class="traveler-name">{{ $traveler['name'] ?? '—' }}</span></td>
-                            <td class="ticket-no">{{ $traveler['ticket_number'] ?? '—' }}</td>
+                            <td class="ticket-col"><span class="ticket-no">{{ $traveler['ticket_number'] ?? '—' }}</span></td>
                         </tr>
                     @endforeach
                 </tbody>

@@ -77,10 +77,8 @@ class TravelportFlightProvider implements FlightProviderInterface
             );
         }
 
-        $filtered = TravelportSearchPresenter::collapseDuplicateFareOptions(
-            TravelportSearchPresenter::collapseRedundantGdsEconomyFares(
-                $this->filterFareOptionsBySearchCabins($card['fare_options'] ?? [], $searchData),
-            ),
+        $filtered = TravelportSearchPresenter::collapseRedundantGdsEconomyFares(
+            $this->filterFareOptionsBySearchCabins($card['fare_options'] ?? [], $searchData),
         );
         $card['fare_options'] = [];
         $card = TravelportSearchPresenter::enrichCardFareOptions($card, $filtered);

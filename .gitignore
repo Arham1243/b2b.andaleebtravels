@@ -5,6 +5,7 @@
 /public/storage
 /storage/*.key
 /vendor
+/vendo-local
 .env
 .env.backup
 .env.production
