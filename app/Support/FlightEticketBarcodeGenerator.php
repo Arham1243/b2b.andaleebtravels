@@ -2,11 +2,10 @@
 
 namespace App\Support;
 
+use Bcbp\Encoder;
 use DateTimeImmutable;
 use Le\PDF417\PDF417;
 use Le\PDF417\Renderer\ImageRenderer;
-
-use function Bcbp\encode;
 
 final class FlightEticketBarcodeGenerator
 {
@@ -67,7 +66,7 @@ final class FlightEticketBarcodeGenerator
             ?? 'Y'
         )), 0, 1));
 
-        return encode([
+        return Encoder::encode([
             'data' => [
                 'passengerName' => $passengerName,
                 'legs' => [[
