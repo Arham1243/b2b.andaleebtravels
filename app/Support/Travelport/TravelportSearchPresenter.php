@@ -170,6 +170,162 @@ class TravelportSearchPresenter
     }
 
     /**
+     * Collapse GDS + NDC (and other channel) duplicates for the same published fare tier.
+     *
+     * @param  list<array<string, mixed>>  $fareOptions
+     * @return list<array<string, mixed>>
+     */
+    public static function collapseDuplicateFareOptions(array $fareOptions): array
+    {
+        $groups = [];
+
+        foreach ($fareOptions as $option) {
+            if (! is_array($option)) {
+                continue;
+            }
+
+            $groups[self::fareOptionTierKey($option)][] = $option;
+        }
+
+        $collapsed = [];
+
+        foreach ($groups as $group) {
+            $collapsed[] = self::pickPreferredFareOption($group);
+        }
+
+        usort($collapsed, static fn (array $a, array $b): int => ((float) ($a['totalPrice'] ?? 0)) <=> ((float) ($b['totalPrice'] ?? 0)));
+
+        foreach ($collapsed as $index => &$option) {
+            $option['travelport_pricing_index'] = $index;
+        }
+        unset($option);
+
+        return $collapsed;
+    }
+
+    /**
+     * @param  array<string, mixed>  $option
+     */
+    private static function fareOptionTierKey(array $option): string
+    {
+        return implode('|', [
+            strtoupper(trim((string) ($option['fare_basis'] ?? ''))),
+            number_format((float) ($option['totalPrice'] ?? 0), 2, '.', ''),
+            FlightCabinPreference::normalizeUiLabel((string) ($option['cabin_code'] ?? 'Economy')),
+            ($option['non_refundable'] ?? false) ? '1' : '0',
+        ]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $group
+     * @return array<string, mixed>
+     */
+    private static function pickPreferredFareOption(array $group): array
+    {
+        if (count($group) === 1) {
+            $option = $group[0];
+            $option['fare_brand'] = self::bestFareBrandLabel($group);
+
+            return $option;
+        }
+
+        usort(
+            $group,
+            static fn (array $a, array $b): int => self::fareOptionPreferenceScore($b) <=> self::fareOptionPreferenceScore($a),
+        );
+
+        $winner = $group[0];
+        $winner['fare_brand'] = self::bestFareBrandLabel($group);
+
+        return $winner;
+    }
+
+    /**
+     * @param  array<string, mixed>  $option
+     */
+    private static function fareOptionPreferenceScore(array $option): int
+    {
+        $score = 0;
+        $tags = array_map(static fn ($tag): string => strtolower((string) $tag), is_array($option['fare_tags'] ?? null) ? $option['fare_tags'] : []);
+
+        if (in_array('ndc', $tags, true)) {
+            $score += 100;
+        }
+
+        if (empty($option['travelport_air_price_solution'])) {
+            $score += 50;
+        }
+
+        $summaryItems = is_array($option['baggage_details']['summary_items'] ?? null)
+            ? $option['baggage_details']['summary_items']
+            : [];
+        if ($summaryItems !== []) {
+            $score += 20;
+        }
+
+        if (isset($option['seats_available']) && is_numeric($option['seats_available'])) {
+            $score += 10;
+        }
+
+        $brand = strtoupper(trim((string) ($option['fare_brand'] ?? '')));
+        if ($brand !== '' && $brand !== 'ECONOMY') {
+            $score += 5;
+        }
+
+        return $score;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $group
+     */
+    private static function bestFareBrandLabel(array $group): string
+    {
+        $best = '';
+        $bestScore = -1;
+
+        foreach ($group as $option) {
+            $brand = self::normalizeFareBrandLabel($option['fare_brand'] ?? '');
+            if ($brand === '') {
+                continue;
+            }
+
+            $score = 0;
+            $upper = strtoupper($brand);
+            if ($upper !== 'ECONOMY') {
+                $score += 10;
+            }
+            if ($brand !== $upper) {
+                $score += 5;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $brand;
+            }
+        }
+
+        if ($best !== '') {
+            return $best;
+        }
+
+        return self::normalizeFareBrandLabel($group[0]['fare_brand'] ?? '');
+    }
+
+    private static function normalizeFareBrandLabel(?string $brand): string
+    {
+        $brand = trim((string) ($brand ?? ''));
+        if ($brand === '') {
+            return '';
+        }
+
+        if ($brand === strtoupper($brand) && preg_match('/[A-Z]/', $brand)) {
+            $brand = ucwords(strtolower($brand));
+        }
+
+        return (string) preg_replace('/\bFlexplus\b/i', 'Flex Plus', $brand);
+    }
+
+    /**
      * Rebuild AirFareRules request from a persisted LowFareSearch response.
      *
      * @param  array<string, mixed>  $searchResponse
@@ -834,12 +990,7 @@ class TravelportSearchPresenter
 
         usort($merged, static fn (array $a, array $b): int => ((float) ($a['totalPrice'] ?? 0)) <=> ((float) ($b['totalPrice'] ?? 0)));
 
-        foreach ($merged as $index => &$option) {
-            $option['travelport_pricing_index'] = $index;
-        }
-        unset($option);
-
-        return $merged;
+        return self::collapseDuplicateFareOptions($merged);
     }
 
     /**
