@@ -477,6 +477,7 @@
         $includeFare = ! empty($eticket['include_fare']);
         $notes = $eticket['notes'] ?? [];
         $showPassport = collect($travelers)->contains(fn ($traveler) => ! empty($traveler['passport'] ?? null));
+        $hasReturnDirection = collect($directions)->contains(fn ($direction) => ($direction['key'] ?? '') === 'return');
     @endphp
 
     <table class="header-table" cellpadding="0" cellspacing="0">
@@ -628,33 +629,59 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    @endforeach
 
+    @if (!empty($travelers))
+        <div class="traveler-section">
             <div class="block-title section-title">Traveler(s) Information</div>
-            <div class="direction-head direction-head--attached">{{ $direction['label'] ?? '' }}</div>
-            <table class="traveler-table traveler-table--attached">
+            <table class="traveler-table">
                 <thead>
                     <tr>
-                        <th width="{{ $showPassport ? '18%' : '22%' }}">Code</th>
-                        <th width="{{ $showPassport ? '30%' : '48%' }}">Name</th>
-                        @if ($showPassport)
-                            <th width="22%">Passport</th>
+                        @if ($hasReturnDirection)
+                            <th width="14%">Onward Code</th>
+                            <th width="14%">Return Code</th>
+                        @else
+                            <th width="18%">Code</th>
                         @endif
-                        <th width="{{ $showPassport ? '30%' : '30%' }}" class="ticket-col">Ticket No.</th>
+                        <th width="{{ $showPassport ? ($hasReturnDirection ? '24%' : '30%') : ($hasReturnDirection ? '34%' : '48%') }}">Name</th>
+                        @if ($showPassport)
+                            <th width="{{ $hasReturnDirection ? '20%' : '22%' }}">Passport</th>
+                        @endif
+                        <th class="ticket-col" width="{{ $hasReturnDirection ? '28%' : '30%' }}">Ticket No.</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($travelers as $traveler)
                         @php
-                            $barcode = $traveler['direction_barcodes'][$direction['key'] ?? 'onward'] ?? null;
+                            $onwardBarcode = $traveler['direction_barcodes']['onward'] ?? null;
+                            $returnBarcode = $traveler['direction_barcodes']['return'] ?? null;
                         @endphp
                         <tr>
-                            <td>
-                                @if ($barcode)
-                                    <img src="data:image/png;base64,{{ $barcode }}" alt="Barcode" class="barcode">
-                                @else
-                                    —
-                                @endif
-                            </td>
+                            @if ($hasReturnDirection)
+                                <td>
+                                    @if ($onwardBarcode)
+                                        <img src="data:image/png;base64,{{ $onwardBarcode }}" alt="Onward barcode" class="barcode">
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($returnBarcode)
+                                        <img src="data:image/png;base64,{{ $returnBarcode }}" alt="Return barcode" class="barcode">
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                            @else
+                                <td>
+                                    @if ($onwardBarcode)
+                                        <img src="data:image/png;base64,{{ $onwardBarcode }}" alt="Barcode" class="barcode">
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                            @endif
                             <td><span class="traveler-name">{{ $traveler['name'] ?? '—' }}</span></td>
                             @if ($showPassport)
                                 <td><span class="ticket-no">{{ $traveler['passport'] ?? '—' }}</span></td>
@@ -665,7 +692,7 @@
                 </tbody>
             </table>
         </div>
-    @endforeach
+    @endif
 
     @if (!empty($baggage['cabin_baggage']) || !empty($baggage['check_in_baggage']) || !empty($baggage['notes']))
         <div class="baggage-box">
