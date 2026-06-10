@@ -103,6 +103,7 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
         Route::post('/flights/release-hold/{id}', [BookingController::class, 'releaseHold'])->name('flights.release-hold');
         Route::get('/flights/cancel/{id}', [BookingController::class, 'cancelFlightBooking'])->name('flights.cancel');
         Route::get('/flights/{id}', [BookingController::class, 'flightDetail'])->name('flights.detail');
+        Route::get('/flights/{id}/eticket-pdf', [BookingController::class, 'flightEticketPdf'])->name('flights.eticket-pdf');
 
         // Hotel bookings
         Route::get('/hotels', [BookingController::class, 'hotels'])->name('hotels');

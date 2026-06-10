@@ -183,6 +183,11 @@
                             'ticketDetails' => $ticketDetails ?? ['tickets' => []],
                         ])
 
+                        @include('partials.flight-eticket-export', [
+                            'booking' => $booking,
+                            'exportRoute' => route('admin.flight-bookings.eticket-pdf', $booking->id),
+                        ])
+
                         @include('admin.partials.booking-vendor-detail-card', ['vendor' => $booking->vendor])
 
                         <div class="bkpd-card mb-3">

@@ -82,6 +82,7 @@ class B2bAdminRoutePermissionRegistry
                 ['admin.hotel-bookings.show', ['hotel_bookings_view']],
                 ['admin.flight-bookings.index', ['flight_bookings_view']],
                 ['admin.flight-bookings.show', ['flight_bookings_view']],
+                ['admin.flight-bookings.eticket-pdf', ['flight_bookings_view']],
                 ['admin.bookings.hotels.status', ['hotel_bookings_edit']],
                 ['admin.bookings.hotels.cancel', ['hotel_bookings_edit']],
                 ['admin.bookings.flights.status', ['flight_bookings_edit']],

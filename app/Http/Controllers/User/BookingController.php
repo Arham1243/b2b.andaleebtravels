@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesFlightEticketExport;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bHotelBooking;
 use App\Services\BookingCancellationNotifier;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
+    use HandlesFlightEticketExport;
+
     public function __construct(
         private readonly BookingWalletRefundService $bookingWalletRefundService,
     ) {}
@@ -79,6 +82,13 @@ class BookingController extends Controller
         $ticketDetails = $flightService->resolveTicketDetails($booking);
 
         return view('user.bookings.flight-detail', compact('booking', 'counts', 'cancellation', 'ticketDetails'));
+    }
+
+    public function flightEticketPdf(int $id, FlightService $flightService, Request $request)
+    {
+        $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($id);
+
+        return $this->flightEticketExportResponse($booking, $flightService, $request);
     }
 
     public function hotels(Request $request)

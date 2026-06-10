@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesFlightEticketExport;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bVendor;
 use App\Services\FlightService;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 
 class AdminFlightBookingController extends Controller
 {
+    use HandlesFlightEticketExport;
     public function index(Request $request)
     {
         $filterVendorId = $request->input('vendor_id');
@@ -56,6 +58,13 @@ class AdminFlightBookingController extends Controller
 
         return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails', 'ticketDetails'))
             ->with('title', 'Booking ' . $booking->booking_number);
+    }
+
+    public function eticketPdf(int $flight_booking, FlightService $flightService, Request $request)
+    {
+        $booking = B2bFlightBooking::findOrFail($flight_booking);
+
+        return $this->flightEticketExportResponse($booking, $flightService, $request);
     }
 
     public function fareRules(int $id, FlightService $flightService)

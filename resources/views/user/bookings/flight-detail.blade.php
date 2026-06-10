@@ -193,6 +193,11 @@
                             'ticketDetails' => $ticketDetails ?? ['tickets' => []],
                         ])
 
+                        @include('partials.flight-eticket-export', [
+                            'booking' => $booking,
+                            'exportRoute' => route('user.bookings.flights.eticket-pdf', $booking->id),
+                        ])
+
                         {{-- Flight legs --}}
                         @if(!empty($legs))
                         <div class="bkpd-card mb-3">

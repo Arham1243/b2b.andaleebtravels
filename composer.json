@@ -9,11 +9,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "3.1",
         "diglactic/laravel-breadcrumbs": "^10.0",
         "guzzlehttp/guzzle": "^7.9",
         "laravel/framework": "^11.9",
         "laravel/socialite": "^5.24",
-        "laravel/tinker": "^2.9"
+        "laravel/tinker": "^2.9",
+        "leongrdic/pdf417": "^1.0",
+        "tectiv3/bcbp": "^0.1.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

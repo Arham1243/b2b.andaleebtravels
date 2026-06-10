@@ -2,6 +2,7 @@
 
 namespace App\Support\Travelport;
 
+use App\Support\FlightCabinPreference;
 use App\Support\FlightListingMetaBuilder;
 use Carbon\Carbon;
 
@@ -383,12 +384,13 @@ class TravelportSearchPresenter
             $validatingCarrier,
         );
         $displayBrand = $fareBrand ?: ($cabinClass ?: 'Economy');
+        $resolvedCabin = FlightCabinPreference::resolveCabinFamily($displayBrand, $bookingCode, $cabinClass);
         $fareRules = TravelportFareRulesPresenter::fromPricing(
             $primaryPricingInfo,
             $primaryFareInfo,
             $legs,
             $displayBrand,
-            $cabinClass,
+            $resolvedCabin,
         );
         $fareRuleRequest = TravelportFareRulesPresenter::fareRuleRequest(
             $primaryFareInfo,
@@ -416,7 +418,7 @@ class TravelportSearchPresenter
             'travelport_fare_rule' => $fareRuleRequest,
             'fare_tags' => $fareTags,
             'validating_carrier' => $validatingCarrier,
-            'cabin_code' => $cabinClass,
+            'cabin_code' => $resolvedCabin,
             'booking_code' => $bookingCode,
             'seats_available' => $seatsAvailable,
         ];

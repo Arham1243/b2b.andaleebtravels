@@ -77,7 +77,7 @@ class TravelportAirPricePresenter
             : '';
         $fareBasis = (string) self::attr($fareInfo, 'FareBasis', '');
         $bookingCode = $fareBasis !== '' ? strtoupper(substr($fareBasis, 0, 1)) : '';
-        $cabinClass = self::inferCabinFromBrand($brandName);
+        $cabinClass = FlightCabinPreference::resolveCabinFamily($brandName, $bookingCode);
         $validatingCarrier = (string) self::attr($pricingInfo, 'PlatingCarrier', '');
 
         $baseMoney = self::parseMoney(self::attr($pricingInfo, 'BasePrice'));
@@ -134,48 +134,20 @@ class TravelportAirPricePresenter
      */
     private static function filterBySearchCabins(array $options, array $searchData): array
     {
-        $allowed = [
-            FlightCabinPreference::normalizeUiLabel($searchData['onward_cabin_class'] ?? 'Economy'),
-        ];
-
-        if (($searchData['trip_type'] ?? '') === 'round_trip') {
-            $returnCabin = FlightCabinPreference::normalizeUiLabel(
-                $searchData['return_cabin_class'] ?? ($searchData['onward_cabin_class'] ?? 'Economy'),
-            );
-            if (! in_array($returnCabin, $allowed, true)) {
-                $allowed[] = $returnCabin;
-            }
-        }
-
-        return array_values(array_filter($options, static function (array $option) use ($allowed): bool {
-            $cabin = FlightCabinPreference::normalizeUiLabel((string) ($option['cabin_code'] ?? 'Economy'));
-
-            return in_array($cabin, $allowed, true);
-        }));
+        return array_values(array_filter(
+            $options,
+            static fn (array $option): bool => FlightCabinPreference::fareMatchesSearch(
+                $option,
+                $searchData['onward_cabin_class'] ?? 'Economy',
+                $searchData['return_cabin_class'] ?? null,
+                (string) ($searchData['trip_type'] ?? 'one_way'),
+            ),
+        ));
     }
 
     private static function normalizeBrandLabel(string $brand): string
     {
         return (string) preg_replace('/\bFlexplus\b/i', 'Flex Plus', $brand);
-    }
-
-    private static function inferCabinFromBrand(string $brandName): string
-    {
-        $upper = strtoupper($brandName);
-
-        if (str_contains($upper, 'FIRST')) {
-            return 'First';
-        }
-
-        if (str_contains($upper, 'BUSINESS') || str_contains($upper, 'BIZ')) {
-            return 'Business';
-        }
-
-        if (str_contains($upper, 'PREMIUM')) {
-            return 'Premium Economy';
-        }
-
-        return 'Economy';
     }
 
     /**

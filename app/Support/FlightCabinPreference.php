@@ -86,6 +86,100 @@ final class FlightCabinPreference
         };
     }
 
+    public static function familyFromBrandName(?string $brandName): ?string
+    {
+        $upper = strtoupper(trim((string) ($brandName ?? '')));
+
+        if ($upper === '') {
+            return null;
+        }
+
+        if (str_contains($upper, 'FIRST')) {
+            return 'First';
+        }
+
+        if (str_contains($upper, 'FALCON GOLD')
+            || str_contains($upper, 'BUSINESS')
+            || str_contains($upper, ' BIZ')
+            || str_starts_with($upper, 'BIZ ')
+            || $upper === 'BIZ') {
+            return 'Business';
+        }
+
+        if (str_contains($upper, 'PREMIUM')) {
+            return 'Premium Economy';
+        }
+
+        if (str_contains($upper, 'ECONOMY') || str_contains($upper, 'ECO ')) {
+            return 'Economy';
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve a UI cabin family from Travelport brand, booking class, and optional API cabin.
+     */
+    public static function resolveCabinFamily(?string $brandName, ?string $bookingCode, ?string $apiCabin = null): string
+    {
+        $apiFamily = self::familyFromCabin($apiCabin);
+        $brandFamily = self::familyFromBrandName($brandName);
+        $bookingFamily = self::familyFromSabreCode($bookingCode);
+
+        foreach ([$brandFamily, $bookingFamily] as $candidate) {
+            if ($candidate !== null && in_array($candidate, ['Business', 'First'], true)) {
+                if ($apiFamily === null || $apiFamily === 'Economy') {
+                    return $candidate;
+                }
+            }
+        }
+
+        if ($brandFamily === 'Premium Economy' && ($apiFamily === null || $apiFamily === 'Economy')) {
+            return 'Premium Economy';
+        }
+
+        if ($brandFamily !== null) {
+            return $brandFamily;
+        }
+
+        if ($apiFamily !== null) {
+            return $apiFamily;
+        }
+
+        if ($bookingFamily !== null) {
+            return $bookingFamily;
+        }
+
+        return 'Economy';
+    }
+
+    /**
+     * @param  array<string, mixed>  $fare
+     */
+    public static function reconcileFareCabinFamily(array $fare, ?string $cabinValue): ?string
+    {
+        $cabinFamily = self::familyFromCabin($cabinValue);
+
+        if ($cabinFamily !== null && $cabinFamily !== 'Economy') {
+            return $cabinFamily;
+        }
+
+        $brandFamily = self::familyFromBrandName($fare['fare_brand'] ?? null);
+        $bookingFamily = self::familyFromSabreCode($fare['booking_code'] ?? null);
+
+        foreach ([$brandFamily, $bookingFamily] as $candidate) {
+            if ($candidate !== null && in_array($candidate, ['Business', 'First'], true)) {
+                return $candidate;
+            }
+        }
+
+        if ($brandFamily === 'Premium Economy') {
+            return 'Premium Economy';
+        }
+
+        return $cabinFamily;
+    }
+
     /**
      * @param  array<string, mixed>  $fare
      */
@@ -107,7 +201,7 @@ final class FlightCabinPreference
                     ? $returnCabin
                     : $onwardCabin;
 
-                $componentFamily = self::familyFromCabin($component['cabin'] ?? null);
+                $componentFamily = self::reconcileFareCabinFamily($fare, $component['cabin'] ?? null);
 
                 if ($componentFamily === null) {
                     continue;
@@ -125,7 +219,7 @@ final class FlightCabinPreference
             }
         }
 
-        $fareFamily = self::familyFromCabin($fare['cabin_code'] ?? null);
+        $fareFamily = self::reconcileFareCabinFamily($fare, $fare['cabin_code'] ?? null);
 
         if ($fareFamily === $onwardCabin) {
             return true;

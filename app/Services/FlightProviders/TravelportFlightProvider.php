@@ -303,13 +303,15 @@ class TravelportFlightProvider implements FlightProviderInterface
      */
     private function filterFareOptionsBySearchCabins(array $fareOptions, array $searchData): array
     {
-        $allowed = $this->moreFaresCabins($searchData);
-
-        $filtered = array_values(array_filter($fareOptions, static function (array $option) use ($allowed): bool {
-            $cabin = FlightCabinPreference::normalizeUiLabel((string) ($option['cabin_code'] ?? 'Economy'));
-
-            return in_array($cabin, $allowed, true);
-        }));
+        $filtered = array_values(array_filter(
+            $fareOptions,
+            static fn (array $option): bool => FlightCabinPreference::fareMatchesSearch(
+                $option,
+                $searchData['onward_cabin_class'] ?? 'Economy',
+                $searchData['return_cabin_class'] ?? null,
+                (string) ($searchData['trip_type'] ?? 'one_way'),
+            ),
+        ));
 
         usort($filtered, static fn (array $a, array $b): int => ((float) ($a['totalPrice'] ?? 0)) <=> ((float) ($b['totalPrice'] ?? 0)));
 
