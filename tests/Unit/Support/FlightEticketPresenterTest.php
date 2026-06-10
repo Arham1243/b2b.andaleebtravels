@@ -43,6 +43,50 @@ class FlightEticketPresenterTest extends TestCase
         $this->assertCount(1, $payloads[1]['travelers']);
     }
 
+    public function test_round_trip_generates_return_barcode_without_return_date(): void
+    {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension is required for PDF417 rendering.');
+        }
+
+        $booking = $this->sampleBooking();
+        $booking->return_date = null;
+        $itinerary = $booking->itinerary_data;
+        $itinerary['legs'][1]['segments'][0]['departure_datetime'] = '2026-06-13T21:25:00+00:00';
+        $booking->itinerary_data = $itinerary;
+
+        $payload = FlightEticketPresenter::combined($booking, $this->sampleTicketDetails(), false);
+
+        $this->assertNotNull($payload);
+        $this->assertNotNull($payload['travelers'][0]['direction_barcodes']['onward'] ?? null);
+        $this->assertNotNull($payload['travelers'][0]['direction_barcodes']['return'] ?? null);
+    }
+
+    public function test_duplicate_itinerary_legs_are_deduped_for_directions(): void
+    {
+        $booking = $this->sampleBooking();
+        $itinerary = $booking->itinerary_data;
+        $itinerary['legs'][] = $itinerary['legs'][0];
+        $booking->itinerary_data = $itinerary;
+
+        $payload = FlightEticketPresenter::combined($booking, $this->sampleTicketDetails(), false);
+
+        $this->assertNotNull($payload);
+        $this->assertCount(2, $payload['directions']);
+        $this->assertSame('ONWARD', $payload['directions'][0]['label']);
+        $this->assertSame('RETURN', $payload['directions'][1]['label']);
+    }
+
+    public function test_shared_baggage_block_avoids_repeating_summary_lines(): void
+    {
+        $payload = FlightEticketPresenter::combined($this->sampleBooking(), $this->sampleTicketDetails(), false);
+
+        $this->assertNotNull($payload);
+        $this->assertArrayHasKey('baggage', $payload);
+        $this->assertSame('Adult - 20 KG', $payload['baggage']['check_in_baggage']);
+        $this->assertNotContains('Adult - 20 KG checked', $payload['baggage']['notes']);
+    }
+
     private function sampleBooking(): B2bFlightBooking
     {
         return new B2bFlightBooking([

@@ -113,9 +113,12 @@ final class FlightEticketBarcodeGenerator
     private static function resolveFlightDate(array $segment, ?string $fallbackDate): ?DateTimeImmutable
     {
         $candidates = [
+            $segment['departure_datetime'] ?? null,
             $segment['departure_at'] ?? null,
             $segment['departure'] ?? null,
             $segment['departure_iso'] ?? null,
+            $segment['departure_display'] ?? null,
+            $segment['departure_label'] ?? null,
             $fallbackDate,
         ];
 

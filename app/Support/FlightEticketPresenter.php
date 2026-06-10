@@ -61,6 +61,8 @@ final class FlightEticketPresenter
         $legs = is_array($itinerary['legs'] ?? null) ? $itinerary['legs'] : [];
         $baggage = is_array($itinerary['baggage_details'] ?? null) ? $itinerary['baggage_details'] : [];
 
+        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary);
+
         return [
             'agency' => self::agencyBlock(),
             'booking' => [
@@ -71,7 +73,8 @@ final class FlightEticketPresenter
                 'crs_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
             ],
             'include_fare' => $includeFare,
-            'directions' => self::buildDirections($booking, $legs, $baggage, $itinerary),
+            'directions' => $directions,
+            'baggage' => self::sharedBaggageBlock($baggage),
             'notes' => self::buildNotes($itinerary),
         ];
     }
@@ -110,7 +113,7 @@ final class FlightEticketPresenter
     {
         $directions = [];
 
-        foreach ($legs as $index => $leg) {
+        foreach (self::dedupeLegs($legs) as $index => $leg) {
             if (! is_array($leg)) {
                 continue;
             }
@@ -125,9 +128,7 @@ final class FlightEticketPresenter
             $stops = max(0, count($segments) - 1);
             $durMins = (int) ($leg['elapsedTime'] ?? 0);
 
-            $departureDate = $index === 0
-                ? $booking->departure_date
-                : $booking->return_date;
+            $departureDate = self::resolveDirectionDepartureDate($booking, $index, $first);
 
             $directions[] = [
                 'key' => $index === 0 ? 'onward' : 'return',
@@ -141,13 +142,145 @@ final class FlightEticketPresenter
                 'check_in_baggage' => self::baggageLine($baggage, false),
                 'cabin_baggage' => self::baggageLine($baggage, true),
                 'segments' => self::mapSegments($segments, $durMins),
-                'baggage_notes' => self::baggageNotes($baggage),
                 'first_segment' => $first,
-                'departure_date' => $departureDate?->format('Y-m-d'),
+                'departure_date' => self::segmentDepartureIso($first) ?? $departureDate?->format('Y-m-d'),
             ];
         }
 
         return $directions;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $legs
+     * @return list<array<string, mixed>>
+     */
+    private static function dedupeLegs(array $legs): array
+    {
+        $unique = [];
+        $seen = [];
+
+        foreach ($legs as $leg) {
+            if (! is_array($leg)) {
+                continue;
+            }
+
+            $segments = is_array($leg['segments'] ?? null) ? $leg['segments'] : [];
+            $signature = self::legSignature($segments);
+            if ($signature !== '' && isset($seen[$signature])) {
+                continue;
+            }
+
+            if ($signature !== '') {
+                $seen[$signature] = true;
+            }
+
+            $unique[] = $leg;
+        }
+
+        return $unique;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     */
+    private static function legSignature(array $segments): string
+    {
+        $parts = [];
+
+        foreach ($segments as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+
+            $parts[] = implode(':', [
+                strtoupper(trim((string) ($segment['carrier'] ?? ''))),
+                trim((string) ($segment['flight_number'] ?? '')),
+                trim((string) ($segment['departure_clock'] ?? '')),
+                strtoupper(trim((string) ($segment['from'] ?? ''))),
+                strtoupper(trim((string) ($segment['to'] ?? ''))),
+                trim((string) ($segment['departure_datetime'] ?? '')),
+            ]);
+        }
+
+        return implode('|', $parts);
+    }
+
+    /**
+     * @param  array<string, mixed>  $firstSegment
+     */
+    private static function resolveDirectionDepartureDate(B2bFlightBooking $booking, int $index, array $firstSegment): ?Carbon
+    {
+        $segmentDate = self::segmentDepartureCarbon($firstSegment);
+        if ($segmentDate !== null) {
+            return $segmentDate;
+        }
+
+        $bookingDate = $index === 0 ? $booking->departure_date : $booking->return_date;
+
+        return $bookingDate instanceof Carbon ? $bookingDate : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $segment
+     */
+    private static function segmentDepartureCarbon(array $segment): ?Carbon
+    {
+        foreach ([
+            $segment['departure_datetime'] ?? null,
+            $segment['departure_at'] ?? null,
+            $segment['departure'] ?? null,
+            $segment['departure_iso'] ?? null,
+        ] as $candidate) {
+            $text = trim((string) $candidate);
+            if ($text === '') {
+                continue;
+            }
+
+            try {
+                return Carbon::parse($text);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        foreach ([
+            $segment['departure_display'] ?? null,
+            $segment['departure_label'] ?? null,
+        ] as $candidate) {
+            $text = trim((string) $candidate);
+            if ($text === '') {
+                continue;
+            }
+
+            try {
+                return Carbon::parse($text);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $segment
+     */
+    private static function segmentDepartureIso(array $segment): ?string
+    {
+        return self::segmentDepartureCarbon($segment)?->format('Y-m-d');
+    }
+
+    /**
+     * @param  array<string, mixed>  $baggage
+     * @return array{cabin_baggage: string, check_in_baggage: string, notes: list<string>}
+     */
+    private static function sharedBaggageBlock(array $baggage): array
+    {
+        return [
+            'cabin_baggage' => self::baggageLine($baggage, true),
+            'check_in_baggage' => self::baggageLine($baggage, false),
+            'notes' => self::baggageNotes($baggage),
+        ];
     }
 
     /**
@@ -388,13 +521,17 @@ final class FlightEticketPresenter
     private static function baggageNotes(array $baggage): array
     {
         $notes = [];
+        $checkIn = strtolower(self::baggageLine($baggage, false));
+        $cabin = strtolower(self::baggageLine($baggage, true));
         $summaryItems = is_array($baggage['summary_items'] ?? null) ? $baggage['summary_items'] : [];
 
         foreach ($summaryItems as $item) {
             $text = trim((string) $item);
-            if ($text !== '') {
-                $notes[] = $text;
+            if ($text === '' || self::baggageNoteDuplicatesStructuredLine($text, $checkIn, $cabin)) {
+                continue;
             }
+
+            $notes[] = $text;
         }
 
         if ($notes === []) {
@@ -405,6 +542,23 @@ final class FlightEticketPresenter
         $notes[] = 'Bag 2 Chgs May Apply if Bags Exceed Ttl Wt Allowance';
 
         return array_values(array_unique($notes));
+    }
+
+    private static function baggageNoteDuplicatesStructuredLine(string $note, string $checkIn, string $cabin): bool
+    {
+        $normalized = strtolower($note);
+
+        foreach ([$checkIn, $cabin] as $structured) {
+            if ($structured === '' || $structured === 'refer to airline policy') {
+                continue;
+            }
+
+            if ($normalized === $structured || str_contains($normalized, $structured) || str_contains($structured, $normalized)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -424,7 +578,9 @@ final class FlightEticketPresenter
         $pnr = strtoupper(trim((string) ($booking->sabre_record_locator ?? '')));
         $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
         $legs = is_array($itinerary['legs'] ?? null) ? $itinerary['legs'] : [];
-        $directions = self::buildDirections($booking, $legs, is_array($itinerary['baggage_details'] ?? null) ? $itinerary['baggage_details'] : [], $itinerary);
+        $baggage = is_array($itinerary['baggage_details'] ?? null) ? $itinerary['baggage_details'] : [];
+        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary);
+        $referenceCoupons = self::referenceCoupons($tickets);
 
         $travelers = [];
 
@@ -443,13 +599,14 @@ final class FlightEticketPresenter
             }
 
             $directionBarcodes = [];
-            foreach ($directions as $direction) {
-                $segment = is_array($direction['first_segment'] ?? null) ? $direction['first_segment'] : [];
+            foreach ($directions as $directionIndex => $direction) {
+                $coupon = is_array($referenceCoupons[$directionIndex] ?? null) ? $referenceCoupons[$directionIndex] : null;
+                $segment = self::segmentForBarcode($direction, $coupon);
                 $directionBarcodes[$direction['key']] = FlightEticketBarcodeGenerator::pngBase64(
                     $name,
                     $pnr,
                     $segment,
-                    $direction['departure_date'] ?? null,
+                    $direction['departure_date'] ?? self::segmentDepartureIso($segment),
                 );
             }
 
@@ -468,6 +625,84 @@ final class FlightEticketPresenter
         }
 
         return $travelers;
+    }
+
+    /**
+     * @param  array<string, mixed>  $ticket
+     * @param  array<string, mixed>  $pax
+     */
+    /**
+     * @param  list<array<string, mixed>>  $tickets
+     * @return list<array<string, mixed>>
+     */
+    private static function referenceCoupons(array $tickets): array
+    {
+        foreach ($tickets as $ticket) {
+            if (! is_array($ticket)) {
+                continue;
+            }
+
+            $coupons = is_array($ticket['coupons'] ?? null) ? $ticket['coupons'] : [];
+            if ($coupons !== []) {
+                return $coupons;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $direction
+     * @param  array<string, mixed>|null  $coupon
+     * @return array<string, mixed>
+     */
+    private static function segmentForBarcode(array $direction, ?array $coupon): array
+    {
+        $fallback = is_array($direction['first_segment'] ?? null) ? $direction['first_segment'] : [];
+
+        if (! is_array($coupon) || trim((string) ($coupon['route'] ?? '')) === '') {
+            return $fallback;
+        }
+
+        [$from, $to] = self::parseCouponRoute((string) $coupon['route']);
+        $flight = trim((string) ($coupon['flight'] ?? ''));
+        $carrier = '';
+        $flightNumber = '';
+
+        if ($flight !== '' && preg_match('/^([A-Z0-9]{2,3})\s*(.*)$/i', $flight, $matches)) {
+            $carrier = strtoupper($matches[1]);
+            $flightNumber = trim($matches[2]);
+        }
+
+        if ($from === '' || $to === '' || $carrier === '') {
+            return $fallback;
+        }
+
+        return [
+            'from' => $from,
+            'to' => $to,
+            'carrier' => $carrier,
+            'flight_number' => $flightNumber,
+            'booking_code' => $coupon['booking_class'] ?? ($fallback['booking_code'] ?? 'Y'),
+            'departure_datetime' => $coupon['departure'] ?? ($fallback['departure_datetime'] ?? null),
+        ];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private static function parseCouponRoute(string $route): array
+    {
+        $route = strtoupper(trim($route));
+        if ($route === '') {
+            return ['', ''];
+        }
+
+        if (preg_match('/^([A-Z]{3})\s*(?:→|->|-)\s*([A-Z]{3})$/', $route, $matches)) {
+            return [$matches[1], $matches[2]];
+        }
+
+        return ['', ''];
     }
 
     /**

@@ -250,6 +250,7 @@ class TravelportSearchPresenter
 
         $pricingInfos = self::asList(data_get($pricePoint, 'AirPricingInfo'));
         $legs = [];
+        $seenLegSignatures = [];
         $rawSegments = [];
         $rawSegmentKeys = [];
         $validatingCarrier = null;
@@ -350,6 +351,14 @@ class TravelportSearchPresenter
                     }
 
                     if ($legSegments !== []) {
+                        $legSignature = self::legSignatureFromSegments($legSegments);
+                        if ($legSignature !== '' && isset($seenLegSignatures[$legSignature])) {
+                            continue;
+                        }
+                        if ($legSignature !== '') {
+                            $seenLegSignatures[$legSignature] = true;
+                        }
+
                         $elapsed = self::legElapsedMinutes($legSegments);
                         if ($elapsed <= 0) {
                             $elapsed = self::parseTravelTimeMinutes(self::attr($option, 'TravelTime'));
@@ -793,6 +802,30 @@ class TravelportSearchPresenter
                     strtoupper((string) ($segment['to'] ?? '')),
                 ]);
             }
+        }
+
+        return implode('|', $parts);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     */
+    private static function legSignatureFromSegments(array $segments): string
+    {
+        $parts = [];
+
+        foreach ($segments as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+
+            $parts[] = implode(':', [
+                strtoupper((string) ($segment['carrier'] ?? '')),
+                trim((string) ($segment['flight_number'] ?? '')),
+                (string) ($segment['departure_clock'] ?? ''),
+                strtoupper((string) ($segment['from'] ?? '')),
+                strtoupper((string) ($segment['to'] ?? '')),
+            ]);
         }
 
         return implode('|', $parts);

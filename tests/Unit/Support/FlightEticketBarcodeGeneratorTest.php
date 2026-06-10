@@ -59,4 +59,23 @@ class FlightEticketBarcodeGeneratorTest extends TestCase
             '2026-06-10',
         ));
     }
+
+    public function test_uses_segment_departure_datetime_when_booking_date_missing(): void
+    {
+        $bcbp = FlightEticketBarcodeGenerator::bcbpString(
+            'KHAN/MUHAMMAD',
+            '367AID',
+            [
+                'from' => 'KHI',
+                'to' => 'DXB',
+                'carrier' => 'EK',
+                'flight_number' => '601',
+                'booking_code' => 'L',
+                'departure_datetime' => '2026-06-25T10:15:00+00:00',
+            ],
+            null,
+        );
+
+        $this->assertIsString($bcbp);
+    }
 }

@@ -473,6 +473,7 @@
         $booking = $eticket['booking'] ?? [];
         $directions = $eticket['directions'] ?? [];
         $travelers = $eticket['travelers'] ?? [];
+        $baggage = $eticket['baggage'] ?? [];
         $includeFare = ! empty($eticket['include_fare']);
         $notes = $eticket['notes'] ?? [];
     @endphp
@@ -656,21 +657,23 @@
                     @endforeach
                 </tbody>
             </table>
-
-            <div class="baggage-box">
-                <div class="block-title in-box">BAGGAGE</div>
-                @if (!empty($direction['cabin_baggage']))
-                    <div class="baggage-line">Carry-On: {{ $direction['cabin_baggage'] }}</div>
-                @endif
-                @if (!empty($direction['check_in_baggage']))
-                    <div class="baggage-line">Baggage Allowance: {{ $direction['check_in_baggage'] }}</div>
-                @endif
-                @foreach ($direction['baggage_notes'] ?? [] as $note)
-                    <div class="baggage-line">{{ $note }}</div>
-                @endforeach
-            </div>
         </div>
     @endforeach
+
+    @if (!empty($baggage['cabin_baggage']) || !empty($baggage['check_in_baggage']) || !empty($baggage['notes']))
+        <div class="baggage-box">
+            <div class="block-title in-box">BAGGAGE</div>
+            @if (!empty($baggage['cabin_baggage']))
+                <div class="baggage-line">Carry-On: {{ $baggage['cabin_baggage'] }}</div>
+            @endif
+            @if (!empty($baggage['check_in_baggage']))
+                <div class="baggage-line">Baggage Allowance: {{ $baggage['check_in_baggage'] }}</div>
+            @endif
+            @foreach ($baggage['notes'] ?? [] as $note)
+                <div class="baggage-line">{{ $note }}</div>
+            @endforeach
+        </div>
+    @endif
 
     @if ($includeFare)
         @php
