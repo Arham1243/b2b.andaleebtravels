@@ -66,6 +66,9 @@
                 return;
             }
 
+            display.setAttribute('autocomplete', 'off');
+            hidden.setAttribute('autocomplete', 'off');
+
             if (hidden.value) {
                 setCountryField(wrap, hidden.value, byCode);
             }

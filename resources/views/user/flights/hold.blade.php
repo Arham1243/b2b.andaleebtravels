@@ -97,7 +97,7 @@
                 </div>
             @endif
 
-            <form id="holdForm" action="{{ route('user.flights.hold.process') }}" method="POST" novalidate>
+            <form id="holdForm" action="{{ route('user.flights.hold.process') }}" method="POST" novalidate autocomplete="off">
                 @csrf
                 <input type="hidden" name="itinerary_id" value="{{ $itineraryId }}">
                 <input type="hidden" name="fare_option" value="{{ $selectedFareIndex ?? 0 }}">

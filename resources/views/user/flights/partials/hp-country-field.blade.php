@@ -12,11 +12,19 @@
             class="hp-input hp-country-ac-display{{ $errors->has($errorKey) ? ' is-invalid' : '' }}"
             placeholder="Type country name or code"
             autocomplete="off"
-            aria-label="{{ $fieldLabel }}">
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            data-lpignore="true"
+            data-1p-ignore
+            aria-label="{{ $fieldLabel }}"
+            readonly
+            onfocus="this.removeAttribute('readonly');">
         <input type="hidden"
             class="hp-country-ac-value"
             name="{{ $fieldName }}"
             value="{{ $fieldValue }}"
+            autocomplete="off"
             @if ($isRequired) required @endif>
         <div class="hp-ac-dropdown hp-country-ac-dropdown" hidden></div>
     </div>
