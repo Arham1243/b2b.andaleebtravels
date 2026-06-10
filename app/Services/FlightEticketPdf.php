@@ -84,7 +84,11 @@ final class FlightEticketPdf
     public static function pdf(array $payload)
     {
         return Pdf::loadView('pdfs.flight-eticket', ['eticket' => $payload])
-            ->setPaper('a4', 'portrait');
+            ->setOptions([
+                'isRemoteEnabled' => true,
+                'chroot' => public_path(),
+            ])
+            ->setPaper('letter', 'portrait');
     }
 
     /**
