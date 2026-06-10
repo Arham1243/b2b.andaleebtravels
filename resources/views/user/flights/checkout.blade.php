@@ -170,25 +170,11 @@
 
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="ADT">
                                 <div class="row g-3 hp-pax-fields">
-                                    <div class="col-md-2">
-                                        <label class="hp-label">Title <span class="hp-req">*</span></label>
-                                        <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
-                                            <option value="Mr">Mr.</option>
-                                            <option value="Mrs">Mrs.</option>
-                                            <option value="Ms">Ms.</option>
-                                            <option value="Dr">Dr.</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="hp-label">First Name <span class="hp-req">*</span></label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]"
-                                            placeholder="Enter first name" required autocomplete="given-name">
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="hp-label">Last Name <span class="hp-req">*</span></label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]"
-                                            placeholder="Enter last name" required autocomplete="family-name">
-                                    </div>
+                                    @include('user.flights.partials.hp-pax-input-fields', [
+                                        'pIndex' => $pIndex,
+                                        'titleOptions' => ['Mr' => 'Mr.', 'Mrs' => 'Mrs.', 'Ms' => 'Ms.', 'Dr' => 'Dr.'],
+                                        'defaultTitle' => 'Mr',
+                                    ])
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'required' => $requireTravelportDob,
@@ -206,8 +192,12 @@
                                     ])
                                     <div class="col-md-4">
                                         <label class="hp-label">Passport Number</label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]"
+                                        <input type="text" class="hp-input{{ $errors->has('passengers.'.$pIndex.'.passport_no') ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][passport_no]"
+                                            value="{{ old('passengers.'.$pIndex.'.passport_no') }}"
                                             placeholder="Passport number">
+                                        @if ($errors->has('passengers.'.$pIndex.'.passport_no'))
+                                            <span class="hp-field-error">{{ $errors->first('passengers.'.$pIndex.'.passport_no') }}</span>
+                                        @endif
                                     </div>
                                     @include('user.flights.partials.hp-passport-expiry-field', [
                                         'pIndex' => $pIndex,
@@ -216,7 +206,7 @@
                                     ])
                                     <div class="col-12">
                                         <label class="hp-save-check">
-                                            <input type="checkbox" name="passengers[{{ $pIndex }}][save_profile]" value="1">
+                                            <input type="checkbox" name="passengers[{{ $pIndex }}][save_profile]" value="1" @checked(old('passengers.'.$pIndex.'.save_profile'))>
                                             <span>Save this passenger to my profile for future bookings</span>
                                         </label>
                                     </div>
@@ -236,21 +226,11 @@
                                 </div>
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="C06">
                                 <div class="row g-3 hp-pax-fields">
-                                    <div class="col-md-2">
-                                        <label class="hp-label">Title <span class="hp-req">*</span></label>
-                                        <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
-                                            <option value="Mstr">Mstr.</option>
-                                            <option value="Miss">Miss</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="hp-label">First Name <span class="hp-req">*</span></label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]" placeholder="Enter first name" required>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="hp-label">Last Name <span class="hp-req">*</span></label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" placeholder="Enter last name" required>
-                                    </div>
+                                    @include('user.flights.partials.hp-pax-input-fields', [
+                                        'pIndex' => $pIndex,
+                                        'titleOptions' => ['Mstr' => 'Mstr.', 'Miss' => 'Miss'],
+                                        'defaultTitle' => 'Mstr',
+                                    ])
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'required' => $requireTravelportDob,
@@ -267,7 +247,12 @@
                                     ])
                                     <div class="col-md-4">
                                         <label class="hp-label">Passport Number</label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]" placeholder="Passport number">
+                                        <input type="text" class="hp-input{{ $errors->has('passengers.'.$pIndex.'.passport_no') ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][passport_no]"
+                                            value="{{ old('passengers.'.$pIndex.'.passport_no') }}"
+                                            placeholder="Passport number">
+                                        @if ($errors->has('passengers.'.$pIndex.'.passport_no'))
+                                            <span class="hp-field-error">{{ $errors->first('passengers.'.$pIndex.'.passport_no') }}</span>
+                                        @endif
                                     </div>
                                     @include('user.flights.partials.hp-passport-expiry-field', [
                                         'pIndex' => $pIndex,
@@ -290,21 +275,11 @@
                                 </div>
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="INF">
                                 <div class="row g-3 hp-pax-fields">
-                                    <div class="col-md-2">
-                                        <label class="hp-label">Title <span class="hp-req">*</span></label>
-                                        <select class="hp-select" name="passengers[{{ $pIndex }}][title]" required>
-                                            <option value="Mstr">Mstr.</option>
-                                            <option value="Miss">Miss</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="hp-label">First Name <span class="hp-req">*</span></label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][first_name]" placeholder="Enter first name" required>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="hp-label">Last Name <span class="hp-req">*</span></label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][last_name]" placeholder="Enter last name" required>
-                                    </div>
+                                    @include('user.flights.partials.hp-pax-input-fields', [
+                                        'pIndex' => $pIndex,
+                                        'titleOptions' => ['Mstr' => 'Mstr.', 'Miss' => 'Miss'],
+                                        'defaultTitle' => 'Mstr',
+                                    ])
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'required' => $requireTravelportDob,
@@ -321,7 +296,12 @@
                                     ])
                                     <div class="col-md-4">
                                         <label class="hp-label">Passport Number</label>
-                                        <input type="text" class="hp-input" name="passengers[{{ $pIndex }}][passport_no]" placeholder="Passport number">
+                                        <input type="text" class="hp-input{{ $errors->has('passengers.'.$pIndex.'.passport_no') ? ' is-invalid' : '' }}" name="passengers[{{ $pIndex }}][passport_no]"
+                                            value="{{ old('passengers.'.$pIndex.'.passport_no') }}"
+                                            placeholder="Passport number">
+                                        @if ($errors->has('passengers.'.$pIndex.'.passport_no'))
+                                            <span class="hp-field-error">{{ $errors->first('passengers.'.$pIndex.'.passport_no') }}</span>
+                                        @endif
                                     </div>
                                     @include('user.flights.partials.hp-passport-expiry-field', [
                                         'pIndex' => $pIndex,
@@ -350,13 +330,21 @@
                             <div class="row g-3 hp-pax-fields">
                                 <div class="col-md-6">
                                     <label class="hp-label">Phone <span class="hp-req">*</span></label>
-                                    <input type="tel" class="hp-input" name="lead[phone]"
+                                    <input type="tel" class="hp-input{{ $errors->has('lead.phone') ? ' is-invalid' : '' }}" name="lead[phone]"
+                                        value="{{ old('lead.phone') }}"
                                         placeholder="+971 50 000 0000" required autocomplete="tel">
+                                    @if ($errors->has('lead.phone'))
+                                        <span class="hp-field-error">{{ $errors->first('lead.phone') }}</span>
+                                    @endif
                                 </div>
                                 <div class="col-md-6">
                                     <label class="hp-label">Email <span class="hp-req">*</span></label>
-                                    <input type="email" class="hp-input" name="lead[email]"
+                                    <input type="email" class="hp-input{{ $errors->has('lead.email') ? ' is-invalid' : '' }}" name="lead[email]"
+                                        value="{{ old('lead.email') }}"
                                         placeholder="" required autocomplete="email">
+                                    @if ($errors->has('lead.email'))
+                                        <span class="hp-field-error">{{ $errors->first('lead.email') }}</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -380,7 +368,7 @@
                             @if ($walletBalance > 0)
                                 <div class="hcf-wallet-toggle" id="wallet-toggle-section">
                                     <label class="hcf-wallet-toggle__label">
-                                        <input type="checkbox" id="use-wallet" name="use_wallet" value="1">
+                                        <input type="checkbox" id="use-wallet" name="use_wallet" value="1" @checked(old('use_wallet'))>
                                         <div class="hcf-wallet-toggle__body">
                                             <div class="hcf-wallet-toggle__left">
                                                 <div class="hcf-pay-icon"><i class="bx bxs-wallet"></i></div>
@@ -406,17 +394,17 @@
                                             <span><span class="dirham">{{ $currency }}</span> <span id="remaining-amount">0.00</span></span>
                                         </div>
                                     </div>
-                                    <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="0">
+                                    <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="{{ old('wallet_amount', '0') }}">
                                 </div>
                             @endif
 
-                            <input type="hidden" name="payment_method" id="payment-method-input" value="payby">
+                            <input type="hidden" name="payment_method" id="payment-method-input" value="{{ old('payment_method', 'payby') }}">
 
                             <div class="hcf-payment-remaining" id="remaining-payment-section">
                                 <div class="hcf-payment-remaining__title" id="remaining-payment-title">Select Payment Method</div>
                                 <div class="hcf-payment-options">
                                     <label class="hcf-payment-option">
-                                        <input type="radio" class="js-payment-method-option" value="payby" checked>
+                                        <input type="radio" class="js-payment-method-option" value="payby" @checked(old('payment_method', 'payby') === 'payby')>
                                         <div class="hcf-payment-option__body">
                                             <div class="hcf-pay-icon"><i class="bx bxs-credit-card"></i></div>
                                             <div class="hcf-pay-info">
@@ -427,7 +415,7 @@
                                         </div>
                                     </label>
                                     <label class="hcf-payment-option">
-                                        <input type="radio" class="js-payment-method-option" value="tabby">
+                                        <input type="radio" class="js-payment-method-option" value="tabby" @checked(old('payment_method') === 'tabby')>
                                         <div class="hcf-payment-option__body">
                                             <div class="hcf-pay-icon"><i class="bx bx-calendar-check"></i></div>
                                             <div class="hcf-pay-info">
@@ -438,7 +426,7 @@
                                         </div>
                                     </label>
                                     <label class="hcf-payment-option">
-                                        <input type="radio" class="js-payment-method-option" value="tamara">
+                                        <input type="radio" class="js-payment-method-option" value="tamara" @checked(old('payment_method') === 'tamara')>
                                         <div class="hcf-payment-option__body">
                                             <div class="hcf-pay-icon"><i class="bx bx-wallet-alt"></i></div>
                                             <div class="hcf-pay-info">
@@ -738,6 +726,13 @@
             document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
                 radio.addEventListener('change', recalc);
             });
+
+            const oldPaymentMethod = @json(old('payment_method', 'payby'));
+            if (oldPaymentMethod && oldPaymentMethod !== 'wallet') {
+                document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
+                    radio.checked = radio.value === oldPaymentMethod;
+                });
+            }
 
             recalc();
 
