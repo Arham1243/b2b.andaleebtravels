@@ -129,8 +129,6 @@
             width: 100%;
             border-collapse: collapse;
             background: #e5e7eb;
-            border: 1px solid #cbd5e1;
-            border-bottom: none;
         }
 
         table.direction-head td {
@@ -160,10 +158,14 @@
             font-weight: normal;
             line-height: 1.3;
             vertical-align: middle;
+            white-space: nowrap;
+            display: inline-block;
         }
 
         table.direction-head .ref-pill__key {
             margin-right: 4px;
+            display: inline;
+            white-space: nowrap;
         }
 
         .direction-route {
@@ -379,7 +381,6 @@
             font-weight: normal;
             color: #333;
             background: #fafafa;
-            line-height: 1.6;
         }
 
         .baggage-box .title {
@@ -390,8 +391,8 @@
         }
 
         .baggage-box .baggage-line {
-            margin-bottom: 8px;
-            line-height: 1.65;
+            margin-bottom: 3px;
+            line-height: 1.35;
         }
 
         .baggage-box .baggage-line:last-child {
@@ -523,14 +524,10 @@
                     <td class="direction-head__label-cell">{{ $direction['label'] ?? 'FLIGHT' }}</td>
                     <td class="direction-head__refs-cell">
                         @if (!empty($direction['airline_ref']))
-                            <span class="ref-pill">
-                                <span class="ref-pill__key">Airline Ref:</span>{{ $direction['airline_ref'] }}
-                            </span>
+                            <span class="ref-pill">Airline Ref: {{ $direction['airline_ref'] }}</span>
                         @endif
                         @if (!empty($direction['crs_ref']))
-                            <span class="ref-pill">
-                                <span class="ref-pill__key">CRS Ref:</span>{{ $direction['crs_ref'] }}
-                            </span>
+                            <span class="ref-pill">CRS Ref: {{ $direction['crs_ref'] }}</span>
                         @endif
                     </td>
                 </tr>
