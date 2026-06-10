@@ -476,6 +476,7 @@
         $baggage = $eticket['baggage'] ?? [];
         $includeFare = ! empty($eticket['include_fare']);
         $notes = $eticket['notes'] ?? [];
+        $showPassport = collect($travelers)->contains(fn ($traveler) => ! empty($traveler['passport'] ?? null));
     @endphp
 
     <table class="header-table" cellpadding="0" cellspacing="0">
@@ -633,9 +634,12 @@
             <table class="traveler-table traveler-table--attached">
                 <thead>
                     <tr>
-                        <th width="22%">Code</th>
-                        <th width="48%">Name</th>
-                        <th width="30%" class="ticket-col">Ticket No.</th>
+                        <th width="{{ $showPassport ? '18%' : '22%' }}">Code</th>
+                        <th width="{{ $showPassport ? '30%' : '48%' }}">Name</th>
+                        @if ($showPassport)
+                            <th width="22%">Passport</th>
+                        @endif
+                        <th width="{{ $showPassport ? '30%' : '30%' }}" class="ticket-col">Ticket No.</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -652,6 +656,9 @@
                                 @endif
                             </td>
                             <td><span class="traveler-name">{{ $traveler['name'] ?? '—' }}</span></td>
+                            @if ($showPassport)
+                                <td><span class="ticket-no">{{ $traveler['passport'] ?? '—' }}</span></td>
+                            @endif
                             <td class="ticket-col"><span class="ticket-no">{{ $traveler['ticket_number'] ?? '—' }}</span></td>
                         </tr>
                     @endforeach

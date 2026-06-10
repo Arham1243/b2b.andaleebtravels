@@ -13,7 +13,7 @@ final class FlightEticketPresenter
      */
     public static function separate(B2bFlightBooking $booking, array $ticketDetails, bool $includeFare = true): array
     {
-        $shared = self::sharedContext($booking, $includeFare);
+        $shared = self::sharedContext($booking, $includeFare, $ticketDetails);
         $travelers = self::buildTravelers($booking, $ticketDetails);
 
         if ($travelers === []) {
@@ -46,7 +46,7 @@ final class FlightEticketPresenter
         )));
 
         return [
-            ...self::sharedContext($booking, $includeFare),
+            ...self::sharedContext($booking, $includeFare, $ticketDetails),
             'travelers' => $travelers,
             'filename_ticket_number' => $numbers[0] ?? 'eticket',
         ];
@@ -55,13 +55,17 @@ final class FlightEticketPresenter
     /**
      * @return array<string, mixed>
      */
-    private static function sharedContext(B2bFlightBooking $booking, bool $includeFare): array
+    /**
+     * @param  array{source: ?string, error: ?string, tickets: list<array<string, mixed>>}  $ticketDetails
+     */
+    private static function sharedContext(B2bFlightBooking $booking, bool $includeFare, array $ticketDetails = []): array
     {
         $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
         $legs = is_array($itinerary['legs'] ?? null) ? $itinerary['legs'] : [];
         $baggage = is_array($itinerary['baggage_details'] ?? null) ? $itinerary['baggage_details'] : [];
+        $coupons = self::referenceCoupons(is_array($ticketDetails['tickets'] ?? null) ? $ticketDetails['tickets'] : []);
 
-        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary);
+        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary, $coupons);
 
         return [
             'agency' => self::agencyBlock(),
@@ -109,11 +113,19 @@ final class FlightEticketPresenter
      * @param  array<string, mixed>  $itinerary
      * @return list<array<string, mixed>>
      */
-    private static function buildDirections(B2bFlightBooking $booking, array $legs, array $baggage, array $itinerary): array
-    {
+    /**
+     * @param  list<array<string, mixed>>  $coupons
+     */
+    private static function buildDirections(
+        B2bFlightBooking $booking,
+        array $legs,
+        array $baggage,
+        array $itinerary,
+        array $coupons = [],
+    ): array {
         $directions = [];
 
-        foreach (self::dedupeLegs($legs) as $index => $leg) {
+        foreach (FlightItineraryLegsNormalizer::normalize($legs, $booking, $coupons) as $index => $leg) {
             if (! is_array($leg)) {
                 continue;
             }
@@ -148,61 +160,6 @@ final class FlightEticketPresenter
         }
 
         return $directions;
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $legs
-     * @return list<array<string, mixed>>
-     */
-    private static function dedupeLegs(array $legs): array
-    {
-        $unique = [];
-        $seen = [];
-
-        foreach ($legs as $leg) {
-            if (! is_array($leg)) {
-                continue;
-            }
-
-            $segments = is_array($leg['segments'] ?? null) ? $leg['segments'] : [];
-            $signature = self::legSignature($segments);
-            if ($signature !== '' && isset($seen[$signature])) {
-                continue;
-            }
-
-            if ($signature !== '') {
-                $seen[$signature] = true;
-            }
-
-            $unique[] = $leg;
-        }
-
-        return $unique;
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $segments
-     */
-    private static function legSignature(array $segments): string
-    {
-        $parts = [];
-
-        foreach ($segments as $segment) {
-            if (! is_array($segment)) {
-                continue;
-            }
-
-            $parts[] = implode(':', [
-                strtoupper(trim((string) ($segment['carrier'] ?? ''))),
-                trim((string) ($segment['flight_number'] ?? '')),
-                trim((string) ($segment['departure_clock'] ?? '')),
-                strtoupper(trim((string) ($segment['from'] ?? ''))),
-                strtoupper(trim((string) ($segment['to'] ?? ''))),
-                trim((string) ($segment['departure_datetime'] ?? '')),
-            ]);
-        }
-
-        return implode('|', $parts);
     }
 
     /**
@@ -579,8 +536,8 @@ final class FlightEticketPresenter
         $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
         $legs = is_array($itinerary['legs'] ?? null) ? $itinerary['legs'] : [];
         $baggage = is_array($itinerary['baggage_details'] ?? null) ? $itinerary['baggage_details'] : [];
-        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary);
         $referenceCoupons = self::referenceCoupons($tickets);
+        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary, $referenceCoupons);
 
         $travelers = [];
 
@@ -613,6 +570,7 @@ final class FlightEticketPresenter
             $travelers[] = [
                 'name' => $name,
                 'ticket_number' => $ticketNumber,
+                'passport' => self::formatPassportLabel($pax),
                 'direction_barcodes' => $directionBarcodes,
                 'fare' => [
                     'total' => $ticket['total_price'] ?? null,
@@ -703,6 +661,28 @@ final class FlightEticketPresenter
         }
 
         return ['', ''];
+    }
+
+    /**
+     * @param  array<string, mixed>  $pax
+     */
+    private static function formatPassportLabel(array $pax): ?string
+    {
+        $number = trim((string) ($pax['passport_no'] ?? ''));
+        if ($number === '') {
+            return null;
+        }
+
+        $expiry = trim((string) ($pax['passport_exp'] ?? ''));
+        if ($expiry === '') {
+            return strtoupper($number);
+        }
+
+        try {
+            return strtoupper($number) . ' (exp ' . Carbon::parse($expiry)->format('d M Y') . ')';
+        } catch (\Throwable) {
+            return strtoupper($number);
+        }
     }
 
     /**

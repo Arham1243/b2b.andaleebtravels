@@ -9,7 +9,7 @@
     $status     = $booking->displayBookingStatus();
     $isHold     = $booking->isOnHold();
     $isRound    = !empty($booking->return_date);
-    $legs       = $booking->itinerary_data['legs'] ?? [];
+    $legs       = $legs ?? ($booking->itinerary_data['legs'] ?? []);
     $passengers = $booking->passengers_data['passengers'] ?? [];
     $lead       = $booking->passengers_data['lead'] ?? [];
     $totalPax   = max(1, $booking->adults + $booking->children + $booking->infants);

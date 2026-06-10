@@ -265,6 +265,7 @@ class TravelportSearchPresenter
         $taxes = null;
         $primaryFareInfo = null;
         $primaryPricingInfo = null;
+        $legsCollected = false;
 
         foreach ($pricingInfos as $pricingInfo) {
             if (! is_array($pricingInfo)) {
@@ -289,6 +290,19 @@ class TravelportSearchPresenter
             if ($primaryFareInfo !== null) {
                 $fareBasis = $fareBasis ?: self::attr($primaryFareInfo, 'FareBasis');
                 $fareBrand = $fareBrand ?: self::resolveBrandName($primaryFareInfo, $brandsByKey);
+            }
+
+            if ($legsCollected) {
+                $fareInfos = self::asList(data_get($pricingInfo, 'FareInfo'));
+                foreach ($fareInfos as $fareInfo) {
+                    if (! is_array($fareInfo)) {
+                        continue;
+                    }
+                    $fareBasis = $fareBasis ?: self::attr($fareInfo, 'FareBasis');
+                    $fareBrand = $fareBrand ?: self::resolveBrandName($fareInfo, $brandsByKey);
+                }
+
+                continue;
             }
 
             $flightOptions = self::asList(data_get($pricingInfo, 'FlightOptionsList.FlightOption'));
@@ -374,6 +388,10 @@ class TravelportSearchPresenter
                         ];
                     }
                 }
+            }
+
+            if ($legs !== []) {
+                $legsCollected = true;
             }
 
             $fareInfos = self::asList(data_get($pricingInfo, 'FareInfo'));
