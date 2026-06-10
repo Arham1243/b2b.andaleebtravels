@@ -160,7 +160,7 @@ class TravelportAirPriceParser
         $segmentRefs = array_unique(array_filter(array_column($pd['booking_infos'], 'segment_ref')));
         if ($segmentRefs === []) {
             preg_match_all('/<air:AirSegmentRef\s+Key="([^"]+)"/i', $solutionXml, $refMatches);
-            $segmentRefs = $refMatches[1] ?? [];
+            $segmentRefs = array_values(array_unique($refMatches[1] ?? []));
         }
 
         $addedSegmentKeys = [];
@@ -207,8 +207,32 @@ class TravelportAirPriceParser
             }
         }
         $pd['taxes_xml'] = $taxInfoXml;
+        $pd['segments'] = self::dedupeSegmentsByKey($pd['segments']);
 
         return $pd;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     * @return list<array<string, mixed>>
+     */
+    private static function dedupeSegmentsByKey(array $segments): array
+    {
+        $unique = [];
+        $seenKeys = [];
+        foreach ($segments as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+            $key = (string) ($segment['key'] ?? '');
+            if ($key === '' || isset($seenKeys[$key])) {
+                continue;
+            }
+            $seenKeys[$key] = true;
+            $unique[] = $segment;
+        }
+
+        return $unique;
     }
 
     /**

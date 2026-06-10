@@ -482,8 +482,10 @@ class TravelportBookingService
             if ($segmentRef === '' || ! in_array($segmentRef, $segmentKeys, true)) {
                 continue;
             }
-            if (! isset($bookingInfos[$segmentRef])) {
-                $bookingInfos[$segmentRef] = $bookingInfo;
+            $fareInfoRef = (string) ($bookingInfo['fare_info_ref'] ?? '');
+            $bookingKey = $fareInfoRef !== '' ? $fareInfoRef : $segmentRef;
+            if (! isset($bookingInfos[$bookingKey])) {
+                $bookingInfos[$bookingKey] = $bookingInfo;
             }
         }
         $pricingData['booking_infos'] = array_values($bookingInfos);

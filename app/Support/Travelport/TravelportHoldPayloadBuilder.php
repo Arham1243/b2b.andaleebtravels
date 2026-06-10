@@ -10,6 +10,7 @@ class TravelportHoldPayloadBuilder
     public static function buildAirPriceSegments(array $itineraryData): array
     {
         $segments = [];
+        $seenKeys = [];
         $rawSegments = $itineraryData['travelport_segments'] ?? [];
         $defaultBookingCode = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
 
@@ -18,11 +19,16 @@ class TravelportHoldPayloadBuilder
                 continue;
             }
             $attrs = self::segmentAttributes($seg);
+            $segmentKey = (string) ($attrs['Key'] ?? '');
+            if ($segmentKey === '' || isset($seenKeys[$segmentKey])) {
+                continue;
+            }
+            $seenKeys[$segmentKey] = true;
             $bookingCode = strtoupper(trim((string) ($seg['booking_code'] ?? $defaultBookingCode)));
             $classOfService = $bookingCode !== '' ? $bookingCode : ($attrs['ClassOfService'] ?? '');
 
             $segments[] = [
-                'Key' => (string) ($attrs['Key'] ?? ''),
+                'Key' => $segmentKey,
                 'Group' => (string) ($attrs['Group'] ?? '0'),
                 'ProviderCode' => (string) ($attrs['ProviderCode'] ?? '1G'),
                 'Carrier' => (string) ($attrs['Carrier'] ?? ''),

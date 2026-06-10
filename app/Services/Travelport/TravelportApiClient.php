@@ -140,39 +140,7 @@ XML;
         $airNs = self::AIR_NS;
         $comNs = self::COM_NS;
 
-        $airSegmentsXml = '';
-        foreach ($segments as $seg) {
-            $key = $this->xmlEsc((string) ($seg['Key'] ?? ''));
-            $group = $this->xmlEsc((string) ($seg['Group'] ?? '0'));
-            $provider = $this->xmlEsc((string) ($seg['ProviderCode'] ?? self::PROVIDER_CODE));
-            $carrier = $this->xmlEsc((string) ($seg['Carrier'] ?? ''));
-            $flightNumber = $this->xmlEsc((string) ($seg['FlightNumber'] ?? ''));
-            $origin = $this->xmlEsc((string) ($seg['Origin'] ?? ''));
-            $destination = $this->xmlEsc((string) ($seg['Destination'] ?? ''));
-            $departure = $this->xmlEsc((string) ($seg['DepartureTime'] ?? ''));
-            $arrival = $this->xmlEsc((string) ($seg['ArrivalTime'] ?? ''));
-            $classOfService = $this->xmlEsc((string) ($seg['ClassOfService'] ?? ''));
-            $equipment = $this->xmlEsc((string) ($seg['Equipment'] ?? '320'));
-
-            $airSegmentsXml .= <<<XML
-
-                    <air:AirSegment
-                        Key="{$key}"
-                        Group="{$group}"
-                        ProviderCode="{$provider}"
-                        Carrier="{$carrier}"
-                        FlightNumber="{$flightNumber}"
-                        Origin="{$origin}"
-                        Destination="{$destination}"
-                        DepartureTime="{$departure}"
-                        ArrivalTime="{$arrival}"
-                        ClassOfService="{$classOfService}"
-                        Status="SS"
-                        SeatAvail="Available"
-                        ETicketability="Yes"
-                        Equipment="{$equipment}"/>
-XML;
-        }
+        $airSegmentsXml = $this->buildAirPriceSegmentsXml($segments);
 
         $passengersXml = '';
         $travelerIdx = 1;
@@ -237,39 +205,7 @@ XML;
         $airNs = self::AIR_NS;
         $comNs = self::COM_NS;
 
-        $airSegmentsXml = '';
-        foreach ($segments as $seg) {
-            $key = $this->xmlEsc((string) ($seg['Key'] ?? ''));
-            $group = $this->xmlEsc((string) ($seg['Group'] ?? '0'));
-            $provider = $this->xmlEsc((string) ($seg['ProviderCode'] ?? self::PROVIDER_CODE));
-            $carrier = $this->xmlEsc((string) ($seg['Carrier'] ?? ''));
-            $flightNumber = $this->xmlEsc((string) ($seg['FlightNumber'] ?? ''));
-            $origin = $this->xmlEsc((string) ($seg['Origin'] ?? ''));
-            $destination = $this->xmlEsc((string) ($seg['Destination'] ?? ''));
-            $departure = $this->xmlEsc($this->normalizeTravelportTime((string) ($seg['DepartureTime'] ?? '')));
-            $arrival = $this->xmlEsc($this->normalizeTravelportTime((string) ($seg['ArrivalTime'] ?? '')));
-            $classOfService = $this->xmlEsc((string) ($seg['ClassOfService'] ?? ''));
-            $equipment = $this->xmlEsc((string) ($seg['Equipment'] ?? '320'));
-
-            $airSegmentsXml .= <<<XML
-
-                    <air:AirSegment
-                        Key="{$key}"
-                        Group="{$group}"
-                        ProviderCode="{$provider}"
-                        Carrier="{$carrier}"
-                        FlightNumber="{$flightNumber}"
-                        Origin="{$origin}"
-                        Destination="{$destination}"
-                        DepartureTime="{$departure}"
-                        ArrivalTime="{$arrival}"
-                        ClassOfService="{$classOfService}"
-                        Status="SS"
-                        SeatAvail="Available"
-                        ETicketability="Yes"
-                        Equipment="{$equipment}"/>
-XML;
-        }
+        $airSegmentsXml = $this->buildAirPriceSegmentsXml($segments, true);
 
         $passengersXml = '';
         $travelerIdx = 1;
@@ -372,11 +308,17 @@ XML;
         }
 
         $segmentsXml = '';
+        $seenSegmentKeys = [];
         foreach ($pricingData['segments'] as $segment) {
             if (! is_array($segment)) {
                 continue;
             }
-            $segKey = $this->xmlEsc((string) ($segment['key'] ?? ''));
+            $segKey = (string) ($segment['key'] ?? '');
+            if ($segKey === '' || isset($seenSegmentKeys[$segKey])) {
+                continue;
+            }
+            $seenSegmentKeys[$segKey] = true;
+            $segKey = $this->xmlEsc($segKey);
             $group = $this->xmlEsc((string) ($segment['group'] ?? '0'));
             $carrier = $this->xmlEsc((string) ($segment['carrier'] ?? ''));
             $flightNumber = $this->xmlEsc((string) ($segment['flight_number'] ?? ''));
@@ -1028,6 +970,60 @@ XML;
 {$indent}    <CreditCard Type="{$cardType}" Number="{$cardNumber}" ExpDate="{$cardExp}" CVV="{$cardCvv}" Name="{$cardHolder}"/>
 {$indent}</FormOfPayment>
 XML;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $segments
+     */
+    private function buildAirPriceSegmentsXml(array $segments, bool $normalizeTimes = false): string
+    {
+        $airSegmentsXml = '';
+        $seenKeys = [];
+        foreach ($segments as $seg) {
+            if (! is_array($seg)) {
+                continue;
+            }
+            $key = (string) ($seg['Key'] ?? '');
+            if ($key === '' || isset($seenKeys[$key])) {
+                continue;
+            }
+            $seenKeys[$key] = true;
+
+            $key = $this->xmlEsc($key);
+            $group = $this->xmlEsc((string) ($seg['Group'] ?? '0'));
+            $provider = $this->xmlEsc((string) ($seg['ProviderCode'] ?? self::PROVIDER_CODE));
+            $carrier = $this->xmlEsc((string) ($seg['Carrier'] ?? ''));
+            $flightNumber = $this->xmlEsc((string) ($seg['FlightNumber'] ?? ''));
+            $origin = $this->xmlEsc((string) ($seg['Origin'] ?? ''));
+            $destination = $this->xmlEsc((string) ($seg['Destination'] ?? ''));
+            $departureRaw = (string) ($seg['DepartureTime'] ?? '');
+            $arrivalRaw = (string) ($seg['ArrivalTime'] ?? '');
+            $departure = $this->xmlEsc($normalizeTimes ? $this->normalizeTravelportTime($departureRaw) : $departureRaw);
+            $arrival = $this->xmlEsc($normalizeTimes ? $this->normalizeTravelportTime($arrivalRaw) : $arrivalRaw);
+            $classOfService = $this->xmlEsc((string) ($seg['ClassOfService'] ?? ''));
+            $equipment = $this->xmlEsc((string) ($seg['Equipment'] ?? '320'));
+
+            $airSegmentsXml .= <<<XML
+
+                    <air:AirSegment
+                        Key="{$key}"
+                        Group="{$group}"
+                        ProviderCode="{$provider}"
+                        Carrier="{$carrier}"
+                        FlightNumber="{$flightNumber}"
+                        Origin="{$origin}"
+                        Destination="{$destination}"
+                        DepartureTime="{$departure}"
+                        ArrivalTime="{$arrival}"
+                        ClassOfService="{$classOfService}"
+                        Status="SS"
+                        SeatAvail="Available"
+                        ETicketability="Yes"
+                        Equipment="{$equipment}"/>
+XML;
+        }
+
+        return $airSegmentsXml;
     }
 
     private function xmlEsc(string $value, bool $escapeQuotes = true): string

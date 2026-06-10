@@ -251,6 +251,7 @@ class TravelportSearchPresenter
         $pricingInfos = self::asList(data_get($pricePoint, 'AirPricingInfo'));
         $legs = [];
         $rawSegments = [];
+        $rawSegmentKeys = [];
         $validatingCarrier = null;
         $fareBasis = null;
         $fareBrand = null;
@@ -342,7 +343,10 @@ class TravelportSearchPresenter
 
                         $built = self::buildSegment($segmentNode, $bookingCode, $cabinClass);
                         $legSegments[] = $built;
-                        $rawSegments[] = array_merge($segmentNode, ['booking_code' => $bookingCode]);
+                        if (! isset($rawSegmentKeys[$segmentRef])) {
+                            $rawSegmentKeys[$segmentRef] = true;
+                            $rawSegments[] = array_merge($segmentNode, ['booking_code' => $bookingCode]);
+                        }
                     }
 
                     if ($legSegments !== []) {
