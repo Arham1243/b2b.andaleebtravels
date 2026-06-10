@@ -69,9 +69,6 @@ final class FlightEticketPresenter
                 'pnr' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
                 'airline_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
                 'crs_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
-                'view_url' => $booking->id
-                    ? route('user.bookings.flights.detail', $booking->id, absolute: true)
-                    : null,
             ],
             'include_fare' => $includeFare,
             'directions' => self::buildDirections($booking, $legs, $baggage, $itinerary),

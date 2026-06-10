@@ -94,22 +94,6 @@
             color: #111;
         }
 
-        .doc-details-table .btn-web-row td {
-            padding-top: 6px;
-            padding-bottom: 14px;
-        }
-
-        .btn-web {
-            display: inline-block;
-            padding: 6px 14px;
-            background: #cd1b4f;
-            color: #fff !important;
-            text-decoration: none;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-
         .direction-block {
             margin-bottom: 16px;
             page-break-inside: avoid;
@@ -402,14 +386,6 @@
                         <tr>
                             <td>CRS Ref:</td>
                             <td><strong>{{ $booking['crs_ref'] }}</strong></td>
-                        </tr>
-                    @endif
-                    @if (!empty($booking['view_url']))
-                        <tr class="btn-web-row">
-                            <td></td>
-                            <td>
-                                <a target="_blank" href="{{ $booking['view_url'] }}" class="btn-web">View Online</a>
-                            </td>
                         </tr>
                     @endif
                 </table>
