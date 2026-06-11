@@ -2126,9 +2126,42 @@
             background: var(--fs-canvas);
         }
 
-        .fs-pro-enterprise .paxs-item--child-age {
-            flex-wrap: wrap;
-            gap: 0.35rem 0.75rem;
+        .fs-pro-enterprise .fs-pro-child-panel {
+            margin-top: 0.65rem;
+            padding-top: 0.65rem;
+            border-top: 1px dashed var(--fs-line);
+        }
+
+        .fs-pro-enterprise .fs-pro-child-ages-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .fs-pro-enterprise .fs-pro-child-age-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .fs-pro-enterprise .fs-pro-child-age-row__label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            min-width: 0;
+        }
+
+        .fs-pro-enterprise .fs-pro-child-age-row__name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--fs-ink);
+        }
+
+        .fs-pro-enterprise .fs-pro-child-age-row__hint {
+            font-size: 0.68rem;
+            color: var(--fs-slate-2);
+            font-weight: 500;
         }
 
         .fs-pro-enterprise .fs-pro-child-age-select {
@@ -2140,6 +2173,47 @@
             font-weight: 600;
             color: var(--fs-ink);
             background: #fff;
+        }
+
+        .fs-pro-enterprise .fs-pro-child-fare-prices {
+            margin-top: 0.75rem;
+            padding: 0.65rem 0.7rem;
+            border-radius: 0.55rem;
+            background: var(--fs-canvas);
+            border: 1px solid var(--fs-line);
+        }
+
+        .fs-pro-enterprise .fs-pro-child-fare-prices__head {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--fs-slate-2);
+            margin-bottom: 0.45rem;
+        }
+
+        .fs-pro-enterprise .fs-pro-child-fare-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.78rem;
+            color: var(--fs-ink);
+            padding: 0.2rem 0;
+        }
+
+        .fs-pro-enterprise .fs-pro-child-fare-row strong {
+            font-weight: 700;
+            color: var(--fs-brand);
+            text-align: right;
+        }
+
+        .fs-pro-enterprise .fs-pro-child-fare-note {
+            margin: 0;
+            font-size: 0.72rem;
+            line-height: 1.45;
+            color: var(--fs-slate-2);
+            font-weight: 500;
         }
 
         /* (td.active + td.in-range rules moved to the unified daterangepicker block above) */

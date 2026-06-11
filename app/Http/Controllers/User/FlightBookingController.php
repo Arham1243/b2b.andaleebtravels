@@ -8,6 +8,7 @@ use App\Models\B2bWalletLedger;
 use App\Support\CountryCatalog;
 use App\Support\FlightPassengerDobValidator;
 use App\Support\FlightPassengerFareLinesPresenter;
+use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use App\Support\WalletLedgerDescription;
 use App\Services\FlightBookingConfirmationNotifier;
 use App\Services\FlightService;
@@ -83,6 +84,7 @@ class FlightBookingController extends Controller
             'passengers.*.first_name' => 'required|string|max:60',
             'passengers.*.last_name' => 'required|string|max:60',
             'passengers.*.dob' => 'required|date|before_or_equal:today',
+            'passengers.*.accompanying_adult' => 'nullable|integer|min:0',
             'passengers.*.nationality' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'passengers.*.issuing_country' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'passengers.*.passport_no' => 'nullable|string|max:20',
@@ -128,6 +130,7 @@ class FlightBookingController extends Controller
         }
 
         $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
+        $this->validateTravelportPassengerAssociation($validated['passengers'], $params, $isTravelport);
 
         if ($isTravelport) {
             $revalidate = app(TravelportBookingService::class)->revalidateItinerary(
@@ -494,6 +497,7 @@ class FlightBookingController extends Controller
                 'passengers.*.first_name'   => 'required|string|max:60',
                 'passengers.*.last_name'    => 'required|string|max:60',
                 'passengers.*.dob'          => 'required|date|before_or_equal:today',
+                'passengers.*.accompanying_adult' => 'nullable|integer|min:0',
                 'passengers.*.nationality'  => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
                 'passengers.*.issuing_country' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
                 'passengers.*.passport_no'  => 'nullable|string|max:20',
@@ -534,6 +538,7 @@ class FlightBookingController extends Controller
         }
 
         $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
+        $this->validateTravelportPassengerAssociation($validated['passengers'], $params, $isTravelport);
 
         if ($isTravelport) {
             $revalidate = app(TravelportBookingService::class)->revalidateItinerary(
@@ -797,6 +802,61 @@ class FlightBookingController extends Controller
      * @param  array<int, array<string, mixed>>  $passengers
      * @param  array<string, mixed>  $searchParams
      */
+    protected function validateTravelportPassengerAssociation(array $passengers, array $searchParams, bool $isTravelport): void
+    {
+        if (! $isTravelport) {
+            return;
+        }
+
+        $adultCount = 0;
+        $infantCount = 0;
+        $errors = [];
+
+        foreach ($passengers as $passenger) {
+            if (! is_array($passenger)) {
+                continue;
+            }
+
+            $type = strtoupper(trim((string) ($passenger['type'] ?? 'ADT')));
+            if ($type === 'ADT') {
+                $adultCount++;
+            } elseif ($type === 'INF') {
+                $infantCount++;
+            }
+        }
+
+        $adultCount = max($adultCount, (int) ($searchParams['adults'] ?? 0));
+
+        foreach ($passengers as $index => $passenger) {
+            if (! is_array($passenger)) {
+                continue;
+            }
+
+            $type = strtoupper(trim((string) ($passenger['type'] ?? 'ADT')));
+            if ($type !== 'INF') {
+                continue;
+            }
+
+            $infantCount++;
+            $adultIndex = (int) ($passenger['accompanying_adult'] ?? 0);
+            if ($adultIndex < 0 || $adultIndex >= $adultCount) {
+                $errors["passengers.{$index}.accompanying_adult"] = 'Select which adult this infant travels with.';
+            }
+        }
+
+        if ($infantCount > $adultCount) {
+            $errors['passengers'] = 'Each infant must travel with an adult. Number of infants cannot exceed number of adults.';
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $passengers
+     * @param  array<string, mixed>  $searchParams
+     */
     protected function validatePassportExpiryDates(array $passengers, array $searchParams): void
     {
         $travelDate = $this->resolveLatestTravelDate($searchParams);
@@ -942,10 +1002,24 @@ class FlightBookingController extends Controller
     ): array {
         $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
         $children = (int) ($params['children'] ?? 0);
+        $childPricedAsAdult = ($itineraryData['passenger_fare_warning'] ?? '') === 'child_priced_as_adult'
+            || FlightPassengerFareLinesPresenter::passengerFareWarning(
+                is_array($itineraryData['passenger_fare_lines'] ?? null) ? $itineraryData['passenger_fare_lines'] : [],
+            ) === 'child_priced_as_adult';
 
-        if (! $isTravelport || $children <= 0) {
+        if (! $isTravelport || ($children <= 0 && ! $childPricedAsAdult)) {
             return $itineraryData;
         }
+
+        $params = TravelportHoldPayloadBuilder::ensureChildAgesInSearchData($params);
+        session([
+            'flight_search_params' => array_merge(session('flight_search_params', []), [
+                'child_ages' => $params['child_ages'] ?? [],
+                'child_age' => $params['child_age'] ?? null,
+                'infant_ages' => $params['infant_ages'] ?? null,
+                'infant_age' => $params['infant_age'] ?? null,
+            ]),
+        ]);
 
         $refresh = app(TravelportBookingService::class)->refreshFareBreakdown($itineraryData, $params);
         if (! ($refresh['success'] ?? false)) {

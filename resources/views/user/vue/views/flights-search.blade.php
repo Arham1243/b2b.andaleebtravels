@@ -488,20 +488,6 @@
                                                 </div>
                                             </li>
 
-                                            <li class="paxs-item paxs-item--child-age"
-                                                v-for="(age, childIdx) in childAges" :key="'child-age-' + childIdx">
-                                                <div class="info">
-                                                    <div class="name">Child @{{ childIdx + 1 }} age</div>
-                                                    <span>Required for child fares</span>
-                                                </div>
-                                                <select class="fs-pro-child-age-select" v-model.number="childAges[childIdx]"
-                                                    @click.stop @change.stop>
-                                                    <option v-for="opt in childAgeOptions" :key="'age-' + childIdx + '-' + opt"
-                                                        :value="opt">@{{ opt }} yrs</option>
-                                                </select>
-                                                <input type="hidden" name="child_ages[]" :value="childAges[childIdx]">
-                                            </li>
-
                                             <li class="paxs-item">
                                                 <div class="info">
                                                     <div class="name">Infants</div>
@@ -521,6 +507,36 @@
                                                 </div>
                                             </li>
                                         </ul>
+
+                                        <div class="fs-pro-child-panel" v-if="children > 0" @click.stop>
+                                            <div class="fs-pro-child-ages-block">
+                                                <div class="fs-pro-child-age-row"
+                                                    v-for="(age, childIdx) in childAges" :key="'child-age-' + childIdx">
+                                                    <div class="fs-pro-child-age-row__label">
+                                                        <span class="fs-pro-child-age-row__name">Child @{{ childIdx + 1 }} age</span>
+                                                        <span class="fs-pro-child-age-row__hint">Required for child fares</span>
+                                                    </div>
+                                                    <select class="fs-pro-child-age-select" v-model.number="childAges[childIdx]"
+                                                        @click.stop @change.stop>
+                                                        <option v-for="opt in childAgeOptions" :key="'age-' + childIdx + '-' + opt"
+                                                            :value="opt">@{{ opt }} yrs</option>
+                                                    </select>
+                                                    <input type="hidden" name="child_ages[]" :value="childAges[childIdx]">
+                                                </div>
+                                            </div>
+
+                                            <div class="fs-pro-child-fare-prices">
+                                                <div class="fs-pro-child-fare-prices__head">Child fare (base)</div>
+                                                <div class="fs-pro-child-fare-row"
+                                                    v-for="row in childFarePanelRows" :key="row.key">
+                                                    <span>@{{ row.label }}</span>
+                                                    <strong>@{{ row.priceText }}</strong>
+                                                </div>
+                                                <p class="fs-pro-child-fare-note" v-if="!listingChildFare">
+                                                    Shown per flight after search. Fares vary by age (2–11 years).
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

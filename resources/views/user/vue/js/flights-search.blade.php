@@ -1,6 +1,7 @@
 @push('js')
 <script>
     const FLIGHT_SEARCH_ACTION = @json(route('user.flights.search'));
+    const listingChildFare = window.FLIGHT_LISTING_CHILD_FARE || null;
     const RECENT_FLIGHTS_KEY = 'b2b_flight_recent_searches_v1';
     const MAX_RECENT_FLIGHTS = 4;
     const MAX_SEATED_PAX = 9;
@@ -877,6 +878,45 @@
             const totalPaxCount = computed(() =>
                 adults.value + children.value + infants.value);
 
+            const formatFareMoney = (amount) => {
+                const value = Number(amount);
+                if (!Number.isFinite(value) || value <= 0) {
+                    return '—';
+                }
+
+                return value.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                });
+            };
+
+            const childFarePanelRows = computed(() => {
+                if (children.value <= 0) {
+                    return [];
+                }
+
+                const currency = String(listingChildFare?.currency || 'AED').toUpperCase();
+                const childBase = Number(listingChildFare?.child_base || 0);
+                const adultBase = Number(listingChildFare?.adult_base || 0);
+                const hasPrice = Number.isFinite(childBase) && childBase > 0;
+
+                return childAges.value.map((age, index) => {
+                    let priceText = 'See flight price';
+                    if (hasPrice) {
+                        priceText = `${currency} ${formatFareMoney(childBase)}`;
+                        if (Number.isFinite(adultBase) && adultBase > childBase) {
+                            priceText += ` (adult ${currency} ${formatFareMoney(adultBase)})`;
+                        }
+                    }
+
+                    return {
+                        key: `child-fare-${index}-${age}`,
+                        label: `Child ${index + 1} · age ${age}`,
+                        priceText,
+                    };
+                });
+            });
+
             const travellersTextCompact = computed(() => {
                 const t = totalPaxCount.value;
                 return `${t} ${t === 1 ? 'Passenger' : 'Passengers'}`;
@@ -1035,6 +1075,8 @@
                 infants,
                 childAges,
                 childAgeOptions,
+                childFarePanelRows,
+                listingChildFare,
                 canIncrementAdults,
                 canIncrementChildren,
                 incrementAdults,

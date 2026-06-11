@@ -61,6 +61,9 @@ class TravelportHoldPayloadBuilder
     }
 
     /**
+     * Build BookingTravelers in Travelport order: each adult, then their lap infant(s), then children.
+     * Uses CNN{age} (never CHD) and requires DOB for child/infant passengers.
+     *
      * @param  array<string, mixed>  $passengersData
      * @return list<array<string, mixed>>
      */
@@ -72,36 +75,151 @@ class TravelportHoldPayloadBuilder
         $email = trim((string) ($lead['email'] ?? ''));
         $referenceDate = FlightPassengerDobValidator::resolveReferenceDate($searchData);
 
-        $travelers = [];
-        $idx = 1;
+        $adults = [];
+        $children = [];
+        $infants = [];
+
         foreach ($passengers as $pax) {
             if (! is_array($pax)) {
                 continue;
             }
-            $type = match ((string) ($pax['type'] ?? 'ADT')) {
-                'C06' => 'CNN',
-                'INF' => 'INF',
-                default => 'ADT',
-            };
-            $dob = trim((string) ($pax['dob'] ?? ''));
 
-            $travelers[] = [
-                'key' => "traveler_{$idx}",
-                'traveler_type' => $type,
-                'traveler_type_code' => self::travelportPtcCode($type, $dob, $referenceDate),
-                'firstName' => trim((string) ($pax['first_name'] ?? '')),
-                'lastName' => trim((string) ($pax['last_name'] ?? '')),
-                'dob' => $dob,
-                'gender' => self::genderFromTitle((string) ($pax['title'] ?? 'Mr')),
-                'phoneCountryCode' => $phone['country'],
-                'phoneAreaCode' => $phone['area'],
-                'phoneNumber' => $phone['number'],
-                'email' => $email,
-            ];
+            $rawType = strtoupper(trim((string) ($pax['type'] ?? 'ADT')));
+            if (in_array($rawType, ['C06', 'CNN', 'CHD'], true)) {
+                $children[] = $pax;
+            } elseif ($rawType === 'INF') {
+                $infants[] = $pax;
+            } else {
+                $adults[] = $pax;
+            }
+        }
+
+        if ($adults === []) {
+            throw new \InvalidArgumentException('At least one adult traveler is required.');
+        }
+
+        if (count($infants) > count($adults)) {
+            throw new \InvalidArgumentException('Each infant must travel with an adult. Number of infants cannot exceed number of adults.');
+        }
+
+        $infantsByAdult = array_fill(0, count($adults), []);
+        foreach ($infants as $infantIndex => $infantPax) {
+            $adultIndex = (int) ($infantPax['accompanying_adult'] ?? $infantIndex);
+            $adultIndex = max(0, min(count($adults) - 1, $adultIndex));
+            $infantsByAdult[$adultIndex][] = $infantPax;
+        }
+
+        $travelers = [];
+        $idx = 1;
+
+        foreach ($adults as $adultIndex => $adultPax) {
+            $adultKey = 'traveler_' . $idx;
+            $adultTraveler = self::mapPassengerToTraveler($adultPax, $adultKey, $phone, $email, $referenceDate);
+            $lapInfantRemarks = [];
+
+            foreach ($infantsByAdult[$adultIndex] as $infantPax) {
+                $lapInfantRemarks[] = self::lapInfantNameRemarkForAdult($infantPax);
+            }
+
+            if ($lapInfantRemarks !== []) {
+                $adultTraveler['lap_infant_name_remarks'] = $lapInfantRemarks;
+            }
+
+            $travelers[] = $adultTraveler;
+            $idx++;
+
+            foreach ($infantsByAdult[$adultIndex] as $infantPax) {
+                $infantKey = 'traveler_' . $idx;
+                $travelers[] = self::mapPassengerToTraveler(
+                    $infantPax,
+                    $infantKey,
+                    $phone,
+                    $email,
+                    $referenceDate,
+                    $adultKey,
+                );
+                $idx++;
+            }
+        }
+
+        foreach ($children as $childPax) {
+            $travelers[] = self::mapPassengerToTraveler(
+                $childPax,
+                'traveler_' . $idx,
+                $phone,
+                $email,
+                $referenceDate,
+            );
             $idx++;
         }
 
         return $travelers;
+    }
+
+    /**
+     * @param  array<string, mixed>  $pax
+     * @param  array{country: string, area: string, number: string}  $phone
+     * @return array<string, mixed>
+     */
+    private static function mapPassengerToTraveler(
+        array $pax,
+        string $key,
+        array $phone,
+        string $email,
+        Carbon $referenceDate,
+        ?string $accompanyingAdultKey = null,
+    ): array {
+        $type = match (strtoupper(trim((string) ($pax['type'] ?? 'ADT')))) {
+            'C06', 'CNN', 'CHD' => 'CNN',
+            'INF' => 'INF',
+            default => 'ADT',
+        };
+        $dob = trim((string) ($pax['dob'] ?? ''));
+
+        if (in_array($type, ['CNN', 'INF'], true) && $dob === '') {
+            throw new \InvalidArgumentException('Date of birth is required for child and infant passengers.');
+        }
+
+        $traveler = [
+            'key' => $key,
+            'traveler_type' => $type,
+            'traveler_type_code' => self::travelportPtcCode($type, $dob, $referenceDate, requireDob: true),
+            'firstName' => trim((string) ($pax['first_name'] ?? '')),
+            'lastName' => trim((string) ($pax['last_name'] ?? '')),
+            'dob' => $dob,
+            'gender' => self::genderFromTitle((string) ($pax['title'] ?? 'Mr')),
+            'phoneCountryCode' => $phone['country'],
+            'phoneAreaCode' => $phone['area'],
+            'phoneNumber' => $phone['number'],
+            'email' => $email,
+        ];
+
+        if ($accompanyingAdultKey !== null && $accompanyingAdultKey !== '') {
+            $traveler['accompanying_adult_key'] = $accompanyingAdultKey;
+        }
+
+        if ($type === 'INF' && $dob !== '') {
+            $traveler['name_remark'] = self::infantDobNameRemark($dob);
+        }
+
+        return $traveler;
+    }
+
+    /**
+     * @param  array<string, mixed>  $infantPax
+     */
+    private static function lapInfantNameRemarkForAdult(array $infantPax): string
+    {
+        $last = strtoupper(preg_replace('/\s+/', '', (string) ($infantPax['last_name'] ?? '')) ?? '');
+        $first = strtoupper(preg_replace('/\s+/', '', (string) ($infantPax['first_name'] ?? '')) ?? '');
+        $dob = trim((string) ($infantPax['dob'] ?? ''));
+
+        return 'INFT/' . $last . '/' . $first . ' ' . self::infantDobNameRemark($dob);
+    }
+
+    private static function infantDobNameRemark(string $dob): string
+    {
+        return strtoupper(Carbon::parse($dob)->format('dMy'));
     }
 
     public static function genderFromTitle(string $title): string
@@ -126,6 +244,56 @@ class TravelportHoldPayloadBuilder
         }
 
         return $types;
+    }
+
+    /**
+     * Guarantee CNN SearchPassenger ages for LFS / Air Price when children are in the search.
+     *
+     * @param  array<string, mixed>  $searchData
+     * @return array<string, mixed>
+     */
+    public static function ensureChildAgesInSearchData(array $searchData): array
+    {
+        $children = max(0, (int) ($searchData['children'] ?? 0));
+        if ($children <= 0) {
+            return $searchData;
+        }
+
+        $childAges = [];
+        if (isset($searchData['child_ages']) && is_array($searchData['child_ages'])) {
+            foreach ($searchData['child_ages'] as $age) {
+                $age = (int) $age;
+                if ($age >= 2 && $age <= 11) {
+                    $childAges[] = $age;
+                }
+            }
+        }
+
+        while (count($childAges) < $children) {
+            $childAges[] = 8;
+        }
+
+        $searchData['child_ages'] = array_slice($childAges, 0, $children);
+        $searchData['child_age'] = $searchData['child_ages'][0] ?? 8;
+
+        $infants = max(0, (int) ($searchData['infants'] ?? 0));
+        if ($infants > 0) {
+            $infantAges = [];
+            if (isset($searchData['infant_ages']) && is_array($searchData['infant_ages'])) {
+                foreach ($searchData['infant_ages'] as $age) {
+                    $infantAges[] = max(0, min(1, (int) $age));
+                }
+            }
+
+            while (count($infantAges) < $infants) {
+                $infantAges[] = 1;
+            }
+
+            $searchData['infant_ages'] = array_slice($infantAges, 0, $infants);
+            $searchData['infant_age'] = $searchData['infant_ages'][0] ?? 1;
+        }
+
+        return $searchData;
     }
 
     /**
@@ -170,25 +338,37 @@ class TravelportHoldPayloadBuilder
             $searchData['infant_age'] = $infantAges[0];
         }
 
-        return $searchData;
+        return self::ensureChildAgesInSearchData($searchData);
     }
 
-    public static function travelportPtcCode(string $type, string $dob = '', ?Carbon $referenceDate = null): string
-    {
+    public static function travelportPtcCode(
+        string $type,
+        string $dob = '',
+        ?Carbon $referenceDate = null,
+        bool $requireDob = false,
+    ): string {
         $normalized = strtoupper(trim($type));
         $referenceDate ??= FlightPassengerDobValidator::resolveReferenceDate([]);
 
         if (in_array($normalized, ['C06', 'CNN', 'CHD'], true)) {
-            if ($dob !== '') {
-                $age = FlightPassengerDobValidator::ageOnDate($dob, $referenceDate);
+            if ($dob === '') {
+                if ($requireDob) {
+                    throw new \InvalidArgumentException('Date of birth is required for child passengers.');
+                }
 
-                return 'CNN' . str_pad((string) max(2, min(11, $age)), 2, '0', STR_PAD_LEFT);
+                return 'CNN08';
             }
 
-            return 'CNN08';
+            $age = FlightPassengerDobValidator::ageOnDate($dob, $referenceDate);
+
+            return 'CNN' . str_pad((string) max(2, min(11, $age)), 2, '0', STR_PAD_LEFT);
         }
 
         if ($normalized === 'INF') {
+            if ($dob === '' && $requireDob) {
+                throw new \InvalidArgumentException('Date of birth is required for infant passengers.');
+            }
+
             return 'INF';
         }
 

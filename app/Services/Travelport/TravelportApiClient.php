@@ -30,6 +30,7 @@ class TravelportApiClient
         bool $returnBrandedFares = true,
         bool $returnUpsellFare = true,
     ): array {
+        $searchData = TravelportHoldPayloadBuilder::ensureChildAgesInSearchData($searchData);
         $traceId = $this->generateTraceId();
         $legsXml = $this->buildSearchAirLegsXml($searchData);
         $passengersXml = $this->buildSearchPassengersXml($searchData);
@@ -125,6 +126,8 @@ XML;
      */
     public function airPrice(array $segments, array $passengerCounts, array $searchData = []): array
     {
+        $searchData = TravelportHoldPayloadBuilder::ensureChildAgesInSearchData($searchData);
+
         if ($segments === []) {
             return [
                 'success' => false,
@@ -181,6 +184,8 @@ XML;
      */
     public function airPriceFareFamily(array $segments, array $passengerCounts, array $searchData = []): array
     {
+        $searchData = TravelportHoldPayloadBuilder::ensureChildAgesInSearchData($searchData);
+
         if ($segments === []) {
             return [
                 'success' => false,
@@ -266,7 +271,7 @@ XML;
         foreach ($travelers as $traveler) {
             $key = $this->xmlEsc((string) ($traveler['key'] ?? ''));
             $type = $this->xmlEsc((string) ($traveler['traveler_type_code'] ?? $traveler['traveler_type'] ?? 'ADT'));
-            $dob = $this->xmlEsc((string) ($traveler['dob'] ?? ''));
+            $dob = $this->xmlEsc($this->normalizeTravelportDob((string) ($traveler['dob'] ?? '')));
             $gender = $this->xmlEsc((string) ($traveler['gender'] ?? 'M'));
             $first = $this->xmlEsc((string) ($traveler['firstName'] ?? ''));
             $last = $this->xmlEsc((string) ($traveler['lastName'] ?? ''));
@@ -274,6 +279,19 @@ XML;
             $area = $this->xmlEsc((string) ($traveler['phoneAreaCode'] ?? '50'));
             $number = $this->xmlEsc((string) ($traveler['phoneNumber'] ?? ''));
             $email = $this->xmlEsc((string) ($traveler['email'] ?? ''));
+
+            $nameRemarksXml = '';
+            foreach ($traveler['lap_infant_name_remarks'] ?? [] as $remark) {
+                $remarkData = $this->xmlEsc((string) $remark);
+                if ($remarkData !== '') {
+                    $nameRemarksXml .= "\n                <NameRemark><RemarkData>{$remarkData}</RemarkData></NameRemark>";
+                }
+            }
+
+            $infantRemark = (string) ($traveler['name_remark'] ?? '');
+            if ($infantRemark !== '') {
+                $nameRemarksXml .= "\n                <NameRemark><RemarkData>{$this->xmlEsc($infantRemark)}</RemarkData></NameRemark>";
+            }
 
             $travelersXml .= <<<XML
 
@@ -283,7 +301,7 @@ XML;
                 TravelerType="{$type}"
                 DOB="{$dob}"
                 Gender="{$gender}">
-                <BookingTravelerName First="{$first}" Last="{$last}"/>
+                <BookingTravelerName First="{$first}" Last="{$last}"/>{$nameRemarksXml}
                 <PhoneNumber CountryCode="{$country}" AreaCode="{$area}" Number="{$number}"/>
                 <Email EmailID="{$email}"/>
             </BookingTraveler>
@@ -748,32 +766,21 @@ XML;
     }
 
     /**
-     * @param  array<string, mixed>  $searchData
-     */
-    /**
-     * LFS uses the legacy plain ADT/CNN/INF nodes (no BookingTravelerRef).
-     * Some PCCs reject age-qualified CNN{nn} in LowFareSearch.
+     * LFS and Air Price both require age-qualified child/infant passengers for discounted fares.
+     *
+     * @see https://support.travelport.com/webhelp/uapi/Content/Air/Low_Fare_Shopping/Low_Fare_Shopping_Air_Price_Modifiers.htm
      *
      * @param  array<string, mixed>  $searchData
      */
     private function buildSearchPassengersXml(array $searchData): string
     {
-        $counts = TravelportHoldPayloadBuilder::passengerCounts($searchData);
-        $xml = '';
-
-        foreach (['ADT', 'CNN', 'INF'] as $code) {
-            $count = max(0, (int) ($counts[$code] ?? 0));
-            for ($i = 0; $i < $count; $i++) {
-                $xml .= "\n            <com:SearchPassenger Code=\"{$code}\"/>";
-            }
-        }
-
-        return $xml;
+        return $this->buildSearchPassengersXmlFromCounts(
+            TravelportHoldPayloadBuilder::passengerCounts($searchData),
+            $searchData,
+        );
     }
 
     /**
-     * Air Price / hold reprice uses traveler refs and CNN{age} from search or DOB.
-     *
      * @param  array<string, int>  $passengerCounts
      * @param  array<string, mixed>  $searchData
      */
@@ -784,23 +791,28 @@ XML;
         $xml = '';
         $travelerIdx = 1;
         $childIdx = 0;
+        $infantIdx = 0;
 
         foreach (['ADT', 'CNN', 'INF'] as $code) {
             $count = max(0, (int) ($passengerCounts[$code] ?? 0));
 
             for ($i = 0; $i < $count; $i++) {
                 $ref = 'traveler_' . $travelerIdx;
-                $ptcCode = $code;
-
-                if ($code === 'CNN') {
-                    $ptcCode = $this->childPtcCodeForIndex($searchData, $childIdx);
-                    $childIdx++;
-                }
-
                 $attrs = [
-                    'Code="' . $ptcCode . '"',
                     'BookingTravelerRef="' . $ref . '"',
                 ];
+
+                if ($code === 'CNN') {
+                    $attrs[] = 'Code="CNN"';
+                    $attrs[] = 'Age="' . $this->childAgeForIndex($searchData, $childIdx) . '"';
+                    $childIdx++;
+                } elseif ($code === 'INF') {
+                    $attrs[] = 'Code="INF"';
+                    $attrs[] = 'Age="' . $this->infantAgeForIndex($searchData, $infantIdx) . '"';
+                    $infantIdx++;
+                } else {
+                    $attrs[] = 'Code="ADT"';
+                }
 
                 $xml .= "\n            <com:SearchPassenger " . implode(' ', $attrs) . '/>';
                 $travelerIdx++;
@@ -824,13 +836,18 @@ XML;
     }
 
     /**
-     * Travelport Universal API expects CNN + two-digit age (e.g. CNN08), not a separate Age attribute.
+     * @param  array<string, mixed>  $searchData
      */
-    private function childPtcCodeForIndex(array $searchData, int $childIndex): string
+    private function infantAgeForIndex(array $searchData, int $infantIndex): int
     {
-        $age = $this->childAgeForIndex($searchData, $childIndex);
+        $ages = $searchData['infant_ages'] ?? null;
+        if (is_array($ages) && array_key_exists($infantIndex, $ages)) {
+            return max(0, min(1, (int) $ages[$infantIndex]));
+        }
 
-        return 'CNN' . str_pad((string) $age, 2, '0', STR_PAD_LEFT);
+        $fallback = (int) ($searchData['infant_age'] ?? 1);
+
+        return max(0, min(1, $fallback));
     }
 
     /**
@@ -985,6 +1002,20 @@ XML;
     private function generateTraceId(): string
     {
         return 'trace_' . uniqid('', true);
+    }
+
+    private function normalizeTravelportDob(string $dob): string
+    {
+        $dob = trim($dob);
+        if ($dob === '') {
+            return '';
+        }
+
+        try {
+            return \Carbon\Carbon::parse($dob)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return $dob;
+        }
     }
 
     private function normalizeTravelportTime(string $time): string

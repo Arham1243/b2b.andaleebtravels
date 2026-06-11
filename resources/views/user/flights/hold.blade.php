@@ -367,6 +367,15 @@
                                         'paxType' => 'INF',
                                         'hint' => 'Under 2 years on travel date, at least 7 days old (1 week)',
                                     ])
+                                    @if ($requireTravelportDob && $adults > 1)
+                                        @include('user.flights.partials.hp-accompanying-adult-field', [
+                                            'pIndex' => $pIndex,
+                                            'adultCount' => $adults,
+                                            'defaultAdult' => $i % $adults,
+                                        ])
+                                    @elseif ($requireTravelportDob)
+                                        <input type="hidden" name="passengers[{{ $pIndex }}][accompanying_adult]" value="0">
+                                    @endif
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
                                         'label' => 'Nationality',
