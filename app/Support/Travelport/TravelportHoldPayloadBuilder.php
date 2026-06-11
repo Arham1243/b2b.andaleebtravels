@@ -2,6 +2,9 @@
 
 namespace App\Support\Travelport;
 
+use App\Support\FlightPassengerDobValidator;
+use Carbon\Carbon;
+
 class TravelportHoldPayloadBuilder
 {
     /**
@@ -79,13 +82,15 @@ class TravelportHoldPayloadBuilder
                 'INF' => 'INF',
                 default => 'ADT',
             };
+            $dob = trim((string) ($pax['dob'] ?? ''));
 
             $travelers[] = [
                 'key' => "traveler_{$idx}",
                 'traveler_type' => $type,
+                'traveler_type_code' => self::travelportPtcCode($type, $dob),
                 'firstName' => trim((string) ($pax['first_name'] ?? '')),
                 'lastName' => trim((string) ($pax['last_name'] ?? '')),
-                'dob' => trim((string) ($pax['dob'] ?? '')),
+                'dob' => $dob,
                 'gender' => self::genderFromTitle((string) ($pax['title'] ?? 'Mr')),
                 'phoneCountryCode' => $phone['country'],
                 'phoneAreaCode' => $phone['area'],
@@ -114,12 +119,77 @@ class TravelportHoldPayloadBuilder
         $types = [];
         foreach ($travelers as $traveler) {
             $types[] = [
-                'code' => (string) ($traveler['traveler_type'] ?? 'ADT'),
+                'code' => (string) ($traveler['traveler_type_code'] ?? $traveler['traveler_type'] ?? 'ADT'),
                 'traveler_ref' => (string) ($traveler['key'] ?? ''),
             ];
         }
 
         return $types;
+    }
+
+    /**
+     * @param  array<string, mixed>  $searchData
+     * @param  array<string, mixed>  $passengersData
+     * @return array<string, mixed>
+     */
+    public static function enrichSearchDataWithPassengerAges(array $searchData, array $passengersData): array
+    {
+        $passengers = is_array($passengersData['passengers'] ?? null) ? $passengersData['passengers'] : [];
+        $childAges = [];
+        $infantAges = [];
+
+        foreach ($passengers as $passenger) {
+            if (! is_array($passenger)) {
+                continue;
+            }
+
+            $type = strtoupper(trim((string) ($passenger['type'] ?? 'ADT')));
+            $dob = trim((string) ($passenger['dob'] ?? ''));
+            if ($dob === '') {
+                continue;
+            }
+
+            $age = FlightPassengerDobValidator::ageOnDate($dob, Carbon::today());
+
+            if (in_array($type, ['C06', 'CNN', 'CHD'], true)) {
+                $childAges[] = max(2, min(11, $age));
+            } elseif ($type === 'INF') {
+                $infantAges[] = max(0, min(1, $age));
+            }
+        }
+
+        if ($childAges !== []) {
+            $searchData['child_ages'] = $childAges;
+            $searchData['child_age'] = $childAges[0];
+        }
+
+        if ($infantAges !== []) {
+            $searchData['infant_ages'] = $infantAges;
+            $searchData['infant_age'] = $infantAges[0];
+        }
+
+        return $searchData;
+    }
+
+    public static function travelportPtcCode(string $type, string $dob = ''): string
+    {
+        $normalized = strtoupper(trim($type));
+
+        if (in_array($normalized, ['C06', 'CNN', 'CHD'], true)) {
+            if ($dob !== '') {
+                $age = FlightPassengerDobValidator::ageOnDate($dob, Carbon::today());
+
+                return 'CNN' . str_pad((string) max(2, min(11, $age)), 2, '0', STR_PAD_LEFT);
+            }
+
+            return 'CNN08';
+        }
+
+        if ($normalized === 'INF') {
+            return 'INF';
+        }
+
+        return 'ADT';
     }
 
     /**

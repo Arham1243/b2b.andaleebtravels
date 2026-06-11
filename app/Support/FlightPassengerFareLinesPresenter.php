@@ -34,6 +34,8 @@ final class FlightPassengerFareLinesPresenter
                 continue;
             }
 
+            $paxInInfo = self::travelportPassengerTypeCount($pricingInfo);
+
             if (! isset($byTypeKey[$typeKey])) {
                 $byTypeKey[$typeKey] = [
                     'type_key' => $typeKey,
@@ -42,12 +44,14 @@ final class FlightPassengerFareLinesPresenter
                     'base_sum' => 0.0,
                     'tax_sum' => 0.0,
                     'pinfo_count' => 0,
+                    'pax_count' => 0,
                 ];
             }
 
             $byTypeKey[$typeKey]['base_sum'] = round($byTypeKey[$typeKey]['base_sum'] + $baseTotal, 2);
             $byTypeKey[$typeKey]['tax_sum'] = round($byTypeKey[$typeKey]['tax_sum'] + $taxTotal, 2);
             $byTypeKey[$typeKey]['pinfo_count']++;
+            $byTypeKey[$typeKey]['pax_count'] += $paxInInfo;
         }
 
         return self::finalizeTravelportLines($byTypeKey, $searchCounts, $expectedTotal);
@@ -107,19 +111,20 @@ final class FlightPassengerFareLinesPresenter
             }
 
             $pinfoCount = max(1, (int) ($row['pinfo_count'] ?? 1));
+            $paxInResponses = max(0, (int) ($row['pax_count'] ?? 0));
             $baseSum = (float) ($row['base_sum'] ?? 0);
             $taxSum = (float) ($row['tax_sum'] ?? 0);
 
+            $divisorFromResponse = $paxInResponses > 0 ? $paxInResponses : $count;
             $usePerPassenger = $preferPerPassengerOnSinglePinfo
                 && $pinfoCount === 1
+                && $divisorFromResponse === 1
                 && $count > 1;
 
-            $basePerPax = $usePerPassenger
-                ? round($baseSum, 2)
-                : round($baseSum / $count, 2);
-            $taxPerPax = $usePerPassenger
-                ? round($taxSum, 2)
-                : round($taxSum / $count, 2);
+            $divisor = $usePerPassenger ? 1 : max(1, $divisorFromResponse);
+
+            $basePerPax = round($baseSum / $divisor, 2);
+            $taxPerPax = round($taxSum / $divisor, 2);
 
             $lines[] = [
                 'type_key' => $typeKey,
@@ -523,7 +528,13 @@ final class FlightPassengerFareLinesPresenter
 
     private static function typeKeyFromCode(string $code): string
     {
-        return match (strtoupper(trim($code))) {
+        $normalized = strtoupper(trim($code));
+
+        if (preg_match('/^CNN\d{2}$/', $normalized) === 1) {
+            return 'child';
+        }
+
+        return match ($normalized) {
             'CNN', 'C06', 'CHD' => 'child',
             'INF' => 'infant',
             default => 'adult',
@@ -541,12 +552,35 @@ final class FlightPassengerFareLinesPresenter
 
     private static function paxLabel(string $code): string
     {
-        return match (strtoupper(trim($code))) {
+        $normalized = strtoupper(trim($code));
+
+        if (preg_match('/^CNN\d{2}$/', $normalized) === 1) {
+            return 'Child';
+        }
+
+        return match ($normalized) {
             'ADT' => 'Adult',
             'CNN', 'C06', 'CHD' => 'Child',
             'INF' => 'Infant',
-            default => strtoupper(trim($code)) !== '' ? strtoupper(trim($code)) : 'Passenger',
+            default => $normalized !== '' ? $normalized : 'Passenger',
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $pricingInfo
+     */
+    private static function travelportPassengerTypeCount(array $pricingInfo): int
+    {
+        $passengerTypes = self::asList($pricingInfo['PassengerType'] ?? null);
+        $count = 0;
+
+        foreach ($passengerTypes as $passengerType) {
+            if (is_array($passengerType)) {
+                $count++;
+            }
+        }
+
+        return max(1, $count);
     }
 
     /**

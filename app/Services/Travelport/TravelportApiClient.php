@@ -265,7 +265,7 @@ XML;
         $travelersXml = '';
         foreach ($travelers as $traveler) {
             $key = $this->xmlEsc((string) ($traveler['key'] ?? ''));
-            $type = $this->xmlEsc((string) ($traveler['traveler_type'] ?? 'ADT'));
+            $type = $this->xmlEsc((string) ($traveler['traveler_type_code'] ?? $traveler['traveler_type'] ?? 'ADT'));
             $dob = $this->xmlEsc((string) ($traveler['dob'] ?? ''));
             $gender = $this->xmlEsc((string) ($traveler['gender'] ?? 'M'));
             $first = $this->xmlEsc((string) ($traveler['firstName'] ?? ''));
@@ -778,17 +778,17 @@ XML;
 
             for ($i = 0; $i < $count; $i++) {
                 $ref = 'traveler_' . $travelerIdx;
-                $attrs = [
-                    'Code="' . $code . '"',
-                    'BookingTravelerRef="' . $ref . '"',
-                ];
+                $ptcCode = $code;
 
                 if ($code === 'CNN') {
-                    $attrs[] = 'Age="' . $this->childAgeForIndex($searchData, $childIdx) . '"';
+                    $ptcCode = $this->childPtcCodeForIndex($searchData, $childIdx);
                     $childIdx++;
-                } elseif ($code === 'INF') {
-                    $attrs[] = 'Age="1"';
                 }
+
+                $attrs = [
+                    'Code="' . $ptcCode . '"',
+                    'BookingTravelerRef="' . $ref . '"',
+                ];
 
                 $xml .= "\n            <com:SearchPassenger " . implode(' ', $attrs) . '/>';
                 $travelerIdx++;
@@ -809,6 +809,16 @@ XML;
         }
 
         return max(2, min(11, (int) ($searchData['child_age'] ?? 8)));
+    }
+
+    /**
+     * Travelport Universal API expects CNN + two-digit age (e.g. CNN08), not a separate Age attribute.
+     */
+    private function childPtcCodeForIndex(array $searchData, int $childIndex): string
+    {
+        $age = $this->childAgeForIndex($searchData, $childIndex);
+
+        return 'CNN' . str_pad((string) $age, 2, '0', STR_PAD_LEFT);
     }
 
     /**

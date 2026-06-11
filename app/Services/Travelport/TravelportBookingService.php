@@ -5,7 +5,9 @@ namespace App\Services\Travelport;
 use App\Models\B2bFlightBooking;
 use App\Models\Config;
 use App\Support\FlightBookingTicketResolver;
+use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\Travelport\TravelportAirPriceParser;
+use App\Support\Travelport\TravelportAirPricePresenter;
 use App\Support\Travelport\TravelportAirTicketingResult;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use App\Support\Travelport\TravelportHoldPricingInfoParser;
@@ -25,7 +27,10 @@ class TravelportBookingService
      * @param  array<string, mixed>  $searchParams
      * @return array{success: bool, error?: string, repriced_total?: float}
      */
-    public function revalidateItinerary(array $itineraryData, array $searchParams): array
+    /**
+     * @param  array<string, mixed>  $passengersData
+     */
+    public function revalidateItinerary(array $itineraryData, array $searchParams, array $passengersData = []): array
     {
         try {
             $segments = TravelportHoldPayloadBuilder::buildAirPriceSegments($itineraryData);
@@ -41,6 +46,13 @@ class TravelportBookingService
                 'children' => (int) ($searchParams['children'] ?? 0),
                 'infants' => (int) ($searchParams['infants'] ?? 0),
             ]);
+
+            if ($passengersData !== []) {
+                $searchParams = TravelportHoldPayloadBuilder::enrichSearchDataWithPassengerAges(
+                    $searchParams,
+                    $passengersData,
+                );
+            }
 
             $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchParams);
             if (! ($priceResponse['success'] ?? false)) {
@@ -81,9 +93,45 @@ class TravelportBookingService
                 ];
             }
 
+            $legs = is_array($itineraryData['legs'] ?? null) ? $itineraryData['legs'] : [];
+            $fareOptions = TravelportAirPricePresenter::toFareOptions(
+                is_array($priceResponse['parsed'] ?? null) ? $priceResponse['parsed'] : null,
+                $searchParams,
+                $legs,
+            );
+            $repricedFare = $fareOptions[0] ?? null;
+            $itineraryUpdates = [];
+
+            if (is_array($repricedFare)) {
+                $itineraryUpdates = array_filter([
+                    'passenger_fare_lines' => $repricedFare['passenger_fare_lines'] ?? null,
+                    'supplierBasePrice' => $repricedFare['supplierBasePrice'] ?? null,
+                    'supplierTaxes' => $repricedFare['supplierTaxes'] ?? null,
+                    'basePrice' => $repricedFare['basePrice'] ?? null,
+                    'taxes' => $repricedFare['taxes'] ?? null,
+                ], static fn ($value) => $value !== null);
+
+                if (($itineraryUpdates['passenger_fare_lines'] ?? null) !== null) {
+                    $itineraryUpdates = FlightPassengerFareLinesPresenter::syncItineraryFareTotals(
+                        array_merge($itineraryData, $itineraryUpdates),
+                    );
+                    $itineraryUpdates = array_intersect_key(
+                        $itineraryUpdates,
+                        array_flip([
+                            'passenger_fare_lines',
+                            'supplierBasePrice',
+                            'supplierTaxes',
+                            'basePrice',
+                            'taxes',
+                        ]),
+                    );
+                }
+            }
+
             return [
                 'success' => true,
                 'repriced_total' => $repricedTotal,
+                'itinerary_updates' => $itineraryUpdates,
             ];
         } catch (\Throwable $e) {
             Log::warning('Travelport revalidation failed', ['error' => $e->getMessage()]);
@@ -116,6 +164,10 @@ class TravelportBookingService
             ]);
 
             $searchRequest = is_array($booking->search_request) ? $booking->search_request : [];
+            $searchRequest = TravelportHoldPayloadBuilder::enrichSearchDataWithPassengerAges(
+                $searchRequest,
+                $passengersData,
+            );
             $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest);
             if (! ($priceResponse['success'] ?? false)) {
                 throw new \RuntimeException($priceResponse['error'] ?? 'Travelport airPrice failed.');
