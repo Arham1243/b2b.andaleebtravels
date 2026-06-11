@@ -3,7 +3,7 @@
     const ADULT_MIN_AGE = 12;
     const CHILD_MIN_AGE = 2;
     const CHILD_MAX_AGE = 11;
-    const INFANT_MIN_DAYS = 14;
+    const INFANT_MIN_DAYS = 7;
 
     function parseYmd(value) {
         if (!value || typeof moment === 'undefined') return null;
@@ -21,8 +21,8 @@
         return age;
     }
 
-    function daysSinceBirth(dob, today) {
-        return today.diff(dob, 'days');
+    function daysSinceBirth(dob, reference) {
+        return reference.diff(dob, 'days');
     }
 
     function normalizeType(type) {
@@ -32,27 +32,37 @@
         return 'ADULT';
     }
 
-    function messageForAgeToday(type, age, daysOld) {
+    function travelDateLabel(referenceDate) {
+        return referenceDate ? ' (' + referenceDate.format('DD MMM YYYY') + ')' : '';
+    }
+
+    function earliestDate(a, b) {
+        return a.isBefore(b, 'day') ? a.clone() : b.clone();
+    }
+
+    function messageForAgeOnTravelDate(type, age, daysOld, referenceDate) {
+        const label = travelDateLabel(referenceDate);
+
         if (type === 'CHILD') {
             if (age >= CHILD_MIN_AGE && age <= CHILD_MAX_AGE) return null;
-            return 'Child must be between 2 and 11 years old (based on today\'s date).';
+            return 'Child must be between 2 and 11 years old on the travel date' + label + '.';
         }
 
         if (type === 'INFANT') {
             if (daysOld < INFANT_MIN_DAYS) {
-                return 'Infant must be at least 14 days old (2 weeks). Passengers under 1 week old cannot be booked.';
+                return 'Infant must be at least 7 days old (1 week) on the travel date' + label + '.';
             }
             if (age >= CHILD_MIN_AGE) {
-                return 'Infant must be under 2 years old (based on today\'s date).';
+                return 'Infant must be under 2 years old on the travel date' + label + '.';
             }
             return null;
         }
 
         if (age >= ADULT_MIN_AGE) return null;
-        return 'Adult must be 12 years or older (based on today\'s date).';
+        return 'Adult must be 12 years or older on the travel date' + label + '.';
     }
 
-    function applyPickerBounds(input, today) {
+    function applyPickerBounds(input, referenceDate) {
         if (typeof $ === 'undefined' || typeof moment === 'undefined') return;
 
         const wrap = input.closest('.hp-date-field');
@@ -63,16 +73,20 @@
         const picker = $display.data('daterangepicker');
         if (!picker) return;
 
+        const today = moment().startOf('day');
         const type = normalizeType(input.dataset.paxType);
 
         if (type === 'INFANT') {
-            picker.maxDate = today.clone().subtract(INFANT_MIN_DAYS, 'days');
-            picker.minDate = today.clone().subtract(2, 'years').add(1, 'day');
+            const youngestDob = referenceDate.clone().subtract(INFANT_MIN_DAYS, 'days');
+            picker.maxDate = earliestDate(youngestDob, today);
+            picker.minDate = referenceDate.clone().subtract(2, 'years').add(1, 'day');
         } else if (type === 'CHILD') {
-            picker.maxDate = today.clone().subtract(CHILD_MIN_AGE, 'years');
-            picker.minDate = today.clone().subtract(CHILD_MAX_AGE + 1, 'years').add(1, 'day');
+            const maxDob = referenceDate.clone().subtract(CHILD_MIN_AGE, 'years');
+            picker.maxDate = earliestDate(maxDob, today);
+            picker.minDate = referenceDate.clone().subtract(CHILD_MAX_AGE + 1, 'years').add(1, 'day');
         } else {
-            picker.maxDate = today.clone().subtract(ADULT_MIN_AGE, 'years');
+            const maxDob = referenceDate.clone().subtract(ADULT_MIN_AGE, 'years');
+            picker.maxDate = earliestDate(maxDob, today);
             picker.minDate = false;
         }
 
@@ -94,12 +108,14 @@
             if (!form || typeof moment === 'undefined') return;
 
             const today = moment().startOf('day');
+            const travelDate = parseYmd(config.travelDate);
+            const referenceDate = travelDate || today;
 
             form.querySelectorAll('.js-hp-date-value[data-pax-type]').forEach(function (input) {
-                applyPickerBounds(input, today);
+                applyPickerBounds(input, referenceDate);
 
                 const validate = function () {
-                    HpPassengerDob.validateField(input, today);
+                    HpPassengerDob.validateField(input, today, referenceDate);
                 };
 
                 input.addEventListener('change', validate);
@@ -120,7 +136,7 @@
                         return;
                     }
 
-                    if (!HpPassengerDob.validateField(input, today)) {
+                    if (!HpPassengerDob.validateField(input, today, referenceDate)) {
                         valid = false;
                     }
                 });
@@ -174,9 +190,10 @@
             }
         },
 
-        validateField: function (input, today) {
+        validateField: function (input, today, referenceDate) {
             const value = String(input.value || '').trim();
             const type = normalizeType(input.dataset.paxType);
+            const travelRef = referenceDate || today;
 
             if (!value) {
                 if (input.dataset.required === '1') {
@@ -198,9 +215,9 @@
                 return false;
             }
 
-            const age = ageOnDate(today, dob);
-            const daysOld = daysSinceBirth(dob, today);
-            const message = messageForAgeToday(type, age, daysOld);
+            const age = ageOnDate(travelRef, dob);
+            const daysOld = daysSinceBirth(dob, travelRef);
+            const message = messageForAgeOnTravelDate(type, age, daysOld, travelRef);
 
             if (message) {
                 HpPassengerDob.setError(input, message);

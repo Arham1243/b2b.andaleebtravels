@@ -2126,6 +2126,22 @@
             background: var(--fs-canvas);
         }
 
+        .fs-pro-enterprise .paxs-item--child-age {
+            flex-wrap: wrap;
+            gap: 0.35rem 0.75rem;
+        }
+
+        .fs-pro-enterprise .fs-pro-child-age-select {
+            min-width: 5.5rem;
+            padding: 0.35rem 0.5rem;
+            border: 1px solid var(--fs-line);
+            border-radius: 0.45rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--fs-ink);
+            background: #fff;
+        }
+
         /* (td.active + td.in-range rules moved to the unified daterangepicker block above) */
 
         /*

@@ -83,6 +83,8 @@ Route::middleware(['admin', 'admin.staff_gate'])->prefix('admin')->name('admin.'
         ->name('flight-bookings.eticket-pdf');
     Route::get('flight-bookings/{flight_booking}/fare-rules', [AdminFlightBookingController::class, 'fareRules'])
         ->name('flight-bookings.fare-rules');
+    Route::post('flight-bookings/{flight_booking}/refresh-fare-breakdown', [AdminFlightBookingController::class, 'refreshFareBreakdown'])
+        ->name('flight-bookings.refresh-fare-breakdown');
 
     Route::post('bookings/hotels/{booking}/status', [AdminBookingController::class, 'updateHotelStatus'])->name('bookings.hotels.status');
     Route::post('bookings/hotels/{booking}/cancel', [AdminBookingController::class, 'cancelHotelBooking'])->name('bookings.hotels.cancel');

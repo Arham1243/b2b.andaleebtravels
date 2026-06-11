@@ -28,64 +28,107 @@ class TravelportBookingService
      * @return array{success: bool, error?: string, repriced_total?: float}
      */
     /**
+     * Refresh per-passenger fare lines via Air Price (display-safe; does not fail on total drift).
+     *
+     * @param  array<string, mixed>  $itineraryData
+     * @param  array<string, mixed>  $searchParams
+     * @param  array<string, mixed>  $passengersData
+     * @return array{success: bool, error?: string, repriced_total?: float, itinerary_updates?: array<string, mixed>}
+     */
+    public function refreshFareBreakdown(
+        array $itineraryData,
+        array $searchParams,
+        array $passengersData = [],
+    ): array {
+        return $this->runAirPriceFareRefresh($itineraryData, $searchParams, $passengersData, strictTotal: false);
+    }
+
+    /**
+     * Re-run Air Price for an existing booking and persist corrected fare lines.
+     *
+     * @return array{success: bool, error?: string, message?: string}
+     */
+    public function refreshBookingFareBreakdown(B2bFlightBooking $booking): array
+    {
+        $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        if ($itineraryData === []) {
+            return [
+                'success' => false,
+                'error' => 'No itinerary data stored on this booking.',
+            ];
+        }
+
+        $searchRequest = is_array($booking->search_request) ? $booking->search_request : [];
+        $passengersData = is_array($booking->passengers_data) ? $booking->passengers_data : [];
+        $searchRequest = TravelportHoldPayloadBuilder::enrichSearchDataWithPassengerAges(
+            $searchRequest,
+            $passengersData,
+        );
+
+        $refresh = $this->refreshFareBreakdown($itineraryData, $searchRequest, $passengersData);
+        if (! ($refresh['success'] ?? false)) {
+            return [
+                'success' => false,
+                'error' => $refresh['error'] ?? 'Unable to refresh fare breakdown.',
+            ];
+        }
+
+        $updates = is_array($refresh['itinerary_updates'] ?? null) ? $refresh['itinerary_updates'] : [];
+        if ($updates === []) {
+            return [
+                'success' => true,
+                'message' => 'Fare breakdown is already up to date.',
+            ];
+        }
+
+        $itineraryData = array_merge($itineraryData, $updates);
+        $bookingUpdate = ['itinerary_data' => $itineraryData];
+
+        $repricedTotal = (float) ($updates['totalPrice'] ?? 0);
+        $quotedTotal = (float) $booking->total_amount;
+        if ($repricedTotal > 0 && ($quotedTotal <= 0 || abs($repricedTotal - $quotedTotal) <= 0.05)) {
+            $bookingUpdate['total_amount'] = $repricedTotal;
+            $bookingUpdate['original_amount'] = $repricedTotal;
+        }
+
+        $booking->update($bookingUpdate);
+
+        return [
+            'success' => true,
+            'message' => 'Fare breakdown refreshed from Travelport Air Price.',
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $passengersData
      */
     public function revalidateItinerary(array $itineraryData, array $searchParams, array $passengersData = []): array
     {
+        return $this->runAirPriceFareRefresh($itineraryData, $searchParams, $passengersData, strictTotal: true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $itineraryData
+     * @param  array<string, mixed>  $searchParams
+     * @param  array<string, mixed>  $passengersData
+     * @return array{success: bool, error?: string, repriced_total?: float, itinerary_updates?: array<string, mixed>}
+     */
+    private function runAirPriceFareRefresh(
+        array $itineraryData,
+        array $searchParams,
+        array $passengersData,
+        bool $strictTotal,
+    ): array {
         try {
-            $segments = TravelportHoldPayloadBuilder::buildAirPriceSegments($itineraryData);
-            if ($segments === []) {
-                return [
-                    'success' => false,
-                    'error' => 'No Travelport segments found on this itinerary.',
-                ];
+            $airPrice = $this->requestAirPrice($itineraryData, $searchParams, $passengersData);
+            if (! ($airPrice['success'] ?? false)) {
+                return $airPrice;
             }
 
-            $passengerCounts = TravelportHoldPayloadBuilder::passengerCounts([
-                'adults' => (int) ($searchParams['adults'] ?? 1),
-                'children' => (int) ($searchParams['children'] ?? 0),
-                'infants' => (int) ($searchParams['infants'] ?? 0),
-            ]);
-
-            if ($passengersData !== []) {
-                $searchParams = TravelportHoldPayloadBuilder::enrichSearchDataWithPassengerAges(
-                    $searchParams,
-                    $passengersData,
-                );
-            }
-
-            $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchParams);
-            if (! ($priceResponse['success'] ?? false)) {
-                return [
-                    'success' => false,
-                    'error' => $priceResponse['error'] ?? 'Unable to revalidate Travelport fare.',
-                ];
-            }
-
-            $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
-            $pricingData = TravelportAirPriceParser::extract(
-                (string) ($priceResponse['raw'] ?? ''),
-                $requestedClass,
-            );
-
-            if (($pricingData['solution_key'] ?? '') === '') {
-                return [
-                    'success' => false,
-                    'error' => 'Unable to parse Travelport pricing for this fare.',
-                ];
-            }
-
-            $repricedTotal = $this->parseTravelportMoneyAmount((string) ($pricingData['total_price'] ?? ''));
+            $repricedTotal = (float) ($airPrice['repriced_total'] ?? 0);
             $expectedTotal = (float) ($itineraryData['totalPrice'] ?? 0);
 
-            if ($repricedTotal === null) {
-                return [
-                    'success' => false,
-                    'error' => 'Unable to read revalidated Travelport fare amount.',
-                ];
-            }
-
-            if ($expectedTotal > 0 && abs($repricedTotal - $expectedTotal) > 0.02) {
+            if ($strictTotal && $expectedTotal > 0 && $repricedTotal > 0 && abs($repricedTotal - $expectedTotal) > 0.02) {
                 return [
                     'success' => false,
                     'error' => 'Fare price has changed. Please search again.',
@@ -93,38 +136,15 @@ class TravelportBookingService
                 ];
             }
 
-            $legs = is_array($itineraryData['legs'] ?? null) ? $itineraryData['legs'] : [];
-            $fareOptions = TravelportAirPricePresenter::toFareOptions(
-                is_array($priceResponse['parsed'] ?? null) ? $priceResponse['parsed'] : null,
-                $searchParams,
-                $legs,
-            );
-            $repricedFare = $fareOptions[0] ?? null;
-            $itineraryUpdates = [];
+            $itineraryUpdates = is_array($airPrice['itinerary_updates'] ?? null)
+                ? $airPrice['itinerary_updates']
+                : [];
 
-            if (is_array($repricedFare)) {
-                $itineraryUpdates = array_filter([
-                    'passenger_fare_lines' => $repricedFare['passenger_fare_lines'] ?? null,
-                    'supplierBasePrice' => $repricedFare['supplierBasePrice'] ?? null,
-                    'supplierTaxes' => $repricedFare['supplierTaxes'] ?? null,
-                    'basePrice' => $repricedFare['basePrice'] ?? null,
-                    'taxes' => $repricedFare['taxes'] ?? null,
-                ], static fn ($value) => $value !== null);
-
-                if (($itineraryUpdates['passenger_fare_lines'] ?? null) !== null) {
-                    $itineraryUpdates = FlightPassengerFareLinesPresenter::syncItineraryFareTotals(
-                        array_merge($itineraryData, $itineraryUpdates),
-                    );
-                    $itineraryUpdates = array_intersect_key(
-                        $itineraryUpdates,
-                        array_flip([
-                            'passenger_fare_lines',
-                            'supplierBasePrice',
-                            'supplierTaxes',
-                            'basePrice',
-                            'taxes',
-                        ]),
-                    );
+            if (! $strictTotal && ($itineraryUpdates['totalPrice'] ?? null) !== null) {
+                $oldTotal = (float) ($itineraryData['totalPrice'] ?? 0);
+                $newTotal = (float) $itineraryUpdates['totalPrice'];
+                if ($oldTotal > 0 && abs($newTotal - $oldTotal) > 0.05) {
+                    unset($itineraryUpdates['totalPrice']);
                 }
             }
 
@@ -134,13 +154,89 @@ class TravelportBookingService
                 'itinerary_updates' => $itineraryUpdates,
             ];
         } catch (\Throwable $e) {
-            Log::warning('Travelport revalidation failed', ['error' => $e->getMessage()]);
+            Log::warning('Travelport fare refresh failed', ['error' => $e->getMessage()]);
 
             return [
                 'success' => false,
-                'error' => 'Unable to revalidate Travelport fare. Please search again.',
+                'error' => $strictTotal
+                    ? 'Unable to revalidate Travelport fare. Please search again.'
+                    : 'Unable to refresh Travelport fare breakdown.',
             ];
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $itineraryData
+     * @param  array<string, mixed>  $searchParams
+     * @param  array<string, mixed>  $passengersData
+     * @return array{success: bool, error?: string, repriced_total?: float, itinerary_updates?: array<string, mixed>}
+     */
+    private function requestAirPrice(
+        array $itineraryData,
+        array $searchParams,
+        array $passengersData = [],
+    ): array {
+        $segments = TravelportHoldPayloadBuilder::buildAirPriceSegments($itineraryData);
+        if ($segments === []) {
+            return [
+                'success' => false,
+                'error' => 'No Travelport segments found on this itinerary.',
+            ];
+        }
+
+        $passengerCounts = TravelportHoldPayloadBuilder::passengerCounts([
+            'adults' => (int) ($searchParams['adults'] ?? 1),
+            'children' => (int) ($searchParams['children'] ?? 0),
+            'infants' => (int) ($searchParams['infants'] ?? 0),
+        ]);
+
+        if ($passengersData !== []) {
+            $searchParams = TravelportHoldPayloadBuilder::enrichSearchDataWithPassengerAges(
+                $searchParams,
+                $passengersData,
+            );
+        }
+
+        $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchParams);
+        if (! ($priceResponse['success'] ?? false)) {
+            return [
+                'success' => false,
+                'error' => $priceResponse['error'] ?? 'Unable to price Travelport fare.',
+            ];
+        }
+
+        $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
+        $pricingData = TravelportAirPriceParser::extract(
+            (string) ($priceResponse['raw'] ?? ''),
+            $requestedClass,
+        );
+
+        if (($pricingData['solution_key'] ?? '') === '') {
+            return [
+                'success' => false,
+                'error' => 'Unable to parse Travelport pricing for this fare.',
+            ];
+        }
+
+        $repricedTotal = $this->parseTravelportMoneyAmount((string) ($pricingData['total_price'] ?? ''));
+        if ($repricedTotal === null) {
+            return [
+                'success' => false,
+                'error' => 'Unable to read Travelport fare amount.',
+            ];
+        }
+
+        $itineraryUpdates = $this->extractItineraryFareFromAirPrice(
+            $priceResponse,
+            $searchParams,
+            $itineraryData,
+        );
+
+        return [
+            'success' => true,
+            'repriced_total' => $repricedTotal,
+            'itinerary_updates' => $itineraryUpdates,
+        ];
     }
 
     /**
@@ -192,7 +288,7 @@ class TravelportBookingService
                 $itineraryData = array_merge($itineraryData, $itineraryFare);
             }
 
-            $travelers = TravelportHoldPayloadBuilder::buildTravelers($passengersData);
+            $travelers = TravelportHoldPayloadBuilder::buildTravelers($passengersData, $searchRequest);
             if ($travelers === []) {
                 throw new \RuntimeException('No passenger data for Travelport hold.');
             }
@@ -252,7 +348,16 @@ class TravelportBookingService
             ];
 
             $repricedTotal = (float) ($itineraryFare['totalPrice'] ?? 0);
-            if ($repricedTotal > 0 && abs($repricedTotal - (float) $booking->total_amount) <= 0.02) {
+            $quotedTotal = (float) $booking->total_amount;
+            if ($repricedTotal > 0) {
+                if ($quotedTotal > 0 && abs($repricedTotal - $quotedTotal) > 0.05) {
+                    throw new \RuntimeException(sprintf(
+                        'Repriced total (%.2f) differs from quoted total (%.2f). Please search again.',
+                        $repricedTotal,
+                        $quotedTotal,
+                    ));
+                }
+
                 $bookingUpdate['total_amount'] = $repricedTotal;
                 $bookingUpdate['original_amount'] = $repricedTotal;
             }
@@ -632,6 +737,7 @@ class TravelportBookingService
 
         $updates = array_filter([
             'passenger_fare_lines' => $repricedFare['passenger_fare_lines'] ?? null,
+            'passenger_fare_warning' => $repricedFare['passenger_fare_warning'] ?? null,
             'supplierBasePrice' => $repricedFare['supplierBasePrice'] ?? null,
             'supplierTaxes' => $repricedFare['supplierTaxes'] ?? null,
             'basePrice' => $repricedFare['basePrice'] ?? null,
@@ -644,8 +750,22 @@ class TravelportBookingService
             return $updates;
         }
 
-        return FlightPassengerFareLinesPresenter::syncItineraryFareTotals(
+        $merged = FlightPassengerFareLinesPresenter::syncItineraryFareTotals(
             array_merge($itineraryData, $updates),
+        );
+
+        return array_intersect_key(
+            $merged,
+            array_flip([
+                'passenger_fare_lines',
+                'passenger_fare_warning',
+                'supplierBasePrice',
+                'supplierTaxes',
+                'basePrice',
+                'taxes',
+                'totalPrice',
+                'currency',
+            ]),
         );
     }
 }

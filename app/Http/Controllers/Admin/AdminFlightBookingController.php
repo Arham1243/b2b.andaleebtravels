@@ -8,6 +8,7 @@ use App\Models\B2bFlightBooking;
 use App\Models\B2bVendor;
 use App\Services\FlightService;
 use App\Services\Travelport\TravelportApiClient;
+use App\Services\Travelport\TravelportBookingService;
 use App\Support\BookingCancellationEligibility;
 use App\Support\FlightBookingAdminPresenter;
 use App\Support\FlightItineraryLegsNormalizer;
@@ -67,6 +68,29 @@ class AdminFlightBookingController extends Controller
         $booking = B2bFlightBooking::findOrFail($flight_booking);
 
         return $this->flightEticketExportResponse($booking, $flightService, $request);
+    }
+
+    public function refreshFareBreakdown(int $id, TravelportBookingService $travelportBookingService)
+    {
+        $booking = B2bFlightBooking::findOrFail($id);
+
+        if (! $booking->isTravelport()) {
+            return redirect()
+                ->route('admin.flight-bookings.show', $booking->id)
+                ->with('notify_error', 'Fare breakdown refresh is only available for Travelport bookings.');
+        }
+
+        $result = $travelportBookingService->refreshBookingFareBreakdown($booking);
+
+        if (! ($result['success'] ?? false)) {
+            return redirect()
+                ->route('admin.flight-bookings.show', $booking->id)
+                ->with('notify_error', $result['error'] ?? 'Unable to refresh fare breakdown.');
+        }
+
+        return redirect()
+            ->route('admin.flight-bookings.show', $booking->id)
+            ->with('notify_success', $result['message'] ?? 'Fare breakdown refreshed.');
     }
 
     public function fareRules(int $id, FlightService $flightService)

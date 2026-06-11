@@ -33,6 +33,13 @@ class FlightBookingController extends Controller
                 ->with('notify_error', 'Please search for flights again.');
         }
 
+        $itineraryData = $this->refreshTravelportItineraryForDisplay(
+            $itineraryData,
+            $params,
+            $itinerary,
+            $fareIndex,
+        );
+
         $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
 
         $totalAmount = (float) ($itineraryData['totalPrice'] ?? 0);
@@ -438,6 +445,13 @@ class FlightBookingController extends Controller
             return redirect()->route('user.flights.index')
                 ->with('notify_error', 'Please search for flights again.');
         }
+
+        $itineraryData = $this->refreshTravelportItineraryForDisplay(
+            $itineraryData,
+            $params,
+            $itinerary,
+            $fareIndex,
+        );
 
         try {
             $savedPassengers = Auth::user()
@@ -911,7 +925,78 @@ class FlightBookingController extends Controller
             'sabre_pricing_index' => $selected['sabre_pricing_index'] ?? 0,
             'selected_fare_index' => $fareIndex,
             'passenger_fare_lines' => $selected['passenger_fare_lines'] ?? $card['passenger_fare_lines'] ?? [],
+            'passenger_fare_warning' => $selected['passenger_fare_warning'] ?? $card['passenger_fare_warning'] ?? null,
         ]));
+    }
+
+    /**
+     * @param  array<string, mixed>  $itineraryData
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    private function refreshTravelportItineraryForDisplay(
+        array $itineraryData,
+        array $params,
+        int $itineraryId,
+        int $fareIndex,
+    ): array {
+        $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
+        $children = (int) ($params['children'] ?? 0);
+
+        if (! $isTravelport || $children <= 0) {
+            return $itineraryData;
+        }
+
+        $refresh = app(TravelportBookingService::class)->refreshFareBreakdown($itineraryData, $params);
+        if (! ($refresh['success'] ?? false)) {
+            return $itineraryData;
+        }
+
+        $updates = is_array($refresh['itinerary_updates'] ?? null) ? $refresh['itinerary_updates'] : [];
+        if ($updates === []) {
+            return $itineraryData;
+        }
+
+        $itineraryData = array_merge($itineraryData, $updates);
+        $this->persistSessionItineraryFare($itineraryId, $fareIndex, $updates);
+
+        return $itineraryData;
+    }
+
+    /**
+     * @param  array<string, mixed>  $updates
+     */
+    private function persistSessionItineraryFare(int $itineraryId, int $fareIndex, array $updates): void
+    {
+        if ($updates === []) {
+            return;
+        }
+
+        $results = session('flight_search_results', []);
+        $card = $results[$itineraryId] ?? null;
+        if (! is_array($card)) {
+            return;
+        }
+
+        $fareKeys = [
+            'passenger_fare_lines',
+            'passenger_fare_warning',
+            'supplierBasePrice',
+            'supplierTaxes',
+            'basePrice',
+            'taxes',
+            'totalPrice',
+        ];
+        $farePatch = array_intersect_key($updates, array_flip($fareKeys));
+
+        $options = is_array($card['fare_options'] ?? null) ? $card['fare_options'] : [];
+        if (isset($options[$fareIndex]) && is_array($options[$fareIndex]) && $farePatch !== []) {
+            $options[$fareIndex] = array_merge($options[$fareIndex], $farePatch);
+            $card['fare_options'] = $options;
+        }
+
+        $results[$itineraryId] = array_merge($card, $farePatch);
+        session(['flight_search_results' => $results]);
     }
 
     protected function getSourceMarketFromIP(): string

@@ -447,6 +447,16 @@
                                         ])
                                     </div>
                                 @endif
+                                @if ($booking->isTravelport() && (int) $booking->children > 0 && ($canEditBooking ?? false))
+                                    <form action="{{ route('admin.flight-bookings.refresh-fare-breakdown', $booking->id) }}" method="POST"
+                                        class="mt-2"
+                                        onsubmit="return confirm('Re-run Travelport Air Price and refresh the per-passenger fare breakdown for this booking?');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+                                            <i class="bx bx-refresh"></i> Refresh fare breakdown
+                                        </button>
+                                    </form>
+                                @endif
                                 <div class="bkpd-fare__row">
                                     <span>Total <span style="color:#8492a6;font-weight:400;">(× {{ $totalPax }} pax)</span></span>
                                     <span>{!! formatPrice($booking->total_amount) !!}</span>

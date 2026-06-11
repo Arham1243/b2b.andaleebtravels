@@ -274,6 +274,7 @@ class TravelportSearchPresenter
             $searchData,
             $totalPrice,
         );
+        $passengerFareWarning = FlightPassengerFareLinesPresenter::passengerFareWarning($passengerFareLines);
         $passengerFareTotals = FlightPassengerFareLinesPresenter::aggregateTotals($passengerFareLines);
         if (($passengerFareTotals['base'] ?? 0) > 0) {
             $basePrice = $passengerFareTotals['base'];
@@ -449,6 +450,7 @@ class TravelportSearchPresenter
             'taxes' => $taxes,
             'currency' => $currency,
             'passenger_fare_lines' => $passengerFareLines,
+            'passenger_fare_warning' => $passengerFareWarning,
             'fare_brand' => $displayBrand,
             'fare_basis' => $fareBasis,
             'non_refundable' => $nonRefundable,
@@ -475,6 +477,7 @@ class TravelportSearchPresenter
             'totalPrice' => $totalPrice,
             'currency' => $currency,
             'passenger_fare_lines' => $passengerFareLines,
+            'passenger_fare_warning' => $passengerFareWarning,
             'legs' => $legs,
             'supplier' => 'travelport',
             'validating_carrier' => $validatingCarrier,

@@ -64,12 +64,13 @@ class TravelportHoldPayloadBuilder
      * @param  array<string, mixed>  $passengersData
      * @return list<array<string, mixed>>
      */
-    public static function buildTravelers(array $passengersData): array
+    public static function buildTravelers(array $passengersData, array $searchData = []): array
     {
         $lead = is_array($passengersData['lead'] ?? null) ? $passengersData['lead'] : [];
         $passengers = is_array($passengersData['passengers'] ?? null) ? $passengersData['passengers'] : [];
         $phone = self::parsePhone((string) ($lead['phone'] ?? ''));
         $email = trim((string) ($lead['email'] ?? ''));
+        $referenceDate = FlightPassengerDobValidator::resolveReferenceDate($searchData);
 
         $travelers = [];
         $idx = 1;
@@ -87,7 +88,7 @@ class TravelportHoldPayloadBuilder
             $travelers[] = [
                 'key' => "traveler_{$idx}",
                 'traveler_type' => $type,
-                'traveler_type_code' => self::travelportPtcCode($type, $dob),
+                'traveler_type_code' => self::travelportPtcCode($type, $dob, $referenceDate),
                 'firstName' => trim((string) ($pax['first_name'] ?? '')),
                 'lastName' => trim((string) ($pax['last_name'] ?? '')),
                 'dob' => $dob,
@@ -135,6 +136,7 @@ class TravelportHoldPayloadBuilder
     public static function enrichSearchDataWithPassengerAges(array $searchData, array $passengersData): array
     {
         $passengers = is_array($passengersData['passengers'] ?? null) ? $passengersData['passengers'] : [];
+        $referenceDate = FlightPassengerDobValidator::resolveReferenceDate($searchData);
         $childAges = [];
         $infantAges = [];
 
@@ -149,7 +151,7 @@ class TravelportHoldPayloadBuilder
                 continue;
             }
 
-            $age = FlightPassengerDobValidator::ageOnDate($dob, Carbon::today());
+            $age = FlightPassengerDobValidator::ageOnDate($dob, $referenceDate);
 
             if (in_array($type, ['C06', 'CNN', 'CHD'], true)) {
                 $childAges[] = max(2, min(11, $age));
@@ -171,13 +173,14 @@ class TravelportHoldPayloadBuilder
         return $searchData;
     }
 
-    public static function travelportPtcCode(string $type, string $dob = ''): string
+    public static function travelportPtcCode(string $type, string $dob = '', ?Carbon $referenceDate = null): string
     {
         $normalized = strtoupper(trim($type));
+        $referenceDate ??= FlightPassengerDobValidator::resolveReferenceDate([]);
 
         if (in_array($normalized, ['C06', 'CNN', 'CHD'], true)) {
             if ($dob !== '') {
-                $age = FlightPassengerDobValidator::ageOnDate($dob, Carbon::today());
+                $age = FlightPassengerDobValidator::ageOnDate($dob, $referenceDate);
 
                 return 'CNN' . str_pad((string) max(2, min(11, $age)), 2, '0', STR_PAD_LEFT);
             }

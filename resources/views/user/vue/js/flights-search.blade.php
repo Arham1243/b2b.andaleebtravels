@@ -4,6 +4,8 @@
     const RECENT_FLIGHTS_KEY = 'b2b_flight_recent_searches_v1';
     const MAX_RECENT_FLIGHTS = 4;
     const MAX_SEATED_PAX = 9;
+    const DEFAULT_CHILD_AGE = 8;
+    const childAgeOptions = Array.from({ length: 10 }, (_, i) => i + 2);
     const HOME_AIRPORT_PRIORITY = [
         'DXB', 'DWC', 'AUH', 'SHJ', 'AAN', 'RKT', 'FJR',
         'DOH', 'MCT', 'SLL', 'BAH', 'KWI', 'RUH', 'JED', 'DMM', 'MED',
@@ -732,6 +734,20 @@
                 adults.value = Number.isNaN(adultsParam) || adultsParam < 1 ? 1 : adultsParam;
                 children.value = Number.isNaN(childrenParam) || childrenParam < 0 ? 0 : childrenParam;
                 infants.value = Number.isNaN(infantsParam) || infantsParam < 0 ? 0 : infantsParam;
+                const urlChildAges = params.getAll('child_ages[]');
+                if (!urlChildAges.length) {
+                    params.forEach((value, key) => {
+                        if (key === 'child_ages[]' || key === 'child_ages') {
+                            urlChildAges.push(value);
+                        }
+                    });
+                }
+                if (urlChildAges.length) {
+                    childAges.value = urlChildAges
+                        .map((v) => parseInt(v, 10))
+                        .filter((n) => !Number.isNaN(n) && n >= 2 && n <= 11);
+                }
+                syncChildAgesToCount();
                 clampSeatedPax();
 
                 if (tripType.value === 'multi_city') {
@@ -774,6 +790,20 @@
             const adults = ref(1);
             const children = ref(0);
             const infants = ref(0);
+            const childAges = ref([]);
+
+            const syncChildAgesToCount = () => {
+                while (childAges.value.length < children.value) {
+                    childAges.value.push(DEFAULT_CHILD_AGE);
+                }
+                if (childAges.value.length > children.value) {
+                    childAges.value = childAges.value.slice(0, children.value);
+                }
+            };
+
+            watch(children, () => {
+                syncChildAgesToCount();
+            });
 
             const seatedPaxCount = computed(() => adults.value + children.value);
             const canIncrementAdults = computed(() => seatedPaxCount.value < MAX_SEATED_PAX);
@@ -896,6 +926,15 @@
                     return;
                 }
 
+                syncChildAgesToCount();
+                if (children.value > 0 && childAges.value.length !== children.value) {
+                    event.preventDefault();
+                    if (typeof showToast === 'function') {
+                        showToast('error', 'Please specify an age (2–11) for each child.');
+                    }
+                    return;
+                }
+
                 try {
                     const fd = new FormData(event.currentTarget);
                     const queryString = new URLSearchParams(fd).toString();
@@ -994,6 +1033,8 @@
                 adults,
                 children,
                 infants,
+                childAges,
+                childAgeOptions,
                 canIncrementAdults,
                 canIncrementChildren,
                 incrementAdults,

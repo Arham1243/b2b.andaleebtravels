@@ -488,6 +488,20 @@
                                                 </div>
                                             </li>
 
+                                            <li class="paxs-item paxs-item--child-age"
+                                                v-for="(age, childIdx) in childAges" :key="'child-age-' + childIdx">
+                                                <div class="info">
+                                                    <div class="name">Child @{{ childIdx + 1 }} age</div>
+                                                    <span>Required for child fares</span>
+                                                </div>
+                                                <select class="fs-pro-child-age-select" v-model.number="childAges[childIdx]"
+                                                    @click.stop @change.stop>
+                                                    <option v-for="opt in childAgeOptions" :key="'age-' + childIdx + '-' + opt"
+                                                        :value="opt">@{{ opt }} yrs</option>
+                                                </select>
+                                                <input type="hidden" name="child_ages[]" :value="childAges[childIdx]">
+                                            </li>
+
                                             <li class="paxs-item">
                                                 <div class="info">
                                                     <div class="name">Infants</div>

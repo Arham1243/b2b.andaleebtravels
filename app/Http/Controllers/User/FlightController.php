@@ -65,6 +65,8 @@ class FlightController extends Controller
             'return_date' => 'nullable|string',
             'adults' => 'required|integer|min:1',
             'children' => 'nullable|integer|min:0',
+            'child_ages' => 'nullable|array',
+            'child_ages.*' => 'integer|min:2|max:11',
             'infants' => 'nullable|integer|min:0',
             'direct_flight' => 'nullable',
             'nearby_airports' => 'nullable',
@@ -89,6 +91,13 @@ class FlightController extends Controller
 
             if ((int) $request->input('infants', 0) > $adults) {
                 $validator->errors()->add('infants', 'Infants cannot exceed the number of adults.');
+            }
+
+            if ($children > 0) {
+                $childAges = $request->input('child_ages', []);
+                if (! is_array($childAges) || count($childAges) !== $children) {
+                    $validator->errors()->add('child_ages', 'Please specify an age (2–11) for each child.');
+                }
             }
 
             if ($tripType === 'multi_city') {
@@ -527,16 +536,45 @@ class FlightController extends Controller
             $normalized['to'] = $lastSegment['to'] ?? null;
             $normalized['departure_date'] = $firstSegment['departure_date'] ?? null;
             $normalized['return_date'] = null;
+        } else {
+            $normalized['from'] = strtoupper(trim((string) ($data['from'] ?? '')));
+            $normalized['to'] = strtoupper(trim((string) ($data['to'] ?? '')));
+            $normalized['departure_date'] = $this->normalizeFlightSearchDate($data['departure_date'] ?? '') ?? '';
+            $normalized['return_date'] = $tripType === 'round_trip'
+                ? ($this->normalizeFlightSearchDate($data['return_date'] ?? '') ?? '')
+                : null;
+        }
 
+        return $this->attachChildAgesToSearchData($normalized, $data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $normalized
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function attachChildAgesToSearchData(array $normalized, array $data): array
+    {
+        $children = (int) ($normalized['children'] ?? 0);
+        if ($children <= 0) {
             return $normalized;
         }
 
-        $normalized['from'] = strtoupper(trim((string) ($data['from'] ?? '')));
-        $normalized['to'] = strtoupper(trim((string) ($data['to'] ?? '')));
-        $normalized['departure_date'] = $this->normalizeFlightSearchDate($data['departure_date'] ?? '') ?? '';
-        $normalized['return_date'] = $tripType === 'round_trip'
-            ? ($this->normalizeFlightSearchDate($data['return_date'] ?? '') ?? '')
-            : null;
+        $childAges = [];
+        if (isset($data['child_ages']) && is_array($data['child_ages'])) {
+            foreach ($data['child_ages'] as $age) {
+                $age = (int) $age;
+                if ($age >= 2 && $age <= 11) {
+                    $childAges[] = $age;
+                }
+            }
+        }
+
+        while (count($childAges) < $children) {
+            $childAges[] = 8;
+        }
+
+        $normalized['child_ages'] = array_slice($childAges, 0, $children);
 
         return $normalized;
     }

@@ -259,7 +259,7 @@
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'paxType' => 'ADT',
-                                        'hint' => 'Must be 12+ years old today',
+                                        'hint' => '12+ years on travel date',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -315,7 +315,7 @@
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'paxType' => 'C06',
-                                        'hint' => 'Must be 2–11 years old today',
+                                        'hint' => '2–11 years on travel date',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -365,7 +365,7 @@
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'paxType' => 'INF',
-                                        'hint' => 'Under 2 years old today, at least 14 days old',
+                                        'hint' => 'Under 2 years on travel date, at least 7 days old (1 week)',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -1035,6 +1035,7 @@
 
     HpPassengerDob.init({
         formSelector: '#holdForm',
+        travelDate: @json($travelDateIso),
     });
 
     HpFormSubmit.bind({

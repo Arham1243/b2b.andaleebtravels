@@ -92,6 +92,7 @@ class TravelportAirPricePresenter
             $searchData,
             (float) ($totalMoney['amount'] ?? 0),
         );
+        $passengerFareWarning = FlightPassengerFareLinesPresenter::passengerFareWarning($passengerFareLines);
         $passengerFareTotals = FlightPassengerFareLinesPresenter::aggregateTotals($passengerFareLines);
         $baseMoney = self::parseMoney(self::attr($pricingInfo, 'BasePrice'));
         $taxMoney = self::parseMoney(self::attr($pricingInfo, 'Taxes'));
@@ -132,6 +133,7 @@ class TravelportAirPricePresenter
             'taxes' => $taxMoney['amount'],
             'currency' => $currency,
             'passenger_fare_lines' => $passengerFareLines,
+            'passenger_fare_warning' => $passengerFareWarning,
             'fare_brand' => $displayBrand,
             'fare_basis' => $fareBasis,
             'non_refundable' => $nonRefundable,

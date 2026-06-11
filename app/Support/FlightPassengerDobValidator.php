@@ -12,7 +12,7 @@ final class FlightPassengerDobValidator
 
     public const CHILD_MAX_AGE = 11;
 
-    public const INFANT_MIN_DAYS = 14;
+    public const INFANT_MIN_DAYS = 7;
 
     /**
      * @param  array<string, mixed>  $searchParams
@@ -64,9 +64,15 @@ final class FlightPassengerDobValidator
      * @param  array<string, mixed>  $searchParams
      * @return array<string, string>
      */
+    public static function resolveReferenceDate(array $searchParams = []): Carbon
+    {
+        return self::resolveLatestTravelDate($searchParams) ?? Carbon::today()->startOfDay();
+    }
+
     public static function validatePassengers(array $passengers, array $searchParams = []): array
     {
         $today = Carbon::today()->startOfDay();
+        $referenceDate = self::resolveReferenceDate($searchParams);
         $errors = [];
 
         foreach ($passengers as $index => $passenger) {
@@ -98,9 +104,9 @@ final class FlightPassengerDobValidator
             }
 
             $type = strtoupper(trim((string) ($passenger['type'] ?? 'ADT')));
-            $age = self::ageOnDate($dob, $today);
-            $daysOld = self::daysSinceBirth($birthDate, $today);
-            $message = self::ageRuleMessage($type, $age, $daysOld);
+            $age = self::ageOnDate($dob, $referenceDate);
+            $daysOld = self::daysSinceBirth($birthDate, $referenceDate);
+            $message = self::ageRuleMessage($type, $age, $daysOld, $referenceDate);
 
             if ($message !== null) {
                 $errors[$field] = $message;
@@ -110,30 +116,41 @@ final class FlightPassengerDobValidator
         return $errors;
     }
 
-    public static function ageRuleMessage(string $type, int $age, int $daysOld): ?string
+    public static function ageRuleMessage(string $type, int $age, int $daysOld, ?Carbon $referenceDate = null): ?string
     {
+        $travelLabel = self::travelDateLabel($referenceDate);
+
         return match ($type) {
             'C06', 'CNN', 'CHD' => ($age >= self::CHILD_MIN_AGE && $age <= self::CHILD_MAX_AGE)
                 ? null
-                : 'Child must be between 2 and 11 years old (based on today\'s date).',
-            'INF' => self::infantRuleMessage($age, $daysOld),
+                : 'Child must be between 2 and 11 years old on the travel date' . $travelLabel . '.',
+            'INF' => self::infantRuleMessage($age, $daysOld, $travelLabel),
             default => $age >= self::ADULT_MIN_AGE
                 ? null
-                : 'Adult must be 12 years or older (based on today\'s date).',
+                : 'Adult must be 12 years or older on the travel date' . $travelLabel . '.',
         };
     }
 
-    private static function infantRuleMessage(int $age, int $daysOld): ?string
+    private static function infantRuleMessage(int $age, int $daysOld, string $travelLabel): ?string
     {
         if ($daysOld < self::INFANT_MIN_DAYS) {
-            return 'Infant must be at least 14 days old (2 weeks). Passengers under 1 week old cannot be booked.';
+            return 'Infant must be at least 7 days old (1 week) on the travel date' . $travelLabel . '.';
         }
 
         if ($age >= self::CHILD_MIN_AGE) {
-            return 'Infant must be under 2 years old (based on today\'s date).';
+            return 'Infant must be under 2 years old on the travel date' . $travelLabel . '.';
         }
 
         return null;
+    }
+
+    private static function travelDateLabel(?Carbon $referenceDate): string
+    {
+        if ($referenceDate === null) {
+            return '';
+        }
+
+        return ' (' . $referenceDate->format('d M Y') . ')';
     }
 
     private static function parseDate(mixed $value): ?Carbon

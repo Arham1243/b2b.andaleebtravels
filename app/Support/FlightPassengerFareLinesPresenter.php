@@ -18,6 +18,17 @@ final class FlightPassengerFareLinesPresenter
         ?float $expectedTotal = null,
     ): array {
         unset($expectedTotal);
+
+        return self::sortLines(self::buildTravelportLinesFromPricingInfos($pricingInfos, $searchData));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $pricingInfos
+     * @param  array<string, mixed>  $searchData
+     * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
+     */
+    public static function buildTravelportLinesFromPricingInfos(array $pricingInfos, array $searchData): array
+    {
         $searchCounts = self::searchPaxCounts($searchData);
         $byTypeKey = [];
 
@@ -36,40 +47,27 @@ final class FlightPassengerFareLinesPresenter
             }
 
             $paxInInfo = self::travelportPassengerTypeCount($pricingInfo);
+            $basePerPax = round($baseTotal / $paxInInfo, 2);
+            $taxPerPax = round($taxTotal / $paxInInfo, 2);
 
             if (! isset($byTypeKey[$typeKey])) {
                 $byTypeKey[$typeKey] = [
                     'type_key' => $typeKey,
                     'type_code' => $code,
                     'label' => self::paxLabel($code),
-                    'base_sum' => 0.0,
-                    'tax_sum' => 0.0,
-                    'pinfo_count' => 0,
-                    'pax_count' => 0,
+                    'pinfo_pax_count' => 0,
+                    'base_per_pax' => $basePerPax,
+                    'tax_per_pax' => $taxPerPax,
                 ];
             }
 
-            $byTypeKey[$typeKey]['base_sum'] = round($byTypeKey[$typeKey]['base_sum'] + $baseTotal, 2);
-            $byTypeKey[$typeKey]['tax_sum'] = round($byTypeKey[$typeKey]['tax_sum'] + $taxTotal, 2);
-            $byTypeKey[$typeKey]['pinfo_count']++;
-            $byTypeKey[$typeKey]['pax_count'] += $paxInInfo;
+            $byTypeKey[$typeKey]['pinfo_pax_count'] += $paxInInfo;
+            $byTypeKey[$typeKey]['base_per_pax'] = $basePerPax;
+            $byTypeKey[$typeKey]['tax_per_pax'] = $taxPerPax;
+            $byTypeKey[$typeKey]['type_code'] = $code;
+            $byTypeKey[$typeKey]['label'] = self::paxLabel($code);
         }
 
-        return self::buildTravelportLinesFromBuckets($byTypeKey, $searchCounts);
-    }
-
-    /**
-     * AirPricingInfo BasePrice/Taxes are totals for that passenger type on the booking.
-     * Always spread across the searched passenger count (not a single pinfo snapshot).
-     *
-     * @param  array<string, array{type_key: string, type_code: string, label: string, base_sum: float, tax_sum: float, pinfo_count: int, pax_count: int}>  $byTypeKey
-     * @param  array{adult: int, child: int, infant: int}  $searchCounts
-     * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
-     */
-    private static function buildTravelportLinesFromBuckets(
-        array $byTypeKey,
-        array $searchCounts,
-    ): array {
         $lines = [];
 
         foreach ($byTypeKey as $typeKey => $row) {
@@ -78,23 +76,54 @@ final class FlightPassengerFareLinesPresenter
                 continue;
             }
 
-            $baseSum = (float) ($row['base_sum'] ?? 0);
-            $taxSum = (float) ($row['tax_sum'] ?? 0);
-
-            $basePerPax = round($baseSum / $count, 2);
-            $taxPerPax = round($taxSum / $count, 2);
-
             $lines[] = [
                 'type_key' => $typeKey,
                 'type_code' => (string) ($row['type_code'] ?? self::codeFromTypeKey($typeKey)),
                 'label' => (string) ($row['label'] ?? self::paxLabel(self::codeFromTypeKey($typeKey))),
                 'count' => $count,
-                'base_per_pax' => $basePerPax,
-                'tax_per_pax' => $taxPerPax,
+                'base_per_pax' => round((float) ($row['base_per_pax'] ?? 0), 2),
+                'tax_per_pax' => round((float) ($row['tax_per_pax'] ?? 0), 2),
+                'pinfo_pax_count' => (int) ($row['pinfo_pax_count'] ?? 0),
             ];
         }
 
-        return self::sortLines($lines);
+        return $lines;
+    }
+
+    /**
+     * @param  list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>  $lines
+     */
+    public static function passengerFareWarning(array $lines): ?string
+    {
+        $adultBase = null;
+        $childBase = null;
+
+        foreach ($lines as $line) {
+            $typeKey = (string) ($line['type_key'] ?? '');
+            $base = (float) ($line['base_per_pax'] ?? 0);
+
+            if ($typeKey === 'adult' && $base > 0) {
+                $adultBase = $base;
+            }
+
+            if ($typeKey === 'child' && $base > 0) {
+                $childBase = $base;
+            }
+        }
+
+        if ($adultBase !== null && $childBase !== null && $childBase >= $adultBase) {
+            return 'child_priced_as_adult';
+        }
+
+        foreach ($lines as $line) {
+            $count = (int) ($line['count'] ?? 0);
+            $pinfoCount = (int) ($line['pinfo_pax_count'] ?? 0);
+            if ($count > 0 && $pinfoCount > 0 && $pinfoCount < $count) {
+                return 'child_fare_incomplete_reprice_needed';
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -376,6 +405,17 @@ final class FlightPassengerFareLinesPresenter
      */
     private static function travelportPaxCode(array $pricingInfo): string
     {
+        foreach (self::asList($pricingInfo['PassengerType'] ?? null) as $passengerType) {
+            if (! is_array($passengerType)) {
+                continue;
+            }
+
+            $code = strtoupper(trim((string) self::travelportAttr($passengerType, 'Code', '')));
+            if ($code !== '') {
+                return $code;
+            }
+        }
+
         foreach (self::asList($pricingInfo['FareInfo'] ?? null) as $fareInfo) {
             if (! is_array($fareInfo)) {
                 continue;
@@ -385,15 +425,6 @@ final class FlightPassengerFareLinesPresenter
             if ($code !== '') {
                 return $code;
             }
-        }
-
-        $passengerType = data_get($pricingInfo, 'PassengerType');
-        if (is_array($passengerType)) {
-            if (isset($passengerType[0]) && is_array($passengerType[0])) {
-                return strtoupper(trim((string) self::travelportAttr($passengerType[0], 'Code', 'ADT')));
-            }
-
-            return strtoupper(trim((string) self::travelportAttr($passengerType, 'Code', 'ADT')));
         }
 
         return 'ADT';
