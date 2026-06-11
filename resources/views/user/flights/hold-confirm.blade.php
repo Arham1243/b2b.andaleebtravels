@@ -171,7 +171,7 @@
                                 'ADT'  => ['label' => 'Adult',  'age' => '12+ years',      'icon' => 'bx-user'],
                                 'C06'  => ['label' => 'Child',  'age' => '2–11 years',     'icon' => 'bx-user'],
                                 'C11'  => ['label' => 'Child',  'age' => '2–11 years',     'icon' => 'bx-user'],
-                                'INF'  => ['label' => 'Infant', 'age' => 'Under 2 years',  'icon' => 'bx-baby-carriage'],
+                                'INF'  => ['label' => 'Infant', 'age' => 'Under 2 years',  'icon' => 'bxs-baby-carriage'],
                                 default => ['label' => ucfirst($pax['type'] ?? 'Passenger'), 'age' => '', 'icon' => 'bx-user'],
                             };
                             $num = $pi + 1;

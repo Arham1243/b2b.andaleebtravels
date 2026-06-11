@@ -837,7 +837,6 @@ class FlightBookingController extends Controller
                 continue;
             }
 
-            $infantCount++;
             $adultIndex = (int) ($passenger['accompanying_adult'] ?? 0);
             if ($adultIndex < 0 || $adultIndex >= $adultCount) {
                 $errors["passengers.{$index}.accompanying_adult"] = 'Select which adult this infant travels with.';

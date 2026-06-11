@@ -268,7 +268,7 @@
                         @for ($i = 0; $i < $infants; $i++)
                             <div class="hp-card mb-3">
                                 <div class="hp-card__head">
-                                    <i class="bx bx-baby-carriage hp-card__head-icon"></i>
+                                    <i class="bx bxs-baby-carriage hp-card__head-icon"></i>
                                     <div>
                                         <div class="hp-card__eyebrow">Passenger Information</div>
                                         <div class="hp-card__title">Infant {{ $i + 1 }} <span class="hp-card__age">Under 2 years</span></div>
