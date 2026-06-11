@@ -1138,6 +1138,24 @@ if (! function_exists('flightBookingPricingFields')) {
  * @param  array<string, mixed>  $itinerary
  * @return array<string, mixed>
  */
+if (! function_exists('flightFareBreakdownForBooking')) {
+    /**
+     * @return array<string, mixed>
+     */
+    function flightFareBreakdownForBooking(\App\Models\B2bFlightBooking $booking): array
+    {
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+
+        return flightFareBreakdown(
+            $itinerary,
+            (float) $booking->total_amount,
+            (int) $booking->adults,
+            (int) $booking->children,
+            (int) $booking->infants,
+        );
+    }
+}
+
 if (! function_exists('flightFareBreakdown')) {
     function flightFareBreakdown(
         array $itinerary,
@@ -1179,9 +1197,18 @@ if (! function_exists('flightFareBreakdown')) {
         $summaryBase = $displayBase;
         $summaryTax = $displayTax;
 
-        if (($paxBreakdown['has_pax_lines'] ?? false) && ($paxBreakdown['base_from_lines'] ?? 0) > 0) {
-            $summaryBase = (float) $paxBreakdown['base_from_lines'];
-            $summaryTax = (float) ($paxBreakdown['tax_from_lines'] ?? $displayTax);
+        $baseFromLines = (float) ($paxBreakdown['base_from_lines'] ?? 0);
+        $taxFromLines = (float) ($paxBreakdown['tax_from_lines'] ?? 0);
+        $lineGrandTotal = round($baseFromLines + $taxFromLines, 2);
+        $expectedGrandTotal = round($displayBase + $displayTax, 2);
+
+        if (
+            ($paxBreakdown['has_pax_lines'] ?? false)
+            && $baseFromLines > 0
+            && ($expectedGrandTotal <= 0 || abs($lineGrandTotal - $expectedGrandTotal) <= 0.05)
+        ) {
+            $summaryBase = $baseFromLines;
+            $summaryTax = $taxFromLines > 0 ? $taxFromLines : $displayTax;
         }
 
         return [

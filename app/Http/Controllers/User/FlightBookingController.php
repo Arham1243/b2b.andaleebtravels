@@ -521,6 +521,25 @@ class FlightBookingController extends Controller
 
         $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
 
+        if ($isTravelport) {
+            $revalidate = app(TravelportBookingService::class)->revalidateItinerary(
+                $itineraryData,
+                $params,
+                ['passengers' => $validated['passengers']],
+            );
+            if (! ($revalidate['success'] ?? false)) {
+                return $this->holdCheckoutRedirect($itineraryId, $fareIndex)
+                    ->with('notify_error', $revalidate['error'] ?? 'Unable to revalidate fare. Please search again.');
+            }
+
+            $itineraryUpdates = is_array($revalidate['itinerary_updates'] ?? null)
+                ? $revalidate['itinerary_updates']
+                : [];
+            if ($itineraryUpdates !== []) {
+                $itineraryData = array_merge($itineraryData, $itineraryUpdates);
+            }
+        }
+
         // Save any passenger profiles requested (silently skip if table not yet migrated)
         try {
             foreach ($validated['passengers'] as $pax) {

@@ -60,6 +60,9 @@
 .bkp--admin .fd-rules__component-grid div strong {
     display: block;
 }
+@include('user.flights.partials.hold-confirm-styles')
+.bkp--admin .hp-fare-acc { margin-top: .65rem; }
+.bkp--admin .bkpd-fare__pax-breakdown { margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed var(--c-line); }
 </style>
 @endpush
 
@@ -427,6 +430,21 @@
                                     <div class="bkpd-fare__row">
                                         <span>Taxes &amp; fees</span>
                                         <span>{!! formatPrice($fareTaxes) !!}</span>
+                                    </div>
+                                @endif
+                                @php
+                                    $adminFareBreakdown = flightFareBreakdownForBooking($booking);
+                                @endphp
+                                @if (($adminFareBreakdown['has_pax_lines'] ?? false) && ($adminFareBreakdown['has_breakdown'] ?? false))
+                                    <div class="bkpd-fare__pax-breakdown">
+                                        @include('user.flights.partials.fare-summary-breakdown', [
+                                            'breakdown' => $adminFareBreakdown,
+                                            'itinerary' => $booking->itinerary_data ?? [],
+                                            'adults' => (int) $booking->adults,
+                                            'children' => (int) $booking->children,
+                                            'infants' => (int) $booking->infants,
+                                            'fallbackTotal' => (float) $booking->total_amount,
+                                        ])
                                     </div>
                                 @endif
                                 <div class="bkpd-fare__row">

@@ -17,6 +17,7 @@ final class FlightPassengerFareLinesPresenter
         array $searchData = [],
         ?float $expectedTotal = null,
     ): array {
+        unset($expectedTotal);
         $searchCounts = self::searchPaxCounts($searchData);
         $byTypeKey = [];
 
@@ -54,53 +55,20 @@ final class FlightPassengerFareLinesPresenter
             $byTypeKey[$typeKey]['pax_count'] += $paxInInfo;
         }
 
-        return self::finalizeTravelportLines($byTypeKey, $searchCounts, $expectedTotal);
+        return self::buildTravelportLinesFromBuckets($byTypeKey, $searchCounts);
     }
 
     /**
-     * @param  array<string, array{type_key: string, type_code: string, label: string, base_sum: float, tax_sum: float, pinfo_count: int}>  $byTypeKey
-     * @param  array{adult: int, child: int, infant: int}  $searchCounts
-     * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
-     */
-    private static function finalizeTravelportLines(
-        array $byTypeKey,
-        array $searchCounts,
-        ?float $expectedTotal,
-    ): array {
-        $dividedLines = self::buildTravelportLinesFromBuckets($byTypeKey, $searchCounts, false);
-        $perPassengerLines = self::buildTravelportLinesFromBuckets($byTypeKey, $searchCounts, true);
-
-        if ($expectedTotal === null || $expectedTotal <= 0) {
-            return $perPassengerLines !== [] ? $perPassengerLines : $dividedLines;
-        }
-
-        $dividedTotal = self::aggregateTotals($dividedLines);
-        $perPassengerTotal = self::aggregateTotals($perPassengerLines);
-        $dividedSum = round($dividedTotal['base'] + $dividedTotal['tax'], 2);
-        $perPassengerSum = round($perPassengerTotal['base'] + $perPassengerTotal['tax'], 2);
-
-        if ($perPassengerLines === []) {
-            return $dividedLines;
-        }
-
-        if ($dividedLines === []) {
-            return $perPassengerLines;
-        }
-
-        return abs($perPassengerSum - $expectedTotal) <= abs($dividedSum - $expectedTotal)
-            ? $perPassengerLines
-            : $dividedLines;
-    }
-
-    /**
-     * @param  array<string, array{type_key: string, type_code: string, label: string, base_sum: float, tax_sum: float, pinfo_count: int}>  $byTypeKey
+     * AirPricingInfo BasePrice/Taxes are totals for that passenger type on the booking.
+     * Always spread across the searched passenger count (not a single pinfo snapshot).
+     *
+     * @param  array<string, array{type_key: string, type_code: string, label: string, base_sum: float, tax_sum: float, pinfo_count: int, pax_count: int}>  $byTypeKey
      * @param  array{adult: int, child: int, infant: int}  $searchCounts
      * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
      */
     private static function buildTravelportLinesFromBuckets(
         array $byTypeKey,
         array $searchCounts,
-        bool $preferPerPassengerOnSinglePinfo,
     ): array {
         $lines = [];
 
@@ -110,21 +78,11 @@ final class FlightPassengerFareLinesPresenter
                 continue;
             }
 
-            $pinfoCount = max(1, (int) ($row['pinfo_count'] ?? 1));
-            $paxInResponses = max(0, (int) ($row['pax_count'] ?? 0));
             $baseSum = (float) ($row['base_sum'] ?? 0);
             $taxSum = (float) ($row['tax_sum'] ?? 0);
 
-            $divisorFromResponse = $paxInResponses > 0 ? $paxInResponses : $count;
-            $usePerPassenger = $preferPerPassengerOnSinglePinfo
-                && $pinfoCount === 1
-                && $divisorFromResponse === 1
-                && $count > 1;
-
-            $divisor = $usePerPassenger ? 1 : max(1, $divisorFromResponse);
-
-            $basePerPax = round($baseSum / $divisor, 2);
-            $taxPerPax = round($taxSum / $divisor, 2);
+            $basePerPax = round($baseSum / $count, 2);
+            $taxPerPax = round($taxSum / $count, 2);
 
             $lines[] = [
                 'type_key' => $typeKey,
@@ -212,6 +170,17 @@ final class FlightPassengerFareLinesPresenter
         $vendorAdjustmentRatio = ($oldSupplierBase > 0.001 && $sellBase > 0.001 && abs($sellBase - $oldSupplierBase) > 0.01)
             ? ($sellBase / $oldSupplierBase)
             : 1.0;
+
+        $apiBase = (float) ($itinerary['supplierBasePrice'] ?? $itinerary['basePrice'] ?? 0);
+        $apiTax = (float) ($itinerary['supplierTaxes'] ?? $itinerary['taxes'] ?? 0);
+        $lineBase = (float) ($totals['base'] ?? 0);
+        $lineTax = (float) ($totals['tax'] ?? 0);
+        $lineSum = round($lineBase + $lineTax, 2);
+        $apiSum = round($apiBase + $apiTax, 2);
+
+        if ($apiSum > 0 && $lineSum > 0 && abs($lineSum - $apiSum) > 0.05) {
+            return $itinerary;
+        }
 
         $itinerary['supplierBasePrice'] = $totals['base'];
         $itinerary['supplierTaxes'] = $totals['tax'];
