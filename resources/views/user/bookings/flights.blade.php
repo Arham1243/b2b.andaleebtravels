@@ -61,7 +61,7 @@
 .bkt-pax-names { display: flex; flex-direction: column; gap: 2px; min-width: 120px; max-width: 180px; }
 .bkt-pax-names__item {
     font-size: .72rem; font-weight: 600; color: #4a5568; line-height: 1.35;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; 
 }
 
 /* amount */
