@@ -186,7 +186,7 @@ class FlightController extends Controller
 
         return view('user.flights.search', [
             'results' => $results,
-            'messages' => $messages,
+            'messages' => $this->publicFlightSearchMessages($messages),
             'itineraryCount' => $itineraryCount,
             'tripType' => $searchData['trip_type'] ?? 'one_way',
             'priceRange' => $this->buildPriceRange($results),
@@ -593,6 +593,16 @@ class FlightController extends Controller
         }
     }
 
+    /**
+     * Supplier diagnostics are logged server-side only — never shown on the agent search UI.
+     *
+     * @param  list<array{severity: string, text: string}>  $messages
+     * @return list<array{severity: string, text: string}>
+     */
+    private function publicFlightSearchMessages(array $messages): array
+    {
+        return [];
+    }
 
     private function buildFlightProviderManager(): FlightProviderManager
     {

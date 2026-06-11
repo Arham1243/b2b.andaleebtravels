@@ -744,7 +744,7 @@
                     @if (!empty($messages))
                         <ul class="rp-empty__msgs">
                             @foreach ($messages as $message)
-                                @if (in_array(strtolower((string) ($message['severity'] ?? '')), ['error', 'warning', 'info'], true))
+                                @if (in_array(strtolower((string) ($message['severity'] ?? '')), ['error', 'warning'], true))
                                     <li>{{ $message['text'] ?? '' }}</li>
                                 @endif
                             @endforeach
@@ -756,7 +756,7 @@
                 <div class="rp-empty">
                     <i class="bx bxs-plane-take-off rp-empty__icon rp-empty__icon--idle"></i>
                     <h3>Ready when you are</h3>
-                    <p>Choose your route and dates above to see live Sabre inventory.</p>
+                    <p>Choose your route and dates above to see live flight inventory.</p>
                 </div>
             @endif
 
