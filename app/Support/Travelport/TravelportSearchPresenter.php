@@ -110,6 +110,11 @@ class TravelportSearchPresenter
         $card['fare_rules'] = $cheapest['fare_rules'] ?? $card['fare_rules'] ?? [];
         $card['non_refundable'] = (bool) ($cheapest['non_refundable'] ?? $card['non_refundable'] ?? false);
         $card['fare_tags'] = $cheapest['fare_tags'] ?? $card['fare_tags'] ?? ['published'];
+        $card['passenger_fare_lines'] = $cheapest['passenger_fare_lines'] ?? $card['passenger_fare_lines'] ?? [];
+        $card['supplierBasePrice'] = $cheapest['supplierBasePrice'] ?? $card['supplierBasePrice'] ?? null;
+        $card['supplierTaxes'] = $cheapest['supplierTaxes'] ?? $card['supplierTaxes'] ?? null;
+        $card['basePrice'] = $cheapest['basePrice'] ?? $card['basePrice'] ?? null;
+        $card['taxes'] = $cheapest['taxes'] ?? $card['taxes'] ?? null;
         $card['listing_meta'] = FlightListingMetaBuilder::fromLegs(
             $card['legs'] ?? [],
             $card['totalPrice'],

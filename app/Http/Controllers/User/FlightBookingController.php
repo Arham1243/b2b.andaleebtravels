@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bWalletLedger;
 use App\Support\CountryCatalog;
+use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\WalletLedgerDescription;
 use App\Services\FlightBookingConfirmationNotifier;
 use App\Services\FlightService;
@@ -866,15 +867,15 @@ class FlightBookingController extends Controller
 
         $options = $card['fare_options'] ?? null;
         if (! is_array($options) || $options === []) {
-            return $card;
+            return FlightPassengerFareLinesPresenter::syncItineraryFareTotals($card);
         }
 
         $selected = $options[$fareIndex] ?? $options[0];
         if (! is_array($selected)) {
-            return $card;
+            return FlightPassengerFareLinesPresenter::syncItineraryFareTotals($card);
         }
 
-        return array_merge($card, [
+        return FlightPassengerFareLinesPresenter::syncItineraryFareTotals(array_merge($card, [
             'totalPrice' => $selected['totalPrice'] ?? $card['totalPrice'] ?? null,
             'supplierPrice' => $selected['supplierPrice'] ?? $card['supplierPrice'] ?? ($selected['totalPrice'] ?? $card['totalPrice'] ?? null),
             'originalPrice' => $selected['originalPrice'] ?? $card['originalPrice'] ?? null,
@@ -905,7 +906,7 @@ class FlightBookingController extends Controller
             'sabre_pricing_index' => $selected['sabre_pricing_index'] ?? 0,
             'selected_fare_index' => $fareIndex,
             'passenger_fare_lines' => $selected['passenger_fare_lines'] ?? $card['passenger_fare_lines'] ?? [],
-        ]);
+        ]));
     }
 
     protected function getSourceMarketFromIP(): string

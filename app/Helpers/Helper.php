@@ -1176,11 +1176,19 @@ if (! function_exists('flightFareBreakdown')) {
             $supplierBase > 0 ? $supplierBase : $displayBase,
         );
 
+        $summaryBase = $displayBase;
+        $summaryTax = $displayTax;
+
+        if (($paxBreakdown['has_pax_lines'] ?? false) && ($paxBreakdown['base_from_lines'] ?? 0) > 0) {
+            $summaryBase = (float) $paxBreakdown['base_from_lines'];
+            $summaryTax = (float) ($paxBreakdown['tax_from_lines'] ?? $displayTax);
+        }
+
         return [
             'currency' => $currency,
             'has_breakdown' => $hasBreakdown,
-            'base_fare' => $displayBase,
-            'tax_charges' => $displayTax,
+            'base_fare' => $summaryBase,
+            'tax_charges' => $summaryTax,
             'supplier_base' => $supplierBase,
             'supplier_tax' => $supplierTax,
             'discount' => $discount,

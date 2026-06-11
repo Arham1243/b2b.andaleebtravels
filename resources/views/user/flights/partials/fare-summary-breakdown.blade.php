@@ -15,7 +15,7 @@
 
 @if ($showBreakdown && $hasPaxLines)
     <div class="hp-fare-acc">
-        <details class="hp-fare-acc__item" open>
+        <details class="hp-fare-acc__item">
             <summary class="hp-fare-acc__head">
                 <span class="hp-fare-acc__label">
                     <span>Base Fare</span>
@@ -42,7 +42,7 @@
             </div>
         @endif
 
-        <details class="hp-fare-acc__item" open>
+        <details class="hp-fare-acc__item">
             <summary class="hp-fare-acc__head">
                 <span class="hp-fare-acc__label">
                     <span>Tax &amp; Charges</span>
@@ -71,7 +71,7 @@
     </div>
 @elseif ($showBreakdown)
     <div class="hp-fare-acc">
-        <details class="hp-fare-acc__item" open>
+        <details class="hp-fare-acc__item">
             <summary class="hp-fare-acc__head">
                 <span class="hp-fare-acc__label">
                     <span>Base Fare</span>
@@ -90,7 +90,7 @@
             </div>
         @endif
 
-        <details class="hp-fare-acc__item" open>
+        <details class="hp-fare-acc__item">
             <summary class="hp-fare-acc__head">
                 <span class="hp-fare-acc__label">
                     <span>Tax &amp; Charges</span>
@@ -127,7 +127,7 @@
 
     @if ($fallbackBaseLines !== [])
         <div class="hp-fare-acc">
-            <details class="hp-fare-acc__item" open>
+            <details class="hp-fare-acc__item">
                 <summary class="hp-fare-acc__head">
                     <span class="hp-fare-acc__label">
                         <span>Base Fare</span>
@@ -148,7 +148,7 @@
             </details>
 
             @if ($taxAmount > 0)
-                <details class="hp-fare-acc__item" open>
+                <details class="hp-fare-acc__item">
                     <summary class="hp-fare-acc__head">
                         <span class="hp-fare-acc__label">
                             <span>Tax &amp; Charges</span>

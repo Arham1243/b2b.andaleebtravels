@@ -834,7 +834,8 @@
 
 .hp-fare-acc { display: flex; flex-direction: column; gap: .35rem; }
 .hp-fare-acc__item { border: 1px solid var(--c-line); border-radius: 8px; overflow: hidden; background: #fafbfd; }
-.hp-fare-acc__item[open] .hp-fare-acc__chev { transform: rotate(180deg); }
+.hp-fare-acc__chev { transform: rotate(-90deg); }
+.hp-fare-acc__item[open] .hp-fare-acc__chev { transform: rotate(0deg); }
 .hp-fare-acc__head {
     display: flex; justify-content: space-between; align-items: center; gap: .5rem;
     padding: .45rem .55rem; cursor: pointer; list-style: none; font-size: .8rem; color: var(--c-slate);
