@@ -4,10 +4,11 @@
     $fieldKey = str_replace(['[', ']'], ['.', ''], $fieldName);
     $fieldValue = old($fieldKey, $value ?? '');
     $hasServerError = $errors->has($fieldKey);
-    $isRequired = $required ?? false;
+    $isRequired = (bool) ($required ?? true);
+    $paxType = strtoupper((string) ($paxType ?? 'ADT'));
 @endphp
 <div class="col-md-4">
-    <label class="hp-label" for="{{ $fieldId }}-display">Date of Birth @if($isRequired)<span class="hp-req">*</span>@endif</label>
+    <label class="hp-label" for="{{ $fieldId }}-display">Date of Birth <span class="hp-req">*</span></label>
     <div class="hp-date-field" id="{{ $fieldId }}-wrap">
         <input
             type="text"
@@ -26,6 +27,7 @@
             name="{{ $fieldName }}"
             class="js-hp-date-value{{ $hasServerError ? ' is-invalid' : '' }}"
             value="{{ $fieldValue }}"
+            data-pax-type="{{ $paxType }}"
             @if($isRequired) data-required="1" @endif
         >
         <i class="bx bx-calendar hp-date-field__icon"></i>

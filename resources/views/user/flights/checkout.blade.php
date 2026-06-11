@@ -177,8 +177,8 @@
                                     ])
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
-                                        'required' => $requireTravelportDob,
-                                        'hint' => $requireTravelportDob ? null : 'Age calculated as per travel date',
+                                        'paxType' => 'ADT',
+                                        'hint' => 'Must be 12+ years old today',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -233,7 +233,8 @@
                                     ])
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
-                                        'required' => $requireTravelportDob,
+                                        'paxType' => 'C06',
+                                        'hint' => 'Must be 2–11 years old today',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -282,7 +283,8 @@
                                     ])
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
-                                        'required' => $requireTravelportDob,
+                                        'paxType' => 'INF',
+                                        'hint' => 'Under 2 years old today, at least 14 days old',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
                                         'name' => 'passengers['.$pIndex.'][nationality]',
@@ -626,6 +628,7 @@
     @include('user.flights.partials.hp-pax-autocomplete-scripts')
     @include('user.flights.partials.hp-passport-expiry-scripts')
     @include('user.flights.partials.hp-date-picker-scripts')
+    @include('user.flights.partials.hp-passenger-dob-scripts')
     @include('user.flights.partials.hp-form-submit-scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -747,6 +750,10 @@
             HpPassportExpiry.init({
                 formSelector: '#flightCheckoutForm',
                 travelDate: @json($travelDateIso),
+            });
+
+            HpPassengerDob.init({
+                formSelector: '#flightCheckoutForm',
             });
 
             HpFormSubmit.bind({

@@ -4,6 +4,7 @@ namespace App\Services\Travelport;
 
 use App\Support\FlightCabinPreference;
 use App\Support\Travelport\TravelportAirTicketingResult;
+use App\Support\Travelport\TravelportHoldPayloadBuilder;
 
 class TravelportApiClient
 {
@@ -122,7 +123,7 @@ XML;
      * @param  array<string, int>  $passengerCounts  e.g. ['ADT' => 1, 'CNN' => 0, 'INF' => 0]
      * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
      */
-    public function airPrice(array $segments, array $passengerCounts): array
+    public function airPrice(array $segments, array $passengerCounts, array $searchData = []): array
     {
         if ($segments === []) {
             return [
@@ -142,16 +143,7 @@ XML;
 
         $airSegmentsXml = $this->buildAirPriceSegmentsXml($segments);
 
-        $passengersXml = '';
-        $travelerIdx = 1;
-        foreach (['ADT', 'CNN', 'INF'] as $code) {
-            $count = max(0, (int) ($passengerCounts[$code] ?? 0));
-            for ($i = 0; $i < $count; $i++) {
-                $ref = "traveler_{$travelerIdx}";
-                $passengersXml .= "\n            <com:SearchPassenger Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"/>";
-                $travelerIdx++;
-            }
-        }
+        $passengersXml = $this->buildSearchPassengersXmlFromCounts($passengerCounts, $searchData);
 
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -187,7 +179,7 @@ XML;
      * @param  array<string, int>  $passengerCounts
      * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
      */
-    public function airPriceFareFamily(array $segments, array $passengerCounts): array
+    public function airPriceFareFamily(array $segments, array $passengerCounts, array $searchData = []): array
     {
         if ($segments === []) {
             return [
@@ -207,16 +199,7 @@ XML;
 
         $airSegmentsXml = $this->buildAirPriceSegmentsXml($segments, true);
 
-        $passengersXml = '';
-        $travelerIdx = 1;
-        foreach (['ADT', 'CNN', 'INF'] as $code) {
-            $count = max(0, (int) ($passengerCounts[$code] ?? 0));
-            for ($i = 0; $i < $count; $i++) {
-                $ref = "traveler_{$travelerIdx}";
-                $passengersXml .= "\n            <com:SearchPassenger Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"/>";
-                $travelerIdx++;
-            }
-        }
+        $passengersXml = $this->buildSearchPassengersXmlFromCounts($passengerCounts, $searchData);
 
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -769,22 +752,63 @@ XML;
      */
     private function buildSearchPassengersXml(array $searchData): string
     {
-        $xml = '';
-        $adults = max(1, (int) ($searchData['adults'] ?? 1));
-        $children = max(0, (int) ($searchData['children'] ?? 0));
-        $infants = max(0, (int) ($searchData['infants'] ?? 0));
+        return $this->buildSearchPassengersXmlFromCounts(
+            TravelportHoldPayloadBuilder::passengerCounts($searchData),
+            $searchData,
+        );
+    }
 
-        for ($i = 0; $i < $adults; $i++) {
-            $xml .= "\n            <com:SearchPassenger Code=\"ADT\"/>";
-        }
-        for ($i = 0; $i < $children; $i++) {
-            $xml .= "\n            <com:SearchPassenger Code=\"CNN\"/>";
-        }
-        for ($i = 0; $i < $infants; $i++) {
-            $xml .= "\n            <com:SearchPassenger Code=\"INF\"/>";
+    /**
+     * Travelport expects distinct PTCs (ADT / CNN / INF), not all ADT.
+     * Children should use CNN with Age; infants use INF with Age.
+     *
+     * @param  array<string, int>  $passengerCounts
+     * @param  array<string, mixed>  $searchData
+     */
+    private function buildSearchPassengersXmlFromCounts(
+        array $passengerCounts,
+        array $searchData = [],
+    ): string {
+        $xml = '';
+        $travelerIdx = 1;
+        $childIdx = 0;
+
+        foreach (['ADT', 'CNN', 'INF'] as $code) {
+            $count = max(0, (int) ($passengerCounts[$code] ?? 0));
+
+            for ($i = 0; $i < $count; $i++) {
+                $ref = 'traveler_' . $travelerIdx;
+                $attrs = [
+                    'Code="' . $code . '"',
+                    'BookingTravelerRef="' . $ref . '"',
+                ];
+
+                if ($code === 'CNN') {
+                    $attrs[] = 'Age="' . $this->childAgeForIndex($searchData, $childIdx) . '"';
+                    $childIdx++;
+                } elseif ($code === 'INF') {
+                    $attrs[] = 'Age="1"';
+                }
+
+                $xml .= "\n            <com:SearchPassenger " . implode(' ', $attrs) . '/>';
+                $travelerIdx++;
+            }
         }
 
         return $xml;
+    }
+
+    /**
+     * @param  array<string, mixed>  $searchData
+     */
+    private function childAgeForIndex(array $searchData, int $childIndex): int
+    {
+        $ages = $searchData['child_ages'] ?? null;
+        if (is_array($ages) && array_key_exists($childIndex, $ages)) {
+            return max(2, min(11, (int) $ages[$childIndex]));
+        }
+
+        return max(2, min(11, (int) ($searchData['child_age'] ?? 8)));
     }
 
     /**

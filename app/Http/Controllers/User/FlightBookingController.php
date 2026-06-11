@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
 use App\Models\B2bWalletLedger;
 use App\Support\CountryCatalog;
+use App\Support\FlightPassengerDobValidator;
 use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\WalletLedgerDescription;
 use App\Services\FlightBookingConfirmationNotifier;
@@ -74,7 +75,7 @@ class FlightBookingController extends Controller
             'passengers.*.title' => 'required|string',
             'passengers.*.first_name' => 'required|string|max:60',
             'passengers.*.last_name' => 'required|string|max:60',
-            'passengers.*.dob' => 'nullable|date',
+            'passengers.*.dob' => 'required|date|before_or_equal:today',
             'passengers.*.nationality' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'passengers.*.issuing_country' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'passengers.*.passport_no' => 'nullable|string|max:20',
@@ -108,6 +109,7 @@ class FlightBookingController extends Controller
         $results = session('flight_search_results', []);
         $params = session('flight_search_params', []);
         $this->validatePassportExpiryDates($validated['passengers'], $params);
+        $this->validatePassengerDobDates($validated['passengers'], $params);
 
         $itineraryId = (int) $validated['itinerary_id'];
         $fareIndex = max(0, (int) ($validated['fare_option'] ?? 0));
@@ -121,15 +123,6 @@ class FlightBookingController extends Controller
         $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
 
         if ($isTravelport) {
-            foreach ($validated['passengers'] as $index => $pax) {
-                if (empty($pax['dob'])) {
-                    return redirect()
-                        ->route('user.flights.checkout', ['itinerary' => $itineraryId, 'fare' => $fareIndex])
-                        ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required.'])
-                        ->withInput();
-                }
-            }
-
             $revalidate = app(TravelportBookingService::class)->revalidateItinerary($itineraryData, $params);
             if (! ($revalidate['success'] ?? false)) {
                 return redirect()->route('user.flights.index')
@@ -475,7 +468,7 @@ class FlightBookingController extends Controller
                 'passengers.*.title'        => 'required|string',
                 'passengers.*.first_name'   => 'required|string|max:60',
                 'passengers.*.last_name'    => 'required|string|max:60',
-                'passengers.*.dob'          => 'nullable|date',
+                'passengers.*.dob'          => 'required|date|before_or_equal:today',
                 'passengers.*.nationality'  => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
                 'passengers.*.issuing_country' => ['required', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
                 'passengers.*.passport_no'  => 'nullable|string|max:20',
@@ -494,6 +487,7 @@ class FlightBookingController extends Controller
             $results       = session('flight_search_results', []);
             $params        = session('flight_search_params', []);
             $this->validatePassportExpiryDates($validated['passengers'], $params);
+            $this->validatePassengerDobDates($validated['passengers'], $params);
             $itineraryId   = (int) $validated['itinerary_id'];
             $fareIndex     = max(0, (int) ($validated['fare_option'] ?? 0));
         } catch (ValidationException $e) {
@@ -512,25 +506,6 @@ class FlightBookingController extends Controller
         if (!$itineraryData || empty($params)) {
             return redirect()->route('user.flights.index')
                 ->with('notify_error', 'Flight selection expired. Please search again.');
-        }
-
-        $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
-
-        if ($isTravelport) {
-            foreach ($validated['passengers'] as $index => $pax) {
-                if (empty($pax['dob'])) {
-                    Log::warning('Hold checkout: Travelport DOB missing', [
-                        'itinerary_id' => $itineraryId,
-                        'fare_index'   => $fareIndex,
-                        'user_id'      => Auth::id(),
-                        'passenger'    => $index,
-                    ]);
-
-                    return $this->holdCheckoutRedirect($itineraryId, $fareIndex)
-                        ->withErrors(["passengers.{$index}.dob" => 'Date of birth is required.'])
-                        ->withInput();
-                }
-            }
         }
 
         // Save any passenger profiles requested (silently skip if table not yet migrated)
@@ -756,21 +731,19 @@ class FlightBookingController extends Controller
      */
     protected function resolveLatestTravelDate(array $searchParams): ?Carbon
     {
-        try {
-            $departureDate = !empty($searchParams['departure_date'])
-                ? Carbon::parse($searchParams['departure_date'])->startOfDay()
-                : null;
-            $returnDate = !empty($searchParams['return_date'])
-                ? Carbon::parse($searchParams['return_date'])->startOfDay()
-                : null;
+        return FlightPassengerDobValidator::resolveLatestTravelDate($searchParams);
+    }
 
-            if ($returnDate && (!$departureDate || $returnDate->gt($departureDate))) {
-                return $returnDate;
-            }
+    /**
+     * @param  array<int, array<string, mixed>>  $passengers
+     * @param  array<string, mixed>  $searchParams
+     */
+    protected function validatePassengerDobDates(array $passengers, array $searchParams): void
+    {
+        $errors = FlightPassengerDobValidator::validatePassengers($passengers, $searchParams);
 
-            return $departureDate;
-        } catch (\Throwable $e) {
-            return null;
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
         }
     }
 

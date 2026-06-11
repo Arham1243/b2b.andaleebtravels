@@ -42,7 +42,7 @@ class TravelportBookingService
                 'infants' => (int) ($searchParams['infants'] ?? 0),
             ]);
 
-            $priceResponse = $this->client->airPrice($segments, $passengerCounts);
+            $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchParams);
             if (! ($priceResponse['success'] ?? false)) {
                 return [
                     'success' => false,
@@ -115,7 +115,8 @@ class TravelportBookingService
                 'infants' => $booking->infants,
             ]);
 
-            $priceResponse = $this->client->airPrice($segments, $passengerCounts);
+            $searchRequest = is_array($booking->search_request) ? $booking->search_request : [];
+            $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest);
             if (! ($priceResponse['success'] ?? false)) {
                 throw new \RuntimeException($priceResponse['error'] ?? 'Travelport airPrice failed.');
             }

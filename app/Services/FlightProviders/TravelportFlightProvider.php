@@ -93,7 +93,11 @@ class TravelportFlightProvider implements FlightProviderInterface
      */
     private function executeSearch(array $searchData, bool $lite): FlightProviderSearchResult
     {
-        $requestPayload = ['search_data' => $searchData, 'lite' => $lite];
+        $requestPayload = [
+            'search_data' => $searchData,
+            'passenger_counts' => TravelportHoldPayloadBuilder::passengerCounts($searchData),
+            'lite' => $lite,
+        ];
         $messages = [];
 
         // Lite search: published GDS + one branded NDC fare per routing (fast initial list).
@@ -183,6 +187,7 @@ class TravelportFlightProvider implements FlightProviderInterface
         $airPriceResponse = $this->client->airPriceFareFamily(
             $segments,
             TravelportHoldPayloadBuilder::passengerCounts($searchData),
+            $searchData,
         );
 
         if (! ($airPriceResponse['success'] ?? false)) {
