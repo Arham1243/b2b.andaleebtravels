@@ -270,7 +270,9 @@ XML;
         $travelersXml = '';
         foreach ($travelers as $traveler) {
             $key = $this->xmlEsc((string) ($traveler['key'] ?? ''));
-            $type = $this->xmlEsc((string) ($traveler['traveler_type_code'] ?? $traveler['traveler_type'] ?? 'ADT'));
+            $type = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($traveler['traveler_type'] ?? $traveler['traveler_type_code'] ?? 'ADT'),
+            ));
             $dob = $this->xmlEsc($this->normalizeTravelportDob((string) ($traveler['dob'] ?? '')));
             $gender = $this->xmlEsc((string) ($traveler['gender'] ?? 'M'));
             $first = $this->xmlEsc((string) ($traveler['firstName'] ?? ''));
@@ -364,7 +366,9 @@ XML;
             $fareInfosByKey[$fKey] = true;
             $fareKey = $this->xmlEsc($fKey);
             $fareBasis = $this->xmlEsc((string) ($fareInfo['fare_basis'] ?? ''));
-            $paxType = $this->xmlEsc((string) ($fareInfo['passenger_type_code'] ?? 'ADT'));
+            $paxType = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($fareInfo['passenger_type_code'] ?? 'ADT'),
+            ));
             $fareOrigin = $this->xmlEsc((string) ($fareInfo['origin'] ?? ''));
             $fareDestination = $this->xmlEsc((string) ($fareInfo['destination'] ?? ''));
             $departureDate = $this->xmlEsc((string) ($fareInfo['departure_date'] ?? ''));
@@ -411,7 +415,9 @@ XML;
             if (! is_array($passengerType)) {
                 continue;
             }
-            $code = $this->xmlEsc((string) ($passengerType['code'] ?? 'ADT'));
+            $code = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($passengerType['code'] ?? 'ADT'),
+            ));
             $ref = $this->xmlEsc((string) ($passengerType['traveler_ref'] ?? ''));
             $passengerTypesXml .= "\n                    <PassengerType Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"/>";
         }

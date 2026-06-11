@@ -62,7 +62,7 @@ class TravelportHoldPayloadBuilder
 
     /**
      * Build BookingTravelers in Travelport order: each adult, then their lap infant(s), then children.
-     * Uses CNN{age} (never CHD) and requires DOB for child/infant passengers.
+     * Uses plain CNN (never CHD or CNN{age}) with DOB for child/infant passengers.
      *
      * @param  array<string, mixed>  $passengersData
      * @return list<array<string, mixed>>
@@ -183,7 +183,7 @@ class TravelportHoldPayloadBuilder
         $traveler = [
             'key' => $key,
             'traveler_type' => $type,
-            'traveler_type_code' => self::travelportPtcCode($type, $dob, $referenceDate, requireDob: true),
+            'traveler_type_code' => self::travelportHoldPassengerTypeCode($type, $dob, $referenceDate),
             'firstName' => trim((string) ($pax['first_name'] ?? '')),
             'lastName' => trim((string) ($pax['last_name'] ?? '')),
             'dob' => $dob,
@@ -238,7 +238,7 @@ class TravelportHoldPayloadBuilder
         $types = [];
         foreach ($travelers as $traveler) {
             $types[] = [
-                'code' => (string) ($traveler['traveler_type_code'] ?? $traveler['traveler_type'] ?? 'ADT'),
+                'code' => (string) ($traveler['traveler_type'] ?? $traveler['traveler_type_code'] ?? 'ADT'),
                 'traveler_ref' => (string) ($traveler['key'] ?? ''),
             ];
         }
@@ -341,31 +341,29 @@ class TravelportHoldPayloadBuilder
         return self::ensureChildAgesInSearchData($searchData);
     }
 
-    public static function travelportPtcCode(
+    /**
+     * PTC for AirCreateReservation — plain CNN/INF/ADT only (age is on BookingTraveler DOB).
+     * This PCC rejects age-qualified codes such as CNN04 or CNN08.
+     */
+    public static function travelportHoldPassengerTypeCode(
         string $type,
         string $dob = '',
         ?Carbon $referenceDate = null,
-        bool $requireDob = false,
     ): string {
+        unset($referenceDate);
+
         $normalized = strtoupper(trim($type));
-        $referenceDate ??= FlightPassengerDobValidator::resolveReferenceDate([]);
 
         if (in_array($normalized, ['C06', 'CNN', 'CHD'], true)) {
             if ($dob === '') {
-                if ($requireDob) {
-                    throw new \InvalidArgumentException('Date of birth is required for child passengers.');
-                }
-
-                return 'CNN08';
+                throw new \InvalidArgumentException('Date of birth is required for child passengers.');
             }
 
-            $age = FlightPassengerDobValidator::ageOnDate($dob, $referenceDate);
-
-            return 'CNN' . str_pad((string) max(2, min(11, $age)), 2, '0', STR_PAD_LEFT);
+            return 'CNN';
         }
 
         if ($normalized === 'INF') {
-            if ($dob === '' && $requireDob) {
+            if ($dob === '') {
                 throw new \InvalidArgumentException('Date of birth is required for infant passengers.');
             }
 
@@ -373,6 +371,17 @@ class TravelportHoldPayloadBuilder
         }
 
         return 'ADT';
+    }
+
+    public static function normalizeHoldPassengerTypeCode(string $code): string
+    {
+        $normalized = strtoupper(trim($code));
+
+        if (preg_match('/^CNN\d{2}$/', $normalized) === 1 || in_array($normalized, ['CHD', 'C06'], true)) {
+            return 'CNN';
+        }
+
+        return $normalized !== '' ? $normalized : 'ADT';
     }
 
     /**
