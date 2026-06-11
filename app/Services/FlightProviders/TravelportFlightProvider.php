@@ -100,6 +100,18 @@ class TravelportFlightProvider implements FlightProviderInterface
         ];
         $messages = [];
 
+        if ($this->isUaeDomesticSearch($searchData)) {
+            return new FlightProviderSearchResult(
+                provider: 'travelport',
+                messages: [[
+                    'severity' => 'Info',
+                    'text' => 'Travelport does not return UAE domestic routes on this PCC. Showing Sabre results where available.',
+                ]],
+                requestPayload: array_merge($requestPayload, ['skipped' => 'uae_domestic']),
+                success: true,
+            );
+        }
+
         // Lite search: published GDS + one branded NDC fare per routing (fast initial list).
         // Additional upsell fares for the same cabin load on demand via loadMoreFares().
         $gdsResponse = $this->client->lowFareSearch($searchData, false, false);
@@ -118,9 +130,12 @@ class TravelportFlightProvider implements FlightProviderInterface
                     'severity' => 'Warning',
                     'text' => 'Travelport: ' . $error,
                 ]],
-                rawResponse: null,
+                rawResponse: [
+                    'gds' => $gdsResponse['parsed'] ?? null,
+                    'ndc' => $ndcResponse['parsed'] ?? null,
+                ],
                 requestPayload: $requestPayload,
-                success: false,
+                success: true,
             );
         }
 
@@ -326,5 +341,47 @@ class TravelportFlightProvider implements FlightProviderInterface
         unset($option);
 
         return $filtered;
+    }
+
+    /**
+     * This Travelport PCC returns NO AVAILABILITY for UAE domestic markets.
+     * Skip LFS so Sabre results are not hidden behind a hard provider failure.
+     *
+     * @param  array<string, mixed>  $searchData
+     */
+    private function isUaeDomesticSearch(array $searchData): bool
+    {
+        $uaeAirports = ['DXB', 'DWC', 'AUH', 'SHJ', 'AAN', 'RKT', 'FJR', 'XNB'];
+        $tripType = (string) ($searchData['trip_type'] ?? 'one_way');
+
+        if ($tripType === 'multi_city') {
+            foreach ($searchData['segments'] ?? [] as $segment) {
+                if (! is_array($segment)) {
+                    continue;
+                }
+
+                $from = strtoupper(trim((string) ($segment['from'] ?? '')));
+                $to = strtoupper(trim((string) ($segment['to'] ?? '')));
+
+                if ($from !== '' && $to !== '' && $this->isUaeDomesticPair($from, $to, $uaeAirports)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        $from = strtoupper(trim((string) ($searchData['from'] ?? '')));
+        $to = strtoupper(trim((string) ($searchData['to'] ?? '')));
+
+        return $this->isUaeDomesticPair($from, $to, $uaeAirports);
+    }
+
+    /**
+     * @param  list<string>  $uaeAirports
+     */
+    private function isUaeDomesticPair(string $from, string $to, array $uaeAirports): bool
+    {
+        return in_array($from, $uaeAirports, true) && in_array($to, $uaeAirports, true);
     }
 }

@@ -744,7 +744,7 @@
                     @if (!empty($messages))
                         <ul class="rp-empty__msgs">
                             @foreach ($messages as $message)
-                                @if (in_array(strtolower((string) ($message['severity'] ?? '')), ['error', 'warning'], true))
+                                @if (in_array(strtolower((string) ($message['severity'] ?? '')), ['error', 'warning', 'info'], true))
                                     <li>{{ $message['text'] ?? '' }}</li>
                                 @endif
                             @endforeach

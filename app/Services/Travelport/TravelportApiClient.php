@@ -750,17 +750,29 @@ XML;
     /**
      * @param  array<string, mixed>  $searchData
      */
+    /**
+     * LFS uses the legacy plain ADT/CNN/INF nodes (no BookingTravelerRef).
+     * Some PCCs reject age-qualified CNN{nn} in LowFareSearch.
+     *
+     * @param  array<string, mixed>  $searchData
+     */
     private function buildSearchPassengersXml(array $searchData): string
     {
-        return $this->buildSearchPassengersXmlFromCounts(
-            TravelportHoldPayloadBuilder::passengerCounts($searchData),
-            $searchData,
-        );
+        $counts = TravelportHoldPayloadBuilder::passengerCounts($searchData);
+        $xml = '';
+
+        foreach (['ADT', 'CNN', 'INF'] as $code) {
+            $count = max(0, (int) ($counts[$code] ?? 0));
+            for ($i = 0; $i < $count; $i++) {
+                $xml .= "\n            <com:SearchPassenger Code=\"{$code}\"/>";
+            }
+        }
+
+        return $xml;
     }
 
     /**
-     * Travelport expects distinct PTCs (ADT / CNN / INF), not all ADT.
-     * Children should use CNN with Age; infants use INF with Age.
+     * Air Price / hold reprice uses traveler refs and CNN{age} from search or DOB.
      *
      * @param  array<string, int>  $passengerCounts
      * @param  array<string, mixed>  $searchData
