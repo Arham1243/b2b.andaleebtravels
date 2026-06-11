@@ -57,6 +57,13 @@
 .bkt-pnr { font-family: monospace; font-size: .72rem; color: #4a5568; margin-top: 2px; }
 .bkt-created { font-size: .68rem; color: #b0bac8; margin-top: 2px; }
 
+/* pax names */
+.bkt-pax-names { display: flex; flex-direction: column; gap: 2px; min-width: 120px; max-width: 180px; }
+.bkt-pax-names__item {
+    font-size: .72rem; font-weight: 600; color: #4a5568; line-height: 1.35;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* amount */
 .bkt-amount { font-weight: 800; color: #1a2540; font-size: .88rem; white-space: nowrap; }
 .bkt-hold-tag {
@@ -181,7 +188,10 @@
                             $isRound = !empty($booking->return_date);
                             $legs    = $booking->itinerary_data['legs'] ?? [];
                             $carrier = data_get($legs, '0.segments.0.carrier', '');
-                            $totalPax = max(1, $booking->adults + $booking->children + $booking->infants);
+                            $passengers = $booking->passengers_data['passengers'] ?? [];
+                            $paxNames = collect($passengers)->map(function ($pax) {
+                                return strtoupper(trim(($pax['title'] ?? '') . ' ' . ($pax['first_name'] ?? '') . ' ' . ($pax['last_name'] ?? '')));
+                            })->filter()->values();
                             $paxStr  = $booking->adults . 'A';
                             if ($booking->children) $paxStr .= '+' . $booking->children . 'C';
                             if ($booking->infants)  $paxStr .= '+' . $booking->infants . 'I';
@@ -227,7 +237,17 @@
                             </td>
 
                             {{-- Pax --}}
-                            <td style="font-size:.8rem; color:#4a5568; font-weight:600;">{{ $paxStr }}</td>
+                            <td>
+                                @if($paxNames->isNotEmpty())
+                                    <div class="bkt-pax-names">
+                                        @foreach($paxNames as $paxName)
+                                            <div class="bkt-pax-names__item" title="{{ $paxName }}">{{ $paxName }}</div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span style="font-size:.8rem; color:#4a5568; font-weight:600;">{{ $paxStr }}</span>
+                                @endif
+                            </td>
 
                             {{-- PNR --}}
                             <td>
