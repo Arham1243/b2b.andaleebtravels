@@ -461,6 +461,7 @@
                                                     <span
                                                         class="quantity-counter__btn quantity-counter__btn--quantity">@{{ adults }}</span>
                                                     <button type="button" class="quantity-counter__btn"
+                                                        :disabled="!canIncrementAdults"
                                                         @click.stop="incrementAdults">
                                                         <i class='bx bx-plus'></i>
                                                     </button>
@@ -480,6 +481,7 @@
                                                     <span
                                                         class="quantity-counter__btn quantity-counter__btn--quantity">@{{ children }}</span>
                                                     <button type="button" class="quantity-counter__btn"
+                                                        :disabled="!canIncrementChildren"
                                                         @click.stop="incrementChildren">
                                                         <i class='bx bx-plus'></i>
                                                     </button>

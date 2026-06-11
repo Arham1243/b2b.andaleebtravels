@@ -80,7 +80,14 @@ class FlightController extends Controller
         $validator->after(function ($validator) use ($request) {
             $tripType = $request->input('trip_type', 'one_way');
 
-            if ((int) $request->input('infants', 0) > (int) $request->input('adults', 1)) {
+            $adults = (int) $request->input('adults', 1);
+            $children = (int) $request->input('children', 0);
+
+            if ($adults + $children > 9) {
+                $validator->errors()->add('adults', 'A maximum of 9 seated passengers (adults + children) is allowed.');
+            }
+
+            if ((int) $request->input('infants', 0) > $adults) {
                 $validator->errors()->add('infants', 'Infants cannot exceed the number of adults.');
             }
 

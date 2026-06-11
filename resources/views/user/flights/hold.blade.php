@@ -8,7 +8,7 @@
         $legs     = $itinerary['legs'] ?? [];
         $requireTravelportDob = strtolower((string) ($itinerary['supplier'] ?? 'sabre')) === 'travelport';
 
-        $fareBreakdown = flightFareBreakdown($itinerary, (float) ($totalAmount ?? 0));
+        $fareBreakdown = flightFareBreakdown($itinerary, (float) ($totalAmount ?? 0), $adults, $children, $infants);
         $totalAmount = (float) ($fareBreakdown['total_amount'] ?? $totalAmount ?? 0);
         $baseAmount = (float) ($fareBreakdown['base_fare'] ?? $totalAmount);
         $taxAmount = (float) ($fareBreakdown['tax_charges'] ?? 0);
@@ -831,6 +831,28 @@
 .hp-sum-row--earn span:last-child { color: #15803d; }
 .hp-sum-row__credit { color: #15803d !important; }
 .hp-sum-row--sep { border-top: 1px dashed var(--c-line); padding-top: .4rem; margin-top: .1rem; }
+
+.hp-fare-acc { display: flex; flex-direction: column; gap: .35rem; }
+.hp-fare-acc__item { border: 1px solid var(--c-line); border-radius: 8px; overflow: hidden; background: #fafbfd; }
+.hp-fare-acc__item[open] .hp-fare-acc__chev { transform: rotate(180deg); }
+.hp-fare-acc__head {
+    display: flex; justify-content: space-between; align-items: center; gap: .5rem;
+    padding: .45rem .55rem; cursor: pointer; list-style: none; font-size: .8rem; color: var(--c-slate);
+}
+.hp-fare-acc__head::-webkit-details-marker { display: none; }
+.hp-fare-acc__label { display: inline-flex; align-items: center; gap: .25rem; font-weight: 600; color: var(--c-ink); }
+.hp-fare-acc__chev { font-size: 1rem; color: var(--c-muted); transition: transform .15s ease; }
+.hp-fare-acc__amount { font-family: var(--mono); font-weight: 600; color: var(--c-ink); white-space: nowrap; }
+.hp-fare-acc__body {
+    border-top: 1px dashed var(--c-line); padding: .35rem .55rem .45rem;
+    display: flex; flex-direction: column; gap: .28rem; background: var(--c-white);
+}
+.hp-fare-acc__line {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: .45rem;
+    font-size: .72rem; color: var(--c-muted);
+}
+.hp-fare-acc__line span:last-child { font-family: var(--mono); font-weight: 600; color: var(--c-slate); white-space: nowrap; }
+
 .hp-sum-free {
     font-size: .68rem; font-weight: 700;
     background: var(--c-green-soft); color: var(--c-green);

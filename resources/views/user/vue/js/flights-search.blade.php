@@ -3,6 +3,7 @@
     const FLIGHT_SEARCH_ACTION = @json(route('user.flights.search'));
     const RECENT_FLIGHTS_KEY = 'b2b_flight_recent_searches_v1';
     const MAX_RECENT_FLIGHTS = 4;
+    const MAX_SEATED_PAX = 9;
     const HOME_AIRPORT_PRIORITY = [
         'DXB', 'DWC', 'AUH', 'SHJ', 'AAN', 'RKT', 'FJR',
         'DOH', 'MCT', 'SLL', 'BAH', 'KWI', 'RUH', 'JED', 'DMM', 'MED',
@@ -731,6 +732,7 @@
                 adults.value = Number.isNaN(adultsParam) || adultsParam < 1 ? 1 : adultsParam;
                 children.value = Number.isNaN(childrenParam) || childrenParam < 0 ? 0 : childrenParam;
                 infants.value = Number.isNaN(infantsParam) || infantsParam < 0 ? 0 : infantsParam;
+                clampSeatedPax();
 
                 if (tripType.value === 'multi_city') {
                     const segments = parseSegmentsFromUrl(params);
@@ -773,7 +775,39 @@
             const children = ref(0);
             const infants = ref(0);
 
+            const seatedPaxCount = computed(() => adults.value + children.value);
+            const canIncrementAdults = computed(() => seatedPaxCount.value < MAX_SEATED_PAX);
+            const canIncrementChildren = computed(() => seatedPaxCount.value < MAX_SEATED_PAX);
+
+            const clampSeatedPax = () => {
+                if (adults.value < 1) {
+                    adults.value = 1;
+                }
+                if (adults.value > MAX_SEATED_PAX) {
+                    adults.value = MAX_SEATED_PAX;
+                }
+                if (children.value < 0) {
+                    children.value = 0;
+                }
+                if (seatedPaxCount.value > MAX_SEATED_PAX) {
+                    children.value = Math.max(0, MAX_SEATED_PAX - adults.value);
+                }
+                if (infants.value > adults.value) {
+                    infants.value = adults.value;
+                }
+            };
+
+            const showSeatedPaxLimitToast = () => {
+                if (typeof showToast === 'function') {
+                    showToast('error', `A maximum of ${MAX_SEATED_PAX} seated passengers (adults + children) is allowed.`);
+                }
+            };
+
             const incrementAdults = () => {
+                if (!canIncrementAdults.value) {
+                    showSeatedPaxLimitToast();
+                    return;
+                }
                 adults.value++;
             };
             const decrementAdults = () => {
@@ -781,6 +815,10 @@
                 if (infants.value > adults.value) infants.value = adults.value;
             };
             const incrementChildren = () => {
+                if (!canIncrementChildren.value) {
+                    showSeatedPaxLimitToast();
+                    return;
+                }
                 children.value++;
             };
             const decrementChildren = () => {
@@ -849,6 +887,12 @@
                     if (typeof showToast === 'function') {
                         showToast('error', 'Infants cannot exceed the number of adults.');
                     }
+                    return;
+                }
+
+                if (adults.value + children.value > MAX_SEATED_PAX) {
+                    event.preventDefault();
+                    showSeatedPaxLimitToast();
                     return;
                 }
 
@@ -950,6 +994,8 @@
                 adults,
                 children,
                 infants,
+                canIncrementAdults,
+                canIncrementChildren,
                 incrementAdults,
                 decrementAdults,
                 incrementChildren,

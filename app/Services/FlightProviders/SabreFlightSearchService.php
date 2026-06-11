@@ -338,6 +338,7 @@ class SabreFlightSearchService
                     'supplierTaxes' => $primaryFare['supplierTaxes'] ?? null,
                     'basePrice' => $primaryFare['basePrice'] ?? null,
                     'taxes' => $primaryFare['taxes'] ?? null,
+                    'passenger_fare_lines' => $primaryFare['passenger_fare_lines'] ?? [],
                     'totalPrice' => $totalPrice,
                     'currency' => $primaryFare['currency'],
                     'legs' => $legs,
@@ -476,14 +477,23 @@ class SabreFlightSearchService
         $fareRules = SabreFareRulesPresenter::fromPricingBlock($pricingBlock, $grouped);
         $cabinMeta = $this->extractFareCabinMeta($fareSeatMeta, $fareRules);
         $fareAmounts = SabreFareAmountPresenter::fromPricingBlock($pricingBlock);
+        $passengerFareLines = \App\Support\FlightPassengerFareLinesPresenter::fromSabrePricingBlock($pricingBlock);
+        $passengerFareTotals = \App\Support\FlightPassengerFareLinesPresenter::aggregateTotals($passengerFareLines);
+        $supplierBase = ($passengerFareTotals['base'] ?? 0) > 0
+            ? $passengerFareTotals['base']
+            : ($fareAmounts['base'] ?? null);
+        $supplierTax = ($passengerFareTotals['tax'] ?? 0) > 0
+            ? $passengerFareTotals['tax']
+            : ($fareAmounts['tax'] ?? null);
 
         return [
             'sabre_pricing_index' => $pricingIndex,
             'totalPrice' => $this->extractSabreTotalPrice($pricingBlock),
-            'supplierBasePrice' => $fareAmounts['base'] ?? null,
-            'supplierTaxes' => $fareAmounts['tax'] ?? null,
-            'basePrice' => $fareAmounts['base'] ?? null,
-            'taxes' => $fareAmounts['tax'] ?? null,
+            'supplierBasePrice' => $supplierBase,
+            'supplierTaxes' => $supplierTax,
+            'basePrice' => $supplierBase,
+            'taxes' => $supplierTax,
+            'passenger_fare_lines' => $passengerFareLines,
             'currency' => data_get($pricingBlock, 'fare.totalFare.currency'),
             'fare_brand' => SabreFareBrandPresenter::fromPricingBlock($pricingBlock, $grouped),
             'fare_basis' => $this->summarizeFareBasis($fareRules),

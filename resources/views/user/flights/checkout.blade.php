@@ -10,7 +10,7 @@
         $passengerTotal = max(1, $adults + $children + $infants);
         $paxCount = $passengerTotal;
 
-        $fareBreakdown = flightFareBreakdown($itinerary, (float) ($totalAmount ?? 0));
+        $fareBreakdown = flightFareBreakdown($itinerary, (float) ($totalAmount ?? 0), $adults, $children, $infants);
         $totalAmount = (float) ($fareBreakdown['total_amount'] ?? $totalAmount ?? 0);
         $baseAmount = (float) ($fareBreakdown['base_fare'] ?? $totalAmount);
         $taxAmount = (float) ($fareBreakdown['tax_charges'] ?? 0);

@@ -904,6 +904,7 @@ class FlightBookingController extends Controller
             'travelport_pricing_index' => $selected['travelport_pricing_index'] ?? $card['travelport_pricing_index'] ?? 0,
             'sabre_pricing_index' => $selected['sabre_pricing_index'] ?? 0,
             'selected_fare_index' => $fareIndex,
+            'passenger_fare_lines' => $selected['passenger_fare_lines'] ?? $card['passenger_fare_lines'] ?? [],
         ]);
     }
 

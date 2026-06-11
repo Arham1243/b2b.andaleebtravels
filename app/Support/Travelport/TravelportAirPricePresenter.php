@@ -3,6 +3,7 @@
 namespace App\Support\Travelport;
 
 use App\Support\FlightCabinPreference;
+use App\Support\FlightPassengerFareLinesPresenter;
 
 class TravelportAirPricePresenter
 {
@@ -31,7 +32,7 @@ class TravelportAirPricePresenter
                 continue;
             }
 
-            $option = self::buildFareOption($solution, $legs, $fareTagsOverride);
+            $option = self::buildFareOption($solution, $legs, $searchData, $fareTagsOverride);
             if ($option !== null) {
                 $options[] = $option;
             }
@@ -50,18 +51,24 @@ class TravelportAirPricePresenter
     /**
      * @param  array<string, mixed>  $solution
      * @param  list<array<string, mixed>>  $legs
+     * @param  array<string, mixed>  $searchData
      * @param  list<string>|null  $fareTagsOverride
      * @return array<string, mixed>|null
      */
-    private static function buildFareOption(array $solution, array $legs, ?array $fareTagsOverride = null): ?array
-    {
+    private static function buildFareOption(
+        array $solution,
+        array $legs,
+        array $searchData,
+        ?array $fareTagsOverride = null,
+    ): ?array {
         $solutionKey = (string) self::attr($solution, 'Key', '');
         $totalMoney = self::parseMoney(self::attr($solution, 'TotalPrice') ?: self::attr($solution, 'ApproximateTotalPrice'));
         if (($totalMoney['amount'] ?? 0) <= 0) {
             return null;
         }
 
-        $pricingInfo = self::asList($solution['AirPricingInfo'] ?? null)[0] ?? null;
+        $pricingInfos = self::asList($solution['AirPricingInfo'] ?? null);
+        $pricingInfo = $pricingInfos[0] ?? null;
         if (! is_array($pricingInfo)) {
             return null;
         }
@@ -80,8 +87,16 @@ class TravelportAirPricePresenter
         $cabinClass = FlightCabinPreference::resolveCabinFamily($brandName, $bookingCode);
         $validatingCarrier = (string) self::attr($pricingInfo, 'PlatingCarrier', '');
 
+        $passengerFareLines = FlightPassengerFareLinesPresenter::fromTravelportPricingInfos($pricingInfos, $searchData);
+        $passengerFareTotals = FlightPassengerFareLinesPresenter::aggregateTotals($passengerFareLines);
         $baseMoney = self::parseMoney(self::attr($pricingInfo, 'BasePrice'));
         $taxMoney = self::parseMoney(self::attr($pricingInfo, 'Taxes'));
+        if (($passengerFareTotals['base'] ?? 0) > 0) {
+            $baseMoney['amount'] = $passengerFareTotals['base'];
+        }
+        if (($passengerFareTotals['tax'] ?? 0) > 0) {
+            $taxMoney['amount'] = $passengerFareTotals['tax'];
+        }
         $currency = $totalMoney['currency'] ?? $baseMoney['currency'] ?? 'AED';
         $nonRefundable = strtolower((string) self::attr($pricingInfo, 'Refundable', 'true')) === 'false';
 
@@ -112,6 +127,7 @@ class TravelportAirPricePresenter
             'basePrice' => $baseMoney['amount'],
             'taxes' => $taxMoney['amount'],
             'currency' => $currency,
+            'passenger_fare_lines' => $passengerFareLines,
             'fare_brand' => $displayBrand,
             'fare_basis' => $fareBasis,
             'non_refundable' => $nonRefundable,

@@ -4,6 +4,7 @@ namespace App\Support\Travelport;
 
 use App\Support\FlightCabinPreference;
 use App\Support\FlightListingMetaBuilder;
+use App\Support\FlightPassengerFareLinesPresenter;
 use Carbon\Carbon;
 
 class TravelportSearchPresenter
@@ -263,6 +264,14 @@ class TravelportSearchPresenter
         $baggageDetails = TravelportBaggagePresenter::fromFareInfo(null, null, [], null);
         $basePrice = null;
         $taxes = null;
+        $passengerFareLines = FlightPassengerFareLinesPresenter::fromTravelportPricingInfos($pricingInfos, $searchData);
+        $passengerFareTotals = FlightPassengerFareLinesPresenter::aggregateTotals($passengerFareLines);
+        if (($passengerFareTotals['base'] ?? 0) > 0) {
+            $basePrice = $passengerFareTotals['base'];
+        }
+        if (($passengerFareTotals['tax'] ?? 0) > 0) {
+            $taxes = $passengerFareTotals['tax'];
+        }
         $primaryFareInfo = null;
         $primaryPricingInfo = null;
         $legsCollected = false;
@@ -274,16 +283,6 @@ class TravelportSearchPresenter
 
             $validatingCarrier = $validatingCarrier ?: self::attr($pricingInfo, 'PlatingCarrier');
             $nonRefundable = strtolower((string) self::attr($pricingInfo, 'Refundable', 'true')) === 'false';
-
-            $pricingMoney = self::parseMoneyValue(self::attr($pricingInfo, 'BasePrice'));
-            if ($basePrice === null && ($pricingMoney['amount'] ?? null) !== null) {
-                $basePrice = $pricingMoney['amount'];
-            }
-
-            $taxMoney = self::parseMoneyValue(self::attr($pricingInfo, 'Taxes'));
-            if ($taxes === null && ($taxMoney['amount'] ?? null) !== null) {
-                $taxes = $taxMoney['amount'];
-            }
 
             $primaryPricingInfo = $primaryPricingInfo ?: $pricingInfo;
             $primaryFareInfo = $primaryFareInfo ?: self::resolveFareInfoNode($pricingInfo, $fareInfosByKey);
@@ -440,6 +439,7 @@ class TravelportSearchPresenter
             'basePrice' => $basePrice,
             'taxes' => $taxes,
             'currency' => $currency,
+            'passenger_fare_lines' => $passengerFareLines,
             'fare_brand' => $displayBrand,
             'fare_basis' => $fareBasis,
             'non_refundable' => $nonRefundable,
@@ -465,6 +465,7 @@ class TravelportSearchPresenter
             'taxes' => $taxes,
             'totalPrice' => $totalPrice,
             'currency' => $currency,
+            'passenger_fare_lines' => $passengerFareLines,
             'legs' => $legs,
             'supplier' => 'travelport',
             'validating_carrier' => $validatingCarrier,

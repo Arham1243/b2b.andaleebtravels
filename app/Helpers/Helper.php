@@ -1139,8 +1139,13 @@ if (! function_exists('flightBookingPricingFields')) {
  * @return array<string, mixed>
  */
 if (! function_exists('flightFareBreakdown')) {
-    function flightFareBreakdown(array $itinerary, float $fallbackTotal = 0): array
-    {
+    function flightFareBreakdown(
+        array $itinerary,
+        float $fallbackTotal = 0,
+        int $adults = 1,
+        int $children = 0,
+        int $infants = 0,
+    ): array {
         $currency = strtoupper((string) ($itinerary['currency'] ?? 'AED'));
         $supplierBase = round((float) ($itinerary['supplierBasePrice'] ?? 0), 2);
         $supplierTax = round((float) ($itinerary['supplierTaxes'] ?? 0), 2);
@@ -1161,6 +1166,16 @@ if (! function_exists('flightFareBreakdown')) {
         $displayTax = $taxCharges > 0 ? $taxCharges : $supplierTax;
         $netFare = round(max(0, $totalAmount - $markup), 2);
 
+        $paxBreakdown = \App\Support\FlightPassengerFareLinesPresenter::forBreakdown(
+            $itinerary,
+            $adults,
+            $children,
+            $infants,
+            $displayBase,
+            $displayTax,
+            $supplierBase > 0 ? $supplierBase : $displayBase,
+        );
+
         return [
             'currency' => $currency,
             'has_breakdown' => $hasBreakdown,
@@ -1176,6 +1191,9 @@ if (! function_exists('flightFareBreakdown')) {
             'show_discount' => $discount > 0.001,
             'show_you_earn' => $markup > 0.001,
             'show_net_fare' => $markup > 0.001,
+            'base_lines' => $paxBreakdown['base_lines'],
+            'tax_lines' => $paxBreakdown['tax_lines'],
+            'has_pax_lines' => $paxBreakdown['has_pax_lines'],
         ];
     }
 }
