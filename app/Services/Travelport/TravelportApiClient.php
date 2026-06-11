@@ -301,9 +301,9 @@ XML;
                 TravelerType="{$type}"
                 DOB="{$dob}"
                 Gender="{$gender}">
-                <BookingTravelerName First="{$first}" Last="{$last}"/>{$nameRemarksXml}
+                <BookingTravelerName First="{$first}" Last="{$last}"/>
                 <PhoneNumber CountryCode="{$country}" AreaCode="{$area}" Number="{$number}"/>
-                <Email EmailID="{$email}"/>
+                <Email EmailID="{$email}"/>{$nameRemarksXml}
             </BookingTraveler>
 XML;
         }
