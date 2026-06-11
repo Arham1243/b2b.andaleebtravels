@@ -12,8 +12,11 @@ final class FlightPassengerFareLinesPresenter
      * @param  array<string, mixed>  $searchData
      * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
      */
-    public static function fromTravelportPricingInfos(array $pricingInfos, array $searchData = []): array
-    {
+    public static function fromTravelportPricingInfos(
+        array $pricingInfos,
+        array $searchData = [],
+        ?float $expectedTotal = null,
+    ): array {
         $searchCounts = self::searchPaxCounts($searchData);
         $byTypeKey = [];
 
@@ -38,13 +41,63 @@ final class FlightPassengerFareLinesPresenter
                     'label' => self::paxLabel($code),
                     'base_sum' => 0.0,
                     'tax_sum' => 0.0,
+                    'pinfo_count' => 0,
                 ];
             }
 
             $byTypeKey[$typeKey]['base_sum'] = round($byTypeKey[$typeKey]['base_sum'] + $baseTotal, 2);
             $byTypeKey[$typeKey]['tax_sum'] = round($byTypeKey[$typeKey]['tax_sum'] + $taxTotal, 2);
+            $byTypeKey[$typeKey]['pinfo_count']++;
         }
 
+        return self::finalizeTravelportLines($byTypeKey, $searchCounts, $expectedTotal);
+    }
+
+    /**
+     * @param  array<string, array{type_key: string, type_code: string, label: string, base_sum: float, tax_sum: float, pinfo_count: int}>  $byTypeKey
+     * @param  array{adult: int, child: int, infant: int}  $searchCounts
+     * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
+     */
+    private static function finalizeTravelportLines(
+        array $byTypeKey,
+        array $searchCounts,
+        ?float $expectedTotal,
+    ): array {
+        $dividedLines = self::buildTravelportLinesFromBuckets($byTypeKey, $searchCounts, false);
+        $perPassengerLines = self::buildTravelportLinesFromBuckets($byTypeKey, $searchCounts, true);
+
+        if ($expectedTotal === null || $expectedTotal <= 0) {
+            return $perPassengerLines !== [] ? $perPassengerLines : $dividedLines;
+        }
+
+        $dividedTotal = self::aggregateTotals($dividedLines);
+        $perPassengerTotal = self::aggregateTotals($perPassengerLines);
+        $dividedSum = round($dividedTotal['base'] + $dividedTotal['tax'], 2);
+        $perPassengerSum = round($perPassengerTotal['base'] + $perPassengerTotal['tax'], 2);
+
+        if ($perPassengerLines === []) {
+            return $dividedLines;
+        }
+
+        if ($dividedLines === []) {
+            return $perPassengerLines;
+        }
+
+        return abs($perPassengerSum - $expectedTotal) <= abs($dividedSum - $expectedTotal)
+            ? $perPassengerLines
+            : $dividedLines;
+    }
+
+    /**
+     * @param  array<string, array{type_key: string, type_code: string, label: string, base_sum: float, tax_sum: float, pinfo_count: int}>  $byTypeKey
+     * @param  array{adult: int, child: int, infant: int}  $searchCounts
+     * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
+     */
+    private static function buildTravelportLinesFromBuckets(
+        array $byTypeKey,
+        array $searchCounts,
+        bool $preferPerPassengerOnSinglePinfo,
+    ): array {
         $lines = [];
 
         foreach ($byTypeKey as $typeKey => $row) {
@@ -53,13 +106,28 @@ final class FlightPassengerFareLinesPresenter
                 continue;
             }
 
+            $pinfoCount = max(1, (int) ($row['pinfo_count'] ?? 1));
+            $baseSum = (float) ($row['base_sum'] ?? 0);
+            $taxSum = (float) ($row['tax_sum'] ?? 0);
+
+            $usePerPassenger = $preferPerPassengerOnSinglePinfo
+                && $pinfoCount === 1
+                && $count > 1;
+
+            $basePerPax = $usePerPassenger
+                ? round($baseSum, 2)
+                : round($baseSum / $count, 2);
+            $taxPerPax = $usePerPassenger
+                ? round($taxSum, 2)
+                : round($taxSum / $count, 2);
+
             $lines[] = [
                 'type_key' => $typeKey,
                 'type_code' => (string) ($row['type_code'] ?? self::codeFromTypeKey($typeKey)),
                 'label' => (string) ($row['label'] ?? self::paxLabel(self::codeFromTypeKey($typeKey))),
                 'count' => $count,
-                'base_per_pax' => round((float) ($row['base_sum'] ?? 0) / $count, 2),
-                'tax_per_pax' => round((float) ($row['tax_sum'] ?? 0) / $count, 2),
+                'base_per_pax' => $basePerPax,
+                'tax_per_pax' => $taxPerPax,
             ];
         }
 

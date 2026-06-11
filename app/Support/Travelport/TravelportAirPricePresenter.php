@@ -87,7 +87,11 @@ class TravelportAirPricePresenter
         $cabinClass = FlightCabinPreference::resolveCabinFamily($brandName, $bookingCode);
         $validatingCarrier = (string) self::attr($pricingInfo, 'PlatingCarrier', '');
 
-        $passengerFareLines = FlightPassengerFareLinesPresenter::fromTravelportPricingInfos($pricingInfos, $searchData);
+        $passengerFareLines = FlightPassengerFareLinesPresenter::fromTravelportPricingInfos(
+            $pricingInfos,
+            $searchData,
+            (float) ($totalMoney['amount'] ?? 0),
+        );
         $passengerFareTotals = FlightPassengerFareLinesPresenter::aggregateTotals($passengerFareLines);
         $baseMoney = self::parseMoney(self::attr($pricingInfo, 'BasePrice'));
         $taxMoney = self::parseMoney(self::attr($pricingInfo, 'Taxes'));

@@ -269,7 +269,11 @@ class TravelportSearchPresenter
         $baggageDetails = TravelportBaggagePresenter::fromFareInfo(null, null, [], null);
         $basePrice = null;
         $taxes = null;
-        $passengerFareLines = FlightPassengerFareLinesPresenter::fromTravelportPricingInfos($pricingInfos, $searchData);
+        $passengerFareLines = FlightPassengerFareLinesPresenter::fromTravelportPricingInfos(
+            $pricingInfos,
+            $searchData,
+            $totalPrice,
+        );
         $passengerFareTotals = FlightPassengerFareLinesPresenter::aggregateTotals($passengerFareLines);
         if (($passengerFareTotals['base'] ?? 0) > 0) {
             $basePrice = $passengerFareTotals['base'];
