@@ -476,7 +476,14 @@ class TravelportBookingService
 
             $recovered = null;
             if (! ($ticketResponse['success'] ?? false)) {
-                $recovered = $this->attemptRecoverTicketsAfterTicketingFailure($booking, $ticketResponse, $locator);
+                $recovered = $this->attemptRecoverTicketsAfterTicketingFailure(
+                    $booking,
+                    $ticketResponse,
+                    $locator,
+                    $airPricingInfoKeys,
+                    $platingCarrier,
+                    $gdsCommissionPercentage,
+                );
             }
 
             if (! ($ticketResponse['success'] ?? false) && $recovered === null) {
@@ -1301,14 +1308,20 @@ class TravelportBookingService
 
     /**
      * GDS 12008 ("IGNORE AND RETRIEVE BOOKING FILE") may still produce tickets on the PNR.
+     * If no tickets exist yet, the host work area is out of sync — re-retrieve the booking
+     * file and retry ticketing once.
      *
      * @param  array<string, mixed>  $ticketResponse
+     * @param  list<string>  $airPricingInfoKeys
      * @return array{ticket_numbers: list<string>, ticket_response: array<string, mixed>, source: string}|null
      */
     private function attemptRecoverTicketsAfterTicketingFailure(
         B2bFlightBooking $booking,
         array $ticketResponse,
         string $airReservationLocator,
+        array $airPricingInfoKeys = [],
+        string $platingCarrier = '',
+        float $gdsCommissionPercentage = 0.0,
     ): ?array {
         $parsed = is_array($ticketResponse['parsed'] ?? null) ? $ticketResponse['parsed'] : [];
         $ticketingRsp = $parsed['Body']['AirTicketingRsp'] ?? [];
@@ -1361,7 +1374,70 @@ class TravelportBookingService
             }
         }
 
+        // No tickets found anywhere. For a host sync error (12008 / IGNORE AND RETRIEVE
+        // BOOKING FILE) the booking file was just re-synced above; retry ticketing once.
+        if ($this->isIgnoreAndRetrieveHostError($ticketResponse) && $airPricingInfoKeys !== [] && $platingCarrier !== '') {
+            Log::warning('Travelport retrying ticketing once after host sync error (12008)', [
+                'booking_id' => $booking->id,
+                'locator' => $airReservationLocator,
+                'plating_carrier' => $platingCarrier,
+            ]);
+
+            $retryResponse = $this->client->airTicket(
+                $airReservationLocator,
+                $airPricingInfoKeys,
+                $platingCarrier,
+                $gdsCommissionPercentage,
+            );
+
+            $retryParsed = is_array($retryResponse['parsed'] ?? null) ? $retryResponse['parsed'] : [];
+            $retryStored = is_array($retryParsed['Body']['AirTicketingRsp'] ?? null)
+                ? $retryParsed['Body']['AirTicketingRsp']
+                : [];
+            if (is_string($retryResponse['raw'] ?? null) && ($retryResponse['raw'] ?? '') !== '') {
+                $retryStored['raw'] = $retryResponse['raw'];
+            }
+
+            $retryNumbers = FlightBookingTicketResolver::fromResponse($retryStored);
+
+            if (($retryResponse['success'] ?? false) || $retryNumbers !== []) {
+                if ($retryNumbers === [] && $universalLocator !== '') {
+                    $retrieveAfterRetry = $this->client->universalRecordRetrieve($universalLocator);
+                    if ($retrieveAfterRetry['success'] ?? false) {
+                        $retryNumbers = TravelportAirTicketingResult::ticketNumbersFromTkneRaw(
+                            (string) ($retrieveAfterRetry['raw'] ?? ''),
+                        );
+                    }
+                }
+
+                if (! TravelportAirTicketingResult::shouldTreatAsFailure($retryStored, $retryNumbers)) {
+                    return [
+                        'ticket_numbers' => $retryNumbers,
+                        'ticket_response' => $retryStored,
+                        'source' => 'air_ticket_retry_after_sync',
+                    ];
+                }
+            }
+        }
+
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $ticketResponse
+     */
+    private function isIgnoreAndRetrieveHostError(array $ticketResponse): bool
+    {
+        $code = trim((string) ($ticketResponse['error_code'] ?? ''));
+        if ($code === '12008') {
+            return true;
+        }
+
+        $haystack = strtoupper(
+            (string) ($ticketResponse['error'] ?? '') . ' ' . (string) ($ticketResponse['raw'] ?? ''),
+        );
+
+        return str_contains($haystack, 'IGNORE AND RETRIEVE BOOKING FILE');
     }
 
     /**

@@ -11,6 +11,12 @@
         return m.isValid() ? m.clone().startOf('day') : null;
     }
 
+    function calendarReady(picker) {
+        return !!(picker
+            && picker.leftCalendar && picker.leftCalendar.month
+            && picker.rightCalendar && picker.rightCalendar.month);
+    }
+
     function ageOnDate(reference, dob) {
         let age = reference.year() - dob.year();
         const refKey = reference.format('MMDD');
@@ -149,7 +155,7 @@
             } else {
                 if (picker.minDate) picker.minYear = picker.minDate.year();
                 if (picker.maxDate) picker.maxYear = picker.maxDate.year();
-                if (typeof picker.updateCalendars === 'function') picker.updateCalendars();
+                if (calendarReady(picker) && typeof picker.updateCalendars === 'function') picker.updateCalendars();
             }
         } else {
             const today = moment().startOf('day');
@@ -174,7 +180,7 @@
             } else {
                 if (picker.minDate) picker.minYear = picker.minDate.year();
                 if (picker.maxDate) picker.maxYear = picker.maxDate.year();
-                if (typeof picker.updateCalendars === 'function') picker.updateCalendars();
+                if (calendarReady(picker) && typeof picker.updateCalendars === 'function') picker.updateCalendars();
             }
         }
 

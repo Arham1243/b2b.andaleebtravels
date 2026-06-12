@@ -115,9 +115,18 @@
             }
         }
 
-        if (typeof picker.updateCalendars === 'function') {
+        // Only re-render when the calendar has actually been built (picker shown at
+        // least once). Before the first show, leftCalendar/rightCalendar are empty
+        // objects and updateCalendars() -> renderCalendar() throws on `.month`.
+        if (calendarReady(picker) && typeof picker.updateCalendars === 'function') {
             picker.updateCalendars();
         }
+    }
+
+    function calendarReady(picker) {
+        return !!(picker
+            && picker.leftCalendar && picker.leftCalendar.month
+            && picker.rightCalendar && picker.rightCalendar.month);
     }
 
     function initHpDatePickers(config) {
