@@ -71,6 +71,7 @@ echo 'add xml len=' . strlen($addXml) . "\n";
 $store = $client->addStoredFareViaUniversalRecordModify(
     $universal, $airLoc, $version, $provider, $heldSegments,
     ['ADT' => 1, 'CNN' => 0, 'INF' => 0], $searchData, $keyMap,
+    array_values(array_filter($keyMap)),
 );
 echo 'store price: success=' . var_export($store['success'] ?? null, true) . ' error=' . ($store['error'] ?? '') . "\n";
 if (! ($store['success'] ?? false)) {

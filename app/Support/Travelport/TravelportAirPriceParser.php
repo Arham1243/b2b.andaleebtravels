@@ -394,20 +394,9 @@ class TravelportAirPriceParser
             $inner,
         ) ?? $inner;
 
-        $refsXml = '';
-        $seenRefs = [];
-        foreach ($bookingTravelerRefs as $ref) {
-            $ref = trim($ref);
-            if ($ref === '' || isset($seenRefs[$ref])) {
-                continue;
-            }
-            $seenRefs[$ref] = true;
-            $refsXml .= "\n                    <com:BookingTravelerRef Key=\"" . htmlspecialchars($ref, ENT_XML1) . '"/>';
-        }
-
-        if ($refsXml !== '') {
-            $inner .= $refsXml;
-        }
+        // Store Price pastes airPrice AirPricingInfo into UR Modify. Only set
+        // BookingTravelerRef on PassengerType — child BookingTravelerRef elements
+        // appended after BaggageAllowances violate the v52 schema element order.
 
         return $inner;
     }

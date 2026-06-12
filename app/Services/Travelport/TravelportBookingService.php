@@ -1226,6 +1226,42 @@ class TravelportBookingService
         $passengerTypes = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
         $pricingData['passenger_types'] = $passengerTypes;
 
+        $segmentKeys = array_values(array_unique(array_filter(array_map(
+            static fn ($segment) => is_array($segment) ? (string) ($segment['key'] ?? '') : '',
+            $pricingData['segments'] ?? [],
+        ))));
+
+        if (count($segmentKeys) > 1) {
+            $bookingInfosBySegment = [];
+            foreach ($pricingData['booking_infos'] ?? [] as $bookingInfo) {
+                if (! is_array($bookingInfo)) {
+                    continue;
+                }
+
+                $segmentRef = (string) ($bookingInfo['segment_ref'] ?? '');
+                if ($segmentRef === '' || ! in_array($segmentRef, $segmentKeys, true)) {
+                    continue;
+                }
+
+                $bookingInfosBySegment[$segmentRef] = $bookingInfo;
+            }
+
+            if (count($bookingInfosBySegment) >= count($segmentKeys)) {
+                $orderedBookingInfos = [];
+                foreach ($segmentKeys as $segmentKey) {
+                    if (isset($bookingInfosBySegment[$segmentKey])) {
+                        $orderedBookingInfos[] = $bookingInfosBySegment[$segmentKey];
+                    }
+                }
+
+                if ($orderedBookingInfos !== []) {
+                    $pricingData['booking_infos'] = $orderedBookingInfos;
+
+                    return $this->syncHostTokensToBookingInfos($pricingData);
+                }
+            }
+        }
+
         $fareInfosByKey = [];
         foreach ($pricingData['fare_infos'] ?? [] as $fareInfo) {
             if (! is_array($fareInfo)) {
@@ -1392,9 +1428,16 @@ class TravelportBookingService
             }
         }
 
-        if ($bookingInfoCount < $passengerCount || $hostTokenCount < 1 || $fareInfoCount < 1) {
+        $segmentCount = count($pricingData['segments'] ?? []);
+        $requiredBookingInfoCount = $segmentCount > 1
+            ? max($passengerCount, $segmentCount)
+            : $passengerCount;
+
+        if ($bookingInfoCount < $requiredBookingInfoCount || $hostTokenCount < 1 || $fareInfoCount < 1) {
             Log::warning('Travelport hold pricing incomplete after alignment', [
                 'passenger_count' => $passengerCount,
+                'segment_count' => $segmentCount,
+                'required_booking_info_count' => $requiredBookingInfoCount,
                 'booking_info_count' => $bookingInfoCount,
                 'host_token_count' => $hostTokenCount,
                 'fare_info_count' => $fareInfoCount,
