@@ -81,15 +81,7 @@ class BookingController extends Controller
         }
 
         if ($booking->isTravelport()) {
-            $storedLines = is_array($booking->itinerary_data['passenger_fare_lines'] ?? null)
-                ? $booking->itinerary_data['passenger_fare_lines']
-                : [];
-            if (! FlightPassengerFareLinesPresenter::linesCoverPassengers(
-                $storedLines,
-                (int) $booking->adults,
-                (int) $booking->children,
-                (int) $booking->infants,
-            )) {
+            if (FlightPassengerFareLinesPresenter::needsFareBreakdownRefresh($booking)) {
                 $travelportBookingService->refreshBookingFareBreakdown($booking);
                 $booking->refresh();
             }

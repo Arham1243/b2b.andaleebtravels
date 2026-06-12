@@ -1211,6 +1211,7 @@ if (! function_exists('flightFareBreakdown')) {
             ($paxBreakdown['has_pax_lines'] ?? false)
             && ($paxBreakdown['lines_cover_all'] ?? false)
             && $baseFromLines > 0
+            && ($expectedGrandTotal <= 0 || abs($lineGrandTotal - $expectedGrandTotal) <= 0.05)
         ) {
             $summaryBase = $baseFromLines;
             $summaryTax = $taxFromLines > 0 ? $taxFromLines : $displayTax;

@@ -418,7 +418,6 @@
                                 'fareBreakdown' => $fareBreakdown ?? null,
                                 'isHold' => $isHold,
                                 'showVendorDiscount' => true,
-                                'showRefreshFareBreakdown' => $canEditBooking ?? false,
                                 'holdDepositLabel' => true,
                                 'totalLabel' => 'Amount',
                             ])

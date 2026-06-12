@@ -137,6 +137,65 @@ final class FlightPassengerFareLinesPresenter
     }
 
     /**
+     * @param  list<array<string, mixed>>  $lines
+     */
+    public static function linesMatchExpectedTotal(array $lines, float $expectedTotal, float $tolerance = 0.05): bool
+    {
+        if ($lines === [] || $expectedTotal <= 0) {
+            return false;
+        }
+
+        $totals = self::aggregateTotals($lines);
+        $lineGrandTotal = round((float) ($totals['base'] ?? 0) + (float) ($totals['tax'] ?? 0), 2);
+
+        return abs($lineGrandTotal - round($expectedTotal, 2)) <= $tolerance;
+    }
+
+    public static function expectedTotalForBooking(\App\Models\B2bFlightBooking $booking): float
+    {
+        $quotedTotal = round((float) $booking->total_amount, 2);
+        if ($quotedTotal > 0) {
+            return $quotedTotal;
+        }
+
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $base = round((float) ($itinerary['basePrice'] ?? $itinerary['supplierBasePrice'] ?? 0), 2);
+        $tax = round((float) ($itinerary['taxes'] ?? $itinerary['supplierTaxes'] ?? 0), 2);
+        $itineraryTotal = round((float) ($itinerary['totalPrice'] ?? 0), 2);
+
+        if ($itineraryTotal > 0) {
+            return $itineraryTotal;
+        }
+
+        if ($base > 0 || $tax > 0) {
+            return round($base + $tax, 2);
+        }
+
+        return 0.0;
+    }
+
+    public static function needsFareBreakdownRefresh(\App\Models\B2bFlightBooking $booking): bool
+    {
+        if (! $booking->isTravelport()) {
+            return false;
+        }
+
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $stored = is_array($itinerary['passenger_fare_lines'] ?? null) ? $itinerary['passenger_fare_lines'] : [];
+        $adults = (int) $booking->adults;
+        $children = (int) $booking->children;
+        $infants = (int) $booking->infants;
+
+        if (! self::linesCoverPassengers($stored, $adults, $children, $infants)) {
+            return true;
+        }
+
+        $expectedTotal = self::expectedTotalForBooking($booking);
+
+        return $expectedTotal > 0 && ! self::linesMatchExpectedTotal($stored, $expectedTotal);
+    }
+
+    /**
      * Best available per-passenger fare lines for a saved booking.
      *
      * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
@@ -149,7 +208,12 @@ final class FlightPassengerFareLinesPresenter
         $children = (int) $booking->children;
         $infants = (int) $booking->infants;
 
-        if (self::linesCoverPassengers($stored, $adults, $children, $infants)) {
+        $expectedTotal = self::expectedTotalForBooking($booking);
+        $storedIsComplete = self::linesCoverPassengers($stored, $adults, $children, $infants);
+        $storedMatchesTotal = $expectedTotal <= 0
+            || self::linesMatchExpectedTotal($stored, $expectedTotal);
+
+        if ($storedIsComplete && $storedMatchesTotal) {
             return $stored;
         }
 
@@ -178,9 +242,17 @@ final class FlightPassengerFareLinesPresenter
         ];
 
         foreach ($candidates as $candidate) {
-            if (self::linesCoverPassengers($candidate, $adults, $children, $infants)) {
+            if (! self::linesCoverPassengers($candidate, $adults, $children, $infants)) {
+                continue;
+            }
+
+            if ($expectedTotal <= 0 || self::linesMatchExpectedTotal($candidate, $expectedTotal)) {
                 return $candidate;
             }
+        }
+
+        if ($storedIsComplete) {
+            return $stored;
         }
 
         foreach ($candidates as $candidate) {

@@ -19,17 +19,6 @@
         ])
     </div>
 
-    @if (!empty($showRefreshFareBreakdown) && $booking->isTravelport() && (int) $booking->children > 0)
-        <form action="{{ route('admin.flight-bookings.refresh-fare-breakdown', $booking->id) }}" method="POST"
-            class="mt-2"
-            onsubmit="return confirm('Re-run Travelport Air Price and refresh the per-passenger fare breakdown for this booking?');">
-            @csrf
-            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
-                <i class="bx bx-refresh"></i> Refresh fare breakdown
-            </button>
-        </form>
-    @endif
-
     @if (($booking->wallet_amount ?? 0) > 0)
         <div class="bkpd-fare__row">
             <span>Wallet applied</span>
