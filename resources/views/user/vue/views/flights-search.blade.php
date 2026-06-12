@@ -524,18 +524,6 @@
                                                     <input type="hidden" name="child_ages[]" :value="childAges[childIdx]">
                                                 </div>
                                             </div>
-
-                                            <div class="fs-pro-child-fare-prices">
-                                                <div class="fs-pro-child-fare-prices__head">Child fare (base)</div>
-                                                <div class="fs-pro-child-fare-row"
-                                                    v-for="row in childFarePanelRows" :key="row.key">
-                                                    <span>@{{ row.label }}</span>
-                                                    <strong>@{{ row.priceText }}</strong>
-                                                </div>
-                                                <p class="fs-pro-child-fare-note" v-if="!listingChildFare">
-                                                    Shown per flight after search. Fares vary by age (2–11 years).
-                                                </p>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

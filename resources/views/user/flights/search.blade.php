@@ -66,54 +66,6 @@
 
     <div class="rp">
 
-        @php
-            $listingChildFare = null;
-            $searchChildren = (int) request()->input('children', data_get(session('flight_search_params'), 'children', 0));
-            if ($searchChildren > 0 && !empty($results)) {
-                foreach ($results as $listingResult) {
-                    if (!is_array($listingResult)) {
-                        continue;
-                    }
-
-                    $fareLines = $listingResult['passenger_fare_lines'] ?? null;
-                    if (!is_array($fareLines) || $fareLines === []) {
-                        continue;
-                    }
-
-                    $adultBase = null;
-                    $childBase = null;
-                    foreach ($fareLines as $fareLine) {
-                        if (!is_array($fareLine)) {
-                            continue;
-                        }
-
-                        $typeKey = (string) ($fareLine['type_key'] ?? '');
-                        if ($typeKey === 'adult') {
-                            $adultBase = (float) ($fareLine['base_per_pax'] ?? 0);
-                        }
-                        if ($typeKey === 'child') {
-                            $childBase = (float) ($fareLine['base_per_pax'] ?? 0);
-                        }
-                    }
-
-                    if ($childBase > 0) {
-                        $listingChildFare = [
-                            'currency' => strtoupper((string) ($listingResult['currency'] ?? 'AED')),
-                            'child_base' => $childBase,
-                            'adult_base' => $adultBase > 0 ? $adultBase : null,
-                        ];
-                        break;
-                    }
-                }
-            }
-        @endphp
-
-        @push('vue-js')
-            <script>
-                window.FLIGHT_LISTING_CHILD_FARE = @json($listingChildFare);
-            </script>
-        @endpush
-
         {{-- Search form (untouched Vue mount) --}}
         <div class="rp-swrap">
             <div class="container">
