@@ -400,13 +400,14 @@ class TravelportBookingService
             }
 
             $airPricingInfoKeys = $this->resolveAirPricingInfoKeys($booking);
-            if ($airPricingInfoKeys === []) {
-                throw new \RuntimeException(
-                    'No stored Travelport fare keys found on this hold. Please release and rebook.',
-                );
-            }
-
             $gdsCommissionPercentage = $this->resolveGdsCommissionPercentage();
+
+            if ($airPricingInfoKeys === []) {
+                Log::warning('Travelport ticketing without stored AirPricingInfo keys; GDS will ticket all stored fares on PNR', [
+                    'booking_id' => $booking->id,
+                    'locator' => $locator,
+                ]);
+            }
 
             $ticketResponse = $this->client->airTicket(
                 $locator,
@@ -604,7 +605,34 @@ class TravelportBookingService
         $bookingRequest = is_array($booking->booking_request) ? $booking->booking_request : [];
         $bookingResponse = is_array($booking->booking_response) ? $booking->booking_response : [];
 
-        return TravelportHoldPricingInfoParser::resolveKeysForTicketing($bookingRequest, $bookingResponse);
+        $keys = TravelportHoldPricingInfoParser::resolveKeysForTicketing($bookingRequest, $bookingResponse);
+        if ($keys !== []) {
+            return $keys;
+        }
+
+        $universalLocator = $booking->travelportUniversalLocator();
+        if ($universalLocator === '') {
+            return [];
+        }
+
+        $retrieve = $this->client->universalRecordRetrieve($universalLocator);
+        if (! ($retrieve['success'] ?? false)) {
+            Log::warning('Travelport universal record retrieve failed while resolving fare keys', [
+                'booking_id' => $booking->id,
+                'universal_locator' => $universalLocator,
+                'error' => $retrieve['error'] ?? null,
+            ]);
+
+            return [];
+        }
+
+        return TravelportHoldPricingInfoParser::resolveKeysForTicketing(
+            $bookingRequest,
+            [
+                'raw' => (string) ($retrieve['raw'] ?? ''),
+                'parsed' => is_array($retrieve['parsed'] ?? null) ? $retrieve['parsed'] : [],
+            ],
+        );
     }
 
     /**
