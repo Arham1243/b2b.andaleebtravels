@@ -33,4 +33,17 @@ final class TravelportGdsKeyFormat
     {
         return preg_match('/^xYM/i', trim($key)) === 1;
     }
+
+    /**
+     * A usable booking-traveler key: any non-empty key that is not a request
+     * placeholder (traveler_1). Used when the key was already confirmed to come
+     * from a real <BookingTraveler> element inside the committed Universal Record,
+     * so the prefix (D1/, /NA, xYM-on-PNR, plain base64) no longer matters.
+     */
+    public static function isUsableTravelerKey(string $key): bool
+    {
+        $key = trim($key);
+
+        return $key !== '' && ! str_starts_with($key, 'traveler_');
+    }
 }

@@ -67,12 +67,12 @@ final class TravelportHoldTravelerKeyResolver
             }
 
             $gdsTraveler = $gdsTravelers[$index] ?? null;
-            if ($gdsTraveler === null || ! TravelportGdsKeyFormat::isReservationScopedKey((string) ($gdsTraveler['key'] ?? ''))) {
+            if ($gdsTraveler === null || ! TravelportGdsKeyFormat::isUsableTravelerKey((string) ($gdsTraveler['key'] ?? ''))) {
                 $gdsTraveler = self::matchByIdentity($gdsTravelers, $traveler);
             }
 
             $gdsKey = trim((string) ($gdsTraveler['key'] ?? ''));
-            if ($gdsKey !== '' && TravelportGdsKeyFormat::isReservationScopedKey($gdsKey)) {
+            if ($gdsKey !== '' && TravelportGdsKeyFormat::isUsableTravelerKey($gdsKey)) {
                 $map[$requestKey] = $gdsKey;
             }
         }
@@ -430,7 +430,7 @@ final class TravelportHoldTravelerKeyResolver
     {
         return array_values(array_filter(
             $travelers,
-            static fn (array $traveler): bool => TravelportGdsKeyFormat::isReservationScopedKey((string) ($traveler['key'] ?? '')),
+            static fn (array $traveler): bool => TravelportGdsKeyFormat::isUsableTravelerKey((string) ($traveler['key'] ?? '')),
         ));
     }
 
@@ -546,7 +546,7 @@ final class TravelportHoldTravelerKeyResolver
     private static function travelerFromBookingTravelerAttributes(string $attrs, string $body): ?array
     {
         $key = self::attributeValue($attrs, 'Key');
-        if ($key === '' || ! TravelportGdsKeyFormat::isReservationScopedKey($key)) {
+        if ($key === '' || ! TravelportGdsKeyFormat::isUsableTravelerKey($key)) {
             return null;
         }
 
@@ -672,7 +672,7 @@ final class TravelportHoldTravelerKeyResolver
 
         foreach ($matches as $match) {
             $key = trim((string) ($match[2] ?? ''));
-            if ($key === '' || str_starts_with($key, 'traveler_') || TravelportGdsKeyFormat::isShopSessionKey($key)) {
+            if (! TravelportGdsKeyFormat::isUsableTravelerKey($key)) {
                 continue;
             }
 
@@ -687,7 +687,7 @@ final class TravelportHoldTravelerKeyResolver
      */
     private static function isConfirmedTravelerKey(string $key, array $confirmedTravelerKeys): bool
     {
-        if (! TravelportGdsKeyFormat::isReservationScopedKey($key)) {
+        if (! TravelportGdsKeyFormat::isUsableTravelerKey($key)) {
             return false;
         }
 
@@ -802,7 +802,7 @@ final class TravelportHoldTravelerKeyResolver
     {
         $attrs = $node['@attributes'] ?? $node;
         $key = trim((string) ($attrs['Key'] ?? $node['Key'] ?? ''));
-        if ($key === '' || ! TravelportGdsKeyFormat::isReservationScopedKey($key)) {
+        if ($key === '' || ! TravelportGdsKeyFormat::isUsableTravelerKey($key)) {
             return null;
         }
 

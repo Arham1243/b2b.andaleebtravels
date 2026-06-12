@@ -259,7 +259,11 @@ class TravelportHoldPricingInfoParser
     private static function extractStoredFareKeysFromRawXml(string $raw): array
     {
         $universalBlock = self::extractUniversalRecordBlock($raw);
-        $searchRaw = $universalBlock !== '' ? $universalBlock : self::scrubQuoteBlocks($raw);
+        // When scoped to the committed UR (quote blocks removed) any StoredFare key
+        // is genuine — the host may use a key prefix we don't pattern-match (xYM on
+        // some PNRs), so trust the structure instead of the prefix.
+        $scopedToUr = $universalBlock !== '';
+        $searchRaw = $scopedToUr ? $universalBlock : self::scrubQuoteBlocks($raw);
         $keys = [];
 
         if (preg_match_all(
@@ -300,7 +304,9 @@ class TravelportHoldPricingInfoParser
             $keys = array_merge($keys, $matches[1] ?? []);
         }
 
-        $keys = self::filterToReservationKeys(self::uniqueNonEmpty($keys));
+        $keys = $scopedToUr
+            ? self::filterToUsableKeys(self::uniqueNonEmpty($keys))
+            : self::filterToReservationKeys(self::uniqueNonEmpty($keys));
         if ($keys !== []) {
             return $keys;
         }
@@ -328,7 +334,21 @@ class TravelportHoldPricingInfoParser
             }
         }
 
-        return self::uniqueNonEmpty(self::filterToReservationKeys($keys));
+        return $scopedToUr
+            ? self::uniqueNonEmpty(self::filterToUsableKeys($keys))
+            : self::uniqueNonEmpty(self::filterToReservationKeys($keys));
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return list<string>
+     */
+    private static function filterToUsableKeys(array $keys): array
+    {
+        return array_values(array_filter(
+            self::uniqueNonEmpty($keys),
+            static fn (string $key): bool => TravelportGdsKeyFormat::isUsableTravelerKey($key),
+        ));
     }
 
     private static function extractUniversalRecordBlock(string $raw): string
