@@ -7,6 +7,7 @@
         $currency = $currency ?? 'AED';
         $legs     = $itinerary['legs'] ?? [];
         $requireTravelportDob = strtolower((string) ($itinerary['supplier'] ?? 'sabre')) === 'travelport';
+        $isTravelport = $requireTravelportDob;
 
         $fareBreakdown = flightFareBreakdown($itinerary, (float) ($totalAmount ?? 0), $adults, $children, $infants);
         $totalAmount = (float) ($fareBreakdown['total_amount'] ?? $totalAmount ?? 0);
@@ -422,11 +423,15 @@
                             <div class="row g-3 hp-pax-fields">
                                 <div class="col-md-6">
                                     <label class="hp-label">Phone <span class="hp-req">*</span></label>
-                                    <input type="tel" class="hp-input{{ $errors->has('lead.phone') ? ' is-invalid' : '' }}" name="lead[phone]"
-                                        value="{{ old('lead.phone') }}"
-                                        placeholder="+971 50 000 0000" required autocomplete="tel">
-                                    @if($errors->has('lead.phone'))
-                                        <span class="hp-field-error">{{ $errors->first('lead.phone') }}</span>
+                                    @if ($isTravelport)
+                                        @include('user.flights.partials.hp-travelport-phone-field')
+                                    @else
+                                        <input type="tel" class="hp-input{{ $errors->has('lead.phone') ? ' is-invalid' : '' }}" name="lead[phone]"
+                                            value="{{ old('lead.phone') }}"
+                                            placeholder="+971 50 000 0000" required autocomplete="tel">
+                                        @if($errors->has('lead.phone'))
+                                            <span class="hp-field-error">{{ $errors->first('lead.phone') }}</span>
+                                        @endif
                                     @endif
                                 </div>
                                 <div class="col-md-6">
@@ -997,7 +1002,16 @@
 </style>
 @endpush
 
+@push('css')
+    @if ($isTravelport ?? false)
+        @include('user.flights.partials.hp-travelport-phone-styles')
+    @endif
+@endpush
+
 @push('js')
+    @if ($isTravelport ?? false)
+        @include('user.flights.partials.hp-travelport-phone-scripts')
+    @endif
     <script src="{{ asset('user/assets/js/moment.min.js') }}"></script>
     <script src="{{ asset('user/assets/js/daterangepicker.min.js') }}"></script>
     @include('user.flights.partials.fare-rules-scripts')

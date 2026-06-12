@@ -3,6 +3,7 @@
 namespace App\Support\Travelport;
 
 use App\Support\FlightPassengerDobValidator;
+use App\Support\PhoneDialCodeCatalog;
 use Carbon\Carbon;
 
 class TravelportHoldPayloadBuilder
@@ -71,7 +72,7 @@ class TravelportHoldPayloadBuilder
     {
         $lead = is_array($passengersData['lead'] ?? null) ? $passengersData['lead'] : [];
         $passengers = is_array($passengersData['passengers'] ?? null) ? $passengersData['passengers'] : [];
-        $phone = self::parsePhone((string) ($lead['phone'] ?? ''));
+        $phone = self::resolvePhoneFromLead($lead);
         $email = trim((string) ($lead['email'] ?? ''));
         $referenceDate = FlightPassengerDobValidator::resolveReferenceDate($searchData);
 
@@ -385,24 +386,177 @@ class TravelportHoldPayloadBuilder
     }
 
     /**
+     * Normalize checkout/hold lead contact fields for Travelport.
+     *
+     * @param  array<string, mixed>  $lead
+     * @return array<string, mixed>
+     */
+    public static function normalizeLeadPhone(array $lead): array
+    {
+        $dialCode = preg_replace('/\D+/', '', (string) ($lead['phone_dial_code'] ?? '')) ?? '';
+        $local = preg_replace('/\D+/', '', (string) ($lead['phone_local'] ?? '')) ?? '';
+        $local = ltrim($local, '0');
+
+        if ($dialCode !== '' && $local !== '') {
+            $parts = self::splitLocalNumber($dialCode, $local);
+            $lead['phone_dial_code'] = $parts['country'];
+            $lead['phone_area_code'] = $parts['area'];
+            $lead['phone_number'] = $parts['number'];
+            $lead['phone'] = '+' . $parts['country'] . $local;
+
+            return $lead;
+        }
+
+        $parts = self::parsePhone((string) ($lead['phone'] ?? ''));
+        $lead['phone_dial_code'] = $parts['country'];
+        $lead['phone_area_code'] = $parts['area'];
+        $lead['phone_number'] = $parts['number'];
+        $lead['phone'] = $lead['phone'] !== ''
+            ? (string) $lead['phone']
+            : '+' . $parts['country'] . $parts['area'] . $parts['number'];
+
+        return $lead;
+    }
+
+    /**
+     * @return array{dial_code: string, local: string, iso: string}
+     */
+    public static function parseLeadPhoneForForm(?string $phone, ?string $dialCode = null, ?string $local = null): array
+    {
+        $dialCode = preg_replace('/\D+/', '', (string) $dialCode) ?? '';
+        $local = preg_replace('/\D+/', '', (string) $local) ?? '';
+        $local = ltrim($local, '0');
+
+        if ($dialCode !== '' && $local !== '') {
+            return [
+                'dial_code' => $dialCode,
+                'local' => $local,
+                'iso' => PhoneDialCodeCatalog::isoFromDialCode($dialCode),
+            ];
+        }
+
+        $parts = self::parsePhone((string) $phone);
+        $combinedLocal = ltrim((string) ($parts['area'] . $parts['number']), '0');
+
+        return [
+            'dial_code' => $parts['country'],
+            'local' => $combinedLocal !== '' ? $combinedLocal : ltrim(preg_replace('/\D+/', '', (string) $phone) ?? '', '0'),
+            'iso' => PhoneDialCodeCatalog::isoFromDialCode($parts['country']),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $lead
+     * @return array{country: string, area: string, number: string}
+     */
+    public static function resolvePhoneFromLead(array $lead): array
+    {
+        $dialCode = preg_replace('/\D+/', '', (string) ($lead['phone_dial_code'] ?? '')) ?? '';
+        $area = preg_replace('/\D+/', '', (string) ($lead['phone_area_code'] ?? '')) ?? '';
+        $number = preg_replace('/\D+/', '', (string) ($lead['phone_number'] ?? '')) ?? '';
+        $local = preg_replace('/\D+/', '', (string) ($lead['phone_local'] ?? '')) ?? '';
+        $local = ltrim($local, '0');
+
+        if ($dialCode !== '' && $area !== '' && $number !== '') {
+            return [
+                'country' => $dialCode,
+                'area' => $area,
+                'number' => $number,
+            ];
+        }
+
+        if ($dialCode !== '' && $local !== '') {
+            return self::splitLocalNumber($dialCode, $local);
+        }
+
+        return self::parsePhone((string) ($lead['phone'] ?? ''));
+    }
+
+    /**
+     * @return array{country: string, area: string, number: string}
+     */
+    public static function splitLocalNumber(string $dialCode, string $local): array
+    {
+        $dialCode = ltrim(preg_replace('/\D+/', '', $dialCode) ?? '', '0');
+        $local = ltrim(preg_replace('/\D+/', '', $local) ?? '', '0');
+
+        if ($dialCode === '' || $local === '') {
+            return [
+                'country' => $dialCode !== '' ? $dialCode : '971',
+                'area' => '50',
+                'number' => $local !== '' ? $local : '0000000',
+            ];
+        }
+
+        $areaLength = self::defaultAreaLength($dialCode, $local);
+        $area = substr($local, 0, $areaLength);
+        $number = substr($local, $areaLength);
+
+        if ($number === '') {
+            $area = substr($local, 0, max(1, min(3, strlen($local) - 4)));
+            $number = substr($local, strlen($area));
+        }
+
+        return [
+            'country' => $dialCode,
+            'area' => $area !== '' ? $area : '0',
+            'number' => $number !== '' ? $number : $local,
+        ];
+    }
+
+    private static function defaultAreaLength(string $dialCode, string $local): int
+    {
+        if ($dialCode === '971') {
+            return strlen($local) >= 2 && $local[0] === '5' ? 2 : 1;
+        }
+
+        if ($dialCode === '966') {
+            return 2;
+        }
+
+        if (in_array($dialCode, ['974', '973', '968', '965'], true)) {
+            return 2;
+        }
+
+        if ($dialCode === '92') {
+            return min(3, max(2, strlen($local) - 7));
+        }
+
+        if ($dialCode === '91') {
+            return min(5, max(3, strlen($local) - 5));
+        }
+
+        if ($dialCode === '1') {
+            return 3;
+        }
+
+        if ($dialCode === '44') {
+            return strlen($local) >= 2 && $local[0] === '7' ? 5 : 4;
+        }
+
+        return strlen($local) >= 8 ? 3 : 2;
+    }
+
+    /**
      * @return array{country: string, area: string, number: string}
      */
     private static function parsePhone(string $phone): array
     {
         $digits = preg_replace('/\D+/', '', $phone) ?? '';
-        if (strlen($digits) >= 12) {
-            return [
-                'country' => substr($digits, 0, 2),
-                'area' => substr($digits, 2, 3),
-                'number' => substr($digits, 5),
-            ];
+
+        foreach (PhoneDialCodeCatalog::dialCodesLongestFirst() as $dialCode) {
+            if (! str_starts_with($digits, $dialCode)) {
+                continue;
+            }
+
+            $local = substr($digits, strlen($dialCode));
+            if (strlen($local) >= 5) {
+                return self::splitLocalNumber($dialCode, $local);
+            }
         }
+
         if (strlen($digits) >= 10) {
-            return [
-                'country' => '971',
-                'area' => substr($digits, 0, 3),
-                'number' => substr($digits, 3),
-            ];
+            return self::splitLocalNumber('971', $digits);
         }
 
         return [

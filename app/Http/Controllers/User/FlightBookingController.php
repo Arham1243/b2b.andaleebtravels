@@ -72,10 +72,9 @@ class FlightBookingController extends Controller
 
     public function processPayment(Request $request, FlightService $flightService)
     {
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'itinerary_id' => 'required|integer',
             'lead.email' => 'required|email',
-            'lead.phone' => 'required|string|max:25',
             'lead.address' => 'nullable|string|max:500',
 
             'passengers' => 'required|array|min:1',
@@ -95,7 +94,7 @@ class FlightBookingController extends Controller
             'use_wallet' => 'nullable|in:1',
             'wallet_amount' => 'nullable|numeric|min:0',
             'fare_option' => 'nullable|integer|min:0',
-        ]);
+        ], $this->leadContactValidationRules($request)));
 
         $validated = $this->normalizePassengerCountries($validated);
 
@@ -105,15 +104,6 @@ class FlightBookingController extends Controller
                 ->withInput()
                 ->with('notify_error', 'First passenger must be an adult.');
         }
-
-        $lead = [
-            'title' => $p0['title'] ?? 'Mr',
-            'first_name' => $p0['first_name'] ?? '',
-            'last_name' => $p0['last_name'] ?? '',
-            'email' => $validated['lead']['email'],
-            'phone' => $validated['lead']['phone'],
-            'address' => $validated['lead']['address'] ?? null,
-        ];
 
         $results = session('flight_search_results', []);
         $params = session('flight_search_params', []);
@@ -130,6 +120,26 @@ class FlightBookingController extends Controller
         }
 
         $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
+        $validated['lead'] = $this->normalizeLeadContact($validated['lead'] ?? [], $isTravelport);
+
+        $lead = [
+            'title' => $p0['title'] ?? 'Mr',
+            'first_name' => $p0['first_name'] ?? '',
+            'last_name' => $p0['last_name'] ?? '',
+            'email' => $validated['lead']['email'],
+            'phone' => $validated['lead']['phone'] ?? '',
+            'address' => $validated['lead']['address'] ?? null,
+        ];
+
+        if ($isTravelport) {
+            $lead = array_merge($lead, array_intersect_key($validated['lead'], array_flip([
+                'phone_dial_code',
+                'phone_area_code',
+                'phone_number',
+                'phone_local',
+            ])));
+        }
+
         $this->validateTravelportPassengerAssociation($validated['passengers'], $params, $isTravelport);
 
         if ($isTravelport) {
@@ -483,14 +493,13 @@ class FlightBookingController extends Controller
         $fareIndex   = max(0, (int) $request->input('fare_option', 0));
 
         try {
-            $validated = $request->validate([
+            $validated = $request->validate(array_merge([
                 'itinerary_id'              => 'required|integer',
                 // lead name fields are synced from passenger[0] via JS as hidden inputs
                 'lead.title'                => 'nullable|string',
                 'lead.first_name'           => 'nullable|string|max:60',
                 'lead.last_name'            => 'nullable|string|max:60',
                 'lead.email'                => 'required|email',
-                'lead.phone'                => 'required|string|max:25',
                 'passengers'                => 'required|array|min:1',
                 'passengers.*.type'         => 'required|in:ADT,C06,INF',
                 'passengers.*.title'        => 'required|string',
@@ -504,7 +513,7 @@ class FlightBookingController extends Controller
                 'passengers.*.passport_exp' => 'nullable|date',
                 'passengers.*.save_profile' => 'nullable|in:1',
                 'fare_option' => 'nullable|integer|min:0',
-            ], [
+            ], $this->leadContactValidationRules($request)), [
                 'passengers.*.nationality.required' => 'Please select a nationality from the country list.',
                 'passengers.*.nationality.size' => 'Please select a nationality from the country list.',
                 'passengers.*.issuing_country.required' => 'Please select an issuing country from the country list.',
@@ -538,6 +547,7 @@ class FlightBookingController extends Controller
         }
 
         $isTravelport = strtolower((string) ($itineraryData['supplier'] ?? 'sabre')) === 'travelport';
+        $validated['lead'] = $this->normalizeLeadContact($validated['lead'] ?? [], $isTravelport);
         $this->validateTravelportPassengerAssociation($validated['passengers'], $params, $isTravelport);
 
         if ($isTravelport) {
@@ -775,6 +785,40 @@ class FlightBookingController extends Controller
         return array_merge([
             'countries' => CountryCatalog::forAutocomplete(),
         ], $data);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function leadContactValidationRules(Request $request): array
+    {
+        $hasTravelportPhone = trim((string) $request->input('lead.phone_local', '')) !== ''
+            || trim((string) $request->input('lead.phone_dial_code', '')) !== '';
+
+        if ($hasTravelportPhone) {
+            return [
+                'lead.phone_dial_code' => 'required|string|regex:/^[0-9]{1,4}$/',
+                'lead.phone_local' => 'required|string|regex:/^[0-9]{5,15}$/',
+                'lead.phone' => 'nullable|string|max:25',
+            ];
+        }
+
+        return [
+            'lead.phone' => 'required|string|max:25',
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $lead
+     * @return array<string, mixed>
+     */
+    protected function normalizeLeadContact(array $lead, bool $isTravelport): array
+    {
+        if (! $isTravelport) {
+            return $lead;
+        }
+
+        return TravelportHoldPayloadBuilder::normalizeLeadPhone($lead);
     }
 
     /**
