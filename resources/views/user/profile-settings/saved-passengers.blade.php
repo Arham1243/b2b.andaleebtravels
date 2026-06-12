@@ -7,14 +7,20 @@
 
         .ps-pax-tabs {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 8px;
             margin-bottom: 1rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 4px;
         }
+        .ps-pax-tabs::-webkit-scrollbar { display: none; }
         .ps-pax-tabs__btn {
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            flex: 0 0 auto;
             padding: 7px 14px;
             border-radius: 999px;
             border: 1px solid #e4e9f0;
@@ -115,6 +121,7 @@
             color: #64748b;
         }
         .ps-pax-empty i { font-size: 2rem; color: #cbd5e1; display: block; margin-bottom: .5rem; }
+        .ps-card--passengers { overflow: visible; }
         .ps-pax-modal .modal-content {
             border: 1px solid #e4e9f0;
             border-radius: 14px;
@@ -159,14 +166,20 @@
             @include('user.profile-settings._sidebar')
 
             <main class="ps-main">
-                <div class="ps-card">
+                <div class="ps-card ps-card--passengers">
                     <div class="ps-card__head">
                         <h2 class="ps-card__title">
                             <i class="bx bxs-user-detail"></i> Saved Passengers
                         </h2>
-                        <button type="button" class="ps-btn-save" id="btn-add-passenger">
-                            <i class="bx bx-plus"></i> Add Passenger
-                        </button>
+                        @if ($passengers->isNotEmpty())
+                            <button type="button"
+                                class="ps-btn-save js-open-passenger-modal"
+                                data-default-type="{{ $filter === 'all' ? 'ADT' : strtoupper($filter === 'chd' ? 'CHD' : ($filter === 'inf' ? 'INF' : 'ADT')) }}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#passengerModal">
+                                <i class="bx bx-plus"></i> Add Passenger
+                            </button>
+                        @endif
                     </div>
                     <div class="ps-card__body">
 
@@ -187,11 +200,27 @@
                         </div>
 
                         @if ($passengers->isEmpty())
+                            @php
+                                $emptyCopy = match ($filter) {
+                                    'adt' => ['message' => 'No saved adults yet.', 'button' => 'Add Adult'],
+                                    'chd' => ['message' => 'No saved children yet.', 'button' => 'Add Child'],
+                                    'inf' => ['message' => 'No saved infants yet.', 'button' => 'Add Infant'],
+                                    default => ['message' => 'No saved passengers yet.', 'button' => 'Add Passenger'],
+                                };
+                                $defaultType = $filter === 'all'
+                                    ? 'ADT'
+                                    : strtoupper($filter === 'chd' ? 'CHD' : ($filter === 'inf' ? 'INF' : 'ADT'));
+                            @endphp
                             <div class="ps-pax-empty">
                                 <i class="bx bx-user-x"></i>
-                                <p>No saved passengers in this category yet.</p>
-                                <button type="button" class="ps-btn-save mt-2" id="btn-add-passenger-empty">
-                                    <i class="bx bx-plus"></i> Add Passenger
+                                <p>{{ $emptyCopy['message'] }}</p>
+                                <button type="button"
+                                    class="ps-btn-save js-open-passenger-modal"
+                                    style="margin-top:.75rem"
+                                    data-default-type="{{ $defaultType }}"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#passengerModal">
+                                    <i class="bx bx-plus"></i> {{ $emptyCopy['button'] }}
                                 </button>
                             </div>
                         @else
@@ -373,15 +402,15 @@
             };
             const storeUrl = @json(route('user.profile.savedPassengers.store'));
             const updateUrlTemplate = @json(route('user.profile.savedPassengers.update', ['passenger' => '__ID__']));
-            const defaultFilterType = @json($filter === 'all' ? 'ADT' : strtoupper($filter === 'chd' ? 'CHD' : ($filter === 'inf' ? 'INF' : 'ADT')));
 
             const modalEl = document.getElementById('passengerModal');
-            const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
+            const modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
             const form = document.getElementById('passenger-form');
             const methodInput = document.getElementById('passenger-form-method');
             const titleEl = document.getElementById('passenger-modal-title');
             const typeEl = document.getElementById('passenger-type');
             const titleSelect = document.getElementById('passenger-title');
+            let skipResetOnShow = false;
 
             HpPaxForm.init({
                 formSelector: '#passenger-form',
@@ -422,24 +451,25 @@
                 if (display) display.value = countryLabel(normalized);
             }
 
-            function resetForm() {
+            function resetForm(defaultType) {
                 form.action = storeUrl;
                 methodInput.value = 'POST';
                 titleEl.textContent = 'Add Passenger';
                 form.reset();
-                typeEl.value = defaultFilterType;
+                typeEl.value = defaultType || 'ADT';
                 fillTitleOptions(typeEl.value, null);
                 setCountryField('nationality', '');
                 setCountryField('issuing_country', '');
             }
 
-            function openCreateModal() {
-                resetForm();
+            function openCreateModal(defaultType) {
+                skipResetOnShow = true;
+                resetForm(defaultType || 'ADT');
                 modal && modal.show();
             }
 
             function openEditModal(data) {
-                resetForm();
+                skipResetOnShow = true;
                 form.action = updateUrlTemplate.replace('__ID__', data.id);
                 methodInput.value = 'PUT';
                 titleEl.textContent = 'Edit Passenger';
@@ -461,8 +491,19 @@
                 fillTitleOptions(typeEl.value, null);
             });
 
-            document.getElementById('btn-add-passenger')?.addEventListener('click', openCreateModal);
-            document.getElementById('btn-add-passenger-empty')?.addEventListener('click', openCreateModal);
+            modalEl && modalEl.addEventListener('show.bs.modal', function (event) {
+                if (skipResetOnShow) {
+                    skipResetOnShow = false;
+                    return;
+                }
+
+                const trigger = event.relatedTarget;
+                if (!trigger || !trigger.classList.contains('js-open-passenger-modal')) {
+                    return;
+                }
+
+                resetForm(trigger.getAttribute('data-default-type') || 'ADT');
+            });
 
             document.querySelectorAll('.js-edit-passenger').forEach(function (btn) {
                 btn.addEventListener('click', function () {
@@ -473,7 +514,7 @@
             });
 
             @if ($errors->any())
-                openCreateModal();
+                openCreateModal(@json(old('passenger_type', 'ADT')));
                 typeEl.value = @json(old('passenger_type', 'ADT'));
                 fillTitleOptions(typeEl.value, @json(old('title')));
             @endif
