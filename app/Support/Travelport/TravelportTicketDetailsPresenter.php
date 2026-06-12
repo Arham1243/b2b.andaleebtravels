@@ -81,7 +81,112 @@ final class TravelportTicketDetailsPresenter
             }
         }
 
-        return self::dedupeTickets($tickets);
+        return self::attachUniversalRecordContactSsrs(self::dedupeTickets($tickets), $booking);
+    }
+
+    /**
+     * Galileo hoists contact SSRs (CTCM/CTCE/CTCR) to the UniversalRecord level,
+     * so they never appear inside the ETR BookingTraveler. Pull them from the
+     * stored hold/booking response and attach them to the matching passenger.
+     *
+     * @param  list<array<string, mixed>>  $tickets
+     * @return list<array<string, mixed>>
+     */
+    private static function attachUniversalRecordContactSsrs(array $tickets, B2bFlightBooking $booking): array
+    {
+        if ($tickets === []) {
+            return $tickets;
+        }
+
+        foreach (self::universalRecordContactSsrs($booking) as $ssr) {
+            $idx = self::ticketIndexForSsrNameSelect($tickets, (string) $ssr['free_text']);
+
+            $alreadyShown = false;
+            foreach ($tickets[$idx]['ssrs'] ?? [] as $existing) {
+                if (($existing['type'] ?? '') === $ssr['type'] && ($existing['free_text'] ?? '') === $ssr['free_text']) {
+                    $alreadyShown = true;
+                    break;
+                }
+            }
+
+            if (! $alreadyShown) {
+                $tickets[$idx]['ssrs'][] = $ssr;
+            }
+        }
+
+        return $tickets;
+    }
+
+    /**
+     * @return list<array{type: string, status: string, free_text: string, carrier: string}>
+     */
+    private static function universalRecordContactSsrs(B2bFlightBooking $booking): array
+    {
+        $bookingResponse = is_array($booking->booking_response) ? $booking->booking_response : [];
+        $raw = (string) ($bookingResponse['raw'] ?? '');
+        if ($raw === '') {
+            return [];
+        }
+
+        if (preg_match_all('/<(?:[\w-]+:)?SSR\b([^>]*?)\/?>/i', $raw, $matches) === false) {
+            return [];
+        }
+
+        $items = [];
+        $seen = [];
+        foreach ($matches[1] as $attrString) {
+            $attrs = [];
+            preg_match_all('/([\w:-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\')/', $attrString, $attrMatches, PREG_SET_ORDER);
+            foreach ($attrMatches as $attrMatch) {
+                $attrs[$attrMatch[1]] = html_entity_decode($attrMatch[2] !== '' ? $attrMatch[2] : ($attrMatch[3] ?? ''), ENT_QUOTES | ENT_XML1);
+            }
+
+            $type = strtoupper(trim((string) ($attrs['Type'] ?? '')));
+            if (! in_array($type, ['CTCM', 'CTCE', 'CTCR'], true)) {
+                continue;
+            }
+
+            $freeText = trim((string) ($attrs['FreeText'] ?? ''));
+            $dedupeKey = $type . '|' . $freeText;
+            if ($freeText === '' || isset($seen[$dedupeKey])) {
+                continue;
+            }
+            $seen[$dedupeKey] = true;
+
+            $items[] = [
+                'type' => $type,
+                'status' => trim((string) ($attrs['Status'] ?? '')),
+                'free_text' => $freeText,
+                'carrier' => strtoupper(trim((string) ($attrs['Carrier'] ?? ''))),
+            ];
+        }
+
+        return $items;
+    }
+
+    /**
+     * Match the SSR's trailing name select (e.g. "-1KHAN/MUHAMMAD A") to a
+     * ticket's passenger name; defaults to the first (lead) ticket.
+     *
+     * @param  list<array<string, mixed>>  $tickets
+     */
+    private static function ticketIndexForSsrNameSelect(array $tickets, string $freeText): int
+    {
+        if (preg_match('/-\d([A-Z][A-Z ]*)\/([A-Z][A-Z ]*)$/i', trim($freeText), $m) !== 1) {
+            return 0;
+        }
+
+        $last = strtoupper(trim($m[1]));
+        $first = strtoupper(trim($m[2]));
+
+        foreach ($tickets as $idx => $ticket) {
+            $name = strtoupper((string) ($ticket['passenger_name'] ?? ''));
+            if ($name !== '' && str_contains($name, $last) && str_contains($name, $first)) {
+                return $idx;
+            }
+        }
+
+        return 0;
     }
 
     /**
