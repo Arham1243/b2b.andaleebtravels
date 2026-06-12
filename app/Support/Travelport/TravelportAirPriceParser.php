@@ -192,7 +192,10 @@ class TravelportAirPriceParser
             $pd['segments'] = array_values($segmentsByKey);
         }
 
-        preg_match_all('/<common_v52_0:HostToken\s+Key="([^"]+)">([^<]+)<\/common_v52_0:HostToken>/i', $solutionXml, $htMatches, PREG_SET_ORDER);
+        preg_match_all('/<(?:[\w-]+:)?HostToken\s+Key="([^"]+)">([^<]+)<\/(?:[\w-]+:)?HostToken>/i', $solutionXml, $htMatches, PREG_SET_ORDER);
+        if ($htMatches === []) {
+            preg_match_all('/<common_v52_0:HostToken\s+Key="([^"]+)">([^<]+)<\/common_v52_0:HostToken>/i', $solutionXml, $htMatches, PREG_SET_ORDER);
+        }
         $neededHostRefs = array_unique(array_filter(array_column($pd['booking_infos'], 'host_token_ref')));
         foreach ($htMatches as $ht) {
             if ($neededHostRefs !== [] && ! in_array($ht[1], $neededHostRefs, true)) {
@@ -219,6 +222,269 @@ class TravelportAirPriceParser
         $pd['segments'] = self::dedupeSegmentsByKey($pd['segments']);
 
         return $pd;
+    }
+
+    /**
+     * Build AirAdd payload for Travelport's Store Price flow: paste the
+     * AirPricingInfo (+ HostToken) returned from airPrice on the held PNR.
+     *
+     * @param  array<string, string>  $travelerKeyMap  request key => GDS key
+     * @param  array<string, string>  $segmentKeyMap  airPrice segment key => held PNR segment key
+     * @param  list<string>  $bookingTravelerRefs  GDS BookingTraveler keys on the held PNR
+     */
+    public static function extractStorePriceAddXml(
+        string $rawXml,
+        array $travelerKeyMap = [],
+        array $segmentKeyMap = [],
+        array $bookingTravelerRefs = [],
+    ): string {
+        $solutionXml = self::firstPricingSolutionXml($rawXml);
+        if ($solutionXml === '') {
+            return '';
+        }
+
+        $xml = '';
+        if (preg_match_all('/<(?:air:)?AirPricingInfo\b([^>]*)>([\s\S]*?)<\/(?:air:)?AirPricingInfo>/i', $solutionXml, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $attrs = self::normalizeStorePriceInnerXml((string) ($match[1] ?? ''), $travelerKeyMap, $segmentKeyMap);
+                $inner = self::normalizeStorePriceInnerXml((string) ($match[2] ?? ''), $travelerKeyMap, $segmentKeyMap);
+                $inner = self::injectBookingTravelerRefsIntoStorePriceXml($inner, $bookingTravelerRefs);
+                $xml .= "\n                    <air:AirPricingInfo{$attrs}>{$inner}</air:AirPricingInfo>";
+            }
+        }
+
+        if (preg_match_all('/<(?:[\w-]+:)?HostToken\s+Key="([^"]+)"(?:\s+Host="([^"]*)")?>([^<]+)<\/(?:[\w-]+:)?HostToken>/i', $solutionXml, $tokenMatches, PREG_SET_ORDER)) {
+            foreach ($tokenMatches as $match) {
+                $hostAttr = trim((string) ($match[2] ?? '')) !== ''
+                    ? ' Host="' . htmlspecialchars($match[2], ENT_XML1) . '"'
+                    : '';
+                $key = htmlspecialchars((string) ($match[1] ?? ''), ENT_XML1);
+                $value = htmlspecialchars((string) ($match[3] ?? ''), ENT_XML1);
+                $xml .= "\n                    <com:HostToken Key=\"{$key}\"{$hostAttr}>{$value}</com:HostToken>";
+            }
+        }
+
+        return trim($xml);
+    }
+
+    /**
+     * airPrice on a held PNR returns fresh segment keys; UR modify must reference held keys.
+     *
+     * @param  list<array<string, mixed>>  $heldAirPriceSegments
+     * @return array<string, string>
+     */
+    public static function buildQuoteToHeldSegmentKeyMap(string $airPriceRaw, array $heldAirPriceSegments): array
+    {
+        if ($airPriceRaw === '' || $heldAirPriceSegments === []) {
+            return [];
+        }
+
+        $heldSegments = [];
+        foreach ($heldAirPriceSegments as $held) {
+            if (! is_array($held)) {
+                continue;
+            }
+
+            $heldKey = trim((string) ($held['Key'] ?? ''));
+            if ($heldKey === '') {
+                continue;
+            }
+
+            $heldSegments[] = [
+                'key' => $heldKey,
+                'carrier' => strtoupper(trim((string) ($held['Carrier'] ?? ''))),
+                'flight_number' => trim((string) ($held['FlightNumber'] ?? '')),
+                'origin' => strtoupper(trim((string) ($held['Origin'] ?? ''))),
+                'destination' => strtoupper(trim((string) ($held['Destination'] ?? ''))),
+                'dep_time' => trim((string) ($held['DepartureTime'] ?? '')),
+            ];
+        }
+
+        if ($heldSegments === []) {
+            return [];
+        }
+
+        $map = [];
+        preg_match_all('/<air:AirSegment\s+([^>]+?)\/?>/i', $airPriceRaw, $segMatches, PREG_SET_ORDER);
+        foreach ($segMatches as $match) {
+            $attrs = self::parseAttributeString($match[1]);
+            $quoteKey = trim((string) ($attrs['Key'] ?? ''));
+            if ($quoteKey === '' || isset($map[$quoteKey])) {
+                continue;
+            }
+
+            $quoteSegment = [
+                'carrier' => strtoupper(trim((string) ($attrs['Carrier'] ?? ''))),
+                'flight_number' => trim((string) ($attrs['FlightNumber'] ?? '')),
+                'origin' => strtoupper(trim((string) ($attrs['Origin'] ?? ''))),
+                'destination' => strtoupper(trim((string) ($attrs['Destination'] ?? ''))),
+                'dep_time' => trim((string) ($attrs['DepartureTime'] ?? '')),
+            ];
+
+            foreach ($heldSegments as $heldSegment) {
+                if (! self::segmentsMatchForStorePrice($quoteSegment, $heldSegment)) {
+                    continue;
+                }
+
+                $heldKey = trim((string) ($heldSegment['key'] ?? ''));
+                if ($heldKey !== '' && $heldKey !== $quoteKey) {
+                    $map[$quoteKey] = $heldKey;
+                }
+                break;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param  array<string, string>  $travelerKeyMap
+     * @param  array<string, string>  $segmentKeyMap
+     */
+    private static function normalizeStorePriceInnerXml(
+        string $xml,
+        array $travelerKeyMap,
+        array $segmentKeyMap,
+    ): string {
+        $xml = str_replace(['common_v52_0:', 'common_v34_0:'], 'com:', $xml);
+
+        if ($segmentKeyMap !== []) {
+            foreach ($segmentKeyMap as $from => $to) {
+                if ($from === '' || $to === '' || $from === $to) {
+                    continue;
+                }
+                $xml = str_replace('SegmentRef="' . $from . '"', 'SegmentRef="' . $to . '"', $xml);
+                $xml = str_replace('AirSegmentRef="' . $from . '"', 'AirSegmentRef="' . $to . '"', $xml);
+            }
+        }
+
+        return self::remapTravelerRefsInXml($xml, $travelerKeyMap);
+    }
+
+    /**
+     * @param  list<string>  $bookingTravelerRefs
+     */
+    private static function injectBookingTravelerRefsIntoStorePriceXml(
+        string $inner,
+        array $bookingTravelerRefs,
+    ): string {
+        if ($bookingTravelerRefs === []) {
+            return $inner;
+        }
+
+        $refIndex = 0;
+        $inner = preg_replace_callback(
+            '/<(?:air:)?PassengerType\b([^>]*)\/>/i',
+            static function (array $match) use (&$refIndex, $bookingTravelerRefs): string {
+                $attrs = (string) ($match[1] ?? '');
+                if (stripos($attrs, 'BookingTravelerRef=') !== false) {
+                    return $match[0];
+                }
+
+                $ref = trim((string) ($bookingTravelerRefs[$refIndex] ?? ''));
+                $refIndex++;
+                if ($ref === '') {
+                    return $match[0];
+                }
+
+                $refEsc = htmlspecialchars($ref, ENT_XML1);
+
+                return '<air:PassengerType' . $attrs . ' BookingTravelerRef="' . $refEsc . '"/>';
+            },
+            $inner,
+        ) ?? $inner;
+
+        $refsXml = '';
+        $seenRefs = [];
+        foreach ($bookingTravelerRefs as $ref) {
+            $ref = trim($ref);
+            if ($ref === '' || isset($seenRefs[$ref])) {
+                continue;
+            }
+            $seenRefs[$ref] = true;
+            $refsXml .= "\n                    <com:BookingTravelerRef Key=\"" . htmlspecialchars($ref, ENT_XML1) . '"/>';
+        }
+
+        if ($refsXml !== '') {
+            $inner .= $refsXml;
+        }
+
+        return $inner;
+    }
+
+    /**
+     * @param  array<string, string>  $quoteSegment
+     * @param  array<string, string>  $heldSegment
+     */
+    private static function segmentsMatchForStorePrice(array $quoteSegment, array $heldSegment): bool
+    {
+        foreach (['carrier', 'flight_number', 'origin', 'destination'] as $field) {
+            $quoteValue = trim((string) ($quoteSegment[$field] ?? ''));
+            $heldValue = trim((string) ($heldSegment[$field] ?? ''));
+            if ($quoteValue !== '' && $heldValue !== '' && strtoupper($quoteValue) !== strtoupper($heldValue)) {
+                return false;
+            }
+        }
+
+        $quoteDep = trim((string) ($quoteSegment['dep_time'] ?? ''));
+        $heldDep = trim((string) ($heldSegment['dep_time'] ?? ''));
+        if ($quoteDep !== '' && $heldDep !== '' && substr($quoteDep, 0, 10) !== substr($heldDep, 0, 10)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, string>  $travelerKeyMap
+     */
+    private static function remapTravelerRefsInXml(string $xml, array $travelerKeyMap): string
+    {
+        if ($travelerKeyMap === []) {
+            return $xml;
+        }
+
+        foreach ($travelerKeyMap as $from => $to) {
+            if ($from === '' || $to === '' || $from === $to) {
+                continue;
+            }
+            $xml = str_replace('BookingTravelerRef="' . $from . '"', 'BookingTravelerRef="' . $to . '"', $xml);
+        }
+
+        return $xml;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $heldSegments
+     * @return list<array<string, mixed>>
+     */
+    public static function heldSegmentsToAirPriceFormat(array $heldSegments): array
+    {
+        $segments = [];
+        foreach ($heldSegments as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+            $key = trim((string) ($segment['key'] ?? ''));
+            if ($key === '') {
+                continue;
+            }
+            $segments[] = [
+                'Key' => $key,
+                'Group' => '0',
+                'ProviderCode' => '1G',
+                'Carrier' => (string) ($segment['carrier'] ?? ''),
+                'FlightNumber' => (string) ($segment['flight_number'] ?? ''),
+                'Origin' => (string) ($segment['origin'] ?? ''),
+                'Destination' => (string) ($segment['destination'] ?? ''),
+                'DepartureTime' => (string) ($segment['dep_time'] ?? ''),
+                'ArrivalTime' => (string) ($segment['arr_time'] ?? ''),
+                'ClassOfService' => (string) ($segment['booking_code'] ?? ''),
+                'Equipment' => '320',
+            ];
+        }
+
+        return $segments;
     }
 
     /**

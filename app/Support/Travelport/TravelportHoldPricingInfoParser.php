@@ -21,6 +21,7 @@ class TravelportHoldPricingInfoParser
         $bookingBody = $holdResponse;
         if ($parsed !== []) {
             $bookingBody = $parsed['Body']['AirCreateReservationRsp']
+                ?? $parsed['Body']['UniversalRecordModifyRsp']
                 ?? $parsed['Body']['UniversalRecordRetrieveRsp']
                 ?? $parsed['UniversalRecordRetrieveRsp']
                 ?? $parsed;
@@ -159,7 +160,9 @@ class TravelportHoldPricingInfoParser
             'UniversalRecord.AirReservation',
             'Body.AirCreateReservationRsp.UniversalRecord.AirReservation',
             'Body.UniversalRecordRetrieveRsp.UniversalRecord.AirReservation',
+            'Body.UniversalRecordModifyRsp.UniversalRecord.AirReservation',
             'UniversalRecordRetrieveRsp.UniversalRecord.AirReservation',
+            'UniversalRecordModifyRsp.UniversalRecord.AirReservation',
             'AirReservation',
         ];
 
@@ -245,11 +248,26 @@ class TravelportHoldPricingInfoParser
             ?? ''
         ));
 
-        if ($key === '' || ! self::isReservationKey($key)) {
+        if ($key === '') {
+            return [];
+        }
+
+        // Inside a committed AirReservation any AirPricingInfo key is usable,
+        // even when PricingType is Auto/TicketRecord rather than StoredFare.
+        if (! self::isReservationKey($key) && ! self::isPricingKeyShape($key)) {
             return [];
         }
 
         return [$key];
+    }
+
+    private static function isPricingKeyShape(string $key): bool
+    {
+        $key = trim($key);
+
+        return $key !== ''
+            && ! str_starts_with($key, 'traveler_')
+            && preg_match('#^[A-Za-z0-9+/=_.\-]{8,}$#', $key) === 1;
     }
 
     /**
@@ -361,6 +379,7 @@ class TravelportHoldPricingInfoParser
 
         $patterns = [
             '/<(?:[\w-]+:)?AirCreateReservationRsp\b[\s\S]*?<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
+            '/<(?:[\w-]+:)?UniversalRecordModifyRsp\b[\s\S]*?<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
             '/<(?:[\w-]+:)?UniversalRecordRetrieveRsp\b[\s\S]*?<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
             '/<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
         ];
