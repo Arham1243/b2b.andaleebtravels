@@ -348,7 +348,7 @@
                                     @else
                                         <input type="tel" class="hp-input{{ $errors->has('lead.phone') ? ' is-invalid' : '' }}" name="lead[phone]"
                                             value="{{ old('lead.phone') }}"
-                                            placeholder="+971 50 000 0000" required autocomplete="tel">
+                                            required autocomplete="tel">
                                         @if ($errors->has('lead.phone'))
                                             <span class="hp-field-error">{{ $errors->first('lead.phone') }}</span>
                                         @endif

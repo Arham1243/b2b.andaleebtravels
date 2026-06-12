@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\B2bHotelBooking;
 use App\Models\B2bWalletLedger;
+use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use App\Support\WalletLedgerDescription;
 use App\Models\Hotel;
 use App\Models\Config;
@@ -1034,7 +1035,7 @@ class HotelController extends Controller
             $supplier = strtolower((string) $request->input('supplier', 'yalago'));
 
             if ($supplier === 'tbo') {
-                $validated = $request->validate([
+                $validated = $request->validate(array_merge([
                     'supplier' => 'required|in:tbo',
                     'hotel_id' => 'required|string',
                     'hotel_name' => 'required|string',
@@ -1060,7 +1061,6 @@ class HotelController extends Controller
                     'booking.lead_guest.first_name' => 'required|string',
                     'booking.lead_guest.last_name' => 'required|string',
                     'booking.lead_guest.email' => 'required|email',
-                    'booking.lead_guest.phone' => 'required|string',
                     'booking.lead_guest.address' => 'required|string',
 
                     'booking.guests' => 'nullable|array',
@@ -1068,9 +1068,9 @@ class HotelController extends Controller
                     'payment_method' => 'required|in:payby,tabby,tamara,wallet',
                     'use_wallet' => 'nullable|in:1',
                     'wallet_amount' => 'nullable|numeric|min:0',
-                ]);
+                ], $this->hotelLeadGuestPhoneRules($request)));
             } else {
-                $validated = $request->validate([
+                $validated = $request->validate(array_merge([
                     'supplier' => 'nullable|string',
                     'hotel_id' => 'required|integer',
                     'check_in' => 'required|date',
@@ -1091,7 +1091,6 @@ class HotelController extends Controller
                     'booking.lead_guest.first_name' => 'required|string',
                     'booking.lead_guest.last_name' => 'required|string',
                     'booking.lead_guest.email' => 'required|email',
-                    'booking.lead_guest.phone' => 'required|string',
                     'booking.lead_guest.address' => 'required|string',
 
                     'booking.guests' => 'nullable|array',
@@ -1101,8 +1100,12 @@ class HotelController extends Controller
                     'use_wallet' => 'nullable|in:1',
                     'wallet_amount' => 'nullable|numeric|min:0',
                     'flight_details' => 'nullable|array',
-                ]);
+                ], $this->hotelLeadGuestPhoneRules($request)));
             }
+
+            $validated['booking']['lead_guest'] = TravelportHoldPayloadBuilder::normalizeLeadPhone(
+                $validated['booking']['lead_guest'] ?? [],
+            );
 
             $supplier = strtolower((string) ($validated['supplier'] ?? 'yalago'));
 
@@ -1476,5 +1479,17 @@ class HotelController extends Controller
         }
 
         return 'AE';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function hotelLeadGuestPhoneRules(Request $request): array
+    {
+        return [
+            'booking.lead_guest.phone_dial_code' => 'required|string|regex:/^[0-9]{1,4}$/',
+            'booking.lead_guest.phone_local' => 'required|string|regex:/^[0-9]{5,15}$/',
+            'booking.lead_guest.phone' => 'nullable|string|max:25',
+        ];
     }
 }

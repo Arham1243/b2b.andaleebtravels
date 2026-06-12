@@ -36,4 +36,43 @@
     .hp-phone-field .iti__country-container {
         font-size: .82rem;
     }
+
+    .hc-phone-field .iti {
+        width: 100%;
+        display: block;
+    }
+
+    .hc-phone-field .iti__tel-input,
+    .hc-phone-field .iti input[type=tel] {
+        width: 100%;
+        padding: .5rem .75rem;
+        padding-left: 52px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font: inherit;
+        font-size: .875rem;
+        color: #1e293b;
+        background: #fff;
+        transition: border-color .14s, box-shadow .14s;
+        outline: none;
+        min-height: 40px;
+    }
+
+    .hc-phone-field .iti__tel-input:focus,
+    .hc-phone-field .iti input[type=tel]:focus {
+        border-color: #cd1b4f;
+        box-shadow: 0 0 0 3px rgba(205, 27, 79, .1);
+    }
+
+    .hc-phone-field.is-invalid .iti__tel-input,
+    .hc-phone-field.is-invalid .iti input[type=tel] {
+        border-color: #dc2626;
+    }
+
+    .hc-phone-field .hp-field-error {
+        display: block;
+        margin-top: .25rem;
+        font-size: .72rem;
+        color: #dc2626;
+    }
 </style>

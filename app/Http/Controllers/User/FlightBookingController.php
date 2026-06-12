@@ -814,7 +814,7 @@ class FlightBookingController extends Controller
      */
     protected function normalizeLeadContact(array $lead, bool $isTravelport): array
     {
-        if (! $isTravelport) {
+        if (trim((string) ($lead['phone_local'] ?? '')) === '' && trim((string) ($lead['phone_dial_code'] ?? '')) === '') {
             return $lead;
         }
 

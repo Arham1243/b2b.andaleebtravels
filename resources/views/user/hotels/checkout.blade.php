@@ -252,7 +252,12 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="hc-label">Phone *</label>
-                                        <input type="tel" class="hc-input" name="booking[lead_guest][phone]" required>
+                                        @include('user.flights.partials.hp-travelport-phone-field', [
+                                            'namePrefix' => 'booking[lead_guest]',
+                                            'oldDotPrefix' => 'booking.lead_guest',
+                                            'inputClass' => 'hc-input',
+                                            'wrapperClass' => 'hc-phone-field',
+                                        ])
                                     </div>
                                     <div class="col-md-12">
                                         <label class="hc-label">Address *</label>
@@ -485,7 +490,12 @@
     </div>
 @endsection
 
+@push('css')
+    @include('user.flights.partials.hp-travelport-phone-styles')
+@endpush
+
 @push('js')
+    @include('user.flights.partials.hp-travelport-phone-scripts')
     @include('user.flights.partials.hp-form-submit-scripts')
     <script>
         document.addEventListener("DOMContentLoaded", function() {
