@@ -193,6 +193,10 @@ class TravelportHoldPayloadBuilder
             'phoneAreaCode' => $phone['area'],
             'phoneNumber' => $phone['number'],
             'email' => $email,
+            'passport_no' => trim((string) ($pax['passport_no'] ?? '')),
+            'passport_exp' => trim((string) ($pax['passport_exp'] ?? '')),
+            'nationality' => strtoupper(trim((string) ($pax['nationality'] ?? ''))),
+            'issuing_country' => strtoupper(trim((string) ($pax['issuing_country'] ?? ''))),
         ];
 
         $age = self::passengerAgeForTravelport($type, $dob, $referenceDate);

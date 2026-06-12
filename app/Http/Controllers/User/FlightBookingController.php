@@ -884,6 +884,24 @@ class FlightBookingController extends Controller
             }
         }
 
+        foreach ($passengers as $index => $passenger) {
+            if (! is_array($passenger)) {
+                continue;
+            }
+
+            if (trim((string) ($passenger['passport_no'] ?? '')) === '') {
+                $errors["passengers.{$index}.passport_no"] = 'Passport number is required for Travelport bookings.';
+            }
+
+            if (trim((string) ($passenger['passport_exp'] ?? '')) === '') {
+                $errors["passengers.{$index}.passport_exp"] = 'Passport expiry is required for Travelport bookings.';
+            }
+
+            if (trim((string) ($passenger['dob'] ?? '')) === '') {
+                $errors["passengers.{$index}.dob"] = 'Date of birth is required for Travelport bookings.';
+            }
+        }
+
         if ($infantCount > $adultCount) {
             $errors['passengers'] = 'Each infant must travel with an adult. Number of infants cannot exceed number of adults.';
         }

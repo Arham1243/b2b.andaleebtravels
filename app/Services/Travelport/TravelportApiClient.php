@@ -5,6 +5,7 @@ namespace App\Services\Travelport;
 use App\Support\FlightCabinPreference;
 use App\Support\Travelport\TravelportAirTicketingResult;
 use App\Support\Travelport\TravelportContactSsrBuilder;
+use App\Support\Travelport\TravelportDocsSsrBuilder;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 
 class TravelportApiClient
@@ -325,20 +326,36 @@ XML;
             }
 
             $ssrsXml = '';
-            if (! $contactSsrsAdded && $type === 'ADT') {
-                foreach (TravelportContactSsrBuilder::contactSsrs($country, $area, $number, (string) ($traveler['email'] ?? '')) as $ssr) {
-                    $ssrType = $this->xmlEsc((string) ($ssr['type'] ?? ''));
-                    $freeText = $this->xmlEsc((string) ($ssr['free_text'] ?? ''));
-                    if ($ssrType === '' || $freeText === '') {
-                        continue;
-                    }
+            $ssrs = [];
 
-                    $ssrsXml .= "\n                <SSR Type=\"{$ssrType}\" Status=\"HK\" FreeText=\"{$freeText}\" Carrier=\"{$this->xmlEsc($contactCarrier)}\"/>";
+            if (! $contactSsrsAdded && $type === 'ADT') {
+                foreach (TravelportContactSsrBuilder::contactSsrs(
+                    (string) ($traveler['phoneCountryCode'] ?? ''),
+                    (string) ($traveler['phoneAreaCode'] ?? ''),
+                    (string) ($traveler['phoneNumber'] ?? ''),
+                    (string) ($traveler['email'] ?? ''),
+                ) as $ssr) {
+                    $ssrs[] = $ssr;
                 }
 
-                if ($ssrsXml !== '') {
+                if ($ssrs !== []) {
                     $contactSsrsAdded = true;
                 }
+            }
+
+            $docsSsr = TravelportDocsSsrBuilder::docsSsr($traveler);
+            if ($docsSsr !== null) {
+                $ssrs[] = $docsSsr;
+            }
+
+            foreach ($ssrs as $ssr) {
+                $ssrType = $this->xmlEsc((string) ($ssr['type'] ?? ''));
+                $freeText = $this->xmlEsc((string) ($ssr['free_text'] ?? ''));
+                if ($ssrType === '' || $freeText === '') {
+                    continue;
+                }
+
+                $ssrsXml .= "\n                <SSR Type=\"{$ssrType}\" Status=\"HK\" FreeText=\"{$freeText}\" Carrier=\"{$this->xmlEsc($contactCarrier)}\"/>";
             }
 
             $travelersXml .= <<<XML
