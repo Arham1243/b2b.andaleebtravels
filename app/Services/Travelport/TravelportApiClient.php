@@ -368,7 +368,7 @@ XML;
                 Gender="{$gender}">
                 <BookingTravelerName First="{$first}" Last="{$last}"/>
                 <PhoneNumber CountryCode="{$country}" AreaCode="{$area}" Number="{$number}"/>
-                <Email EmailID="{$email}"/>{$nameRemarksXml}{$ssrsXml}
+                <Email EmailID="{$email}"/>{$ssrsXml}{$nameRemarksXml}
             </BookingTraveler>
 XML;
         }
