@@ -7,11 +7,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class B2bSavedPassenger extends Model
 {
+    public const TYPE_ADULT = 'ADT';
+
+    public const TYPE_CHILD = 'CHD';
+
+    public const TYPE_INFANT = 'INF';
+
     protected $fillable = [
         'b2b_vendor_id',
         'title',
         'first_name',
         'last_name',
+        'passenger_type',
         'dob',
         'nationality',
         'issuing_country',
@@ -27,5 +34,44 @@ class B2bSavedPassenger extends Model
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(B2bVendor::class, 'b2b_vendor_id');
+    }
+
+    public static function normalizeType(?string $type): string
+    {
+        $type = strtoupper(trim((string) $type));
+
+        if (in_array($type, ['C06', 'CHD', 'CNN', 'CH', 'CHL'], true)) {
+            return self::TYPE_CHILD;
+        }
+
+        if ($type === self::TYPE_INFANT) {
+            return self::TYPE_INFANT;
+        }
+
+        return self::TYPE_ADULT;
+    }
+
+    /**
+     * @param  array<string, mixed>|self  $passenger
+     */
+    public static function matchesBookingType(array|self $passenger, string $bookingType): bool
+    {
+        $stored = is_array($passenger)
+            ? ($passenger['passenger_type'] ?? null)
+            : $passenger->passenger_type;
+
+        return self::normalizeType($stored) === self::normalizeType($bookingType);
+    }
+
+    /**
+     * @param  list<array<string, mixed>|self>  $passengers
+     * @return list<array<string, mixed>>
+     */
+    public static function filterForBookingType(array $passengers, string $bookingType): array
+    {
+        return array_values(array_filter(
+            $passengers,
+            static fn (array|self $passenger): bool => self::matchesBookingType($passenger, $bookingType),
+        ));
     }
 }

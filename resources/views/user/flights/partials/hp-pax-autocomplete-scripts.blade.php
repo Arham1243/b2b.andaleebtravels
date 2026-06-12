@@ -162,6 +162,24 @@
         };
     }
 
+    function normalizeSavedPaxType(type) {
+        const value = String(type || '').trim().toUpperCase();
+        if (value === 'C06' || value === 'CHD' || value === 'CNN' || value === 'CH' || value === 'CHL') {
+            return 'CHD';
+        }
+        if (value === 'INF') {
+            return 'INF';
+        }
+        return 'ADT';
+    }
+
+    function passengersForSelect(sel, savedPassengers) {
+        const wanted = normalizeSavedPaxType(sel.dataset.paxType || 'ADT');
+        return savedPassengers.filter(function (passenger) {
+            return normalizeSavedPaxType(passenger.passenger_type || 'ADT') === wanted;
+        });
+    }
+
     function initSavedPassengerDropdowns(form, savedPassengers, countryApi) {
         const selects = Array.from(form.querySelectorAll('.hp-saved-pick'));
         if (!selects.length || !savedPassengers.length) {
@@ -267,7 +285,7 @@
                 });
 
                 sel.innerHTML = '<option value="">- Select saved passenger -</option>';
-                savedPassengers.forEach(function (passenger) {
+                passengersForSelect(sel, savedPassengers).forEach(function (passenger) {
                     const passengerId = passenger.id != null ? String(passenger.id) : null;
                     if (passengerId && othersTaken.has(passengerId)) {
                         return;

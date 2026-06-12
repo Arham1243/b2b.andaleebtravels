@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\B2bFlightBooking;
+use App\Models\B2bSavedPassenger;
 use App\Models\B2bWalletLedger;
 use App\Support\CountryCatalog;
 use App\Support\FlightPassengerDobValidator;
@@ -178,28 +179,7 @@ class FlightBookingController extends Controller
             }
         }
 
-        try {
-            foreach ($validated['passengers'] as $pax) {
-                if (!empty($pax['save_profile'])) {
-                    Auth::user()->savedPassengers()->updateOrCreate(
-                        [
-                            'passport_no' => $pax['passport_no'] ?? null,
-                            'first_name' => $pax['first_name'],
-                            'last_name' => $pax['last_name'],
-                        ],
-                        [
-                            'title' => $pax['title'],
-                            'dob' => $pax['dob'] ?? null,
-                            'nationality' => $pax['nationality'] ?? null,
-                            'issuing_country' => $pax['issuing_country'] ?? null,
-                            'passport_exp' => $pax['passport_exp'] ?? null,
-                        ]
-                    );
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Could not save passenger profile: ' . $e->getMessage());
-        }
+        $this->persistSavedPassengerProfiles($validated['passengers']);
 
         $totalAmount = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency = $itineraryData['currency'] ?? 'AED';
@@ -569,29 +549,7 @@ class FlightBookingController extends Controller
             }
         }
 
-        // Save any passenger profiles requested (silently skip if table not yet migrated)
-        try {
-            foreach ($validated['passengers'] as $pax) {
-                if (!empty($pax['save_profile'])) {
-                    Auth::user()->savedPassengers()->updateOrCreate(
-                        [
-                            'passport_no' => $pax['passport_no'] ?? null,
-                            'first_name'  => $pax['first_name'],
-                            'last_name'   => $pax['last_name'],
-                        ],
-                        [
-                            'title'        => $pax['title'],
-                            'dob'          => $pax['dob'] ?? null,
-                            'nationality'  => $pax['nationality'] ?? null,
-                            'issuing_country' => $pax['issuing_country'] ?? null,
-                            'passport_exp' => $pax['passport_exp'] ?? null,
-                        ]
-                    );
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Could not save passenger profile: ' . $e->getMessage());
-        }
+        $this->persistSavedPassengerProfiles($validated['passengers']);
 
         $totalAmount  = (float) ($itineraryData['totalPrice'] ?? 0);
         $currency     = $itineraryData['currency'] ?? 'AED';
@@ -769,12 +727,15 @@ class FlightBookingController extends Controller
             'title'        => 'required|string',
             'first_name'   => 'required|string|max:60',
             'last_name'    => 'required|string|max:60',
+            'passenger_type' => 'nullable|string|in:ADT,C06,CHD,INF',
             'dob'          => 'nullable|date',
             'nationality'  => 'nullable|string|size:2',
             'issuing_country' => 'nullable|string|size:2',
             'passport_no'  => 'nullable|string|max:20',
             'passport_exp' => 'nullable|date',
         ]);
+
+        $data['passenger_type'] = B2bSavedPassenger::normalizeType($data['passenger_type'] ?? null);
 
         $pax = Auth::user()->savedPassengers()->create($data);
         return response()->json(['success' => true, 'passenger' => $pax]);
@@ -785,6 +746,40 @@ class FlightBookingController extends Controller
         return array_merge([
             'countries' => CountryCatalog::forAutocomplete(),
         ], $data);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $passengers
+     */
+    protected function persistSavedPassengerProfiles(array $passengers): void
+    {
+        try {
+            foreach ($passengers as $pax) {
+                if (empty($pax['save_profile'])) {
+                    continue;
+                }
+
+                $passengerType = B2bSavedPassenger::normalizeType($pax['type'] ?? null);
+
+                Auth::user()->savedPassengers()->updateOrCreate(
+                    [
+                        'passport_no' => $pax['passport_no'] ?? null,
+                        'first_name' => $pax['first_name'],
+                        'last_name' => $pax['last_name'],
+                        'passenger_type' => $passengerType,
+                    ],
+                    [
+                        'title' => $pax['title'],
+                        'dob' => $pax['dob'] ?? null,
+                        'nationality' => $pax['nationality'] ?? null,
+                        'issuing_country' => $pax['issuing_country'] ?? null,
+                        'passport_exp' => $pax['passport_exp'] ?? null,
+                    ],
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Could not save passenger profile: ' . $e->getMessage());
+        }
     }
 
     /**

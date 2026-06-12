@@ -164,12 +164,11 @@
                                     Traveller's passport should be valid for at least 6 months from the date of travel.
                                 </div>
 
-                                @if (!empty($savedPassengers))
-                                    @include('user.flights.partials.hp-saved-passenger-search', [
-                                        'pIndex' => $pIndex,
-                                        'savedPassengers' => $savedPassengers,
-                                    ])
-                                @endif
+                                @include('user.flights.partials.hp-saved-passenger-search', [
+                                    'pIndex' => $pIndex,
+                                    'savedPassengers' => $savedPassengers,
+                                    'paxType' => 'ADT',
+                                ])
 
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="ADT">
                                 <div class="row g-3 hp-pax-fields">
@@ -228,6 +227,11 @@
                                     </div>
                                 </div>
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="C06">
+                                @include('user.flights.partials.hp-saved-passenger-search', [
+                                    'pIndex' => $pIndex,
+                                    'savedPassengers' => $savedPassengers,
+                                    'paxType' => 'C06',
+                                ])
                                 <div class="row g-3 hp-pax-fields">
                                     @include('user.flights.partials.hp-pax-input-fields', [
                                         'pIndex' => $pIndex,
@@ -263,6 +267,12 @@
                                         'paxLabel' => 'Child ' . ($i + 1),
                                         'minDate' => $passportExpiryMinDate,
                                     ])
+                                    <div class="col-12">
+                                        <label class="hp-save-check">
+                                            <input type="checkbox" name="passengers[{{ $pIndex }}][save_profile]" value="1" @checked(old('passengers.'.$pIndex.'.save_profile'))>
+                                            <span>Save this passenger to my profile for future bookings</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             @php $pIndex++; @endphp
@@ -278,6 +288,11 @@
                                     </div>
                                 </div>
                                 <input type="hidden" name="passengers[{{ $pIndex }}][type]" value="INF">
+                                @include('user.flights.partials.hp-saved-passenger-search', [
+                                    'pIndex' => $pIndex,
+                                    'savedPassengers' => $savedPassengers,
+                                    'paxType' => 'INF',
+                                ])
                                 <div class="row g-3 hp-pax-fields">
                                     @include('user.flights.partials.hp-pax-input-fields', [
                                         'pIndex' => $pIndex,
@@ -322,6 +337,12 @@
                                         'paxLabel' => 'Infant ' . ($i + 1),
                                         'minDate' => $passportExpiryMinDate,
                                     ])
+                                    <div class="col-12">
+                                        <label class="hp-save-check">
+                                            <input type="checkbox" name="passengers[{{ $pIndex }}][save_profile]" value="1" @checked(old('passengers.'.$pIndex.'.save_profile'))>
+                                            <span>Save this passenger to my profile for future bookings</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             @php $pIndex++; @endphp
