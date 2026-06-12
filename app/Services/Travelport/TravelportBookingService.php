@@ -473,7 +473,13 @@ class TravelportBookingService
                 $platingCarrier,
                 $gdsCommissionPercentage,
             );
+
+            $recovered = null;
             if (! ($ticketResponse['success'] ?? false)) {
+                $recovered = $this->attemptRecoverTicketsAfterTicketingFailure($booking, $ticketResponse, $locator);
+            }
+
+            if (! ($ticketResponse['success'] ?? false) && $recovered === null) {
                 Log::error('Travelport airTicket failed', [
                     'booking_id' => $booking->id,
                     'locator' => $locator,
@@ -487,14 +493,24 @@ class TravelportBookingService
                 throw new \RuntimeException($this->formatTravelportGdsError($ticketResponse, 'Travelport ticketing failed.'));
             }
 
+            if ($recovered !== null) {
+                Log::warning('Travelport ticketing recovered after host error by retrieving booking file', [
+                    'booking_id' => $booking->id,
+                    'locator' => $locator,
+                    'recovery_source' => $recovered['source'] ?? null,
+                    'ticket_numbers' => $recovered['ticket_numbers'] ?? [],
+                    'error_code' => $ticketResponse['error_code'] ?? null,
+                ]);
+            }
+
             $parsed = is_array($ticketResponse['parsed'] ?? null) ? $ticketResponse['parsed'] : [];
             $ticketingRsp = $parsed['Body']['AirTicketingRsp'] ?? $parsed;
-            $storedResponse = is_array($ticketingRsp) ? $ticketingRsp : [];
-            if (is_string($ticketResponse['raw'] ?? null) && ($ticketResponse['raw'] ?? '') !== '') {
+            $storedResponse = $recovered['ticket_response'] ?? (is_array($ticketingRsp) ? $ticketingRsp : []);
+            if (is_string($ticketResponse['raw'] ?? null) && ($ticketResponse['raw'] ?? '') !== '' && ! isset($storedResponse['raw'])) {
                 $storedResponse['raw'] = $ticketResponse['raw'];
             }
 
-            $ticketNumbers = FlightBookingTicketResolver::fromResponse($storedResponse);
+            $ticketNumbers = $recovered['ticket_numbers'] ?? FlightBookingTicketResolver::fromResponse($storedResponse);
 
             if (! TravelportAirTicketingResult::isSuccessful($storedResponse, $ticketNumbers)) {
                 $error = TravelportAirTicketingResult::hasFailure($storedResponse)
@@ -1279,6 +1295,71 @@ class TravelportBookingService
     }
 
     /**
+     * GDS 12008 ("IGNORE AND RETRIEVE BOOKING FILE") may still produce tickets on the PNR.
+     *
+     * @param  array<string, mixed>  $ticketResponse
+     * @return array{ticket_numbers: list<string>, ticket_response: array<string, mixed>, source: string}|null
+     */
+    private function attemptRecoverTicketsAfterTicketingFailure(
+        B2bFlightBooking $booking,
+        array $ticketResponse,
+        string $airReservationLocator,
+    ): ?array {
+        $parsed = is_array($ticketResponse['parsed'] ?? null) ? $ticketResponse['parsed'] : [];
+        $ticketingRsp = $parsed['Body']['AirTicketingRsp'] ?? [];
+        $stored = is_array($ticketingRsp) ? $ticketingRsp : [];
+        if (is_string($ticketResponse['raw'] ?? null) && ($ticketResponse['raw'] ?? '') !== '') {
+            $stored['raw'] = $ticketResponse['raw'];
+        }
+
+        $numbers = FlightBookingTicketResolver::fromResponse($stored);
+        if ($numbers !== []) {
+            return [
+                'ticket_numbers' => $numbers,
+                'ticket_response' => $stored,
+                'source' => 'air_ticket_response',
+            ];
+        }
+
+        $universalLocator = $booking->travelportUniversalLocator();
+        if ($universalLocator !== '') {
+            $retrieve = $this->client->universalRecordRetrieve($universalLocator);
+            if ($retrieve['success'] ?? false) {
+                $retrieveRaw = (string) ($retrieve['raw'] ?? '');
+                $numbers = TravelportAirTicketingResult::ticketNumbersFromTkneRaw($retrieveRaw);
+                if ($numbers !== []) {
+                    return [
+                        'ticket_numbers' => $numbers,
+                        'ticket_response' => $stored !== [] ? $stored : ['raw' => $retrieveRaw],
+                        'source' => 'universal_record_retrieve_tkne',
+                    ];
+                }
+            }
+        }
+
+        $providerLocator = $booking->travelportProviderLocator();
+        if ($providerLocator !== '') {
+            $document = $this->client->airRetrieveDocument($providerLocator, [], $airReservationLocator);
+            if ($document['success'] ?? false) {
+                $docStored = [
+                    'parsed' => is_array($document['parsed'] ?? null) ? $document['parsed'] : [],
+                    'raw' => (string) ($document['raw'] ?? ''),
+                ];
+                $numbers = FlightBookingTicketResolver::fromResponse($docStored);
+                if ($numbers !== []) {
+                    return [
+                        'ticket_numbers' => $numbers,
+                        'ticket_response' => $stored !== [] ? $stored : $docStored,
+                        'source' => 'air_retrieve_document',
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param  array<string, mixed>  $response
      */
     private function formatTravelportGdsError(array $response, string $fallback): string
@@ -1312,6 +1393,16 @@ class TravelportBookingService
                 }
             }
 
+            if ($traceId !== '') {
+                $msg .= ' Reference trace: ' . $traceId . '.';
+            }
+
+            return $msg;
+        }
+
+        if ($code === '12008' || stripos($raw, 'IGNORE AND RETRIEVE BOOKING FILE') !== false) {
+            $msg = 'The airline host returned a ticketing error (GDS 12008). '
+                . 'Tickets may still have been issued on the PNR — retrieve the booking in Travelport or retry fulfillment from admin.';
             if ($traceId !== '') {
                 $msg .= ' Reference trace: ' . $traceId . '.';
             }

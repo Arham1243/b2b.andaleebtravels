@@ -97,11 +97,47 @@ final class TravelportAirTicketingResult
      */
     public static function isSuccessful(array $ticketingRsp, array $ticketNumbers): bool
     {
-        if (self::hasFailure($ticketingRsp)) {
+        if ($ticketNumbers !== [] || isset($ticketingRsp['ETR'])) {
+            return true;
+        }
+
+        return ! self::hasFailure($ticketingRsp);
+    }
+
+    /**
+     * Host errors such as 12008 ("IGNORE AND RETRIEVE BOOKING FILE") may still produce tickets.
+     *
+     * @param  array<string, mixed>  $ticketingRsp
+     * @param  list<string>  $ticketNumbers
+     */
+    public static function shouldTreatAsFailure(array $ticketingRsp, array $ticketNumbers): bool
+    {
+        if ($ticketNumbers !== [] || isset($ticketingRsp['ETR'])) {
             return false;
         }
 
-        return $ticketNumbers !== [] || isset($ticketingRsp['ETR']);
+        return self::hasFailure($ticketingRsp);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function ticketNumbersFromTkneRaw(string $raw): array
+    {
+        if ($raw === '') {
+            return [];
+        }
+
+        $numbers = [];
+        if (preg_match_all('/Type="TKNE"[^>]*FreeText="([^"]+)"/i', $raw, $matches)) {
+            foreach ($matches[1] as $freeText) {
+                if (preg_match('/^(\d{10,13})/', (string) $freeText, $ticketMatch)) {
+                    $numbers[] = $ticketMatch[1];
+                }
+            }
+        }
+
+        return array_values(array_unique($numbers));
     }
 
     /**

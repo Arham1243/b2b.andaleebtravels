@@ -2,11 +2,13 @@
 
 namespace App\Services\Travelport;
 
+use App\Support\FlightBookingTicketResolver;
 use App\Support\FlightCabinPreference;
 use App\Support\Travelport\TravelportAirTicketingResult;
 use App\Support\Travelport\TravelportContactSsrBuilder;
 use App\Support\Travelport\TravelportDocsSsrBuilder;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
+use Illuminate\Support\Facades\Log;
 
 class TravelportApiClient
 {
@@ -687,7 +689,14 @@ XML;
             $ticketingRsp = [];
         }
 
-        if (TravelportAirTicketingResult::hasFailure($ticketingRsp)) {
+        $storedResponse = $ticketingRsp;
+        if (is_string($result['raw'] ?? null) && ($result['raw'] ?? '') !== '') {
+            $storedResponse['raw'] = $result['raw'];
+        }
+
+        $ticketNumbers = FlightBookingTicketResolver::fromResponse($storedResponse);
+
+        if (TravelportAirTicketingResult::shouldTreatAsFailure($ticketingRsp, $ticketNumbers)) {
             $error = TravelportAirTicketingResult::failureMessage($ticketingRsp);
             $warnings = TravelportAirTicketingResult::warningMessages($ticketingRsp);
             if ($warnings !== []) {
@@ -699,6 +708,14 @@ XML;
                 'error' => $error,
                 'error_code' => data_get($ticketingRsp, 'TicketFailureInfo.@attributes.Code')
                     ?? data_get($ticketingRsp, 'TicketFailureInfo.Code'),
+            ]);
+        }
+
+        if (TravelportAirTicketingResult::hasFailure($ticketingRsp)) {
+            Log::warning('Travelport airTicket returned TicketFailureInfo but ticket numbers were found in response', [
+                'error_code' => data_get($ticketingRsp, 'TicketFailureInfo.@attributes.Code')
+                    ?? data_get($ticketingRsp, 'TicketFailureInfo.Code'),
+                'ticket_numbers' => $ticketNumbers,
             ]);
         }
 
