@@ -40,23 +40,14 @@ class TravelportHoldPricingInfoParser
      */
     public static function resolveKeysForTicketing(array $bookingRequest, array $bookingResponse): array
     {
-        $persisted = $bookingRequest['hold_air_pricing_info_keys'] ?? [];
-        if (is_array($persisted) && $persisted !== []) {
-            $keys = self::uniqueNonEmpty(array_map('strval', $persisted));
-
-            if ($keys !== []) {
-                return $keys;
-            }
-        }
-
         $fromHold = self::extractKeys($bookingResponse);
         if ($fromHold !== []) {
             return $fromHold;
         }
 
-        $airPriceKey = trim((string) data_get($bookingRequest, 'pricing_data.pricing_info_key', ''));
-        if ($airPriceKey !== '') {
-            return [$airPriceKey];
+        $persisted = $bookingRequest['hold_air_pricing_info_keys'] ?? [];
+        if (is_array($persisted) && $persisted !== []) {
+            return self::uniqueNonEmpty(array_map('strval', $persisted));
         }
 
         return [];
@@ -127,11 +118,17 @@ class TravelportHoldPricingInfoParser
     }
 
     /**
+     * Only keys under AirReservation count for ticketing — not AirSolutionChangedInfo quotes.
+     *
      * @return list<string>
      */
     private static function extractKeysFromRawXml(string $raw): array
     {
-        if (! preg_match_all('/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey="([^"]+)"/i', $raw, $matches)) {
+        if (! preg_match('/<(?:[\w-]+:)?AirReservation\b[\s\S]*?<\/(?:[\w-]+:)?AirReservation>/i', $raw, $reservationMatch)) {
+            return [];
+        }
+
+        if (! preg_match_all('/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey="([^"]+)"/i', $reservationMatch[0], $matches)) {
             return [];
         }
 

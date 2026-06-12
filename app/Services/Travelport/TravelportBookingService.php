@@ -400,6 +400,12 @@ class TravelportBookingService
             }
 
             $airPricingInfoKeys = $this->resolveAirPricingInfoKeys($booking);
+            if ($airPricingInfoKeys === []) {
+                throw new \RuntimeException(
+                    'No stored Travelport fare keys found on this hold. Please release and rebook.',
+                );
+            }
+
             $gdsCommissionPercentage = $this->resolveGdsCommissionPercentage();
 
             $ticketResponse = $this->client->airTicket(
