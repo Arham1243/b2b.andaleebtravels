@@ -318,7 +318,14 @@ class TravelportBookingService
             }
 
             $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
-            $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractKeys($holdResponse);
+            $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($holdResponse);
+            if ($holdPricingInfoKeys === []) {
+                Log::warning('Travelport hold succeeded but no reservation AirPricingInfo keys were extracted', [
+                    'booking_id' => $booking->id,
+                    'air_reservation_locator' => $locators['air_reservation_locator'] ?? null,
+                    'raw_len' => strlen((string) ($holdResponse['raw'] ?? '')),
+                ]);
+            }
             $parsedHold = is_array($holdResponse['parsed'] ?? null) ? $holdResponse['parsed'] : [];
             $bookingResponse = $parsedHold['Body']['AirCreateReservationRsp'] ?? $parsedHold;
             if (is_array($bookingResponse)) {
@@ -708,6 +715,18 @@ class TravelportBookingService
             ],
             $bookingRequest,
         );
+
+        if ($keys === []) {
+            $rawLen = strlen((string) ($retrieveResponse['raw'] ?? ''));
+            Log::warning('Travelport universal record retrieve returned no reservation fare keys', [
+                'booking_id' => $bookingId,
+                'lookup_type' => $lookupType,
+                'lookup_value' => $lookupValue,
+                'raw_len' => $rawLen,
+                'has_stored_fare_in_raw' => str_contains((string) ($retrieveResponse['raw'] ?? ''), 'PricingType="StoredFare"'),
+                'has_air_reservation_in_raw' => (bool) preg_match('/<(?:[\w-]+:)?AirReservation\b/i', (string) ($retrieveResponse['raw'] ?? '')),
+            ]);
+        }
 
         Log::info('Travelport fare keys resolved from universal record retrieve', [
             'booking_id' => $bookingId,

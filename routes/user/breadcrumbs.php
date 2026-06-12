@@ -12,6 +12,11 @@ Breadcrumbs::for('user.profile.personalInfo', function (BreadcrumbTrail $trail) 
     $trail->push('Personal Information', route('user.profile.personalInfo'));
 });
 
+Breadcrumbs::for('user.profile.savedPassengers', function (BreadcrumbTrail $trail) {
+    $trail->parent('user.dashboard');
+    $trail->push('Saved Passengers', route('user.profile.savedPassengers'));
+});
+
 Breadcrumbs::for('user.profile.walletLedger', function (BreadcrumbTrail $trail) {
     $trail->parent('user.dashboard');
     $trail->push('Wallet Ledger', route('user.profile.walletLedger'));

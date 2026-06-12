@@ -20,6 +20,11 @@ return [
                 'route' => route('user.profile.personalInfo'),
             ],
             [
+                'title' => 'Saved Passengers',
+                'icon' => 'bx bxs-user-detail',
+                'route' => route('user.profile.savedPassengers'),
+            ],
+            [
                 'title' => 'Change Password',
                 'icon' => 'bx bx-key',
                 'route' => route('user.profile.changePassword'),

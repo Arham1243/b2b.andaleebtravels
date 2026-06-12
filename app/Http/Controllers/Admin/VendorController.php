@@ -175,12 +175,14 @@ class VendorController extends Controller
         $hotelBookings = $vendor->hotelBookings()->latest()->get();
         $flightBookings = $vendor->flightBookings()->latest()->get();
         $subAgents = $vendor->subAgents()->latest()->get();
+        $savedPassengers = $vendor->savedPassengers()->orderBy('passenger_type')->orderBy('first_name')->get();
 
         $stats = [
             'hotel_bookings'  => $hotelBookings->count(),
             'flight_bookings' => $flightBookings->count(),
             'ledger_entries'  => $ledgerTotalCount,
             'sub_agents'      => $subAgents->count(),
+            'saved_passengers' => $savedPassengers->count(),
         ];
 
         return view('admin.vendors.show', compact(
@@ -189,6 +191,7 @@ class VendorController extends Controller
             'hotelBookings',
             'flightBookings',
             'subAgents',
+            'savedPassengers',
             'stats',
             'ledgerFilters',
             'ledgerTotalCount'

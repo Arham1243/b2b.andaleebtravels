@@ -4,6 +4,7 @@ use App\Http\Controllers\Frontend\Auth\AuthController;
 use App\Http\Controllers\Frontend\Auth\PasswordResetController;
 use App\Http\Controllers\User\UserDashController;
 use App\Http\Controllers\User\ProfileSettingsController;
+use App\Http\Controllers\User\SavedPassengerController;
 use App\Http\Controllers\User\HotelController;
 use App\Http\Controllers\User\FlightController;
 use App\Http\Controllers\User\FlightBookingController;
@@ -43,6 +44,11 @@ Route::middleware(['auth', 'check_user_status'])->prefix('user')->name('user.')-
 
     Route::get('profile/change/password', [ProfileSettingsController::class, 'changePassword'])->name('profile.changePassword');
     Route::post('profile/change/password/update', [ProfileSettingsController::class, 'updatePassword'])->name('profile.updatePassword');
+
+    Route::get('profile/saved-passengers', [SavedPassengerController::class, 'index'])->name('profile.savedPassengers');
+    Route::post('profile/saved-passengers', [SavedPassengerController::class, 'store'])->name('profile.savedPassengers.store');
+    Route::put('profile/saved-passengers/{passenger}', [SavedPassengerController::class, 'update'])->name('profile.savedPassengers.update');
+    Route::delete('profile/saved-passengers/{passenger}', [SavedPassengerController::class, 'destroy'])->name('profile.savedPassengers.destroy');
 
     Route::middleware('agency_owner')->prefix('sub-agents')->name('sub-agents.')->group(function () {
         Route::get('/', [SubAgentController::class, 'index'])->name('index');

@@ -8,10 +8,12 @@ namespace App\Support\Travelport;
 class TravelportHoldPricingInfoParser
 {
     /**
-     * @param  array<string, mixed>  $holdResponse  Full hold API response or booking_response array
+     * Reservation-scoped stored fare keys suitable for AirTicketing (D1/… on Galileo).
+     *
+     * @param  array<string, mixed>  $holdResponse
      * @return list<string>
      */
-    public static function extractKeys(array $holdResponse): array
+    public static function extractReservationKeys(array $holdResponse): array
     {
         $keys = [];
 
@@ -31,10 +33,19 @@ class TravelportHoldPricingInfoParser
 
         $raw = (string) ($holdResponse['raw'] ?? $bookingBody['raw'] ?? '');
         if ($raw !== '') {
-            $keys = array_merge($keys, self::extractKeysFromRawXml($raw));
+            $keys = array_merge($keys, self::extractStoredFareKeysFromRawXml($raw));
         }
 
-        return self::uniqueNonEmpty($keys);
+        return self::filterToReservationKeys(self::uniqueNonEmpty($keys));
+    }
+
+    /**
+     * @param  array<string, mixed>  $holdResponse
+     * @return list<string>
+     */
+    public static function extractKeys(array $holdResponse): array
+    {
+        return self::extractReservationKeys($holdResponse);
     }
 
     /**
@@ -79,7 +90,7 @@ class TravelportHoldPricingInfoParser
     {
         $airPriceKey = trim((string) data_get($bookingRequest, 'pricing_data.pricing_info_key', ''));
 
-        return self::filterQuoteKeys(self::extractKeys($holdResponse), $airPriceKey);
+        return self::filterQuoteKeys(self::extractReservationKeys($holdResponse), $airPriceKey);
     }
 
     /**
@@ -91,7 +102,7 @@ class TravelportHoldPricingInfoParser
     {
         $airPriceKey = trim((string) data_get($bookingRequest, 'pricing_data.pricing_info_key', ''));
 
-        $fromHold = self::filterQuoteKeys(self::extractKeys($bookingResponse), $airPriceKey);
+        $fromHold = self::filterQuoteKeys(self::extractReservationKeys($bookingResponse), $airPriceKey);
         if ($fromHold !== []) {
             return $fromHold;
         }
@@ -117,16 +128,23 @@ class TravelportHoldPricingInfoParser
     public static function filterQuoteKeys(array $keys, string $airPriceKey): array
     {
         $keys = self::uniqueNonEmpty($keys);
-        if ($keys === [] || $airPriceKey === '') {
-            return $keys;
+        $reservationKeys = self::filterToReservationKeys($keys);
+
+        if ($airPriceKey === '') {
+            return $reservationKeys !== [] ? $reservationKeys : $keys;
         }
 
-        $filtered = array_values(array_filter(
+        $withoutShopQuote = array_values(array_filter(
             $keys,
-            static fn (string $key): bool => $key !== $airPriceKey,
+            static fn (string $key): bool => $key !== $airPriceKey && ! self::isShopSessionKey($key),
         ));
 
-        return $filtered !== [] ? $filtered : [];
+        $reservationWithoutQuote = self::filterToReservationKeys($withoutShopQuote);
+        if ($reservationWithoutQuote !== []) {
+            return $reservationWithoutQuote;
+        }
+
+        return $withoutShopQuote;
     }
 
     /**
@@ -136,18 +154,26 @@ class TravelportHoldPricingInfoParser
     private static function extractKeysFromParsedBody(array $body): array
     {
         $keys = [];
-        $paths = [
-            'UniversalRecord.AirReservation.AirPricingInfo',
-            'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.AirPricingInfo',
-            'Body.UniversalRecordRetrieveRsp.UniversalRecord.AirReservation.AirPricingInfo',
-            'UniversalRecordRetrieveRsp.UniversalRecord.AirReservation.AirPricingInfo',
-            'AirReservation.AirPricingInfo',
+        $reservationPaths = [
+            'UniversalRecord.AirReservation',
+            'Body.AirCreateReservationRsp.UniversalRecord.AirReservation',
+            'Body.UniversalRecordRetrieveRsp.UniversalRecord.AirReservation',
+            'UniversalRecordRetrieveRsp.UniversalRecord.AirReservation',
+            'AirReservation',
         ];
 
-        foreach ($paths as $path) {
+        foreach ($reservationPaths as $path) {
             $node = data_get($body, $path);
-            if ($node !== null) {
-                $keys = array_merge($keys, self::keysFromPricingInfoNode($node));
+            if ($node === null) {
+                continue;
+            }
+
+            foreach (self::asList($node) as $reservation) {
+                if (! is_array($reservation)) {
+                    continue;
+                }
+
+                $keys = array_merge($keys, self::keysFromPricingInfoNode($reservation['AirPricingInfo'] ?? null));
             }
         }
 
@@ -163,7 +189,11 @@ class TravelportHoldPricingInfoParser
         $keys = [];
 
         foreach ($node as $key => $value) {
-            if (is_string($key) && str_ends_with(strtolower($key), 'airpricinginfo')) {
+            if (is_string($key) && self::isQuoteContextKey($key)) {
+                continue;
+            }
+
+            if (is_string($key) && str_ends_with(strtolower(self::stripXmlPrefix($key)), 'airpricinginfo')) {
                 $keys = array_merge($keys, self::keysFromPricingInfoNode($value));
             }
 
@@ -214,25 +244,123 @@ class TravelportHoldPricingInfoParser
             ?? ''
         ));
 
-        return $key !== '' ? [$key] : [];
+        if ($key === '' || ! self::isReservationKey($key)) {
+            return [];
+        }
+
+        return [$key];
     }
 
     /**
-     * Only keys under AirReservation count for ticketing — not AirSolutionChangedInfo quotes.
+     * Stored fares on the PNR — ignore AirSolutionChangedInfo quote blocks.
      *
      * @return list<string>
      */
-    private static function extractKeysFromRawXml(string $raw): array
+    private static function extractStoredFareKeysFromRawXml(string $raw): array
     {
-        if (! preg_match('/<(?:[\w-]+:)?AirReservation\b[\s\S]*?<\/(?:[\w-]+:)?AirReservation>/i', $raw, $reservationMatch)) {
+        $scrubbed = self::scrubQuoteBlocks($raw);
+        $keys = [];
+
+        if (preg_match_all(
+            '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bPricingType="StoredFare"[^>]*\bKey="([^"]+)"/i',
+            $scrubbed,
+            $matches,
+        )) {
+            $keys = array_merge($keys, $matches[1] ?? []);
+        }
+
+        if (preg_match_all(
+            '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey="([^"]+)"[^>]*\bPricingType="StoredFare"/i',
+            $scrubbed,
+            $matches,
+        )) {
+            $keys = array_merge($keys, $matches[1] ?? []);
+        }
+
+        $keys = self::filterToReservationKeys(self::uniqueNonEmpty($keys));
+        if ($keys !== []) {
+            return $keys;
+        }
+
+        if (! preg_match_all(
+            '/<(?:[\w-]+:)?AirReservation\b[\s\S]*?<\/(?:[\w-]+:)?AirReservation>/i',
+            $scrubbed,
+            $reservationMatches,
+        )) {
             return [];
         }
 
-        if (! preg_match_all('/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey="([^"]+)"/i', $reservationMatch[0], $matches)) {
+        foreach ($reservationMatches[0] as $reservationBlock) {
+            if (! preg_match_all(
+                '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey="([^"]+)"/i',
+                $reservationBlock,
+                $matches,
+            )) {
+                continue;
+            }
+
+            $keys = array_merge($keys, self::filterToReservationKeys($matches[1] ?? []));
+        }
+
+        return self::uniqueNonEmpty($keys);
+    }
+
+    private static function scrubQuoteBlocks(string $raw): string
+    {
+        $scrubbed = preg_replace(
+            '/<(?:[\w-]+:)?AirSolutionChangedInfo\b[\s\S]*?<\/(?:[\w-]+:)?AirSolutionChangedInfo>/i',
+            '',
+            $raw,
+        );
+
+        return is_string($scrubbed) ? $scrubbed : $raw;
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return list<string>
+     */
+    private static function filterToReservationKeys(array $keys): array
+    {
+        return array_values(array_filter(
+            self::uniqueNonEmpty($keys),
+            static fn (string $key): bool => self::isReservationKey($key),
+        ));
+    }
+
+    private static function isReservationKey(string $key): bool
+    {
+        return str_starts_with($key, 'D1/');
+    }
+
+    private static function isShopSessionKey(string $key): bool
+    {
+        return str_starts_with($key, 'xYM') || str_starts_with($key, 'xym');
+    }
+
+    private static function isQuoteContextKey(string $key): bool
+    {
+        $normalized = strtolower(self::stripXmlPrefix($key));
+
+        return in_array($normalized, ['airsolutionchangedinfo', 'airpricingsolution'], true);
+    }
+
+    private static function stripXmlPrefix(string $key): string
+    {
+        return (string) preg_replace('/^[\w-]+:/', '', $key);
+    }
+
+    /**
+     * @param  mixed  $node
+     * @return list<mixed>
+     */
+    private static function asList(mixed $node): array
+    {
+        if (! is_array($node)) {
             return [];
         }
 
-        return self::uniqueNonEmpty($matches[1] ?? []);
+        return self::isListArray($node) ? $node : [$node];
     }
 
     /**

@@ -74,4 +74,32 @@ class B2bSavedPassenger extends Model
             static fn (array|self $passenger): bool => self::matchesBookingType($passenger, $bookingType),
         ));
     }
+
+    public function typeLabel(): string
+    {
+        return match (self::normalizeType($this->passenger_type)) {
+            self::TYPE_CHILD => 'Child',
+            self::TYPE_INFANT => 'Infant',
+            default => 'Adult',
+        };
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function titleOptionsForType(string $type): array
+    {
+        return match (self::normalizeType($type)) {
+            self::TYPE_CHILD, self::TYPE_INFANT => [
+                'Mstr' => 'Mstr.',
+                'Miss' => 'Miss',
+            ],
+            default => [
+                'Mr' => 'Mr.',
+                'Mrs' => 'Mrs.',
+                'Ms' => 'Ms.',
+                'Dr' => 'Dr.',
+            ],
+        };
+    }
 }

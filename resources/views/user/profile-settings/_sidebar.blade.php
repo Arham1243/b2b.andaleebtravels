@@ -10,6 +10,15 @@
             @endif
         </a>
 
+        <a href="{{ route('user.profile.savedPassengers') }}"
+           class="ps-nav__item {{ request()->routeIs('user.profile.savedPassengers*') ? 'ps-nav__item--active' : '' }}">
+            <span class="ps-nav__item-icon"><i class="bx bxs-user-detail"></i></span>
+            <span class="ps-nav__item-text">Saved Passengers</span>
+            @if(request()->routeIs('user.profile.savedPassengers*'))
+                <i class="bx bx-chevron-right ps-nav__item-arrow"></i>
+            @endif
+        </a>
+
         <a href="{{ route('user.profile.walletLedger') }}"
            class="ps-nav__item {{ request()->routeIs('user.profile.walletLedger') ? 'ps-nav__item--active' : '' }}">
             <span class="ps-nav__item-icon"><i class="bx bx-wallet"></i></span>

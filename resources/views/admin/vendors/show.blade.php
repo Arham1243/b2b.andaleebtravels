@@ -503,6 +503,10 @@
                     <i class="bx bx-group"></i> Sub Agents
                     <span class="vs-tabs__count">{{ $stats['sub_agents'] }}</span>
                 </button>
+                <button class="vs-tabs__btn" onclick="vsTab(event,'panel-passengers')" type="button">
+                    <i class="bx bxs-user-detail"></i> Saved Passengers
+                    <span class="vs-tabs__count">{{ $stats['saved_passengers'] }}</span>
+                </button>
             </div>
 
             {{-- Wallet Ledger --}}
@@ -768,6 +772,61 @@
                 @endif
             </div>
 
+            {{-- Saved Passengers --}}
+            <div class="vs-tab-panel" id="panel-passengers">
+                @if ($savedPassengers->isNotEmpty())
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Name</th>
+                                    <th>Date of Birth</th>
+                                    <th>Passport</th>
+                                    <th>Passport Expiry</th>
+                                    <th>Nationality</th>
+                                    <th>Issuing Country</th>
+                                    <th>Saved</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($savedPassengers as $passenger)
+                                    @php
+                                        $typeNorm = \App\Models\B2bSavedPassenger::normalizeType($passenger->passenger_type);
+                                        $typeBadge = match ($typeNorm) {
+                                            \App\Models\B2bSavedPassenger::TYPE_CHILD => 'bg-warning text-dark',
+                                            \App\Models\B2bSavedPassenger::TYPE_INFANT => 'bg-info text-dark',
+                                            default => 'bg-primary',
+                                        };
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <span class="badge rounded-pill {{ $typeBadge }}" style="font-size:10px;">
+                                                {{ $passenger->typeLabel() }}
+                                            </span>
+                                        </td>
+                                        <td class="fw-semibold">
+                                            {{ $passenger->title }} {{ $passenger->first_name }} {{ $passenger->last_name }}
+                                        </td>
+                                        <td style="white-space:nowrap; font-size:12px;">{{ $passenger->dob?->format('d M Y') ?: '—' }}</td>
+                                        <td>{{ $passenger->passport_no ?: '—' }}</td>
+                                        <td style="white-space:nowrap; font-size:12px;">{{ $passenger->passport_exp?->format('d M Y') ?: '—' }}</td>
+                                        <td>{{ $passenger->nationality ?: '—' }}</td>
+                                        <td>{{ $passenger->issuing_country ?: '—' }}</td>
+                                        <td style="white-space:nowrap; font-size:12px;">{{ formatDateTime($passenger->created_at) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center py-5" style="color:#6b6573;">
+                        <i class="bx bxs-user-detail" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
+                        <p class="mb-0">This vendor has not saved any passengers yet.</p>
+                    </div>
+                @endif
+            </div>
+
         </div>{{-- /vs-card --}}
     </div>
 </div>
@@ -971,6 +1030,13 @@ document.getElementById('manual-wallet-form')?.addEventListener('submit', functi
 
     (function activateWalletTabFromQuery() {
         const params = new URLSearchParams(window.location.search);
+        if (params.get('tab') === 'passengers') {
+            const passengersBtn = document.querySelector('.vs-tabs__btn[onclick*="panel-passengers"]');
+            if (passengersBtn) {
+                vsTab({ currentTarget: passengersBtn }, 'panel-passengers');
+            }
+            return;
+        }
         if (params.get('tab') !== 'wallet' && !params.has('ledger_category') && !params.has('ledger_from') && !params.has('ledger_till')) {
             return;
         }
