@@ -267,24 +267,10 @@
                                                 <td>{{ $passenger->nationality ?: '—' }}</td>
                                                 <td>
                                                     <div class="ps-pax-actions">
-                                                        @php
-                                                            $passengerPayload = [
-                                                                'id' => $passenger->id,
-                                                                'passenger_type' => $passenger->passenger_type,
-                                                                'title' => $passenger->title,
-                                                                'first_name' => $passenger->first_name,
-                                                                'last_name' => $passenger->last_name,
-                                                                'dob' => $passenger->dob?->format('Y-m-d'),
-                                                                'nationality' => $passenger->nationality,
-                                                                'issuing_country' => $passenger->issuing_country,
-                                                                'passport_no' => $passenger->passport_no,
-                                                                'passport_exp' => $passenger->passport_exp?->format('Y-m-d'),
-                                                            ];
-                                                        @endphp
                                                         <button type="button"
                                                             class="ps-pax-actions__btn js-edit-passenger"
                                                             title="Edit"
-                                                            data-passenger="@json($passengerPayload)">
+                                                            data-passenger-id="{{ $passenger->id }}">
                                                             <i class="bx bx-edit"></i>
                                                         </button>
                                                         <form action="{{ route('user.profile.savedPassengers.destroy', $passenger) }}" method="POST"
@@ -392,6 +378,22 @@
 @endsection
 
 @push('js')
+    @php
+        $passengersForJs = $passengers->mapWithKeys(function ($passenger) {
+            return [$passenger->id => [
+                'id' => $passenger->id,
+                'passenger_type' => $passenger->passenger_type,
+                'title' => $passenger->title,
+                'first_name' => $passenger->first_name,
+                'last_name' => $passenger->last_name,
+                'dob' => $passenger->dob?->format('Y-m-d'),
+                'nationality' => $passenger->nationality,
+                'issuing_country' => $passenger->issuing_country,
+                'passport_no' => $passenger->passport_no,
+                'passport_exp' => $passenger->passport_exp?->format('Y-m-d'),
+            ]];
+        })->all();
+    @endphp
     @include('user.flights.partials.hp-pax-autocomplete-scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -402,6 +404,7 @@
             };
             const storeUrl = @json(route('user.profile.savedPassengers.store'));
             const updateUrlTemplate = @json(route('user.profile.savedPassengers.update', ['passenger' => '__ID__']));
+            const passengersById = @json($passengersForJs);
 
             const modalEl = document.getElementById('passengerModal');
             const modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
@@ -410,7 +413,7 @@
             const titleEl = document.getElementById('passenger-modal-title');
             const typeEl = document.getElementById('passenger-type');
             const titleSelect = document.getElementById('passenger-title');
-            let skipResetOnShow = false;
+            let modalMode = 'idle';
 
             HpPaxForm.init({
                 formSelector: '#passenger-form',
@@ -463,13 +466,17 @@
             }
 
             function openCreateModal(defaultType) {
-                skipResetOnShow = true;
+                modalMode = 'create';
                 resetForm(defaultType || 'ADT');
                 modal && modal.show();
             }
 
             function openEditModal(data) {
-                skipResetOnShow = true;
+                if (!data || !data.id) {
+                    return;
+                }
+
+                modalMode = 'edit';
                 form.action = updateUrlTemplate.replace('__ID__', data.id);
                 methodInput.value = 'PUT';
                 titleEl.textContent = 'Edit Passenger';
@@ -492,8 +499,13 @@
             });
 
             modalEl && modalEl.addEventListener('show.bs.modal', function (event) {
-                if (skipResetOnShow) {
-                    skipResetOnShow = false;
+                if (modalMode === 'edit') {
+                    modalMode = 'idle';
+                    return;
+                }
+
+                if (modalMode === 'create') {
+                    modalMode = 'idle';
                     return;
                 }
 
@@ -505,12 +517,18 @@
                 resetForm(trigger.getAttribute('data-default-type') || 'ADT');
             });
 
-            document.querySelectorAll('.js-edit-passenger').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    try {
-                        openEditModal(JSON.parse(btn.getAttribute('data-passenger')));
-                    } catch (e) {}
-                });
+            document.addEventListener('click', function (event) {
+                const editBtn = event.target.closest('.js-edit-passenger');
+                if (!editBtn) {
+                    return;
+                }
+
+                event.preventDefault();
+                const passengerId = editBtn.getAttribute('data-passenger-id');
+                const data = passengersById[passengerId] || passengersById[String(passengerId)];
+                if (data) {
+                    openEditModal(data);
+                }
             });
 
             @if ($errors->any())
