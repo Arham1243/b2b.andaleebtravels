@@ -11,6 +11,7 @@ use App\Support\Travelport\TravelportAirPricePresenter;
 use App\Support\Travelport\TravelportAirTicketingResult;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use App\Support\Travelport\TravelportHoldPricingInfoParser;
+use App\Support\Travelport\TravelportHoldTravelerKeyResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -346,6 +347,7 @@ class TravelportBookingService
                     (string) ($locators['universal_version'] ?? '0'),
                     $pricingData,
                     $travelers,
+                    $holdResponse,
                 );
 
                 if ($holdPricingInfoKeys !== []) {
@@ -783,6 +785,23 @@ class TravelportBookingService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function holdResponsePayloadFromBooking(B2bFlightBooking $booking): array
+    {
+        $bookingResponse = is_array($booking->booking_response) ? $booking->booking_response : [];
+
+        return [
+            'parsed' => [
+                'Body' => [
+                    'AirCreateReservationRsp' => $bookingResponse,
+                ],
+            ],
+            'raw' => (string) ($bookingResponse['raw'] ?? ''),
+        ];
+    }
+
+    /**
      * @param  list<string>  $keys
      */
     private function persistHoldPricingInfoKeys(B2bFlightBooking $booking, array $keys): void
@@ -808,6 +827,7 @@ class TravelportBookingService
     /**
      * @param  list<array<string, mixed>>  $travelers
      * @param  array<string, mixed>  $pricingData
+     * @param  array<string, mixed>  $holdResponse
      * @return list<string>
      */
     private function storeFaresAndExtractKeys(
@@ -816,9 +836,26 @@ class TravelportBookingService
         string $version,
         array $pricingData,
         array $travelers,
+        array $holdResponse = [],
     ): array {
         if ($universalLocator === '') {
             return [];
+        }
+
+        $keyMap = TravelportHoldTravelerKeyResolver::resolveRequestToGdsKeyMap($holdResponse, $travelers);
+        if ($keyMap !== []) {
+            Log::info('Travelport remapping passenger keys for fare storage', [
+                'booking_id' => $bookingId,
+                'universal_locator' => $universalLocator,
+                'key_map' => $keyMap,
+            ]);
+            $pricingData = TravelportHoldTravelerKeyResolver::remapPricingDataTravelerRefs($pricingData, $keyMap);
+        } else {
+            Log::warning('Travelport could not resolve GDS traveler keys for fare storage', [
+                'booking_id' => $bookingId,
+                'universal_locator' => $universalLocator,
+                'traveler_count' => count($travelers),
+            ]);
         }
 
         $storeResponse = $this->client->storeFaresOnUniversalRecord(
@@ -926,6 +963,7 @@ class TravelportBookingService
             $version,
             $pricingData,
             $travelers,
+            $this->holdResponsePayloadFromBooking($booking),
         );
     }
 
