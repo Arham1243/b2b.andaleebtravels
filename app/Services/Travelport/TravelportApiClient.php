@@ -7,6 +7,7 @@ use App\Support\FlightCabinPreference;
 use App\Support\Travelport\TravelportAirTicketingResult;
 use App\Support\Travelport\TravelportContactSsrBuilder;
 use App\Support\Travelport\TravelportDocsSsrBuilder;
+use App\Support\Travelport\TravelportGdsKeyFormat;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use Illuminate\Support\Facades\Log;
 
@@ -161,6 +162,8 @@ XML;
             ? $this->buildSearchPassengersXmlFromTravelers($travelers)
             : $this->buildSearchPassengersXmlFromCounts($passengerCounts, $searchData);
 
+        $pricingCommandXml = $this->buildAirPricingCommandXml($segments);
+
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
     <soapenv:Header/>
@@ -179,13 +182,56 @@ XML;
                 ETicketability="Required"
                 FaresIndicator="PublicFaresOnly"/>
             {$passengersXml}
-            <air:AirPricingCommand/>
+            {$pricingCommandXml}
         </air:AirPriceReq>
     </soapenv:Body>
 </soapenv:Envelope>
 XML;
 
         return $this->sendRequest('AirService', $soap);
+    }
+
+    /**
+     * An empty AirPricingCommand makes Galileo quote the lowest fare on the
+     * itinerary regardless of the sold class (e.g. Economy V for a Business S
+     * itinerary). Pin each segment to its selected booking code so premium
+     * cabin fares reprice in the class the shopper actually chose.
+     *
+     * @param  list<array<string, mixed>>  $segments
+     */
+    private function buildAirPricingCommandXml(array $segments): string
+    {
+        $modifiersXml = '';
+        $seenKeys = [];
+        foreach ($segments as $seg) {
+            if (! is_array($seg)) {
+                continue;
+            }
+
+            $key = trim((string) ($seg['Key'] ?? ''));
+            $classOfService = strtoupper(trim((string) ($seg['ClassOfService'] ?? '')));
+            if ($key === '' || $classOfService === '' || isset($seenKeys[$key])) {
+                continue;
+            }
+            $seenKeys[$key] = true;
+
+            $keyEsc = $this->xmlEsc($key);
+            $classEsc = $this->xmlEsc($classOfService);
+            $modifiersXml .= <<<XML
+
+                <air:AirSegmentPricingModifiers AirSegmentRef="{$keyEsc}">
+                    <air:PermittedBookingCodes>
+                        <air:BookingCode Code="{$classEsc}"/>
+                    </air:PermittedBookingCodes>
+                </air:AirSegmentPricingModifiers>
+XML;
+        }
+
+        if ($modifiersXml === '') {
+            return '<air:AirPricingCommand/>';
+        }
+
+        return "<air:AirPricingCommand>{$modifiersXml}\n            </air:AirPricingCommand>";
     }
 
     /**
@@ -468,6 +514,55 @@ XML;
             }
         }
 
+        // uAPI resolves PassengerType/BookingTravelerRef keys against elements
+        // defined in this request, so the existing UR travelers must be restated
+        // here (keyed with their UR keys). Galileo matches them to the travelers
+        // already on the record instead of duplicating them. SSRs and remarks are
+        // intentionally omitted: they are already stored on the PNR.
+        $travelersXml = '';
+        $seenTravelerKeys = [];
+        foreach ($travelers as $traveler) {
+            if (! is_array($traveler)) {
+                continue;
+            }
+            $rawKey = (string) ($traveler['key'] ?? '');
+            if ($rawKey === '' || isset($seenTravelerKeys[$rawKey])) {
+                continue;
+            }
+            $seenTravelerKeys[$rawKey] = true;
+
+            $key = $this->xmlEsc($rawKey);
+            $type = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($traveler['traveler_type'] ?? $traveler['traveler_type_code'] ?? 'ADT'),
+            ));
+            $dob = $this->xmlEsc($this->normalizeTravelportDob((string) ($traveler['dob'] ?? '')));
+            $ageAttr = '';
+            if (in_array($type, ['CNN', 'INF'], true) && isset($travelerAgeByRef[$rawKey])) {
+                $ageAttr = ' Age="' . $travelerAgeByRef[$rawKey] . '"';
+            }
+            $gender = $this->xmlEsc((string) ($traveler['gender'] ?? 'M'));
+            $first = $this->xmlEsc((string) ($traveler['firstName'] ?? ''));
+            $last = $this->xmlEsc((string) ($traveler['lastName'] ?? ''));
+            $country = $this->xmlEsc((string) ($traveler['phoneCountryCode'] ?? '971'));
+            $area = $this->xmlEsc((string) ($traveler['phoneAreaCode'] ?? '50'));
+            $number = $this->xmlEsc((string) ($traveler['phoneNumber'] ?? ''));
+            $email = $this->xmlEsc((string) ($traveler['email'] ?? ''));
+
+            $travelersXml .= <<<XML
+
+            <BookingTraveler
+                xmlns="{$comNs}"
+                Key="{$key}"
+                TravelerType="{$type}"
+                DOB="{$dob}"{$ageAttr}
+                Gender="{$gender}">
+                <BookingTravelerName First="{$first}" Last="{$last}"/>
+                <PhoneNumber CountryCode="{$country}" AreaCode="{$area}" Number="{$number}"/>
+                <Email EmailID="{$email}"/>
+            </BookingTraveler>
+XML;
+        }
+
         $pricingSolutionXml = $this->buildAirPricingSolutionXml(
             $pricingData,
             $providerCode,
@@ -498,6 +593,7 @@ XML;
             RetainReservation="Both">
 
             <BillingPointOfSaleInfo xmlns="{$comNs}" OriginApplication="UAPI"/>
+            {$travelersXml}
             {$pricingSolutionXml}
             <ActionStatus xmlns="{$comNs}" Type="ACTIVE" TicketDate="T*" ProviderCode="{$providerCode}"/>
 
@@ -949,6 +1045,7 @@ XML;
         string $airNs,
         string $comNs,
         string $segmentStatus = 'NN',
+        bool $referenceSegments = false,
     ): string {
         $segmentStatus = strtoupper(trim($segmentStatus));
         if (! in_array($segmentStatus, ['NN', 'HK'], true)) {
@@ -967,6 +1064,15 @@ XML;
             }
             $seenSegmentKeys[$segKey] = true;
             $segKey = $this->xmlEsc($segKey);
+
+            // When pricing segments already held on the Universal Record,
+            // restating full AirSegment elements makes the host sell duplicates
+            // (and fail the continuity check); reference the held segments instead.
+            if ($referenceSegments) {
+                $segmentsXml .= "\n                <AirSegmentRef Key=\"{$segKey}\"/>";
+
+                continue;
+            }
             $group = $this->xmlEsc((string) ($segment['group'] ?? '0'));
             $carrier = $this->xmlEsc((string) ($segment['carrier'] ?? ''));
             $flightNumber = $this->xmlEsc((string) ($segment['flight_number'] ?? ''));
@@ -1058,6 +1164,8 @@ XML;
         }
 
         $passengerTypesXml = '';
+        $travelerRefsXml = '';
+        $seenTravelerRefs = [];
         foreach ($pricingData['passenger_types'] ?? [] as $passengerType) {
             if (! is_array($passengerType)) {
                 continue;
@@ -1072,6 +1180,19 @@ XML;
                 $ageAttr = ' Age="' . $travelerAgeByRef[$rawRef] . '"';
             }
             $passengerTypesXml .= "\n                    <PassengerType Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"{$ageAttr}/>";
+
+            // When the refs are GDS keys of travelers already on the Universal
+            // Record (fare storage after hold), uAPI requires a matching
+            // BookingTravelerRef element inside AirPricingInfo; otherwise it
+            // rejects with "Key reference not found ... inside PassengerType".
+            // Skipped for in-request keys (traveler_N) used by the initial hold.
+            if ($rawRef !== ''
+                && ! isset($seenTravelerRefs[$rawRef])
+                && TravelportGdsKeyFormat::isUsableTravelerKey($rawRef)
+            ) {
+                $seenTravelerRefs[$rawRef] = true;
+                $travelerRefsXml .= "\n                    <BookingTravelerRef xmlns=\"{$comNs}\" Key=\"{$ref}\"/>";
+            }
         }
 
         $hostTokensXml = '';
@@ -1106,7 +1227,7 @@ XML;
                     ProviderCode="{$providerCode}">
                     {$fareInfosXml}
                     {$bookingInfosXml}
-                    {$taxesXml}{$passengerTypesXml}
+                    {$taxesXml}{$passengerTypesXml}{$travelerRefsXml}
                 </AirPricingInfo>
                 {$hostTokensXml}
 

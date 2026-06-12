@@ -243,6 +243,18 @@ final class TravelportHoldTravelerKeyResolver
                 continue;
             }
 
+            // The GDS may adjust the schedule slightly between shop and hold
+            // (e.g. 07:55 -> 08:00); restating stale times in fare storage trips
+            // the host continuity check, so always sync to the held times.
+            $heldDepTime = trim((string) ($held['dep_time'] ?? ''));
+            $heldArrTime = trim((string) ($held['arr_time'] ?? ''));
+            if ($heldDepTime !== '') {
+                $pricingData['segments'][$index]['dep_time'] = $heldDepTime;
+            }
+            if ($heldArrTime !== '') {
+                $pricingData['segments'][$index]['arr_time'] = $heldArrTime;
+            }
+
             $heldKey = trim((string) ($held['key'] ?? ''));
             if ($heldKey === '' || $heldKey === $quoteKey) {
                 continue;
@@ -378,6 +390,7 @@ final class TravelportHoldTravelerKeyResolver
                         'origin' => strtoupper(self::attributeValue($attrs, 'Origin')),
                         'destination' => strtoupper(self::attributeValue($attrs, 'Destination')),
                         'dep_time' => self::attributeValue($attrs, 'DepartureTime'),
+                        'arr_time' => self::attributeValue($attrs, 'ArrivalTime'),
                         'booking_code' => strtoupper(self::attributeValue($attrs, 'ClassOfService')),
                     ];
                 }
@@ -415,6 +428,7 @@ final class TravelportHoldTravelerKeyResolver
                 'origin' => strtoupper(trim((string) ($attrs['Origin'] ?? ''))),
                 'destination' => strtoupper(trim((string) ($attrs['Destination'] ?? ''))),
                 'dep_time' => trim((string) ($attrs['DepartureTime'] ?? '')),
+                'arr_time' => trim((string) ($attrs['ArrivalTime'] ?? '')),
                 'booking_code' => strtoupper(trim((string) ($attrs['ClassOfService'] ?? ''))),
             ];
         }
@@ -732,8 +746,12 @@ final class TravelportHoldTravelerKeyResolver
                 continue;
             }
 
+            // Same carrier/flight/route: tolerate minor GDS schedule shifts by
+            // only requiring the departure date to match, not the exact minute.
             $heldDepTime = self::normalizeSegmentTime((string) ($heldSegment['dep_time'] ?? ''));
-            if ($depTime !== '' && $heldDepTime !== '' && $depTime !== $heldDepTime) {
+            if ($depTime !== '' && $heldDepTime !== ''
+                && substr($depTime, 0, 10) !== substr($heldDepTime, 0, 10)
+            ) {
                 continue;
             }
 

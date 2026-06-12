@@ -291,107 +291,119 @@ class TravelportBookingService
 
             $holdResponse = null;
             $pricingData = [];
+            $locators = [];
+            $holdPricingInfoKeys = [];
 
-            for ($attempt = 1; $attempt <= 2; $attempt++) {
-                [$priceResponse, $pricingData, $itineraryData] = $this->buildFreshHoldPricing(
-                    $booking,
-                    $itineraryData,
-                    $searchRequest,
-                    $segments,
-                    $passengerCounts,
-                    $travelers,
-                );
+            for ($holdAttempt = 1; $holdAttempt <= 2; $holdAttempt++) {
+                for ($attempt = 1; $attempt <= 2; $attempt++) {
+                    [$priceResponse, $pricingData, $itineraryData] = $this->buildFreshHoldPricing(
+                        $booking,
+                        $itineraryData,
+                        $searchRequest,
+                        $segments,
+                        $passengerCounts,
+                        $travelers,
+                    );
 
-                $holdResponse = $this->client->airHold($travelers, $pricingData);
-                if ($holdResponse['success'] ?? false) {
-                    break;
+                    $holdResponse = $this->client->airHold($travelers, $pricingData);
+                    if ($holdResponse['success'] ?? false) {
+                        break;
+                    }
+
+                    $code = (string) ($holdResponse['error_code'] ?? '');
+                    if ($code !== '3000' || $attempt === 2) {
+                        break;
+                    }
+
+                    Log::warning('Travelport airHold returned GDS 3000, retrying once with fresh airPrice', [
+                        'booking_id' => $booking->id,
+                        'trace_id' => $holdResponse['trace_id'] ?? null,
+                        'error_details' => $holdResponse['error_details'] ?? null,
+                    ]);
                 }
 
-                $code = (string) ($holdResponse['error_code'] ?? '');
-                if ($code !== '3000' || $attempt === 2) {
-                    break;
+                if (! ($holdResponse['success'] ?? false)) {
+                    $code = (string) ($holdResponse['error_code'] ?? '');
+                    $traceId = (string) ($holdResponse['trace_id'] ?? '');
+                    Log::error('Travelport airHold rejected by GDS', [
+                        'booking_id' => $booking->id,
+                        'error_code' => $code !== '' ? $code : null,
+                        'trace_id' => $traceId !== '' ? $traceId : null,
+                        'error' => $holdResponse['error'] ?? null,
+                        'error_details' => $holdResponse['error_details'] ?? null,
+                    ]);
+                    throw new \RuntimeException($this->formatHoldGdsError($holdResponse));
                 }
 
-                Log::warning('Travelport airHold returned GDS 3000, retrying once with fresh airPrice', [
-                    'booking_id' => $booking->id,
-                    'trace_id' => $holdResponse['trace_id'] ?? null,
-                    'error_details' => $holdResponse['error_details'] ?? null,
-                ]);
-            }
+                $locators = $this->parseHoldLocators($holdResponse);
+                if (($locators['air_reservation_locator'] ?? '') === '') {
+                    throw new \RuntimeException('Travelport hold succeeded but no air reservation locator was returned.');
+                }
+                if (($locators['universal_locator'] ?? '') === '') {
+                    throw new \RuntimeException('Travelport hold succeeded but no universal record locator was returned.');
+                }
 
-            if (! ($holdResponse['success'] ?? false)) {
-                $code = (string) ($holdResponse['error_code'] ?? '');
-                $traceId = (string) ($holdResponse['trace_id'] ?? '');
-                Log::error('Travelport airHold rejected by GDS', [
-                    'booking_id' => $booking->id,
-                    'error_code' => $code !== '' ? $code : null,
-                    'trace_id' => $traceId !== '' ? $traceId : null,
-                    'error' => $holdResponse['error'] ?? null,
-                    'error_details' => $holdResponse['error_details'] ?? null,
-                ]);
-                throw new \RuntimeException($this->formatHoldGdsError($holdResponse));
-            }
-
-            $locators = $this->parseHoldLocators($holdResponse);
-            if (($locators['air_reservation_locator'] ?? '') === '') {
-                throw new \RuntimeException('Travelport hold succeeded but no air reservation locator was returned.');
-            }
-            if (($locators['universal_locator'] ?? '') === '') {
-                throw new \RuntimeException('Travelport hold succeeded but no universal record locator was returned.');
-            }
-
-            $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
-            $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($holdResponse);
-            if ($holdPricingInfoKeys === []) {
-                $retrieveAfterHold = $this->retrieveUniversalRecordForHold(
-                    (string) ($locators['universal_locator'] ?? ''),
-                );
-                if ($retrieveAfterHold['success'] ?? false) {
-                    $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($retrieveAfterHold);
-                    if ($holdPricingInfoKeys !== []) {
+                $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($holdResponse);
+                if ($holdPricingInfoKeys === []) {
+                    $retrieveAfterHold = $this->retrieveUniversalRecordForHold(
+                        (string) ($locators['universal_locator'] ?? ''),
+                    );
+                    if ($retrieveAfterHold['success'] ?? false) {
+                        $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($retrieveAfterHold);
                         $holdResponse = $retrieveAfterHold;
-                        Log::info('Travelport hold fare keys resolved from universal record retrieve', [
-                            'booking_id' => $booking->id,
-                            'universal_locator' => $locators['universal_locator'] ?? null,
-                            'air_pricing_info_keys' => $holdPricingInfoKeys,
-                        ]);
-                    } else {
-                        $holdResponse = $retrieveAfterHold;
+                        if ($holdPricingInfoKeys !== []) {
+                            Log::info('Travelport hold fare keys resolved from universal record retrieve', [
+                                'booking_id' => $booking->id,
+                                'universal_locator' => $locators['universal_locator'] ?? null,
+                                'air_pricing_info_keys' => $holdPricingInfoKeys,
+                            ]);
+                        }
                     }
                 }
-            }
 
-            if ($holdPricingInfoKeys === []) {
-                Log::warning('Travelport hold succeeded but no reservation AirPricingInfo keys were extracted; attempting fare storage retry', [
+                if ($holdPricingInfoKeys !== []) {
+                    break;
+                }
+
+                // The host accepted the sell but did not store the fare (happens
+                // with some carriers, e.g. Gulf Air, when the quote changes at
+                // sell time). uAPI cannot add a stored fare to an existing air
+                // PNR afterwards, so release this hold and rebook from scratch.
+                Log::warning('Travelport hold completed without stored fares; releasing hold', [
                     'booking_id' => $booking->id,
+                    'hold_attempt' => $holdAttempt,
                     'air_reservation_locator' => $locators['air_reservation_locator'] ?? null,
+                    'universal_locator' => $locators['universal_locator'] ?? null,
                     'raw_len' => strlen((string) ($holdResponse['raw'] ?? '')),
                 ]);
 
-                $holdPricingInfoKeys = $this->storeFaresAndExtractKeys(
-                    $booking->id,
+                $cancelResponse = $this->client->airCancel(
                     (string) ($locators['universal_locator'] ?? ''),
                     (string) ($locators['universal_version'] ?? '0'),
-                    $pricingData,
-                    $travelers,
-                    $holdResponse,
                 );
 
-                if ($holdPricingInfoKeys !== []) {
-                    $retrieve = $this->client->universalRecordRetrieve((string) ($locators['universal_locator'] ?? ''));
-                    if ($retrieve['success'] ?? false) {
-                        $holdResponse = $retrieve;
-                    }
+                if (! ($cancelResponse['success'] ?? false)) {
+                    Log::error('Travelport could not release fare-less hold', [
+                        'booking_id' => $booking->id,
+                        'universal_locator' => $locators['universal_locator'] ?? null,
+                        'error' => $cancelResponse['error'] ?? null,
+                    ]);
+                    throw new \RuntimeException(
+                        'Travelport hold completed without stored fares on PNR '
+                        . trim((string) ($locators['air_reservation_locator'] ?? ''))
+                        . '. Release the hold and try again.',
+                    );
+                }
+
+                if ($holdAttempt === 2) {
+                    throw new \RuntimeException(
+                        'Travelport could not store fares for this itinerary after two attempts. '
+                        . 'The hold was released. Please search again or choose a different fare.',
+                    );
                 }
             }
 
-            if ($holdPricingInfoKeys === []) {
-                throw new \RuntimeException(
-                    'Travelport hold completed without stored fares on PNR '
-                    . trim((string) ($locators['air_reservation_locator'] ?? ''))
-                    . '. Release the hold and try again.',
-                );
-            }
+            $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
             $parsedHold = is_array($holdResponse['parsed'] ?? null) ? $holdResponse['parsed'] : [];
             $bookingResponse = $parsedHold['Body']['AirCreateReservationRsp'] ?? $parsedHold;
             if (is_array($bookingResponse)) {
