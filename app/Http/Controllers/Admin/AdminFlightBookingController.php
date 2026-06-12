@@ -12,6 +12,7 @@ use App\Services\Travelport\TravelportBookingService;
 use App\Support\BookingCancellationEligibility;
 use App\Support\FlightBookingAdminPresenter;
 use App\Support\FlightBookingAdminEticketPresenter;
+use App\Support\FlightItineraryLegsNormalizer;
 use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
