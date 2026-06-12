@@ -122,29 +122,30 @@ class TravelportHoldPricingInfoParser
     }
 
     /**
+     * Keys here already come from inside the committed Universal Record (quote
+     * blocks scrubbed). A reservation-scoped StoredFare key is valid even when it
+     * matches the saved airPrice pricing_info_key — Galileo often retains the same
+     * key on the PNR — so only genuine shop-session keys are dropped.
+     *
      * @param  list<string>  $keys
      * @return list<string>
      */
     public static function filterQuoteKeys(array $keys, string $airPriceKey): array
     {
         $keys = self::uniqueNonEmpty($keys);
-        $reservationKeys = self::filterToReservationKeys($keys);
 
-        if ($airPriceKey === '') {
-            return $reservationKeys !== [] ? $reservationKeys : $keys;
+        $reservationKeys = self::filterToReservationKeys($keys);
+        if ($reservationKeys !== []) {
+            return $reservationKeys;
         }
 
         $withoutShopQuote = array_values(array_filter(
             $keys,
-            static fn (string $key): bool => $key !== $airPriceKey && ! self::isShopSessionKey($key),
+            static fn (string $key): bool => ! self::isShopSessionKey($key)
+                && ($airPriceKey === '' || $key !== $airPriceKey),
         ));
 
-        $reservationWithoutQuote = self::filterToReservationKeys($withoutShopQuote);
-        if ($reservationWithoutQuote !== []) {
-            return $reservationWithoutQuote;
-        }
-
-        return $withoutShopQuote;
+        return $withoutShopQuote !== [] ? $withoutShopQuote : $keys;
     }
 
     /**
