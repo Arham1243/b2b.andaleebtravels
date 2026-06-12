@@ -366,10 +366,12 @@
                                 <div class="col-md-6">
                                     <label class="hp-label">Phone <span class="hp-req">*</span></label>
                                     @if ($isTravelport)
-                                        @include('user.flights.partials.hp-travelport-phone-field')
+                                        @include('user.flights.partials.hp-travelport-phone-field', [
+                                            'defaultPhone' => $defaultLeadContact ?? null,
+                                        ])
                                     @else
                                         <input type="tel" class="hp-input{{ $errors->has('lead.phone') ? ' is-invalid' : '' }}" name="lead[phone]"
-                                            value="{{ old('lead.phone') }}"
+                                            value="{{ old('lead.phone', $defaultLeadContact['phone'] ?? '') }}"
                                             required autocomplete="tel">
                                         @if ($errors->has('lead.phone'))
                                             <span class="hp-field-error">{{ $errors->first('lead.phone') }}</span>
@@ -379,7 +381,7 @@
                                 <div class="col-md-6">
                                     <label class="hp-label">Email <span class="hp-req">*</span></label>
                                     <input type="email" class="hp-input{{ $errors->has('lead.email') ? ' is-invalid' : '' }}" name="lead[email]"
-                                        value="{{ old('lead.email') }}"
+                                        value="{{ old('lead.email', $defaultLeadContact['email'] ?? '') }}"
                                         placeholder="" required autocomplete="email">
                                     @if ($errors->has('lead.email'))
                                         <span class="hp-field-error">{{ $errors->first('lead.email') }}</span>

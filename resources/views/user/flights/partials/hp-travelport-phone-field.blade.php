@@ -7,9 +7,9 @@
     $wrapperClass = $wrapperClass ?? 'hp-phone-field';
 
     $phoneForm = TravelportHoldPayloadBuilder::parseLeadPhoneForForm(
-        old($oldDotPrefix . '.phone'),
-        old($oldDotPrefix . '.phone_dial_code'),
-        old($oldDotPrefix . '.phone_local'),
+        old($oldDotPrefix . '.phone', data_get($defaultPhone, 'phone')),
+        old($oldDotPrefix . '.phone_dial_code', data_get($defaultPhone, 'phone_dial_code')),
+        old($oldDotPrefix . '.phone_local', data_get($defaultPhone, 'phone_local')),
     );
     $phoneDial = $phoneForm['dial_code'] ?: '971';
     $phoneLocal = $phoneForm['local'] ?? '';
@@ -22,7 +22,7 @@
 <div class="{{ $wrapperClass }}{{ $phoneHasError ? ' is-invalid' : '' }}" data-hp-travelport-phone>
     <input type="hidden" name="{{ $namePrefix }}[phone_dial_code]" value="{{ $phoneDial }}" data-hp-phone-dial-code>
     <input type="hidden" name="{{ $namePrefix }}[phone_local]" value="{{ $phoneLocal }}" data-hp-phone-local>
-    <input type="hidden" name="{{ $namePrefix }}[phone]" value="{{ old($oldDotPrefix . '.phone') }}" data-hp-phone-display>
+    <input type="hidden" name="{{ $namePrefix }}[phone]" value="{{ old($oldDotPrefix . '.phone', data_get($defaultPhone, 'phone')) }}" data-hp-phone-display>
     <input type="tel"
         class="{{ $inputClass }}{{ $phoneHasError ? ' is-invalid' : '' }}"
         data-hp-phone-input

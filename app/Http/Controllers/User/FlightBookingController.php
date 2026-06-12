@@ -7,6 +7,7 @@ use App\Models\B2bFlightBooking;
 use App\Models\B2bSavedPassenger;
 use App\Models\B2bWalletLedger;
 use App\Support\CountryCatalog;
+use App\Support\SupportContact;
 use App\Support\FlightPassengerDobValidator;
 use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
@@ -745,6 +746,7 @@ class FlightBookingController extends Controller
     {
         return array_merge([
             'countries' => CountryCatalog::forAutocomplete(),
+            'defaultLeadContact' => SupportContact::defaultLeadContact(),
         ], $data);
     }
 

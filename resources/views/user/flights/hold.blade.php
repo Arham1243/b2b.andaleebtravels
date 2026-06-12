@@ -444,12 +444,14 @@
                             <div class="row g-3 hp-pax-fields">
                                 <div class="col-md-6">
                                     <label class="hp-label">Phone <span class="hp-req">*</span></label>
-                                    @include('user.flights.partials.hp-travelport-phone-field')
+                                    @include('user.flights.partials.hp-travelport-phone-field', [
+                                        'defaultPhone' => $defaultLeadContact ?? null,
+                                    ])
                                 </div>
                                 <div class="col-md-6">
                                     <label class="hp-label">Email <span class="hp-req">*</span></label>
                                     <input type="email" class="hp-input{{ $errors->has('lead.email') ? ' is-invalid' : '' }}" name="lead[email]"
-                                        value="{{ old('lead.email') }}"
+                                        value="{{ old('lead.email', $defaultLeadContact['email'] ?? '') }}"
                                         placeholder="" required autocomplete="email">
                                     @if($errors->has('lead.email'))
                                         <span class="hp-field-error">{{ $errors->first('lead.email') }}</span>
