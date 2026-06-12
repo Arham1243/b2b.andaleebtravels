@@ -348,7 +348,7 @@
                                     <div class="hc-payment-options">
                                         {{-- Card --}}
                                         <label class="hc-payment-option">
-                                            <input type="radio" class="js-payment-method-option" value="payby" checked>
+                                            <input type="radio" class="js-payment-method-option" value="payby" @checked(old('payment_method') !== null ? old('payment_method') === 'payby' : ! $autoUseWallet)>
                                             <div class="hc-payment-option__body">
                                                 <div class="hc-payment-option__icon"><i class="bx bxs-credit-card"></i></div>
                                                 <div class="hc-payment-option__info">
@@ -568,24 +568,22 @@
                 if (els.summaryNet) els.summaryNet.textContent = formatPrice(remaining > 0 ? remaining : 0);
                 if (els.summaryTotalLabel) els.summaryTotalLabel.textContent = useWallet ? 'Amount to Pay' : 'Total Price';
 
-                // Show/hide remaining payment methods
+                // Payment methods always visible; wallet-only when no online method selected
                 if (els.remainingPaymentSection) {
-                    if (walletCoversAll && useWallet) {
-                        els.remainingPaymentSection.style.display = 'none';
-                        document.querySelectorAll('.js-payment-method-option').forEach(r => {
-                            r.checked = false;
-                        });
-                    } else {
-                        els.remainingPaymentSection.style.display = 'block';
-                        if (!document.querySelector('.js-payment-method-option:checked')) {
-                            const firstRadio = document.querySelector('.js-payment-method-option[value="payby"]');
-                            if (firstRadio) firstRadio.checked = true;
-                        }
+                    els.remainingPaymentSection.style.display = 'block';
+                    const hasPaymentSelected = document.querySelector('.js-payment-method-option:checked');
+                    if (!hasPaymentSelected && !(walletCoversAll && useWallet)) {
+                        const firstRadio = document.querySelector('.js-payment-method-option[value="payby"]');
+                        if (firstRadio) firstRadio.checked = true;
                     }
                     if (els.remainingPaymentTitle) {
-                        els.remainingPaymentTitle.textContent = useWallet && remaining > 0
-                            ? `Pay Remaining D ${formatPrice(remaining)} via`
-                            : 'Select Payment Method';
+                        if (walletCoversAll && useWallet) {
+                            els.remainingPaymentTitle.textContent = 'Or pay with another method';
+                        } else if (useWallet && remaining > 0) {
+                            els.remainingPaymentTitle.textContent = `Pay Remaining D ${formatPrice(remaining)} via`;
+                        } else {
+                            els.remainingPaymentTitle.textContent = 'Select Payment Method';
+                        }
                     }
                 }
 
@@ -652,15 +650,35 @@
 
             // Wallet toggle
             if (els.useWallet) {
-                els.useWallet.addEventListener('change', recalcWallet);
+                els.useWallet.addEventListener('change', function() {
+                    if (els.useWallet.checked) {
+                        const netTotal = getNetTotal();
+                        const deduction = Math.min(walletBalance, netTotal);
+                        if (deduction >= netTotal - 0.001) {
+                            document.querySelectorAll('.js-payment-method-option').forEach(function(r) {
+                                r.checked = false;
+                            });
+                        }
+                    }
+                    recalcWallet();
+                });
             }
 
             document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
-                radio.addEventListener('change', recalcWallet);
+                radio.addEventListener('change', function() {
+                    if (els.useWallet && els.useWallet.checked) {
+                        els.useWallet.checked = false;
+                    }
+                    recalcWallet();
+                });
             });
 
             const oldPaymentMethod = @json(old('payment_method', $autoUseWallet ? 'wallet' : 'payby'));
-            if (oldPaymentMethod && oldPaymentMethod !== 'wallet') {
+            if (oldPaymentMethod === 'wallet') {
+                document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
+                    radio.checked = false;
+                });
+            } else if (oldPaymentMethod) {
                 document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
                     radio.checked = radio.value === oldPaymentMethod;
                 });
