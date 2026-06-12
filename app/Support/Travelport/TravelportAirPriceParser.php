@@ -107,6 +107,11 @@ class TravelportAirPriceParser
             ];
         }
 
+        // Do not silently substitute a different booking class when the shopper selected one.
+        if ($pd['booking_infos'] === [] && $requestedBookingCode !== '' && ! empty($bookingMatches)) {
+            return $pd;
+        }
+
         if ($pd['booking_infos'] === [] && ! empty($bookingMatches)) {
             foreach ($bookingMatches as $match) {
                 $attrs = self::parseAttributeString($match[1]);
@@ -180,6 +185,10 @@ class TravelportAirPriceParser
         }
 
         if ($pd['segments'] === []) {
+            if ($requestedBookingCode !== '') {
+                return $pd;
+            }
+
             $pd['segments'] = array_values($segmentsByKey);
         }
 

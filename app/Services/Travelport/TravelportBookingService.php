@@ -230,6 +230,13 @@ class TravelportBookingService
             ];
         }
 
+        if (($pricingData['segments'] ?? []) === [] && $requestedClass !== '') {
+            return [
+                'success' => false,
+                'error' => 'Booking class ' . $requestedClass . ' is no longer available on this flight. Please search again.',
+            ];
+        }
+
         $repricedTotal = $this->parseTravelportMoneyAmount((string) ($pricingData['total_price'] ?? ''));
         if ($repricedTotal === null) {
             return [
@@ -1342,6 +1349,12 @@ class TravelportBookingService
         );
 
         if (($pricingData['solution_key'] ?? '') === '' || ($pricingData['segments'] ?? []) === []) {
+            if ($requestedClass !== '') {
+                throw new \RuntimeException(
+                    'Booking class ' . $requestedClass . ' is no longer available on this flight. Please search again.',
+                );
+            }
+
             throw new \RuntimeException('Unable to parse Travelport pricing for hold.');
         }
 
@@ -1520,17 +1533,26 @@ class TravelportBookingService
 
         if ($code === '3000') {
             $availabilityHint = null;
+            $classInvalid = false;
             foreach ($segmentErrors as $segmentError) {
                 $message = (string) $segmentError;
+                if (stripos($message, 'CLASS DOES NOT EXIST') !== false) {
+                    $classInvalid = true;
+                }
                 if (stripos($message, 'AVAIL') !== false
                     || stripos($message, 'WL CLOSED') !== false
                     || stripos($message, 'UNABLE') !== false) {
-                    $availabilityHint = $message;
-                    break;
+                    $availabilityHint ??= $message;
                 }
             }
 
-            if (is_string($availabilityHint) && $availabilityHint !== '') {
+            if ($classInvalid) {
+                $msg = 'The airline rejected the hold because the booking class for this fare is no longer valid on the flight';
+                if ($segmentErrorText !== '') {
+                    $msg .= ' (' . trim($segmentErrorText) . ')';
+                }
+                $msg .= '. Please search again and choose a fresh fare.';
+            } elseif (is_string($availabilityHint) && $availabilityHint !== '') {
                 $msg = 'The airline rejected the hold because seats are no longer available at the quoted fare (' . trim($availabilityHint) . '). Please search again.';
             } else {
                 $msg = 'The airline reservation system rejected the hold (GDS error 3000). '
