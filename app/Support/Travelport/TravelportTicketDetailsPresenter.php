@@ -90,6 +90,7 @@ final class TravelportTicketDetailsPresenter
     private static function buildTicketsFromEtr(array $etr, B2bFlightBooking $booking): array
     {
         $passengerName = self::passengerNameFromEtr($etr);
+        $passengerType = self::passengerTypeFromEtr($etr);
         $pricing = self::asList($etr['AirPricingInfo'] ?? null)[0] ?? null;
         $pricingAttrs = is_array($pricing) ? ($pricing['@attributes'] ?? $pricing) : [];
 
@@ -101,6 +102,8 @@ final class TravelportTicketDetailsPresenter
 
         $shared = [
             'passenger_name' => $passengerName,
+            'passenger_type' => $passengerType['label'],
+            'passenger_type_code' => $passengerType['code'],
             'pnr' => self::attr($etr, 'ProviderLocatorCode') ?: ($booking->sabre_record_locator ?? ''),
             'air_reservation_locator' => self::nodeText($etr, 'AirReservationLocatorCode'),
             'plating_carrier' => strtoupper(self::attr($etr, 'PlatingCarrier', '')),
@@ -208,6 +211,76 @@ final class TravelportTicketDetailsPresenter
         }
 
         return '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $etr
+     * @return array{code: string, label: string}
+     */
+    private static function passengerTypeFromEtr(array $etr): array
+    {
+        $code = '';
+
+        foreach (self::asList($etr['BookingTraveler'] ?? null) as $traveler) {
+            if (! is_array($traveler)) {
+                continue;
+            }
+
+            $code = self::attr($traveler, 'TravelerType');
+            if ($code !== '') {
+                break;
+            }
+        }
+
+        $pricing = self::asList($etr['AirPricingInfo'] ?? null)[0] ?? null;
+        if ($code === '' && is_array($pricing)) {
+            foreach (self::asList($pricing['PassengerType'] ?? null) as $passengerType) {
+                if (! is_array($passengerType)) {
+                    continue;
+                }
+
+                $code = self::attr($passengerType, 'Code');
+                if ($code !== '') {
+                    break;
+                }
+            }
+
+            if ($code === '') {
+                foreach (self::asList($pricing['FareInfo'] ?? null) as $fareInfo) {
+                    if (! is_array($fareInfo)) {
+                        continue;
+                    }
+
+                    $code = self::attr($fareInfo, 'PassengerTypeCode');
+                    if ($code !== '') {
+                        break;
+                    }
+                }
+            }
+        }
+
+        $code = strtoupper(trim($code));
+
+        return [
+            'code' => $code,
+            'label' => $code !== '' ? self::passengerTypeLabel($code) : '',
+        ];
+    }
+
+    public static function passengerTypeLabel(string $code): string
+    {
+        $normalized = strtoupper(trim($code));
+
+        if (preg_match('/^CNN\d{2}$/', $normalized) === 1) {
+            return 'Child';
+        }
+
+        return match ($normalized) {
+            'ADT' => 'Adult',
+            'CNN', 'C06', 'C11', 'CHD' => 'Child',
+            'INF' => 'Infant',
+            default => $normalized !== '' ? $normalized : 'Passenger',
+        };
     }
 
     /**

@@ -195,7 +195,7 @@
                     const dep = departureDate.value || '';
                     const ret = tripType.value === 'round_trip' ? (returnDate.value || '') : '';
                     if (dep && ret) {
-                        dateLine = `${dep} | ${ret}`;
+                        dateLine = formatRecentRoundTripDates(dep, ret);
                     } else {
                         dateLine = dep || ret || ' - ';
                     }
@@ -262,6 +262,22 @@
                     day: 'numeric',
                     year: 'numeric'
                 }).replace(',', '');
+            };
+            const formatRecentRoundTripDates = (dep, ret) => {
+                if (!dep) {
+                    return ret || ' - ';
+                }
+                if (!ret) {
+                    return dep;
+                }
+
+                const depMatch = /^(.+),\s*(\d{4})$/.exec(dep.trim());
+                const retMatch = /^(.+),\s*(\d{4})$/.exec(ret.trim());
+                if (depMatch && retMatch && depMatch[2] === retMatch[2]) {
+                    return `${depMatch[1]} \u2013 ${retMatch[1]}, ${depMatch[2]}`;
+                }
+
+                return `${dep} \u2013 ${ret}`;
             };
             const segmentDateParts = (value) => {
                 if (!value) {

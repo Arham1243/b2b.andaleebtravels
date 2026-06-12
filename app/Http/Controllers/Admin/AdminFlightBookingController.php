@@ -59,7 +59,9 @@ class AdminFlightBookingController extends Controller
         $ticketDetails = $flightService->resolveTicketDetails($booking);
         $legs = FlightItineraryLegsNormalizer::forBooking($booking, $ticketDetails);
 
-        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails', 'ticketDetails', 'legs'))
+        $fareBreakdown = flightFareBreakdownForBooking($booking);
+
+        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails', 'ticketDetails', 'legs', 'fareBreakdown'))
             ->with('title', 'Booking ' . $booking->booking_number);
     }
 

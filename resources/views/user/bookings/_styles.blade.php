@@ -1136,6 +1136,15 @@
     font-weight: 600;
 }
 
+.bkpd-ticket__pax-type {
+    margin-left: .4rem;
+    font-size: .68rem;
+    font-weight: 700;
+    color: #8492a6;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
 .bkpd-info-rows--compact { padding-top: 8px; padding-bottom: 0; }
 
 .bkpd-ticket__coupons {

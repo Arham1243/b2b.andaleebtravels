@@ -1145,6 +1145,28 @@ if (! function_exists('flightFareBreakdownForBooking')) {
     function flightFareBreakdownForBooking(\App\Models\B2bFlightBooking $booking): array
     {
         $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $storedLines = $itinerary['passenger_fare_lines'] ?? null;
+
+        if ((! is_array($storedLines) || $storedLines === []) && $booking->isTravelport()) {
+            $searchData = array_merge(
+                is_array($booking->search_request) ? $booking->search_request : [],
+                [
+                    'adults' => (int) $booking->adults,
+                    'children' => (int) $booking->children,
+                    'infants' => (int) $booking->infants,
+                ],
+            );
+
+            $fromBookingResponse = \App\Support\FlightPassengerFareLinesPresenter::fromTravelportBookingResponse(
+                is_array($booking->booking_response) ? $booking->booking_response : null,
+                $searchData,
+            );
+
+            if ($fromBookingResponse !== []) {
+                $itinerary['passenger_fare_lines'] = $fromBookingResponse;
+                $itinerary = \App\Support\FlightPassengerFareLinesPresenter::syncItineraryFareTotals($itinerary);
+            }
+        }
 
         return flightFareBreakdown(
             $itinerary,

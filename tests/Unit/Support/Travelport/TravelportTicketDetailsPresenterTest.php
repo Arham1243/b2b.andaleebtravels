@@ -27,6 +27,9 @@ class TravelportTicketDetailsPresenterTest extends TestCase
                             'Taxes' => 'AED325',
                         ],
                         'BookingTraveler' => [
+                            '@attributes' => [
+                                'TravelerType' => 'ADT',
+                            ],
                             'BookingTravelerName' => [
                                 '@attributes' => [
                                     'First' => 'JOHN',
@@ -73,6 +76,8 @@ class TravelportTicketDetailsPresenterTest extends TestCase
         $this->assertCount(1, $tickets);
         $this->assertSame('1761234567890', $tickets[0]['ticket_number']);
         $this->assertSame('JOHN DOE', $tickets[0]['passenger_name']);
+        $this->assertSame('ADT', $tickets[0]['passenger_type_code']);
+        $this->assertSame('Adult', $tickets[0]['passenger_type']);
         $this->assertSame('EK', $tickets[0]['plating_carrier']);
         $this->assertSame('AED 525.00', $tickets[0]['total_price']);
         $this->assertCount(1, $tickets[0]['coupons']);

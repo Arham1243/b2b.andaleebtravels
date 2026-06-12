@@ -23,6 +23,37 @@ final class FlightPassengerFareLinesPresenter
     }
 
     /**
+     * @param  array<string, mixed>|null  $bookingResponse
+     * @param  array<string, mixed>  $searchData
+     * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
+     */
+    public static function fromTravelportBookingResponse(?array $bookingResponse, array $searchData = []): array
+    {
+        if (! is_array($bookingResponse) || $bookingResponse === []) {
+            return [];
+        }
+
+        foreach ([
+            'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.AirPricingInfo',
+            'UniversalRecord.AirReservation.AirPricingInfo',
+            'AirReservation.AirPricingInfo',
+            'AirPricingInfo',
+        ] as $path) {
+            $pricingInfos = self::asList(data_get($bookingResponse, $path));
+            if ($pricingInfos === []) {
+                continue;
+            }
+
+            $lines = self::fromTravelportPricingInfos($pricingInfos, $searchData);
+            if ($lines !== []) {
+                return $lines;
+            }
+        }
+
+        return [];
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $pricingInfos
      * @param  array<string, mixed>  $searchData
      * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>

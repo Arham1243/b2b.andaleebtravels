@@ -1535,6 +1535,8 @@
         .fs-pro-recent-row {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
+            row-gap: 0.2rem;
             gap: 0.6rem;
             padding: 0.55rem 0.9rem;
             border-radius: 999px;
@@ -1561,6 +1563,9 @@
             display: inline-flex;
             align-items: center;
             gap: 0.42rem;
+            flex: 0 1 auto;
+            min-width: 0;
+            white-space: nowrap;
             font-weight: 500;
             font-size: 0.86rem;
             color: var(--fs-ink);
@@ -1573,6 +1578,7 @@
             background: transparent;
             border: none;
             padding: 0;
+            white-space: nowrap;
         }
 
         .fs-pro-recent-row__arrow {
@@ -1586,6 +1592,7 @@
             align-items: center;
             gap: 0.4rem;
             margin-left: auto;
+            flex: 0 0 auto;
             font-feature-settings: "tnum" 1, "lnum" 1;
         }
 

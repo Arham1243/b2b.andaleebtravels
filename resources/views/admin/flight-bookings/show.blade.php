@@ -413,71 +413,15 @@
                     <div>
                         <div class="bkpd-card mb-3">
                             <div class="bkpd-card__section-head bkpd-card__section-head--green"><i class="bx bx-receipt"></i> Fare summary</div>
-                            <div class="bkpd-fare">
-                                @include('admin.partials.vendor-discount-fare', ['booking' => $booking])
-                                @php
-                                    $adminDetails = $adminDetails ?? [];
-                                    $fareBase = $adminDetails['base_price'] ?? null;
-                                    $fareTaxes = $adminDetails['taxes'] ?? null;
-                                @endphp
-                                @if ($fareBase !== null)
-                                    <div class="bkpd-fare__row">
-                                        <span>Base fare</span>
-                                        <span>{!! formatPrice($fareBase) !!}</span>
-                                    </div>
-                                @endif
-                                @if ($fareTaxes !== null)
-                                    <div class="bkpd-fare__row">
-                                        <span>Taxes &amp; fees</span>
-                                        <span>{!! formatPrice($fareTaxes) !!}</span>
-                                    </div>
-                                @endif
-                                @php
-                                    $adminFareBreakdown = flightFareBreakdownForBooking($booking);
-                                @endphp
-                                @if (($adminFareBreakdown['has_pax_lines'] ?? false) && ($adminFareBreakdown['has_breakdown'] ?? false))
-                                    <div class="bkpd-fare__pax-breakdown">
-                                        @include('user.flights.partials.fare-summary-breakdown', [
-                                            'breakdown' => $adminFareBreakdown,
-                                            'itinerary' => $booking->itinerary_data ?? [],
-                                            'adults' => (int) $booking->adults,
-                                            'children' => (int) $booking->children,
-                                            'infants' => (int) $booking->infants,
-                                            'fallbackTotal' => (float) $booking->total_amount,
-                                        ])
-                                    </div>
-                                @endif
-                                @if ($booking->isTravelport() && (int) $booking->children > 0 && ($canEditBooking ?? false))
-                                    <form action="{{ route('admin.flight-bookings.refresh-fare-breakdown', $booking->id) }}" method="POST"
-                                        class="mt-2"
-                                        onsubmit="return confirm('Re-run Travelport Air Price and refresh the per-passenger fare breakdown for this booking?');">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
-                                            <i class="bx bx-refresh"></i> Refresh fare breakdown
-                                        </button>
-                                    </form>
-                                @endif
-                                <div class="bkpd-fare__row">
-                                    <span>Total <span style="color:#8492a6;font-weight:400;">(× {{ $totalPax }} pax)</span></span>
-                                    <span>{!! formatPrice($booking->total_amount) !!}</span>
-                                </div>
-                                @if (($booking->wallet_amount ?? 0) > 0)
-                                    <div class="bkpd-fare__row">
-                                        <span>Wallet applied</span>
-                                        <span>− {!! formatPrice($booking->wallet_amount) !!}</span>
-                                    </div>
-                                @endif
-                                @if ($isHold)
-                                    <div class="bkpd-fare__row">
-                                        <span>Hold deposit</span>
-                                        <span style="color:#10b981;font-weight:800;">FREE</span>
-                                    </div>
-                                @endif
-                                <div class="bkpd-fare__row bkpd-fare__row--total">
-                                    <span>Amount</span>
-                                    <span>{!! formatPrice($booking->total_amount) !!}</span>
-                                </div>
-                            </div>
+                            @include('partials.flight-booking-fare-summary', [
+                                'booking' => $booking,
+                                'fareBreakdown' => $fareBreakdown ?? null,
+                                'isHold' => $isHold,
+                                'showVendorDiscount' => true,
+                                'showRefreshFareBreakdown' => $canEditBooking ?? false,
+                                'holdDepositLabel' => true,
+                                'totalLabel' => 'Amount',
+                            ])
                         </div>
 
                         <div class="bkpd-card mb-3">

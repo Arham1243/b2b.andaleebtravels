@@ -533,6 +533,8 @@
                                                 : ($stopsTotal === 1 ? '1 stop' : $stopsTotal.' stops');
                                     $depClock   = $s0['departure_clock'] ?? null;
                                     $depTimeSlot = flightDepartureTimeSlot($depClock);
+                                    $arrClock   = $sLast['arrival_clock'] ?? null;
+                                    $arrTimeSlot = flightDepartureTimeSlot($arrClock);
                                     $nextDay    = (bool)($sLast['next_day_hint'] ?? false);
 
                                     $midApts = [];
@@ -597,9 +599,9 @@
                                         </div>
                                     </div>
 
-                                    {{-- time-of-day col --}}
+                                    {{-- time-of-day col (arrival) --}}
                                     <div class="rc__redeyecol">
-                                        @include('user.flights.partials.departure-time-icon', ['clock' => $depClock, 'slot' => $depTimeSlot])
+                                        @include('user.flights.partials.departure-time-icon', ['clock' => $arrClock, 'slot' => $arrTimeSlot, 'kind' => 'arrival'])
                                     </div>
                                 </div>
                             @endforeach

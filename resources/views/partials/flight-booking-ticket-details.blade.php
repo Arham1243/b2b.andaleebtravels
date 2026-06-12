@@ -21,7 +21,12 @@
                 <div>
                     <div class="bkpd-ticket__number">{{ $ticket['ticket_number'] ?? '—' }}</div>
                     @if(!empty($ticket['passenger_name']))
-                        <div class="bkpd-ticket__pax">{{ $ticket['passenger_name'] }}</div>
+                        <div class="bkpd-ticket__pax">
+                            {{ $ticket['passenger_name'] }}
+                            @if(!empty($ticket['passenger_type']))
+                                <span class="bkpd-ticket__pax-type">{{ $ticket['passenger_type'] }}</span>
+                            @endif
+                        </div>
                     @endif
                 </div>
                 @if(!empty($ticket['ticket_status']))

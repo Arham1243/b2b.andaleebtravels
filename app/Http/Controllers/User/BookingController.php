@@ -83,7 +83,9 @@ class BookingController extends Controller
         $ticketDetails = $flightService->resolveTicketDetails($booking);
         $legs = FlightItineraryLegsNormalizer::forBooking($booking, $ticketDetails);
 
-        return view('user.bookings.flight-detail', compact('booking', 'counts', 'cancellation', 'ticketDetails', 'legs'));
+        $fareBreakdown = flightFareBreakdownForBooking($booking);
+
+        return view('user.bookings.flight-detail', compact('booking', 'counts', 'cancellation', 'ticketDetails', 'legs', 'fareBreakdown'));
     }
 
     public function flightEticketPdf(int $id, FlightService $flightService, Request $request)

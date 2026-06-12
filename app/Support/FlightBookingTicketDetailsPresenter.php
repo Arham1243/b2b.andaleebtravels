@@ -145,9 +145,15 @@ final class FlightBookingTicketDetailsPresenter
                 $pax['last_name'] ?? '',
             ]))));
 
+            $paxTypeCode = strtoupper(trim((string) ($pax['type'] ?? '')));
+
             $tickets[] = [
                 'ticket_number' => $number,
                 'passenger_name' => $name,
+                'passenger_type' => $paxTypeCode !== ''
+                    ? TravelportTicketDetailsPresenter::passengerTypeLabel($paxTypeCode)
+                    : '',
+                'passenger_type_code' => $paxTypeCode,
                 'ticket_status' => 'Issued',
                 'pnr' => $booking->sabre_record_locator,
                 'plating_carrier' => strtoupper(trim((string) (

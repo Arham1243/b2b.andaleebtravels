@@ -2,6 +2,11 @@
 
 @section('css')
 @include('user.bookings._styles')
+@include('user.flights.partials.hold-confirm-styles')
+<style>
+.bkp .bkpd-fare__pax-breakdown { margin-top: 0; padding-top: 0; border-top: none; }
+.bkp .hp-fare-acc { margin-bottom: .5rem; }
+</style>
 @endsection
 
 @section('content')
@@ -356,28 +361,11 @@
                         {{-- Fare summary --}}
                         <div class="bkpd-card mb-3">
                             <div class="bkpd-card__section-head bkpd-card__section-head--green"><i class="bx bx-receipt"></i> Fare Summary</div>
-                            <div class="bkpd-fare">
-                                <div class="bkpd-fare__row">
-                                    <span>Base Fare <span style="color:#8492a6;font-weight:400;">(× {{ $totalPax }} pax)</span></span>
-                                    <span><span class="dirham">D</span> {{ number_format((float)$booking->total_amount, 2) }}</span>
-                                </div>
-                                @if (($booking->wallet_amount ?? 0) > 0)
-                                <div class="bkpd-fare__row">
-                                    <span>Wallet applied</span>
-                                    <span>− <span class="dirham">D</span> {{ number_format((float) $booking->wallet_amount, 2) }}</span>
-                                </div>
-                                @endif
-                                @if($isHold)
-                                <div class="bkpd-fare__row">
-                                    <span>Hold Deposit</span>
-                                    <span style="color:#10b981;font-weight:800;">FREE</span>
-                                </div>
-                                @endif
-                                <div class="bkpd-fare__row bkpd-fare__row--total">
-                                    <span>Total</span>
-                                    <span><span class="dirham">D</span> {{ number_format((float)$booking->total_amount, 2) }}</span>
-                                </div>
-                            </div>
+                            @include('partials.flight-booking-fare-summary', [
+                                'booking' => $booking,
+                                'fareBreakdown' => $fareBreakdown ?? null,
+                                'isHold' => $isHold,
+                            ])
                         </div>
 
                         {{-- Booking meta --}}
