@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -82,6 +84,34 @@ class B2bSavedPassenger extends Model
             self::TYPE_INFANT => 'Infant',
             default => 'Adult',
         };
+    }
+
+    public function ageLabel(?DateTimeInterface $asOf = null): ?string
+    {
+        if ($this->dob === null) {
+            return null;
+        }
+
+        $asOf = Carbon::parse($asOf ?? now())->startOfDay();
+        $dob = $this->dob->copy()->startOfDay();
+
+        if ($dob->gt($asOf)) {
+            return null;
+        }
+
+        $years = (int) $dob->diffInYears($asOf);
+        if ($years >= 1) {
+            return $years . ' yr' . ($years === 1 ? '' : 's');
+        }
+
+        $months = (int) $dob->diffInMonths($asOf);
+        if ($months >= 1) {
+            return $months . ' mo' . ($months === 1 ? '' : 's');
+        }
+
+        $days = (int) $dob->diffInDays($asOf);
+
+        return $days . ' day' . ($days === 1 ? '' : 's');
     }
 
     /**

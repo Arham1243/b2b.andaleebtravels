@@ -808,7 +808,16 @@
                                         <td class="fw-semibold">
                                             {{ $passenger->title }} {{ $passenger->first_name }} {{ $passenger->last_name }}
                                         </td>
-                                        <td style="white-space:nowrap; font-size:12px;">{{ $passenger->dob?->format('d M Y') ?: '—' }}</td>
+                                        <td style="white-space:nowrap; font-size:12px;">
+                                            @if ($passenger->dob)
+                                                {{ $passenger->dob->format('d M Y') }}
+                                                @if ($ageLabel = $passenger->ageLabel())
+                                                    <div class="text-muted" style="font-size:10px;">Age {{ $ageLabel }}</div>
+                                                @endif
+                                            @else
+                                                —
+                                            @endif
+                                        </td>
                                         <td>{{ $passenger->passport_no ?: '—' }}</td>
                                         <td style="white-space:nowrap; font-size:12px;">{{ $passenger->passport_exp?->format('d M Y') ?: '—' }}</td>
                                         <td>{{ $passenger->nationality ?: '—' }}</td>

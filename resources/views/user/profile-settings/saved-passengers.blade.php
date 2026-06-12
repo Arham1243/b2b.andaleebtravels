@@ -253,7 +253,16 @@
                                                 <td>
                                                     <strong>{{ $passenger->title }} {{ $passenger->first_name }} {{ $passenger->last_name }}</strong>
                                                 </td>
-                                                <td>{{ $passenger->dob?->format('d M Y') ?: '—' }}</td>
+                                                <td>
+                                                    @if ($passenger->dob)
+                                                        {{ $passenger->dob->format('d M Y') }}
+                                                        @if ($ageLabel = $passenger->ageLabel())
+                                                            <div style="font-size:.72rem;color:#64748b;">Age {{ $ageLabel }}</div>
+                                                        @endif
+                                                    @else
+                                                        —
+                                                    @endif
+                                                </td>
                                                 <td>
                                                     @if ($passenger->passport_no)
                                                         {{ $passenger->passport_no }}
