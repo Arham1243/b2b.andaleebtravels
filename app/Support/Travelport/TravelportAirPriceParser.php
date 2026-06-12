@@ -10,8 +10,13 @@ class TravelportAirPriceParser
     /**
      * @return array<string, mixed>
      */
-    public static function extract(string $rawXml, string $requestedBookingCode = ''): array
-    {
+    public static function extract(
+        string $rawXml,
+        string $requestedBookingCode = '',
+        string $requestedFareBasis = '',
+        string $requestedSolutionKey = '',
+        array $fareTags = [],
+    ): array {
         $pd = [
             'provider_code' => '',
             'carrier' => '',
@@ -33,7 +38,13 @@ class TravelportAirPriceParser
             return $pd;
         }
 
-        $solutionXml = self::firstPricingSolutionXml($rawXml);
+        $solutionXml = self::firstPricingSolutionXml(
+            $rawXml,
+            $requestedBookingCode,
+            $requestedFareBasis,
+            $requestedSolutionKey,
+            $fareTags,
+        );
         if (preg_match('/<air:AirPricingSolution[^>]+Key="([^"]+)"[^>]+TotalPrice="([^"]+)"/i', $solutionXml, $m)) {
             $pd['solution_key'] = $m[1];
             $pd['total_price'] = $m[2];
@@ -514,12 +525,84 @@ class TravelportAirPriceParser
         return $result;
     }
 
-    private static function firstPricingSolutionXml(string $rawXml): string
-    {
-        if (preg_match('/<air:AirPricingSolution[\s\S]*?<\/air:AirPricingSolution>/i', $rawXml, $match)) {
-            return $match[0];
+    private static function firstPricingSolutionXml(
+        string $rawXml,
+        string $requestedBookingCode = '',
+        string $requestedFareBasis = '',
+        string $requestedSolutionKey = '',
+        array $fareTags = [],
+    ): string {
+        preg_match_all('/<air:AirPricingSolution[\s\S]*?<\/air:AirPricingSolution>/i', $rawXml, $matches);
+        $solutions = $matches[0] ?? [];
+
+        if ($solutions === []) {
+            return $rawXml;
         }
 
-        return $rawXml;
+        if ($requestedSolutionKey !== '') {
+            foreach ($solutions as $solution) {
+                if (preg_match('/\bKey="' . preg_quote($requestedSolutionKey, '/') . '"/i', $solution)) {
+                    return $solution;
+                }
+            }
+        }
+
+        $requestedFareBasis = strtoupper(trim($requestedFareBasis));
+        if ($requestedFareBasis !== '') {
+            $matchesByBasis = [];
+            foreach ($solutions as $solution) {
+                if (preg_match('/\bFareBasis="' . preg_quote($requestedFareBasis, '/') . '"/i', $solution)) {
+                    $matchesByBasis[] = $solution;
+                }
+            }
+
+            if (count($matchesByBasis) === 1) {
+                return $matchesByBasis[0];
+            }
+
+            if ($matchesByBasis !== []) {
+                foreach ($matchesByBasis as $solution) {
+                    if (self::solutionMatchesFareTags($solution, $fareTags)) {
+                        return $solution;
+                    }
+                }
+
+                return $matchesByBasis[0];
+            }
+        }
+
+        $requestedBookingCode = strtoupper(trim($requestedBookingCode));
+        if ($requestedBookingCode !== '') {
+            foreach ($solutions as $solution) {
+                if (preg_match('/\bBookingCode="' . preg_quote($requestedBookingCode, '/') . '"/i', $solution)) {
+                    return $solution;
+                }
+            }
+        }
+
+        return $solutions[0];
+    }
+
+    /**
+     * @param  list<string>  $fareTags
+     */
+    private static function solutionMatchesFareTags(string $solutionXml, array $fareTags): bool
+    {
+        $tags = array_map('strtolower', $fareTags);
+        if ($tags === []) {
+            return true;
+        }
+
+        $hasGfbToken = (bool) preg_match('/<(?:[\w-]+:)?HostToken[^>]*>\s*GFB/i', $solutionXml);
+
+        if (in_array('gds', $tags, true)) {
+            return $hasGfbToken;
+        }
+
+        if (in_array('ndc', $tags, true)) {
+            return ! $hasGfbToken;
+        }
+
+        return true;
     }
 }

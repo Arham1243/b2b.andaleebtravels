@@ -127,9 +127,22 @@ class TravelportBookingService
             }
 
             $repricedTotal = (float) ($airPrice['repriced_total'] ?? 0);
-            $expectedTotal = (float) ($itineraryData['totalPrice'] ?? 0);
+            $quotedSupplierTotal = $this->resolveQuotedSupplierTotal($itineraryData);
 
-            if ($strictTotal && $expectedTotal > 0 && $repricedTotal > 0 && abs($repricedTotal - $expectedTotal) > 0.02) {
+            if (
+                $strictTotal
+                && $quotedSupplierTotal > 0
+                && $repricedTotal > 0
+                && ! $this->fareTotalsWithinTolerance($repricedTotal, $quotedSupplierTotal)
+            ) {
+                Log::info('Travelport hold revalidation supplier fare drift', [
+                    'quoted_supplier_total' => $quotedSupplierTotal,
+                    'repriced_supplier_total' => $repricedTotal,
+                    'quoted_sell_total' => (float) ($itineraryData['totalPrice'] ?? 0),
+                    'fare_basis' => $itineraryData['fare_basis'] ?? null,
+                    'booking_code' => $itineraryData['booking_code'] ?? null,
+                ]);
+
                 return [
                     'success' => false,
                     'error' => 'Fare price has changed. Please search again.',
@@ -209,7 +222,13 @@ class TravelportBookingService
             }
         }
 
-        $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchParams, $travelers);
+        $priceResponse = $this->airPriceForItinerary(
+            $itineraryData,
+            $segments,
+            $passengerCounts,
+            $searchParams,
+            $travelers,
+        );
         if (! ($priceResponse['success'] ?? false)) {
             return [
                 'success' => false,
@@ -217,11 +236,7 @@ class TravelportBookingService
             ];
         }
 
-        $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
-        $pricingData = TravelportAirPriceParser::extract(
-            (string) ($priceResponse['raw'] ?? ''),
-            $requestedClass,
-        );
+        $pricingData = $this->extractPricingDataFromAirPriceResponse($itineraryData, $priceResponse);
 
         if (($pricingData['solution_key'] ?? '') === '') {
             return [
@@ -230,6 +245,7 @@ class TravelportBookingService
             ];
         }
 
+        $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
         if (($pricingData['segments'] ?? []) === [] && $requestedClass !== '') {
             return [
                 'success' => false,
@@ -1166,7 +1182,13 @@ class TravelportBookingService
             is_array($booking->passengers_data) ? $booking->passengers_data : [],
         );
 
-        $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest, $travelers);
+        $priceResponse = $this->airPriceForItinerary(
+            is_array($booking->itinerary_data) ? $booking->itinerary_data : [],
+            $segments,
+            $passengerCounts,
+            $searchRequest,
+            $travelers,
+        );
         if (! ($priceResponse['success'] ?? false)) {
             Log::warning('Travelport airPrice failed during fare storage recovery', [
                 'booking_id' => $booking->id,
@@ -1176,11 +1198,8 @@ class TravelportBookingService
             return [];
         }
 
-        $requestedClass = strtoupper(trim((string) data_get($booking->itinerary_data, 'booking_code', '')));
-        $pricingData = TravelportAirPriceParser::extract(
-            (string) ($priceResponse['raw'] ?? ''),
-            $requestedClass,
-        );
+        $itineraryData = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $pricingData = $this->extractPricingDataFromAirPriceResponse($itineraryData, $priceResponse);
         $pricingData['passenger_types'] = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
         $pricingData = $this->expandPricingDataForTravelers($pricingData, $travelers);
         $pricingData = $this->alignPricingToSegments($pricingData);
@@ -1529,17 +1548,20 @@ class TravelportBookingService
         array $passengerCounts,
         array $travelers,
     ): array {
-        $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest, $travelers);
+        $priceResponse = $this->airPriceForItinerary(
+            $itineraryData,
+            $segments,
+            $passengerCounts,
+            $searchRequest,
+            $travelers,
+        );
         if (! ($priceResponse['success'] ?? false)) {
             throw new \RuntimeException($priceResponse['error'] ?? 'Travelport airPrice failed.');
         }
 
-        $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
-        $pricingData = TravelportAirPriceParser::extract(
-            (string) ($priceResponse['raw'] ?? ''),
-            $requestedClass,
-        );
+        $pricingData = $this->extractPricingDataFromAirPriceResponse($itineraryData, $priceResponse);
 
+        $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
         if (($pricingData['solution_key'] ?? '') === '' || ($pricingData['segments'] ?? []) === []) {
             if ($requestedClass !== '') {
                 throw new \RuntimeException(
@@ -1559,13 +1581,18 @@ class TravelportBookingService
             $itineraryData = array_merge($itineraryData, $itineraryFare);
         }
 
-        $quotedTotal = (float) $booking->total_amount;
-        $repricedTotal = (float) ($itineraryFare['totalPrice'] ?? 0);
-        if ($repricedTotal > 0 && $quotedTotal > 0 && abs($repricedTotal - $quotedTotal) > 0.05) {
+        $quotedSupplierTotal = $this->resolveQuotedSupplierTotal($itineraryData);
+        $repricedSupplierTotal = $this->parseTravelportMoneyAmount((string) ($pricingData['total_price'] ?? ''))
+            ?? (float) ($itineraryFare['totalPrice'] ?? 0);
+        if (
+            $repricedSupplierTotal > 0
+            && $quotedSupplierTotal > 0
+            && ! $this->fareTotalsWithinTolerance($repricedSupplierTotal, $quotedSupplierTotal)
+        ) {
             throw new \RuntimeException(sprintf(
-                'Repriced total (%.2f) differs from quoted total (%.2f). Please search again.',
-                $repricedTotal,
-                $quotedTotal,
+                'Repriced supplier total (%.2f) differs from quoted supplier total (%.2f). Please search again.',
+                $repricedSupplierTotal,
+                $quotedSupplierTotal,
             ));
         }
 
@@ -1804,6 +1831,147 @@ class TravelportBookingService
     }
 
     /**
+     * Compare GDS supplier totals only — sell price includes agency markup/discount.
+     *
+     * @param  array<string, mixed>  $itineraryData
+     */
+    private function resolveQuotedSupplierTotal(array $itineraryData): float
+    {
+        $supplierPrice = round((float) ($itineraryData['supplierPrice'] ?? 0), 2);
+        if ($supplierPrice > 0) {
+            return $supplierPrice;
+        }
+
+        $supplierBase = round((float) ($itineraryData['supplierBasePrice'] ?? 0), 2);
+        $supplierTax = round((float) ($itineraryData['supplierTaxes'] ?? 0), 2);
+        if ($supplierBase > 0 || $supplierTax > 0) {
+            return round($supplierBase + $supplierTax, 2);
+        }
+
+        $originalPrice = round((float) ($itineraryData['originalPrice'] ?? 0), 2);
+        if ($originalPrice > 0) {
+            return $originalPrice;
+        }
+
+        return round((float) ($itineraryData['totalPrice'] ?? 0), 2);
+    }
+
+    private function fareTotalsWithinTolerance(float $left, float $right, float $tolerance = 0.05): bool
+    {
+        return abs($left - $right) <= $tolerance;
+    }
+
+    /**
+     * Branded tiers from "View More Fares" (AirPrice FareFamily) are not returned by plain airPrice.
+     *
+     * @param  array<string, mixed>  $itineraryData
+     */
+    private function itineraryUsesFareFamilyPricing(array $itineraryData): bool
+    {
+        return ! empty($itineraryData['travelport_air_price_solution']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $itineraryData
+     * @param  list<array<string, mixed>>  $segments
+     * @param  array<string, int>  $passengerCounts
+     * @param  array<string, mixed>  $searchRequest
+     * @param  list<array<string, mixed>>  $travelers
+     * @return array<string, mixed>
+     */
+    private function airPriceForItinerary(
+        array $itineraryData,
+        array $segments,
+        array $passengerCounts,
+        array $searchRequest,
+        array $travelers = [],
+    ): array {
+        if ($this->itineraryUsesFareFamilyPricing($itineraryData)) {
+            return $this->client->airPriceFareFamily($segments, $passengerCounts, $searchRequest);
+        }
+
+        return $this->client->airPrice($segments, $passengerCounts, $searchRequest, $travelers);
+    }
+
+    /**
+     * @param  array<string, mixed>  $itineraryData
+     * @param  array<string, mixed>  $priceResponse
+     * @return array<string, mixed>
+     */
+    private function extractPricingDataFromAirPriceResponse(array $itineraryData, array $priceResponse): array
+    {
+        return TravelportAirPriceParser::extract(
+            (string) ($priceResponse['raw'] ?? ''),
+            strtoupper(trim((string) ($itineraryData['booking_code'] ?? ''))),
+            strtoupper(trim((string) ($itineraryData['fare_basis'] ?? ''))),
+            trim((string) ($itineraryData['travelport_price_point_key'] ?? '')),
+            is_array($itineraryData['fare_tags'] ?? null) ? $itineraryData['fare_tags'] : [],
+        );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $fareOptions
+     * @param  array<string, mixed>  $itineraryData
+     * @return array<string, mixed>|null
+     */
+    private function pickMatchingFareOption(array $fareOptions, array $itineraryData): ?array
+    {
+        if ($fareOptions === []) {
+            return null;
+        }
+
+        $solutionKey = trim((string) ($itineraryData['travelport_price_point_key'] ?? ''));
+        if ($solutionKey !== '') {
+            foreach ($fareOptions as $option) {
+                if (($option['travelport_price_point_key'] ?? '') === $solutionKey) {
+                    return $option;
+                }
+            }
+        }
+
+        $fareBasis = strtoupper(trim((string) ($itineraryData['fare_basis'] ?? '')));
+        if ($fareBasis !== '') {
+            $candidates = array_values(array_filter(
+                $fareOptions,
+                static fn (array $option): bool => strtoupper(trim((string) ($option['fare_basis'] ?? ''))) === $fareBasis,
+            ));
+
+            if (count($candidates) === 1) {
+                return $candidates[0];
+            }
+
+            $fareTags = is_array($itineraryData['fare_tags'] ?? null) ? $itineraryData['fare_tags'] : [];
+            if ($candidates !== [] && $fareTags !== []) {
+                foreach ($candidates as $option) {
+                    $optionTags = is_array($option['fare_tags'] ?? null) ? $option['fare_tags'] : [];
+                    if (array_intersect($fareTags, $optionTags) !== []) {
+                        return $option;
+                    }
+                }
+            }
+
+            $expectedSupplierTotal = $this->resolveQuotedSupplierTotal($itineraryData);
+            if ($candidates !== [] && $expectedSupplierTotal > 0) {
+                foreach ($candidates as $option) {
+                    if ($this->fareTotalsWithinTolerance(
+                        (float) ($option['totalPrice'] ?? 0),
+                        $expectedSupplierTotal,
+                    )) {
+                        return $option;
+                    }
+                }
+            }
+        }
+
+        $pricingIndex = (int) ($itineraryData['travelport_pricing_index'] ?? -1);
+        if ($pricingIndex >= 0 && isset($fareOptions[$pricingIndex])) {
+            return $fareOptions[$pricingIndex];
+        }
+
+        return $fareOptions[0];
+    }
+
+    /**
      * @param  array<string, mixed>  $priceResponse
      * @param  array<string, mixed>  $searchRequest
      * @param  array<string, mixed>  $itineraryData
@@ -1821,7 +1989,7 @@ class TravelportBookingService
 
         $legs = is_array($itineraryData['legs'] ?? null) ? $itineraryData['legs'] : [];
         $fareOptions = TravelportAirPricePresenter::toFareOptions($parsed, $searchRequest, $legs);
-        $repricedFare = $fareOptions[0] ?? null;
+        $repricedFare = $this->pickMatchingFareOption($fareOptions, $itineraryData);
 
         if (! is_array($repricedFare)) {
             return [];
@@ -1832,9 +2000,9 @@ class TravelportBookingService
             'passenger_fare_warning' => $repricedFare['passenger_fare_warning'] ?? null,
             'supplierBasePrice' => $repricedFare['supplierBasePrice'] ?? null,
             'supplierTaxes' => $repricedFare['supplierTaxes'] ?? null,
+            'supplierPrice' => $repricedFare['totalPrice'] ?? null,
             'basePrice' => $repricedFare['basePrice'] ?? null,
             'taxes' => $repricedFare['taxes'] ?? null,
-            'totalPrice' => $repricedFare['totalPrice'] ?? null,
             'currency' => $repricedFare['currency'] ?? null,
         ], static fn ($value) => $value !== null);
 
@@ -1853,9 +2021,9 @@ class TravelportBookingService
                 'passenger_fare_warning',
                 'supplierBasePrice',
                 'supplierTaxes',
+                'supplierPrice',
                 'basePrice',
                 'taxes',
-                'totalPrice',
                 'currency',
             ]),
         );
