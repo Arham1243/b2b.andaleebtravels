@@ -54,6 +54,145 @@ final class FlightPassengerFareLinesPresenter
     }
 
     /**
+     * @param  array<string, mixed>|null  $ticketResponse
+     * @param  array<string, mixed>  $searchData
+     * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
+     */
+    public static function fromTravelportTicketResponse(?array $ticketResponse, array $searchData = []): array
+    {
+        if (! is_array($ticketResponse) || $ticketResponse === []) {
+            return [];
+        }
+
+        $pricingInfos = [];
+
+        foreach ([
+            'Body.AirTicketingRsp.ETR',
+            'AirTicketingRsp.ETR',
+            'ETR',
+        ] as $path) {
+            foreach (self::asList(data_get($ticketResponse, $path)) as $etr) {
+                if (! is_array($etr)) {
+                    continue;
+                }
+
+                foreach (self::asList($etr['AirPricingInfo'] ?? null) as $pricingInfo) {
+                    if (is_array($pricingInfo)) {
+                        $pricingInfos[] = $pricingInfo;
+                    }
+                }
+            }
+        }
+
+        if ($pricingInfos === []) {
+            return [];
+        }
+
+        return self::fromTravelportPricingInfos($pricingInfos, $searchData);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $lines
+     */
+    public static function linesCoverPassengers(array $lines, int $adults, int $children, int $infants): bool
+    {
+        if ($lines === []) {
+            return false;
+        }
+
+        $required = [];
+        if ($adults > 0) {
+            $required[] = 'adult';
+        }
+        if ($children > 0) {
+            $required[] = 'child';
+        }
+        if ($infants > 0) {
+            $required[] = 'infant';
+        }
+
+        if ($required === []) {
+            return true;
+        }
+
+        $covered = [];
+        foreach ($lines as $line) {
+            if (! is_array($line)) {
+                continue;
+            }
+
+            $typeKey = (string) ($line['type_key'] ?? self::typeKeyFromCode((string) ($line['type_code'] ?? 'ADT')));
+            if ((int) ($line['count'] ?? 0) > 0) {
+                $covered[$typeKey] = true;
+            }
+        }
+
+        foreach ($required as $typeKey) {
+            if (empty($covered[$typeKey])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Best available per-passenger fare lines for a saved booking.
+     *
+     * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
+     */
+    public static function resolveForBooking(\App\Models\B2bFlightBooking $booking): array
+    {
+        $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
+        $stored = is_array($itinerary['passenger_fare_lines'] ?? null) ? $itinerary['passenger_fare_lines'] : [];
+        $adults = (int) $booking->adults;
+        $children = (int) $booking->children;
+        $infants = (int) $booking->infants;
+
+        if (self::linesCoverPassengers($stored, $adults, $children, $infants)) {
+            return $stored;
+        }
+
+        if (! $booking->isTravelport()) {
+            return $stored;
+        }
+
+        $searchData = array_merge(
+            is_array($booking->search_request) ? $booking->search_request : [],
+            [
+                'adults' => $adults,
+                'children' => $children,
+                'infants' => $infants,
+            ],
+        );
+
+        $candidates = [
+            self::fromTravelportBookingResponse(
+                is_array($booking->booking_response) ? $booking->booking_response : null,
+                $searchData,
+            ),
+            self::fromTravelportTicketResponse(
+                is_array($booking->ticket_response) ? $booking->ticket_response : null,
+                $searchData,
+            ),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (self::linesCoverPassengers($candidate, $adults, $children, $infants)) {
+                return $candidate;
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== []) {
+                return $candidate;
+            }
+        }
+
+        return $stored;
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $pricingInfos
      * @param  array<string, mixed>  $searchData
      * @return list<array{type_key: string, type_code: string, label: string, count: int, base_per_pax: float, tax_per_pax: float}>
@@ -292,10 +431,13 @@ final class FlightPassengerFareLinesPresenter
             : self::buildFallbackLines($adults, $children, $infants, $displayBase, $displayTax, $supplierBase);
 
         $supplierFromLines = self::aggregateTotals($lines);
+        $linesCoverAll = self::linesCoverPassengers($lines, $adults, $children, $infants);
         $supplierBaseForRatio = $hasStoredLines && ($supplierFromLines['base'] ?? 0) > 0
             ? (float) $supplierFromLines['base']
             : $supplierBase;
-        $ratio = $supplierBaseForRatio > 0.001 ? ($displayBase / $supplierBaseForRatio) : 1.0;
+        $ratio = ($hasStoredLines && $linesCoverAll)
+            ? 1.0
+            : ($supplierBaseForRatio > 0.001 ? ($displayBase / $supplierBaseForRatio) : 1.0);
         $baseLines = [];
         $taxLines = [];
 
@@ -332,6 +474,7 @@ final class FlightPassengerFareLinesPresenter
             'tax_lines' => $taxLines,
             'has_pax_lines' => $baseLines !== [],
             'has_stored_lines' => $hasStoredLines,
+            'lines_cover_all' => $linesCoverAll,
             'base_from_lines' => $baseFromLines,
             'tax_from_lines' => $taxFromLines,
         ];

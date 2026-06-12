@@ -12,6 +12,7 @@ use App\Services\Travelport\TravelportBookingService;
 use App\Support\BookingCancellationEligibility;
 use App\Support\FlightBookingAdminPresenter;
 use App\Support\FlightItineraryLegsNormalizer;
+use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
 use App\Support\SupplierFlightBookingDetailsPresenter;
@@ -42,7 +43,7 @@ class AdminFlightBookingController extends Controller
             ->with('title', 'Flight Bookings');
     }
 
-    public function show(int $id, FlightService $flightService)
+    public function show(int $id, FlightService $flightService, TravelportBookingService $travelportBookingService)
     {
         $booking = B2bFlightBooking::with(['vendor.parentVendor'])->findOrFail($id);
         $booking->reconcileStatusAfterHoldPayment();
@@ -58,6 +59,21 @@ class AdminFlightBookingController extends Controller
         $adminDetails = FlightBookingAdminPresenter::present($booking);
         $ticketDetails = $flightService->resolveTicketDetails($booking);
         $legs = FlightItineraryLegsNormalizer::forBooking($booking, $ticketDetails);
+
+        if ($booking->isTravelport()) {
+            $storedLines = is_array($booking->itinerary_data['passenger_fare_lines'] ?? null)
+                ? $booking->itinerary_data['passenger_fare_lines']
+                : [];
+            if (! FlightPassengerFareLinesPresenter::linesCoverPassengers(
+                $storedLines,
+                (int) $booking->adults,
+                (int) $booking->children,
+                (int) $booking->infants,
+            )) {
+                $travelportBookingService->refreshBookingFareBreakdown($booking);
+                $booking->refresh();
+            }
+        }
 
         $fareBreakdown = flightFareBreakdownForBooking($booking);
 

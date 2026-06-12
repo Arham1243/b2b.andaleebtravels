@@ -1145,27 +1145,10 @@ if (! function_exists('flightFareBreakdownForBooking')) {
     function flightFareBreakdownForBooking(\App\Models\B2bFlightBooking $booking): array
     {
         $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
-        $storedLines = $itinerary['passenger_fare_lines'] ?? null;
+        $resolvedLines = \App\Support\FlightPassengerFareLinesPresenter::resolveForBooking($booking);
 
-        if ((! is_array($storedLines) || $storedLines === []) && $booking->isTravelport()) {
-            $searchData = array_merge(
-                is_array($booking->search_request) ? $booking->search_request : [],
-                [
-                    'adults' => (int) $booking->adults,
-                    'children' => (int) $booking->children,
-                    'infants' => (int) $booking->infants,
-                ],
-            );
-
-            $fromBookingResponse = \App\Support\FlightPassengerFareLinesPresenter::fromTravelportBookingResponse(
-                is_array($booking->booking_response) ? $booking->booking_response : null,
-                $searchData,
-            );
-
-            if ($fromBookingResponse !== []) {
-                $itinerary['passenger_fare_lines'] = $fromBookingResponse;
-                $itinerary = \App\Support\FlightPassengerFareLinesPresenter::syncItineraryFareTotals($itinerary);
-            }
+        if ($resolvedLines !== []) {
+            $itinerary['passenger_fare_lines'] = $resolvedLines;
         }
 
         return flightFareBreakdown(
@@ -1225,6 +1208,13 @@ if (! function_exists('flightFareBreakdown')) {
         $expectedGrandTotal = round($displayBase + $displayTax, 2);
 
         if (
+            ($paxBreakdown['has_pax_lines'] ?? false)
+            && ($paxBreakdown['lines_cover_all'] ?? false)
+            && $baseFromLines > 0
+        ) {
+            $summaryBase = $baseFromLines;
+            $summaryTax = $taxFromLines > 0 ? $taxFromLines : $displayTax;
+        } elseif (
             ($paxBreakdown['has_pax_lines'] ?? false)
             && $baseFromLines > 0
             && ($expectedGrandTotal <= 0 || abs($lineGrandTotal - $expectedGrandTotal) <= 0.05)

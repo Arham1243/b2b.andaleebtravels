@@ -11,8 +11,10 @@ use App\Services\BookingCancellationRecorder;
 use App\Services\BookingWalletRefundService;
 use App\Services\FlightService;
 use App\Services\HotelService;
+use App\Services\Travelport\TravelportBookingService;
 use App\Support\BookingCancellationEligibility;
 use App\Support\FlightItineraryLegsNormalizer;
+use App\Support\FlightPassengerFareLinesPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -68,7 +70,7 @@ class BookingController extends Controller
         return view('user.bookings.flights', compact('flightBookings', 'counts', 'status', 'search'));
     }
 
-    public function flightDetail(int $id, FlightService $flightService)
+    public function flightDetail(int $id, FlightService $flightService, TravelportBookingService $travelportBookingService)
     {
         $booking = B2bFlightBooking::where('b2b_vendor_id', Auth::id())->findOrFail($id);
         $booking->reconcileStatusAfterHoldPayment();
@@ -76,6 +78,21 @@ class BookingController extends Controller
         if ($booking->isSabre() && $booking->hasAirlinePnr()) {
             $flightService->syncSabreTicketNumbersIfMissing($booking);
             $booking->refresh();
+        }
+
+        if ($booking->isTravelport()) {
+            $storedLines = is_array($booking->itinerary_data['passenger_fare_lines'] ?? null)
+                ? $booking->itinerary_data['passenger_fare_lines']
+                : [];
+            if (! FlightPassengerFareLinesPresenter::linesCoverPassengers(
+                $storedLines,
+                (int) $booking->adults,
+                (int) $booking->children,
+                (int) $booking->infants,
+            )) {
+                $travelportBookingService->refreshBookingFareBreakdown($booking);
+                $booking->refresh();
+            }
         }
 
         $counts  = $this->bookingCounts();
