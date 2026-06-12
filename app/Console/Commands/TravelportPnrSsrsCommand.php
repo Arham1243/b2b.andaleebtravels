@@ -8,28 +8,19 @@ use Illuminate\Console\Command;
 
 class TravelportPnrSsrsCommand extends Command
 {
-    protected $signature = 'travelport:pnr-ssrs {locator : Universal Record locator (e.g. 364XDI) or booking ID prefixed with # (e.g. #87)}';
+    protected $signature = 'travelport:pnr-ssrs
+        {locator? : Universal Record locator (364XDI) or provider locator (GZWKT5)}
+        {--booking= : Booking ID from the database (use this instead of a locator)}';
 
     protected $description = 'Retrieve a live Universal Record from Travelport and list every SSR the GDS has on file (proves CTCM/CTCE/DOCS were received).';
 
-    public function handle(): int
+    public function handle(?string $locator = null): int
     {
-        $locator = strtoupper(trim((string) $this->argument('locator')));
+        $locator = $this->resolveLocator($locator);
+        if ($locator === '') {
+            $this->error('Provide a locator argument or use --booking=87');
 
-        if (str_starts_with($locator, '#')) {
-            $booking = B2bFlightBooking::find((int) substr($locator, 1));
-            if (! $booking) {
-                $this->error('Booking not found.');
-
-                return self::FAILURE;
-            }
-
-            $locator = strtoupper(trim($booking->travelportUniversalLocator()));
-            if ($locator === '') {
-                $this->error('Booking has no Travelport universal record locator.');
-
-                return self::FAILURE;
-            }
+            return self::FAILURE;
         }
 
         $this->info("Retrieving Universal Record {$locator} live from Travelport...");
@@ -70,5 +61,33 @@ class TravelportPnrSsrsCommand extends Command
         $this->info('These SSRs are stored on Travelport\'s side (host-assigned keys), confirming the GDS received them.');
 
         return self::SUCCESS;
+    }
+
+    private function resolveLocator(?string $locator): string
+    {
+        $bookingId = (int) $this->option('booking');
+        if ($bookingId > 0) {
+            $booking = B2bFlightBooking::find($bookingId);
+            if (! $booking) {
+                $this->error("Booking {$bookingId} not found.");
+
+                return '';
+            }
+
+            $universalLocator = strtoupper(trim($booking->travelportUniversalLocator()));
+            if ($universalLocator === '') {
+                $this->error("Booking {$bookingId} has no Travelport universal record locator.");
+
+                return '';
+            }
+
+            $this->line("Using universal locator {$universalLocator} from booking {$bookingId}.");
+
+            return $universalLocator;
+        }
+
+        $locator = strtoupper(trim((string) ($locator ?? $this->argument('locator') ?? '')));
+
+        return $locator;
     }
 }
