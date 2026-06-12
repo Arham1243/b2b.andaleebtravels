@@ -10,35 +10,102 @@ window.FlightFareRules = (function () {
             .replace(/"/g, '&quot;');
     }
 
-    function collectSectionTitles(components) {
-        const titles = new Set();
+    function parseSectionsFromText(text) {
+        const sections = [];
+        const blocks = String(text || '').split(/\n{2,}/);
 
-        (components || []).forEach((component) => {
+        blocks.forEach((block) => {
+            const trimmed = block.trim();
+            if (trimmed === '') {
+                return;
+            }
+
+            const lines = trimmed.split(/\r?\n/);
+            const firstLine = (lines[0] || '').trim();
+            const rest = lines.slice(1).join('\n').trim();
+
+            if (firstLine !== '' && rest !== '' && firstLine.length <= 120) {
+                sections.push({
+                    title: firstLine,
+                    paragraphs: [rest],
+                });
+            } else {
+                sections.push({
+                    title: '',
+                    paragraphs: [trimmed],
+                });
+            }
+        });
+
+        return sections;
+    }
+
+    function normalizeComponents(components) {
+        return (Array.isArray(components) ? components : []).map((component) => {
+            const sections = Array.isArray(component.sections) ? component.sections : [];
+
+            if (sections.length > 0) {
+                return component;
+            }
+
+            const text = String(component.text || '').trim();
+            if (text === '') {
+                return component;
+            }
+
+            return {
+                ...component,
+                sections: parseSectionsFromText(text),
+            };
+        });
+    }
+
+    function collectSectionTitles(components) {
+        const seen = new Set();
+        const titles = [];
+
+        normalizeComponents(components).forEach((component) => {
             (Array.isArray(component.sections) ? component.sections : []).forEach((section) => {
                 const title = String(section.title || '').trim();
-                if (title !== '') {
-                    titles.add(title);
+                if (title === '') {
+                    return;
                 }
+
+                const key = title.toUpperCase();
+                if (seen.has(key)) {
+                    return;
+                }
+
+                seen.add(key);
+                titles.push(title);
             });
         });
 
-        return Array.from(titles).sort((a, b) => a.localeCompare(b));
+        return titles.sort((a, b) => a.localeCompare(b));
+    }
+
+    function sectionMatchesFilter(section, filterTitle) {
+        if (!filterTitle || filterTitle === '__all__') {
+            return true;
+        }
+
+        return String(section.title || '').trim().toUpperCase() === String(filterTitle).trim().toUpperCase();
     }
 
     function renderFullFareRules(components, activeTitle) {
-        if (!Array.isArray(components) || components.length === 0) {
+        const normalized = normalizeComponents(components);
+
+        if (normalized.length === 0) {
             return '<p class="fd-rules__full-empty">No detailed fare rules returned for this fare.</p>';
         }
 
         const filterTitle = activeTitle && activeTitle !== '__all__' ? String(activeTitle) : '';
         let rendered = '';
 
-        components.forEach((component) => {
+        normalized.forEach((component) => {
             let html = '';
             const sections = Array.isArray(component.sections) ? component.sections : [];
-            const visibleSections = filterTitle === ''
-                ? sections
-                : sections.filter((section) => String(section.title || '').trim() === filterTitle);
+            const visibleSections = sections.filter((section) => sectionMatchesFilter(section, filterTitle));
 
             if (visibleSections.length === 0 && filterTitle !== '') {
                 return;
@@ -51,7 +118,7 @@ window.FlightFareRules = (function () {
 
             if (visibleSections.length > 0) {
                 visibleSections.forEach((section) => {
-                    html += '<div class="fd-rules__full-section">';
+                    html += `<div class="fd-rules__full-section" data-fd-rules-section="${escapeHtml(String(section.title || ''))}">`;
                     if (section.title) {
                         html += `<h4>${escapeHtml(section.title)}</h4>`;
                     }
@@ -85,16 +152,21 @@ window.FlightFareRules = (function () {
             return;
         }
 
-        const titles = collectSectionTitles(components);
+        const normalized = normalizeComponents(components);
+        const titles = collectSectionTitles(normalized);
+        fullWrap._fareRulesComponents = normalized;
+        fullWrap._fareRulesSectionTitles = titles;
 
-        if (titles.length <= 1) {
+        if (titles.length === 0) {
             toolbar.hidden = true;
             select.innerHTML = '<option value="__all__">All sections</option>';
             return;
         }
 
         select.innerHTML = '<option value="__all__">All sections</option>' +
-            titles.map((title) => `<option value="${escapeHtml(title)}">${escapeHtml(title)}</option>`).join('');
+            titles.map((title, index) => (
+                `<option value="section-${index}">${escapeHtml(title)}</option>`
+            )).join('');
 
         toolbar.hidden = false;
 
@@ -103,7 +175,12 @@ window.FlightFareRules = (function () {
         }
 
         fullWrap._fareRulesFilterHandler = function () {
-            body.innerHTML = renderFullFareRules(components, select.value);
+            const selected = select.value;
+            const activeTitle = selected === '__all__'
+                ? '__all__'
+                : (titles[parseInt(String(selected).replace('section-', ''), 10)] || '__all__');
+
+            body.innerHTML = renderFullFareRules(normalized, activeTitle);
         };
 
         select.addEventListener('change', fullWrap._fareRulesFilterHandler);
@@ -121,6 +198,11 @@ window.FlightFareRules = (function () {
 
         const status = fullWrap.querySelector('[data-fd-rules-status]');
         const body = fullWrap.querySelector('[data-fd-rules-body]');
+        const toolbar = fullWrap.querySelector('[data-fd-rules-toolbar]');
+        if (toolbar) {
+            toolbar.hidden = true;
+        }
+
         const url = customUrl
             ? new URL(customUrl, window.location.origin)
             : (() => {
@@ -148,8 +230,7 @@ window.FlightFareRules = (function () {
                 return;
             }
 
-            const components = Array.isArray(data.components) ? data.components : [];
-            fullWrap._fareRulesComponents = components;
+            const components = normalizeComponents(Array.isArray(data.components) ? data.components : []);
 
             if (status) status.hidden = true;
             if (body) {
@@ -213,6 +294,7 @@ window.FlightFareRules = (function () {
 
     return {
         escapeHtml,
+        normalizeComponents,
         collectSectionTitles,
         renderFullFareRules,
         setupSectionFilter,

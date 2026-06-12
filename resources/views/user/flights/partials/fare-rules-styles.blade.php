@@ -76,6 +76,13 @@
     flex-wrap: wrap;
     margin: .35rem 0 .55rem;
 }
+.fd-rules--page .fd-rules__full-toolbar {
+    margin: .5rem 1.1rem .65rem;
+    padding: .65rem .75rem;
+    background: #fff;
+    border: 1px solid var(--c-line);
+    border-radius: 10px;
+}
 .fd-rules__full-filter-label {
     font-size: .72rem;
     font-weight: 700;
@@ -102,6 +109,23 @@
     outline: none;
     border-color: var(--c-brand, #cd1b4f);
     box-shadow: 0 0 0 2px rgba(205, 27, 79, .12);
+}
+.fd-rules--page .fd-rules__full-filter {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: .55rem .75rem;
+    font-size: .86rem;
+    border: 1.5px solid var(--c-line);
+    border-radius: 8px;
+    background: #fff;
+}
+.fd-rules--page .fd-rules__full-filter:focus {
+    box-shadow: 0 0 0 3px rgba(205, 27, 79, .1);
+}
+.fd-rules--page .fd-rules__full-body {
+    margin-left: 1.1rem;
+    margin-right: 1.1rem;
+    margin-bottom: 1rem;
 }
 .fd-rules__full-body {
     max-height: min(52vh, 420px);
