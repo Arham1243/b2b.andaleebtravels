@@ -2,8 +2,8 @@
 
 @section('css')
 @include('user.bookings._styles')
-@include('user.flights.partials.hold-confirm-styles')
 <style>
+@include('user.flights.partials.hold-confirm-styles')
 .bkp .bkpd-fare__pax-breakdown { margin-top: 0; padding-top: 0; border-top: none; }
 .bkp .hp-fare-acc { margin-bottom: .5rem; }
 </style>
