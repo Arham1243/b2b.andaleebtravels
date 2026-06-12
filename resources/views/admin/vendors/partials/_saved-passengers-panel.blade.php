@@ -18,11 +18,13 @@
 @endphp
 
 @push('css')
+<style>
     @include('user.flights.partials.hp-pax-autocomplete-styles')
     .vs-ledger-modal .hp-ac-dropdown {
         z-index: 1060;
         border-color: #ebecf0;
     }
+</style>
 @endpush
 
 <div class="vs-tab-panel" id="panel-passengers">
