@@ -216,11 +216,6 @@
                     <div>
                         @include('admin.hotel-bookings.partials.supplier-booking-details')
 
-                        @include('partials.flight-booking-ticket-details-admin', [
-                            'booking' => $booking,
-                            'adminEticketDetails' => $adminEticketDetails ?? ['has_content' => false],
-                        ])
-
                         @include('admin.partials.booking-vendor-detail-card', ['vendor' => $booking->vendor])
 
                         <div class="bkpd-card mb-3">
@@ -447,6 +442,11 @@
                                 </div>
                             </div>
                         @endif
+
+                        @include('partials.flight-booking-ticket-details-admin', [
+                            'booking' => $booking,
+                            'adminEticketDetails' => $adminEticketDetails ?? ['has_content' => false],
+                        ])
 
                         @include('partials.flight-booking-fare-rules', ['booking' => $booking])
                     </div>
