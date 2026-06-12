@@ -336,6 +336,21 @@ class TravelportBookingService
             $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
             $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($holdResponse);
             if ($holdPricingInfoKeys === []) {
+                $retrieveAfterHold = $this->client->universalRecordRetrieve((string) ($locators['universal_locator'] ?? ''));
+                if ($retrieveAfterHold['success'] ?? false) {
+                    $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($retrieveAfterHold);
+                    if ($holdPricingInfoKeys !== []) {
+                        $holdResponse = $retrieveAfterHold;
+                        Log::info('Travelport hold fare keys resolved from universal record retrieve', [
+                            'booking_id' => $booking->id,
+                            'universal_locator' => $locators['universal_locator'] ?? null,
+                            'air_pricing_info_keys' => $holdPricingInfoKeys,
+                        ]);
+                    }
+                }
+            }
+
+            if ($holdPricingInfoKeys === []) {
                 Log::warning('Travelport hold succeeded but no reservation AirPricingInfo keys were extracted; attempting fare storage retry', [
                     'booking_id' => $booking->id,
                     'air_reservation_locator' => $locators['air_reservation_locator'] ?? null,
@@ -835,14 +850,37 @@ class TravelportBookingService
             return [];
         }
 
-        $keyMap = TravelportHoldTravelerKeyResolver::resolveRequestToGdsKeyMap($holdResponse, $travelers);
+        $keySourceResponse = $holdResponse;
+        $retrieveResponse = $this->client->universalRecordRetrieve($universalLocator);
+        if ($retrieveResponse['success'] ?? false) {
+            $keySourceResponse = $retrieveResponse;
+            $retrievedVersion = data_get($retrieveResponse, 'parsed.Body.UniversalRecordRetrieveRsp.UniversalRecord.@attributes.Version')
+                ?? data_get($retrieveResponse, 'parsed.Body.UniversalRecordRetrieveRsp.UniversalRecord.Version');
+            if (is_string($retrievedVersion) && trim($retrievedVersion) !== '') {
+                $version = trim($retrievedVersion);
+            }
+        } else {
+            Log::warning('Travelport universal record retrieve failed before fare storage', [
+                'booking_id' => $bookingId,
+                'universal_locator' => $universalLocator,
+                'error' => $retrieveResponse['error'] ?? null,
+            ]);
+        }
+
+        $keyMap = TravelportHoldTravelerKeyResolver::resolveRequestToGdsKeyMap($keySourceResponse, $travelers);
+        if ($keyMap === []) {
+            $keyMap = TravelportHoldTravelerKeyResolver::resolveRequestToGdsKeyMap($holdResponse, $travelers);
+        }
+
         if ($keyMap !== []) {
             Log::info('Travelport remapping passenger keys for fare storage', [
                 'booking_id' => $bookingId,
                 'universal_locator' => $universalLocator,
                 'key_map' => $keyMap,
+                'key_source' => ($retrieveResponse['success'] ?? false) ? 'universal_record_retrieve' : 'hold_response',
             ]);
             $pricingData = TravelportHoldTravelerKeyResolver::remapPricingDataTravelerRefs($pricingData, $keyMap);
+            $travelers = TravelportHoldTravelerKeyResolver::remapTravelerKeys($travelers, $keyMap);
         } else {
             Log::warning('Travelport could not resolve GDS traveler keys for fare storage', [
                 'booking_id' => $bookingId,
@@ -850,6 +888,11 @@ class TravelportBookingService
                 'traveler_count' => count($travelers),
             ]);
         }
+
+        $pricingData = TravelportHoldTravelerKeyResolver::remapPricingDataSegmentRefsFromHold(
+            $pricingData,
+            $keySourceResponse['success'] ?? false ? $keySourceResponse : $holdResponse,
+        );
 
         $storeResponse = $this->client->storeFaresOnUniversalRecord(
             $universalLocator,

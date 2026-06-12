@@ -735,8 +735,6 @@ document.addEventListener('DOMContentLoaded', function () {
         formSelector: '#confirmPayForm',
         buttonSelector: '#pay-btn',
         resetOnErrors: @json($errors->any() ?? false),
-        loadingHtml: '<i class="bx bx-loader-alt bx-spin"></i> Processing…',
-        loadingText: 'Processing…',
     });
 
     document.getElementById('confirmPayForm').addEventListener('submit', function (e) {

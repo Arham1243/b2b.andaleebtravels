@@ -1,3 +1,10 @@
+<div id="hp-submit-overlay" class="hp-submit-overlay" hidden role="alert" aria-live="assertive">
+    <div class="hp-submit-overlay__panel">
+        <i class="bx bx-loader-alt bx-spin" aria-hidden="true"></i>
+        <div class="hp-submit-overlay__text">Processing...</div>
+    </div>
+</div>
+
 <style>
 .hp-submit-overlay {
     position: fixed;
@@ -6,8 +13,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.42);
-    backdrop-filter: blur(2px);
+    background: rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(3px);
 }
 .hp-submit-overlay[hidden] {
     display: none !important;
@@ -16,22 +23,25 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: .75rem;
-    min-width: 220px;
-    padding: 1.35rem 2rem;
-    border-radius: 12px;
+    gap: .85rem;
+    min-width: 240px;
+    max-width: min(92vw, 360px);
+    padding: 1.5rem 2rem;
+    border-radius: 14px;
     background: #fff;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+    text-align: center;
 }
 .hp-submit-overlay__panel i {
-    font-size: 2.25rem;
+    font-size: 2.5rem;
     color: #cd1b4f;
     line-height: 1;
 }
 .hp-submit-overlay__text {
-    font-size: .95rem;
+    font-size: .98rem;
     font-weight: 600;
     color: #0f172a;
+    line-height: 1.45;
 }
 .hp-btn-pay.is-processing,
 .hp-btn-hold.is-processing {
@@ -40,41 +50,53 @@
 }
 .hp-btn-pay:disabled,
 .hp-btn-hold:disabled {
-    opacity: .72;
-    cursor: not-allowed;
+    opacity: .78;
+    cursor: wait;
     transform: none;
 }
 </style>
+
 <script>
 (function () {
-    const DEFAULT_LOADING_HTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing…';
+    const DEFAULT_LOADING_HTML = '<i class="bx bx-loader-alt bx-spin"></i> Processing...';
 
-    function ensureOverlay(loadingText) {
-        let overlay = document.getElementById('hp-submit-overlay');
-        if (overlay) {
-            const textEl = overlay.querySelector('.hp-submit-overlay__text');
-            if (textEl) {
-                textEl.textContent = loadingText;
-            }
-            overlay.hidden = false;
-            return overlay;
+    function overlayEl() {
+        return document.getElementById('hp-submit-overlay');
+    }
+
+    function setOverlayText(text) {
+        const overlay = overlayEl();
+        if (!overlay) {
+            return;
         }
+        const textEl = overlay.querySelector('.hp-submit-overlay__text');
+        if (textEl) {
+            textEl.textContent = text;
+        }
+    }
 
-        overlay = document.createElement('div');
-        overlay.id = 'hp-submit-overlay';
-        overlay.className = 'hp-submit-overlay';
-        overlay.setAttribute('role', 'alert');
-        overlay.setAttribute('aria-live', 'assertive');
-        overlay.innerHTML =
-            '<div class="hp-submit-overlay__panel">' +
-                '<i class="bx bx-loader-alt bx-spin" aria-hidden="true"></i>' +
-                '<div class="hp-submit-overlay__text">' + loadingText + '</div>' +
-            '</div>';
-        document.body.appendChild(overlay);
-        return overlay;
+    function showOverlay(text) {
+        const overlay = overlayEl();
+        if (!overlay) {
+            return;
+        }
+        if (text) {
+            setOverlayText(text);
+        }
+        overlay.hidden = false;
+    }
+
+    function hideOverlay() {
+        const overlay = overlayEl();
+        if (overlay) {
+            overlay.hidden = true;
+        }
     }
 
     window.HpFormSubmit = {
+        showOverlay: showOverlay,
+        hideOverlay: hideOverlay,
+
         bind: function (config) {
             const form = document.querySelector(config.formSelector);
             const buttons = config.buttonSelector
@@ -85,34 +107,44 @@
                 return;
             }
 
+            if (form.getAttribute('data-hp-submit-bound') === '1') {
+                return;
+            }
+            form.setAttribute('data-hp-submit-bound', '1');
+
             const loadingHtml = config.loadingHtml || DEFAULT_LOADING_HTML;
-            const loadingText = config.loadingText || 'Processing…';
+            const loadingText = config.loadingText || 'Processing...';
             const useOverlay = config.overlay !== false;
             const originals = new Map();
 
             buttons.forEach(function (btn) {
                 originals.set(btn, btn.innerHTML);
-                if (config.resetOnErrors) {
+            });
+
+            function resetButtons() {
+                buttons.forEach(function (btn) {
                     btn.disabled = false;
                     btn.classList.remove('is-processing');
                     btn.removeAttribute('aria-busy');
                     btn.innerHTML = originals.get(btn);
-                }
-            });
+                });
+            }
 
-            if (config.resetOnErrors) {
+            function hideLoading() {
                 form.removeAttribute('data-hp-submitting');
-                const overlay = document.getElementById('hp-submit-overlay');
-                if (overlay) {
-                    overlay.hidden = true;
-                }
+                hideOverlay();
+                resetButtons();
             }
 
             function showLoading() {
                 form.setAttribute('data-hp-submitting', '1');
 
                 if (useOverlay) {
-                    ensureOverlay(loadingText);
+                    showOverlay(loadingText);
+                    const el = overlayEl();
+                    if (el) {
+                        void el.offsetHeight;
+                    }
                 }
 
                 buttons.forEach(function (btn) {
@@ -123,36 +155,55 @@
                 });
             }
 
-            form.addEventListener('submit', function (e) {
+            if (config.resetOnErrors) {
+                hideLoading();
+            }
+
+            function shouldBlockSubmit() {
+                if (form.getAttribute('data-hp-submitting') === '1') {
+                    return true;
+                }
+                if (form.querySelector('.is-invalid')) {
+                    return true;
+                }
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return true;
+                }
+                return false;
+            }
+
+            function onSubmit(e) {
                 if (form.getAttribute('data-hp-submitting') === '1') {
                     e.preventDefault();
                     return;
                 }
 
                 if (e.defaultPrevented) {
+                    hideLoading();
                     return;
                 }
 
-                if (form.querySelector('.is-invalid')) {
+                if (shouldBlockSubmit()) {
                     e.preventDefault();
-                    return;
-                }
-
-                if (!form.checkValidity()) {
-                    e.preventDefault();
-                    form.reportValidity();
+                    hideLoading();
                     return;
                 }
 
                 showLoading();
-            });
+            }
 
-            buttons.forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    if (form.getAttribute('data-hp-submitting') === '1') {
-                        return;
-                    }
-                });
+            // Capture runs after DOB/passport validators (they register earlier).
+            form.addEventListener('submit', onSubmit, true);
+
+            form.addEventListener('invalid', function () {
+                hideLoading();
+            }, true);
+
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted) {
+                    hideLoading();
+                }
             });
         },
     };

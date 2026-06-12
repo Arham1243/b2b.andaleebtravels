@@ -478,6 +478,7 @@ XML;
             $travelerAgeByRef,
             $airNs,
             $comNs,
+            segmentStatus: 'HK',
         );
 
         $soap = <<<XML
@@ -930,7 +931,13 @@ XML;
         array $travelerAgeByRef,
         string $airNs,
         string $comNs,
+        string $segmentStatus = 'NN',
     ): string {
+        $segmentStatus = strtoupper(trim($segmentStatus));
+        if (! in_array($segmentStatus, ['NN', 'HK'], true)) {
+            $segmentStatus = 'NN';
+        }
+        $segmentStatusEsc = $this->xmlEsc($segmentStatus);
         $segmentsXml = '';
         $seenSegmentKeys = [];
         foreach ($pricingData['segments'] ?? [] as $segment) {
@@ -972,7 +979,7 @@ XML;
                     FlightTime="{$flightTime}"
                     TravelTime="{$travelTime}"
                     ClassOfService="{$bookingCode}"{$equipmentAttr}
-                    Status="NN"/>
+                    Status="{$segmentStatusEsc}"/>
 XML;
         }
 

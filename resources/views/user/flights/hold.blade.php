@@ -1078,8 +1078,6 @@
         formSelector: '#holdForm',
         buttonSelector: '#hold-btn',
         resetOnErrors: @json($errors->any()),
-        loadingHtml: '<i class="bx bx-loader-alt bx-spin"></i> Processing…',
-        loadingText: 'Processing…',
     });
 
     @if ($errors->any())

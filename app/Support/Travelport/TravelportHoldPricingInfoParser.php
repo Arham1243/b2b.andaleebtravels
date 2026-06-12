@@ -330,12 +330,12 @@ class TravelportHoldPricingInfoParser
 
     private static function isReservationKey(string $key): bool
     {
-        return str_starts_with($key, 'D1/');
+        return TravelportGdsKeyFormat::isReservationScopedKey($key);
     }
 
     private static function isShopSessionKey(string $key): bool
     {
-        return str_starts_with($key, 'xYM') || str_starts_with($key, 'xym');
+        return TravelportGdsKeyFormat::isShopSessionKey($key);
     }
 
     private static function isQuoteContextKey(string $key): bool
