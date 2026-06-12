@@ -56,6 +56,8 @@
 .bkp--admin .fd-rules__full-body::-webkit-scrollbar-thumb:hover {
     background: #9aa8b8;
 }
+.bkp--admin .fd-rules__full-toolbar { margin: .25rem 0 .45rem; }
+.bkp--admin .fd-rules__full-filter { font-size: .78rem; padding: .4rem .55rem; }
 .bkp--admin .fd-rules__component-grid div span,
 .bkp--admin .fd-rules__component-grid div strong {
     display: block;

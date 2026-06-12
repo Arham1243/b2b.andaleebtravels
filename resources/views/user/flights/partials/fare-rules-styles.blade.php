@@ -69,6 +69,40 @@
     align-items: center;
     gap: .45rem;
 }
+.fd-rules__full-toolbar {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    flex-wrap: wrap;
+    margin: .35rem 0 .55rem;
+}
+.fd-rules__full-filter-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin: 0;
+    flex-shrink: 0;
+}
+.fd-rules__full-filter {
+    flex: 1 1 220px;
+    min-width: 180px;
+    max-width: 100%;
+    padding: .45rem .65rem;
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--c-ink);
+    background: #fff;
+    border: 1px solid var(--c-line);
+    border-radius: 8px;
+    cursor: pointer;
+}
+.fd-rules__full-filter:focus {
+    outline: none;
+    border-color: var(--c-brand, #cd1b4f);
+    box-shadow: 0 0 0 2px rgba(205, 27, 79, .12);
+}
 .fd-rules__full-body {
     max-height: min(52vh, 420px);
     overflow: auto;

@@ -10,22 +10,47 @@ window.FlightFareRules = (function () {
             .replace(/"/g, '&quot;');
     }
 
-    function renderFullFareRules(components) {
+    function collectSectionTitles(components) {
+        const titles = new Set();
+
+        (components || []).forEach((component) => {
+            (Array.isArray(component.sections) ? component.sections : []).forEach((section) => {
+                const title = String(section.title || '').trim();
+                if (title !== '') {
+                    titles.add(title);
+                }
+            });
+        });
+
+        return Array.from(titles).sort((a, b) => a.localeCompare(b));
+    }
+
+    function renderFullFareRules(components, activeTitle) {
         if (!Array.isArray(components) || components.length === 0) {
             return '<p class="fd-rules__full-empty">No detailed fare rules returned for this fare.</p>';
         }
 
-        return components.map((component) => {
+        const filterTitle = activeTitle && activeTitle !== '__all__' ? String(activeTitle) : '';
+        let rendered = '';
+
+        components.forEach((component) => {
             let html = '';
+            const sections = Array.isArray(component.sections) ? component.sections : [];
+            const visibleSections = filterTitle === ''
+                ? sections
+                : sections.filter((section) => String(section.title || '').trim() === filterTitle);
+
+            if (visibleSections.length === 0 && filterTitle !== '') {
+                return;
+            }
 
             if (component.route) {
                 const basis = component.fare_basis ? ` · ${component.fare_basis}` : '';
                 html += `<div class="fd-rules__full-route">${escapeHtml(component.route)}${escapeHtml(basis)}</div>`;
             }
 
-            const sections = Array.isArray(component.sections) ? component.sections : [];
-            if (sections.length > 0) {
-                sections.forEach((section) => {
+            if (visibleSections.length > 0) {
+                visibleSections.forEach((section) => {
                     html += '<div class="fd-rules__full-section">';
                     if (section.title) {
                         html += `<h4>${escapeHtml(section.title)}</h4>`;
@@ -35,12 +60,54 @@ window.FlightFareRules = (function () {
                     });
                     html += '</div>';
                 });
-            } else if (component.text) {
+            } else if (component.text && filterTitle === '') {
                 html += `<div class="fd-rules__full-section"><p>${escapeHtml(component.text)}</p></div>`;
             }
 
-            return `<div class="fd-rules__full-component">${html}</div>`;
-        }).join('');
+            if (html !== '') {
+                rendered += `<div class="fd-rules__full-component">${html}</div>`;
+            }
+        });
+
+        if (rendered === '') {
+            return `<p class="fd-rules__full-empty">No fare rules found for “${escapeHtml(filterTitle)}”.</p>`;
+        }
+
+        return rendered;
+    }
+
+    function setupSectionFilter(fullWrap, components) {
+        const toolbar = fullWrap.querySelector('[data-fd-rules-toolbar]');
+        const select = fullWrap.querySelector('[data-fd-rules-filter]');
+        const body = fullWrap.querySelector('[data-fd-rules-body]');
+
+        if (!toolbar || !select || !body) {
+            return;
+        }
+
+        const titles = collectSectionTitles(components);
+
+        if (titles.length <= 1) {
+            toolbar.hidden = true;
+            select.innerHTML = '<option value="__all__">All sections</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="__all__">All sections</option>' +
+            titles.map((title) => `<option value="${escapeHtml(title)}">${escapeHtml(title)}</option>`).join('');
+
+        toolbar.hidden = false;
+
+        if (fullWrap._fareRulesFilterHandler) {
+            select.removeEventListener('change', fullWrap._fareRulesFilterHandler);
+        }
+
+        fullWrap._fareRulesFilterHandler = function () {
+            body.innerHTML = renderFullFareRules(components, select.value);
+        };
+
+        select.addEventListener('change', fullWrap._fareRulesFilterHandler);
+        select.value = '__all__';
     }
 
     async function loadIntoWrap(fullWrap, itineraryId, fareIndex, customUrl) {
@@ -81,11 +148,16 @@ window.FlightFareRules = (function () {
                 return;
             }
 
+            const components = Array.isArray(data.components) ? data.components : [];
+            fullWrap._fareRulesComponents = components;
+
             if (status) status.hidden = true;
             if (body) {
                 body.hidden = false;
-                body.innerHTML = renderFullFareRules(data.components || []);
+                body.innerHTML = renderFullFareRules(components, '__all__');
             }
+
+            setupSectionFilter(fullWrap, components);
             fullWrap.dataset.loaded = '1';
         } catch (error) {
             if (status) {
@@ -141,7 +213,9 @@ window.FlightFareRules = (function () {
 
     return {
         escapeHtml,
+        collectSectionTitles,
         renderFullFareRules,
+        setupSectionFilter,
         loadIntoWrap,
         loadForRoot,
         loadForModal,
