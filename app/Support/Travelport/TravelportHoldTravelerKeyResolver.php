@@ -13,17 +13,47 @@ final class TravelportHoldTravelerKeyResolver
      * @param  list<array<string, mixed>>  $travelers
      * @return array<string, string> request key => GDS key
      */
-    public static function resolveRequestToGdsKeyMap(array $holdResponse, array $travelers): array
+    /**
+     * @param  array<string, mixed>  ...$holdResponses
+     * @return array<string, string>
+     */
+    public static function resolveRequestToGdsKeyMapFromSources(array $travelers, array ...$holdResponses): array
     {
         if ($travelers === []) {
             return [];
         }
 
-        $gdsTravelers = self::extractBookingTravelersFromHold($holdResponse);
+        $gdsTravelers = [];
+        foreach ($holdResponses as $holdResponse) {
+            if (! is_array($holdResponse) || $holdResponse === []) {
+                continue;
+            }
+
+            $gdsTravelers = self::mergeTravelersByKey(
+                $gdsTravelers,
+                self::extractBookingTravelersFromHold($holdResponse),
+            );
+        }
+
         if ($gdsTravelers === []) {
             return [];
         }
 
+        return self::buildRequestToGdsKeyMap($travelers, $gdsTravelers);
+    }
+
+    public static function resolveRequestToGdsKeyMap(array $holdResponse, array $travelers): array
+    {
+        return self::resolveRequestToGdsKeyMapFromSources($travelers, $holdResponse);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $travelers
+     * @param  list<array{key: string, traveler_type: string, first: string, last: string}>  $gdsTravelers
+     * @return array<string, string>
+     */
+    private static function buildRequestToGdsKeyMap(array $travelers, array $gdsTravelers): array
+    {
         $map = [];
 
         foreach ($travelers as $index => $traveler) {
@@ -48,6 +78,88 @@ final class TravelportHoldTravelerKeyResolver
         }
 
         return $map;
+    }
+
+    /**
+     * @param  list<array{key: string, traveler_type: string, first: string, last: string}>  $existing
+     * @param  list<array{key: string, traveler_type: string, first: string, last: string}>  $incoming
+     * @return list<array{key: string, traveler_type: string, first: string, last: string}>
+     */
+    private static function mergeTravelersByKey(array $existing, array $incoming): array
+    {
+        if ($incoming === []) {
+            return $existing;
+        }
+
+        if ($existing === []) {
+            return $incoming;
+        }
+
+        $incomingByKey = [];
+        foreach ($incoming as $traveler) {
+            $key = trim((string) ($traveler['key'] ?? ''));
+            if ($key !== '') {
+                $incomingByKey[$key] = $traveler;
+            }
+        }
+
+        $merged = [];
+        $seenKeys = [];
+
+        foreach ($existing as $traveler) {
+            $key = trim((string) ($traveler['key'] ?? ''));
+            if ($key === '') {
+                continue;
+            }
+
+            $seenKeys[$key] = true;
+            if (isset($incomingByKey[$key])) {
+                $incomingTraveler = $incomingByKey[$key];
+                $merged[] = [
+                    'key' => $key,
+                    'traveler_type' => ($traveler['traveler_type'] ?? '') !== ''
+                        ? (string) $traveler['traveler_type']
+                        : (string) ($incomingTraveler['traveler_type'] ?? ''),
+                    'first' => ($traveler['first'] ?? '') !== ''
+                        ? (string) $traveler['first']
+                        : (string) ($incomingTraveler['first'] ?? ''),
+                    'last' => ($traveler['last'] ?? '') !== ''
+                        ? (string) $traveler['last']
+                        : (string) ($incomingTraveler['last'] ?? ''),
+                ];
+            } else {
+                $merged[] = $traveler;
+            }
+        }
+
+        foreach ($incoming as $traveler) {
+            $key = trim((string) ($traveler['key'] ?? ''));
+            if ($key === '' || isset($seenKeys[$key])) {
+                continue;
+            }
+
+            $seenKeys[$key] = true;
+            $merged[] = $traveler;
+        }
+
+        return $merged;
+    }
+
+    /**
+     * @param  array<string, mixed>  $holdResponse
+     * @return list<string>
+     */
+    public static function sampleExtractedTravelerKeys(array $holdResponse): array
+    {
+        $keys = [];
+        foreach (self::extractBookingTravelersFromHold($holdResponse) as $traveler) {
+            $key = trim((string) ($traveler['key'] ?? ''));
+            if ($key !== '') {
+                $keys[] = $key;
+            }
+        }
+
+        return $keys;
     }
 
     /**
@@ -171,7 +283,7 @@ final class TravelportHoldTravelerKeyResolver
         $raw = self::scrubQuoteBlocks((string) ($holdResponse['raw'] ?? ''));
 
         if ($raw !== '') {
-            $travelers = self::extractTravelersFromUniversalRecordRaw($raw);
+            $travelers = self::extractAllBookingTravelersFromRaw($raw);
             if ($travelers !== []) {
                 return $travelers;
             }
@@ -342,6 +454,100 @@ final class TravelportHoldTravelerKeyResolver
     /**
      * @return list<array{key: string, traveler_type: string, first: string, last: string}>
      */
+    private static function extractAllBookingTravelersFromRaw(string $raw): array
+    {
+        $travelers = self::extractTravelersFromUniversalRecordRaw($raw);
+        if ($travelers !== []) {
+            return $travelers;
+        }
+
+        $travelers = self::extractBookingTravelerElementsFromRaw($raw);
+        if ($travelers !== []) {
+            return $travelers;
+        }
+
+        return [];
+    }
+
+    /**
+     * @return list<array{key: string, traveler_type: string, first: string, last: string}>
+     */
+    private static function extractBookingTravelerElementsFromRaw(string $raw): array
+    {
+        $travelers = [];
+        $seenKeys = [];
+
+        if (preg_match_all(
+            '/<(?:[\w-]+:)?BookingTraveler\b([^>]*)\/>/i',
+            $raw,
+            $selfClosingMatches,
+            PREG_SET_ORDER,
+        )) {
+            foreach ($selfClosingMatches as $match) {
+                $traveler = self::travelerFromBookingTravelerAttributes((string) ($match[1] ?? ''), '');
+                if ($traveler === null) {
+                    continue;
+                }
+
+                $key = (string) ($traveler['key'] ?? '');
+                if ($key === '' || isset($seenKeys[$key])) {
+                    continue;
+                }
+
+                $seenKeys[$key] = true;
+                $travelers[] = $traveler;
+            }
+        }
+
+        if (preg_match_all(
+            '/<(?:[\w-]+:)?BookingTraveler\b([^>]*)>([\s\S]*?)<\/(?:[\w-]+:)?BookingTraveler>/i',
+            $raw,
+            $matches,
+            PREG_SET_ORDER,
+        )) {
+            foreach ($matches as $match) {
+                $traveler = self::travelerFromBookingTravelerAttributes(
+                    (string) ($match[1] ?? ''),
+                    (string) ($match[2] ?? ''),
+                );
+                if ($traveler === null) {
+                    continue;
+                }
+
+                $key = (string) ($traveler['key'] ?? '');
+                if ($key === '' || isset($seenKeys[$key])) {
+                    continue;
+                }
+
+                $seenKeys[$key] = true;
+                $travelers[] = $traveler;
+            }
+        }
+
+        return self::filterReservationTravelers($travelers);
+    }
+
+    /**
+     * @return array{key: string, traveler_type: string, first: string, last: string}|null
+     */
+    private static function travelerFromBookingTravelerAttributes(string $attrs, string $body): ?array
+    {
+        $key = self::attributeValue($attrs, 'Key');
+        if ($key === '' || ! TravelportGdsKeyFormat::isReservationScopedKey($key)) {
+            return null;
+        }
+
+        return [
+            'key' => $key,
+            'traveler_type' => strtoupper(self::attributeValue($attrs, 'TravelerType')),
+            'first' => self::normalizeName(self::elementAttributeValue($body, 'BookingTravelerName', 'First')),
+            'last' => self::normalizeName(self::elementAttributeValue($body, 'BookingTravelerName', 'Last')),
+        ];
+    }
+
+    /**
+     * @return list<array{key: string, traveler_type: string, first: string, last: string}>
+     */
     private static function extractTravelersFromUniversalRecordRaw(string $raw): array
     {
         if (! preg_match(
@@ -368,17 +574,12 @@ final class TravelportHoldTravelerKeyResolver
             $attrs = (string) ($match[1] ?? '');
             $body = (string) ($match[2] ?? '');
 
-            $key = self::attributeValue($attrs, 'Key');
-            if ($key === '' || ! TravelportGdsKeyFormat::isReservationScopedKey($key)) {
+            $traveler = self::travelerFromBookingTravelerAttributes($attrs, $body);
+            if ($traveler === null) {
                 continue;
             }
 
-            $travelers[] = [
-                'key' => $key,
-                'traveler_type' => strtoupper(self::attributeValue($attrs, 'TravelerType')),
-                'first' => self::normalizeName(self::elementAttributeValue($body, 'BookingTravelerName', 'First')),
-                'last' => self::normalizeName(self::elementAttributeValue($body, 'BookingTravelerName', 'Last')),
-            ];
+            $travelers[] = $traveler;
         }
 
         return $travelers;
@@ -391,6 +592,7 @@ final class TravelportHoldTravelerKeyResolver
     {
         $travelers = [];
         $seenKeys = [];
+        $confirmedTravelerKeys = self::collectRawBookingTravelerKeys($raw);
 
         if (! preg_match_all(
             '/<(?:[\w-]+:)?AirReservation\b[\s\S]*?<\/(?:[\w-]+:)?AirReservation>/i',
@@ -402,13 +604,14 @@ final class TravelportHoldTravelerKeyResolver
 
         foreach ($reservationMatches[0] as $reservationBlock) {
             if (preg_match_all(
-                '/<(?:[\w-]+:)?BookingTravelerRef\b[^>]*\bKey="([^"]+)"/i',
+                '/<(?:[\w-]+:)?BookingTravelerRef\b[^>]*\bKey=(["\'])([^"\']+)\1/i',
                 $reservationBlock,
                 $refMatches,
+                PREG_SET_ORDER,
             )) {
-                foreach ($refMatches[1] as $key) {
-                    $key = trim((string) $key);
-                    if ($key === '' || isset($seenKeys[$key]) || ! TravelportGdsKeyFormat::isReservationScopedKey($key)) {
+                foreach ($refMatches as $refMatch) {
+                    $key = trim((string) ($refMatch[2] ?? ''));
+                    if ($key === '' || isset($seenKeys[$key]) || ! self::isConfirmedTravelerKey($key, $confirmedTravelerKeys)) {
                         continue;
                     }
 
@@ -423,13 +626,14 @@ final class TravelportHoldTravelerKeyResolver
             }
 
             if (preg_match_all(
-                '/<(?:[\w-]+:)?PassengerType\b[^>]*\bBookingTravelerRef="([^"]+)"/i',
+                '/<(?:[\w-]+:)?PassengerType\b[^>]*\bBookingTravelerRef=(["\'])([^"\']+)\1/i',
                 $reservationBlock,
                 $passengerMatches,
+                PREG_SET_ORDER,
             )) {
-                foreach ($passengerMatches[1] as $key) {
-                    $key = trim((string) $key);
-                    if ($key === '' || isset($seenKeys[$key]) || ! TravelportGdsKeyFormat::isReservationScopedKey($key)) {
+                foreach ($passengerMatches as $passengerMatch) {
+                    $key = trim((string) ($passengerMatch[2] ?? ''));
+                    if ($key === '' || isset($seenKeys[$key]) || ! self::isConfirmedTravelerKey($key, $confirmedTravelerKeys)) {
                         continue;
                     }
 
@@ -445,6 +649,50 @@ final class TravelportHoldTravelerKeyResolver
         }
 
         return $travelers;
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private static function collectRawBookingTravelerKeys(string $raw): array
+    {
+        $keys = [];
+
+        if (! preg_match_all(
+            '/<(?:[\w-]+:)?BookingTraveler\b[^>]*\bKey=(["\'])([^"\']+)\1/i',
+            $raw,
+            $matches,
+            PREG_SET_ORDER,
+        )) {
+            return [];
+        }
+
+        foreach ($matches as $match) {
+            $key = trim((string) ($match[2] ?? ''));
+            if ($key === '' || str_starts_with($key, 'traveler_') || TravelportGdsKeyFormat::isShopSessionKey($key)) {
+                continue;
+            }
+
+            $keys[$key] = true;
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @param  array<string, true>  $confirmedTravelerKeys
+     */
+    private static function isConfirmedTravelerKey(string $key, array $confirmedTravelerKeys): bool
+    {
+        if (! TravelportGdsKeyFormat::isReservationScopedKey($key)) {
+            return false;
+        }
+
+        if ($confirmedTravelerKeys === []) {
+            return true;
+        }
+
+        return isset($confirmedTravelerKeys[$key]);
     }
 
     /**
@@ -573,8 +821,8 @@ final class TravelportHoldTravelerKeyResolver
 
     private static function attributeValue(string $attributeString, string $name): string
     {
-        if (preg_match('/\b' . preg_quote($name, '/') . '="([^"]*)"/i', $attributeString, $matches)) {
-            return trim($matches[1]);
+        if (preg_match('/\b' . preg_quote($name, '/') . '=(["\'])([^"\']*)\1/i', $attributeString, $matches)) {
+            return trim($matches[2]);
         }
 
         return '';
@@ -583,14 +831,14 @@ final class TravelportHoldTravelerKeyResolver
     private static function elementAttributeValue(string $xml, string $element, string $attribute): string
     {
         if (! preg_match(
-            '/<(?:[\w-]+:)?' . preg_quote($element, '/') . '\b[^>]*\b' . preg_quote($attribute, '/') . '="([^"]*)"/i',
+            '/<(?:[\w-]+:)?' . preg_quote($element, '/') . '\b[^>]*\b' . preg_quote($attribute, '/') . '=(["\'])([^"\']*)\1/i',
             $xml,
             $matches,
         )) {
             return '';
         }
 
-        return trim($matches[1]);
+        return trim($matches[2]);
     }
 
     /**

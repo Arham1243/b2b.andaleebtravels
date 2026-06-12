@@ -10,7 +10,7 @@ final class TravelportGdsKeyFormat
     public static function isReservationScopedKey(string $key): bool
     {
         $key = trim($key);
-        if ($key === '' || ! str_ends_with($key, '==')) {
+        if ($key === '') {
             return false;
         }
 
@@ -20,6 +20,10 @@ final class TravelportGdsKeyFormat
 
         if (self::isShopSessionKey($key)) {
             return false;
+        }
+
+        if (str_starts_with($key, 'D1/') || str_starts_with($key, '/NA')) {
+            return true;
         }
 
         // Reservation objects use a slash namespace (D1/…, /NA…). Shop quote keys do not.

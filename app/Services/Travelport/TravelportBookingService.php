@@ -883,10 +883,11 @@ class TravelportBookingService
             ]);
         }
 
-        $keyMap = TravelportHoldTravelerKeyResolver::resolveRequestToGdsKeyMap($keySourceResponse, $travelers);
-        if ($keyMap === []) {
-            $keyMap = TravelportHoldTravelerKeyResolver::resolveRequestToGdsKeyMap($holdResponse, $travelers);
-        }
+        $keyMap = TravelportHoldTravelerKeyResolver::resolveRequestToGdsKeyMapFromSources(
+            $travelers,
+            $keySourceResponse,
+            $holdResponse,
+        );
 
         if ($keyMap !== []) {
             Log::info('Travelport remapping passenger keys for fare storage', [
@@ -902,7 +903,11 @@ class TravelportBookingService
                 'booking_id' => $bookingId,
                 'universal_locator' => $universalLocator,
                 'traveler_count' => count($travelers),
+                'retrieve_traveler_keys' => TravelportHoldTravelerKeyResolver::sampleExtractedTravelerKeys($keySourceResponse),
+                'hold_traveler_keys' => TravelportHoldTravelerKeyResolver::sampleExtractedTravelerKeys($holdResponse),
             ]);
+
+            return [];
         }
 
         $pricingData = TravelportHoldTravelerKeyResolver::remapPricingDataSegmentRefsFromHold(
