@@ -28,6 +28,27 @@
     .vs-ledger-modal .hp-date-field .daterangepicker {
         z-index: 1065;
     }
+    #vendorPassengerModal .modal-content {
+        overflow: visible;
+    }
+    #vendorPassengerModal .modal-body {
+        overflow: visible;
+    }
+    @media (max-height: 720px) {
+        #vendorPassengerModal .modal-body {
+            max-height: calc(100vh - 11rem);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #c5c9d2 transparent;
+        }
+        #vendorPassengerModal .modal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        #vendorPassengerModal .modal-body::-webkit-scrollbar-thumb {
+            background: #c5c9d2;
+            border-radius: 999px;
+        }
+    }
 </style>
 <link rel="stylesheet" href="{{ asset('user/assets/css/daterangepicker.css') }}" />
 @endpush
@@ -138,7 +159,7 @@
 </div>
 
 <div class="modal fade vs-ledger-modal" id="vendorPassengerModal" tabindex="-1" aria-labelledby="vendorPassengerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <form id="vendor-passenger-form"
                   method="POST"

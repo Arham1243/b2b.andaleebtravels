@@ -51,3 +51,10 @@
     background-color: var(--c-brand, #cd1b4f) !important;
     color: #fff !important;
 }
+body > .daterangepicker.hp-modal-drp {
+    z-index: 1070 !important;
+    font-family: var(--sans, "Inter", sans-serif);
+    border-radius: 12px;
+    border-color: var(--c-line, #dde3ef);
+    box-shadow: 0 8px 28px rgba(26, 37, 64, .14);
+}

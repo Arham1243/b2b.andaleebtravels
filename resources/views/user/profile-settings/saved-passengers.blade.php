@@ -125,11 +125,21 @@
         .ps-pax-modal .modal-content {
             border: 1px solid #e4e9f0;
             border-radius: 14px;
-            overflow: hidden;
+            overflow: visible;
+        }
+        .ps-pax-modal .modal-body {
+            overflow: visible;
+        }
+        .ps-pax-modal .modal-dialog {
+            max-width: 720px;
         }
         .ps-pax-modal .modal-header {
             background: #f8fafc;
             border-bottom: 1px solid #e4e9f0;
+            border-radius: 14px 14px 0 0;
+        }
+        .ps-pax-modal .modal-footer {
+            border-radius: 0 0 14px 14px;
         }
         .ps-pax-modal .modal-title {
             font-size: 1rem;
@@ -144,6 +154,21 @@
         .ps-pax-modal .ps-form-grid .ps-field--full { grid-column: 1 / -1; }
         @media (max-width: 576px) {
             .ps-pax-modal .ps-form-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-height: 720px) {
+            .ps-pax-modal .modal-body {
+                max-height: calc(100vh - 11rem);
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: #cbd5e1 transparent;
+            }
+            .ps-pax-modal .modal-body::-webkit-scrollbar {
+                width: 6px;
+            }
+            .ps-pax-modal .modal-body::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 999px;
+            }
         }
     </style>
 @endsection
@@ -306,7 +331,7 @@
 </div>
 
 <div class="modal fade ps-pax-modal" id="passengerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <form id="passenger-form" method="POST" action="{{ route('user.profile.savedPassengers.store') }}">
                 @csrf

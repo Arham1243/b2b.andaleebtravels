@@ -145,10 +145,11 @@
             }
 
             const role = display.dataset.dateRole || 'dob';
+            const inModal = wrap.closest('.modal') !== null;
             const opts = Object.assign({}, defaults, {
-                parentEl: wrap,
-                opens: 'center',
-                drops: 'down',
+                parentEl: inModal ? 'body' : wrap,
+                opens: inModal ? 'left' : 'center',
+                drops: inModal ? 'auto' : 'down',
                 maxDate: false,
                 minDate: false,
             });
@@ -174,6 +175,14 @@
             $display.daterangepicker(opts);
 
             HpDatePicker.syncDisplay(hidden);
+
+            if (inModal) {
+                $display.off('show.daterangepicker.hp-modal').on('show.daterangepicker.hp-modal', function (_ev, picker) {
+                    if (picker && picker.container) {
+                        picker.container.addClass('hp-modal-drp');
+                    }
+                });
+            }
 
             if (role === 'dob' && hidden.dataset.paxType) {
                 $display.off('show.daterangepicker.hp-dob').on('show.daterangepicker.hp-dob', function () {
