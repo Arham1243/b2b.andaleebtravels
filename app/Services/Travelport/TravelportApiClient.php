@@ -954,6 +954,8 @@ XML;
             $flightTime = $this->xmlEsc((string) ($segment['flight_time'] ?? ''));
             $travelTime = $this->xmlEsc((string) ($segment['travel_time'] ?? ''));
             $bookingCode = $this->xmlEsc((string) ($segment['booking_code'] ?? ''));
+            $equipment = trim((string) ($segment['equipment'] ?? ''));
+            $equipmentAttr = $equipment !== '' ? ' Equipment="' . $this->xmlEsc($equipment) . '"' : '';
 
             $segmentsXml .= <<<XML
 
@@ -969,7 +971,7 @@ XML;
                     ArrivalTime="{$arrTime}"
                     FlightTime="{$flightTime}"
                     TravelTime="{$travelTime}"
-                    ClassOfService="{$bookingCode}"
+                    ClassOfService="{$bookingCode}"{$equipmentAttr}
                     Status="NN"/>
 XML;
         }
@@ -1250,7 +1252,13 @@ XML;
         $isFault = isset($parsed['Body']['Fault']);
         $faultMeta = $isFault
             ? $this->parseSoapFault($parsed, is_string($response) ? $response : '')
-            : ['message' => null, 'code' => null, 'trace_id' => null];
+            : [
+                'message' => null,
+                'code' => null,
+                'trace_id' => null,
+                'description' => null,
+                'segment_errors' => [],
+            ];
 
         return [
             'success' => !$isFault,
@@ -1260,19 +1268,33 @@ XML;
             'error' => $isFault ? ($faultMeta['message'] ?? 'SOAP Fault') : null,
             'error_code' => $faultMeta['code'] ?? null,
             'trace_id' => $faultMeta['trace_id'] ?? null,
+            'error_details' => $isFault ? [
+                'description' => $faultMeta['description'] ?? null,
+                'segment_errors' => $faultMeta['segment_errors'] ?? [],
+            ] : null,
         ];
     }
 
     /**
-     * @return array{message: ?string, code: ?string, trace_id: ?string}
+     * @return array{
+     *     message: ?string,
+     *     code: ?string,
+     *     trace_id: ?string,
+     *     description: ?string,
+     *     segment_errors: list<string>
+     * }
      */
     private function parseSoapFault(?array $parsed, string $raw): array
     {
         $message = $parsed['Body']['Fault']['faultstring'] ?? 'SOAP Fault';
         $code = data_get($parsed, 'Body.Fault.detail.ErrorInfo.Code')
+            ?? data_get($parsed, 'Body.Fault.detail.AvailabilityErrorInfo.Code')
             ?? data_get($parsed, 'Body.Fault.detail.common_v52_0:ErrorInfo.common_v52_0:Code');
         $traceId = data_get($parsed, 'Body.Fault.detail.ErrorInfo.TraceId')
+            ?? data_get($parsed, 'Body.Fault.detail.AvailabilityErrorInfo.TraceId')
             ?? data_get($parsed, 'Body.Fault.detail.common_v52_0:ErrorInfo.common_v52_0:TraceId');
+        $description = data_get($parsed, 'Body.Fault.detail.ErrorInfo.Description')
+            ?? data_get($parsed, 'Body.Fault.detail.AvailabilityErrorInfo.Description');
 
         if (! $code && preg_match('/<(?:common_v52_0:)?Code>(\d+)<\/(?:common_v52_0:)?Code>/i', $raw, $m)) {
             $code = $m[1];
@@ -1280,11 +1302,32 @@ XML;
         if (! $traceId && preg_match('/<(?:common_v52_0:)?TraceId>([^<]+)<\/(?:common_v52_0:)?TraceId>/i', $raw, $m)) {
             $traceId = trim($m[1]);
         }
+        if (! is_string($description) || trim($description) === '') {
+            if (preg_match('/<(?:common_v52_0:)?Description>([^<]+)<\/(?:common_v52_0:)?Description>/i', $raw, $m)) {
+                $description = trim($m[1]);
+            }
+        }
+
+        $segmentErrors = [];
+        if (preg_match_all(
+            '/<(?:air:)?ErrorMessage>([^<]+)<\/(?:air:)?ErrorMessage>/i',
+            $raw,
+            $segmentMatches,
+        )) {
+            foreach ($segmentMatches[1] as $segmentError) {
+                $segmentError = trim(html_entity_decode((string) $segmentError, ENT_QUOTES | ENT_XML1));
+                if ($segmentError !== '') {
+                    $segmentErrors[] = $segmentError;
+                }
+            }
+        }
 
         return [
             'message' => is_string($message) ? $message : 'SOAP Fault',
             'code' => is_string($code) ? $code : null,
             'trace_id' => is_string($traceId) ? $traceId : null,
+            'description' => is_string($description) ? trim($description) : null,
+            'segment_errors' => array_values(array_unique($segmentErrors)),
         ];
     }
 

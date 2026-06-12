@@ -282,36 +282,36 @@ class TravelportBookingService
                 throw new \RuntimeException('No passenger data for Travelport hold.');
             }
 
-            $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest, $travelers);
-            if (! ($priceResponse['success'] ?? false)) {
-                throw new \RuntimeException($priceResponse['error'] ?? 'Travelport airPrice failed.');
+            $holdResponse = null;
+            $pricingData = [];
+
+            for ($attempt = 1; $attempt <= 2; $attempt++) {
+                [$priceResponse, $pricingData, $itineraryData] = $this->buildFreshHoldPricing(
+                    $booking,
+                    $itineraryData,
+                    $searchRequest,
+                    $segments,
+                    $passengerCounts,
+                    $travelers,
+                );
+
+                $holdResponse = $this->client->airHold($travelers, $pricingData);
+                if ($holdResponse['success'] ?? false) {
+                    break;
+                }
+
+                $code = (string) ($holdResponse['error_code'] ?? '');
+                if ($code !== '3000' || $attempt === 2) {
+                    break;
+                }
+
+                Log::warning('Travelport airHold returned GDS 3000, retrying once with fresh airPrice', [
+                    'booking_id' => $booking->id,
+                    'trace_id' => $holdResponse['trace_id'] ?? null,
+                    'error_details' => $holdResponse['error_details'] ?? null,
+                ]);
             }
 
-            $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
-            $pricingData = TravelportAirPriceParser::extract(
-                (string) ($priceResponse['raw'] ?? ''),
-                $requestedClass,
-            );
-
-            if (($pricingData['solution_key'] ?? '') === '' || ($pricingData['segments'] ?? []) === []) {
-                throw new \RuntimeException('Unable to parse Travelport pricing for hold.');
-            }
-
-            $itineraryFare = $this->extractItineraryFareFromAirPrice(
-                $priceResponse,
-                $searchRequest,
-                $itineraryData,
-            );
-            if ($itineraryFare !== []) {
-                $itineraryData = array_merge($itineraryData, $itineraryFare);
-            }
-
-            $pricingData['passenger_types'] = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
-            $pricingData = $this->expandPricingDataForTravelers($pricingData, $travelers);
-            $pricingData = $this->alignPricingToSegments($pricingData);
-            $this->assertHoldPricingDataComplete($pricingData, $travelers);
-
-            $holdResponse = $this->client->airHold($travelers, $pricingData);
             if (! ($holdResponse['success'] ?? false)) {
                 $code = (string) ($holdResponse['error_code'] ?? '');
                 $traceId = (string) ($holdResponse['trace_id'] ?? '');
@@ -320,6 +320,7 @@ class TravelportBookingService
                     'error_code' => $code !== '' ? $code : null,
                     'trace_id' => $traceId !== '' ? $traceId : null,
                     'error' => $holdResponse['error'] ?? null,
+                    'error_details' => $holdResponse['error_details'] ?? null,
                 ]);
                 throw new \RuntimeException($this->formatHoldGdsError($holdResponse));
             }
@@ -396,17 +397,9 @@ class TravelportBookingService
                 'itinerary_data' => $itineraryData,
             ];
 
-            $repricedTotal = (float) ($itineraryFare['totalPrice'] ?? 0);
+            $repricedTotal = (float) ($itineraryData['totalPrice'] ?? 0);
             $quotedTotal = (float) $booking->total_amount;
             if ($repricedTotal > 0) {
-                if ($quotedTotal > 0 && abs($repricedTotal - $quotedTotal) > 0.05) {
-                    throw new \RuntimeException(sprintf(
-                        'Repriced total (%.2f) differs from quoted total (%.2f). Please search again.',
-                        $repricedTotal,
-                        $quotedTotal,
-                    ));
-                }
-
                 $bookingUpdate['total_amount'] = $repricedTotal;
                 $bookingUpdate['original_amount'] = $repricedTotal;
             }
@@ -1185,6 +1178,64 @@ class TravelportBookingService
     }
 
     /**
+     * @param  array<string, mixed>  $itineraryData
+     * @param  array<string, mixed>  $searchRequest
+     * @param  list<array<string, mixed>>  $segments
+     * @param  array<string, int>  $passengerCounts
+     * @param  list<array<string, mixed>>  $travelers
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>, 2: array<string, mixed>}
+     */
+    private function buildFreshHoldPricing(
+        B2bFlightBooking $booking,
+        array $itineraryData,
+        array $searchRequest,
+        array $segments,
+        array $passengerCounts,
+        array $travelers,
+    ): array {
+        $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest, $travelers);
+        if (! ($priceResponse['success'] ?? false)) {
+            throw new \RuntimeException($priceResponse['error'] ?? 'Travelport airPrice failed.');
+        }
+
+        $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
+        $pricingData = TravelportAirPriceParser::extract(
+            (string) ($priceResponse['raw'] ?? ''),
+            $requestedClass,
+        );
+
+        if (($pricingData['solution_key'] ?? '') === '' || ($pricingData['segments'] ?? []) === []) {
+            throw new \RuntimeException('Unable to parse Travelport pricing for hold.');
+        }
+
+        $itineraryFare = $this->extractItineraryFareFromAirPrice(
+            $priceResponse,
+            $searchRequest,
+            $itineraryData,
+        );
+        if ($itineraryFare !== []) {
+            $itineraryData = array_merge($itineraryData, $itineraryFare);
+        }
+
+        $quotedTotal = (float) $booking->total_amount;
+        $repricedTotal = (float) ($itineraryFare['totalPrice'] ?? 0);
+        if ($repricedTotal > 0 && $quotedTotal > 0 && abs($repricedTotal - $quotedTotal) > 0.05) {
+            throw new \RuntimeException(sprintf(
+                'Repriced total (%.2f) differs from quoted total (%.2f). Please search again.',
+                $repricedTotal,
+                $quotedTotal,
+            ));
+        }
+
+        $pricingData['passenger_types'] = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
+        $pricingData = $this->expandPricingDataForTravelers($pricingData, $travelers);
+        $pricingData = $this->alignPricingToSegments($pricingData);
+        $this->assertHoldPricingDataComplete($pricingData, $travelers);
+
+        return [$priceResponse, $pricingData, $itineraryData];
+    }
+
+    /**
      * @param  array<string, mixed>  $response
      */
     private function formatTravelportGdsError(array $response, string $fallback): string
@@ -1192,6 +1243,38 @@ class TravelportBookingService
         $code = trim((string) ($response['error_code'] ?? ''));
         $traceId = trim((string) ($response['trace_id'] ?? ''));
         $raw = trim((string) ($response['error'] ?? $fallback));
+        $details = is_array($response['error_details'] ?? null) ? $response['error_details'] : [];
+        $segmentErrors = is_array($details['segment_errors'] ?? null) ? $details['segment_errors'] : [];
+        $segmentErrorText = implode('; ', array_filter(array_map('strval', $segmentErrors)));
+
+        if ($code === '3000') {
+            $availabilityHint = null;
+            foreach ($segmentErrors as $segmentError) {
+                $message = (string) $segmentError;
+                if (stripos($message, 'AVAIL') !== false
+                    || stripos($message, 'WL CLOSED') !== false
+                    || stripos($message, 'UNABLE') !== false) {
+                    $availabilityHint = $message;
+                    break;
+                }
+            }
+
+            if (is_string($availabilityHint) && $availabilityHint !== '') {
+                $msg = 'The airline rejected the hold because seats are no longer available at the quoted fare (' . trim($availabilityHint) . '). Please search again.';
+            } else {
+                $msg = 'The airline reservation system rejected the hold (GDS error 3000). '
+                    . 'This is usually caused by sold-out inventory, a fare/class mismatch, or a host availability issue — not a passenger form error.';
+                if ($segmentErrorText !== '') {
+                    $msg .= ' Host detail: ' . $segmentErrorText . '.';
+                }
+            }
+
+            if ($traceId !== '') {
+                $msg .= ' Reference trace: ' . $traceId . '.';
+            }
+
+            return $msg;
+        }
 
         if ($code === '3515' || str_contains(strtolower($raw), 'primary host transaction')) {
             $msg = 'Travelport could not place the hold with the airline reservation system (GDS error 3515). '
