@@ -81,6 +81,8 @@ Route::middleware(['admin', 'admin.staff_gate'])->prefix('admin')->name('admin.'
     Route::resource('flight-bookings', AdminFlightBookingController::class)->only(['index', 'show']);
     Route::get('flight-bookings/{flight_booking}/eticket-pdf', [AdminFlightBookingController::class, 'eticketPdf'])
         ->name('flight-bookings.eticket-pdf');
+    Route::get('flight-bookings/{flight_booking}/travelport-cert-logs', [AdminFlightBookingController::class, 'travelportCertLogs'])
+        ->name('flight-bookings.travelport-cert-logs');
     Route::get('flight-bookings/{flight_booking}/fare-rules', [AdminFlightBookingController::class, 'fareRules'])
         ->name('flight-bookings.fare-rules');
     Route::post('flight-bookings/{flight_booking}/refresh-fare-breakdown', [AdminFlightBookingController::class, 'refreshFareBreakdown'])

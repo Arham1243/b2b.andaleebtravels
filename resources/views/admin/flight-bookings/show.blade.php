@@ -140,12 +140,21 @@
                 {{ Breadcrumbs::render('admin.flight-bookings.show', $booking) }}
             </div>
 
-            @include('partials.flight-eticket-export', [
-                'booking' => $booking,
-                'exportRoute' => route('admin.flight-bookings.eticket-pdf', $booking->id),
-                'variant' => 'compact',
-                'toolbar' => true,
-            ])
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                @include('partials.flight-eticket-export', [
+                    'booking' => $booking,
+                    'exportRoute' => route('admin.flight-bookings.eticket-pdf', $booking->id),
+                    'variant' => 'compact',
+                    'toolbar' => true,
+                ])
+
+                @if ($booking->isTravelport() && is_array($booking->booking_response) && $booking->booking_response !== [])
+                    <a href="{{ route('admin.flight-bookings.travelport-cert-logs', $booking->id) }}"
+                       class="btn btn-sm btn-outline-secondary">
+                        <i class="bx bx-archive-in me-1"></i>Travelport cert logs
+                    </a>
+                @endif
+            </div>
         </div>
 
         <div class="bkp bkp--admin">

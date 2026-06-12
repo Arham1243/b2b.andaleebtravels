@@ -16,6 +16,7 @@ use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
 use App\Support\SupplierFlightBookingDetailsPresenter;
+use App\Support\Travelport\TravelportCertificationPackageBuilder;
 use App\Support\Travelport\TravelportFareRulesResponseParser;
 use App\Support\Travelport\TravelportStoredFareRuleResolver;
 use Illuminate\Http\Request;
@@ -78,6 +79,13 @@ class AdminFlightBookingController extends Controller
         $booking = B2bFlightBooking::findOrFail($flight_booking);
 
         return $this->flightEticketExportResponse($booking, $flightService, $request);
+    }
+
+    public function travelportCertLogs(int $flight_booking)
+    {
+        $booking = B2bFlightBooking::findOrFail($flight_booking);
+
+        return TravelportCertificationPackageBuilder::download($booking);
     }
 
     public function refreshFareBreakdown(int $id, TravelportBookingService $travelportBookingService)
