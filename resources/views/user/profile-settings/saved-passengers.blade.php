@@ -2,8 +2,9 @@
 
 @section('css')
     @include('user.profile-settings._styles')
-    @include('user.flights.partials.hp-pax-autocomplete-styles')
     <style>
+        @include('user.flights.partials.hp-pax-autocomplete-styles')
+
         .ps-pax-tabs {
             display: flex;
             flex-wrap: wrap;
