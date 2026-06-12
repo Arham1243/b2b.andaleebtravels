@@ -31,11 +31,12 @@
     @php
         $pnrRefs = is_array($details['pnr_references'] ?? null) ? $details['pnr_references'] : [];
         $gdsPnr = strtoupper(trim((string) ($pnrRefs['gds_pnr'] ?? '')));
+        $airReservationLocator = strtoupper(trim((string) ($pnrRefs['air_reservation_locator'] ?? '')));
         $supplierPnr = strtoupper(trim((string) ($pnrRefs['supplier_pnr'] ?? '')));
         $supplierCode = strtoupper(trim((string) ($pnrRefs['supplier_code'] ?? '')));
     @endphp
 
-    @if($gdsPnr !== '' || $supplierPnr !== '')
+    @if($gdsPnr !== '' || $airReservationLocator !== '' || $supplierPnr !== '')
         <div class="bkpd-eticket-admin__section bkpd-eticket-admin__section--pnr">
             <div class="bkpd-eticket-admin__section-title">Record locators</div>
             <div class="bkpd-eticket-admin__pnr-grid">
@@ -43,6 +44,12 @@
                     <div class="bkpd-eticket-admin__pnr-card">
                         <div class="bkpd-eticket-admin__pnr-label">GDS PNR</div>
                         <div class="bkpd-eticket-admin__pnr-value">{{ $gdsPnr }}</div>
+                    </div>
+                @endif
+                @if($booking->isTravelport() && $airReservationLocator !== '' && $airReservationLocator !== $gdsPnr)
+                    <div class="bkpd-eticket-admin__pnr-card">
+                        <div class="bkpd-eticket-admin__pnr-label">Air reservation</div>
+                        <div class="bkpd-eticket-admin__pnr-value">{{ $airReservationLocator }}</div>
                     </div>
                 @endif
                 @if($supplierPnr !== '')
@@ -282,8 +289,11 @@
                             @include('admin.flight-bookings.partials.eticket-kv-grid', [
                                 'items' => array_filter([
                                     'gds_pnr' => !empty($ticket['gds_pnr']) ? ['label' => 'GDS PNR', 'value' => e($ticket['gds_pnr']), 'mono' => true] : null,
+                                    'air_reservation_locator' => (
+                                        !empty($ticket['air_reservation_locator'])
+                                        && strtoupper($ticket['air_reservation_locator']) !== strtoupper((string) ($ticket['gds_pnr'] ?? ''))
+                                    ) ? ['label' => 'Air reservation', 'value' => e($ticket['air_reservation_locator']), 'mono' => true] : null,
                                     'supplier_pnr' => !empty($ticket['supplier_pnr']) ? ['label' => 'Supplier PNR', 'value' => e($ticket['supplier_pnr']), 'mono' => true] : null,
-                                    'air_reservation_locator' => !empty($ticket['air_reservation_locator']) ? ['label' => 'Air reservation locator', 'value' => e($ticket['air_reservation_locator']), 'mono' => true] : null,
                                     'plating_carrier' => !empty($ticket['plating_carrier']) ? ['label' => 'Plating carrier', 'value' => e($ticket['plating_carrier'])] : null,
                                     'provider_code' => !empty($ticket['provider_code']) ? ['label' => 'Provider', 'value' => e($ticket['provider_code'])] : null,
                                     'iata_number' => !empty($ticket['iata_number']) ? ['label' => 'IATA number', 'value' => e($ticket['iata_number'])] : null,

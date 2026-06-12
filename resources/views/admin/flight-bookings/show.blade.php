@@ -257,12 +257,18 @@
                                 </div>
                             </div>
 
-                            @if ($gdsPnr !== '' || $supplierPnr !== '')
+                            @if ($gdsPnr !== '' || $airReservationLocator !== '' || $supplierPnr !== '')
                                 <div class="bkpd-pnr-row bkpd-pnr-row--dual">
                                     @if ($gdsPnr !== '')
                                         <div>
                                             <div class="bkpd-pnr-label">GDS PNR</div>
                                             <div class="bkpd-pnr-value">{{ $gdsPnr }}</div>
+                                        </div>
+                                    @endif
+                                    @if ($booking->isTravelport() && $airReservationLocator !== '' && $airReservationLocator !== $gdsPnr)
+                                        <div>
+                                            <div class="bkpd-pnr-label">Air reservation</div>
+                                            <div class="bkpd-pnr-value">{{ $airReservationLocator }}</div>
                                         </div>
                                     @endif
                                     @if ($supplierPnr !== '')
@@ -479,6 +485,12 @@
                                     <div class="bkpd-info-row">
                                         <span class="bkpd-info-row__label">GDS PNR</span>
                                         <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $gdsPnr }}</span>
+                                    </div>
+                                @endif
+                                @if ($booking->isTravelport() && $airReservationLocator !== '' && $airReservationLocator !== $gdsPnr)
+                                    <div class="bkpd-info-row">
+                                        <span class="bkpd-info-row__label">Air reservation</span>
+                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $airReservationLocator }}</span>
                                     </div>
                                 @endif
                                 @if ($supplierPnr !== '')
