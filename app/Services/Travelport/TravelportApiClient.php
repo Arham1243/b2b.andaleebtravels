@@ -146,7 +146,6 @@ XML;
 
         $airSegmentsXml = $this->buildAirPriceSegmentsXml($segments);
 
-        $passengerTypesXml = $this->buildAirPricingPassengerTypesXml($passengerCounts);
         $passengersXml = $this->buildSearchPassengersXmlFromCounts($passengerCounts, $searchData);
 
         $soap = <<<XML
@@ -165,8 +164,7 @@ XML;
             </air:AirItinerary>
             <air:AirPricingModifiers
                 ETicketability="Required"
-                FaresIndicator="PublicFaresOnly">{$passengerTypesXml}
-            </air:AirPricingModifiers>
+                FaresIndicator="PublicFaresOnly"/>
             {$passengersXml}
             <air:AirPricingCommand/>
         </air:AirPriceReq>
@@ -206,7 +204,6 @@ XML;
 
         $airSegmentsXml = $this->buildAirPriceSegmentsXml($segments, true);
 
-        $passengerTypesXml = $this->buildAirPricingPassengerTypesXml($passengerCounts);
         $passengersXml = $this->buildSearchPassengersXmlFromCounts($passengerCounts, $searchData);
 
         $soap = <<<XML
@@ -223,7 +220,7 @@ XML;
             <air:AirItinerary>
                 {$airSegmentsXml}
             </air:AirItinerary>
-            <air:AirPricingModifiers ETicketability="Required" FaresIndicator="PublicFaresOnly">{$passengerTypesXml}
+            <air:AirPricingModifiers ETicketability="Required" FaresIndicator="PublicFaresOnly">
                 <air:BrandModifiers>
                     <air:FareFamilyDisplay ModifierType="FareFamily"/>
                 </air:BrandModifiers>
@@ -809,25 +806,6 @@ XML;
             TravelportHoldPayloadBuilder::passengerCounts($searchData),
             $searchData,
         );
-    }
-
-    /**
-     * @param  array<string, int>  $passengerCounts
-     */
-    private function buildAirPricingPassengerTypesXml(array $passengerCounts): string
-    {
-        $xml = '';
-
-        foreach (['ADT', 'CNN', 'INF'] as $code) {
-            $quantity = max(0, (int) ($passengerCounts[$code] ?? 0));
-            if ($quantity === 0) {
-                continue;
-            }
-
-            $xml .= "\n                <air:PassengerType Code=\"{$code}\" Quantity=\"{$quantity}\"/>";
-        }
-
-        return $xml;
     }
 
     /**

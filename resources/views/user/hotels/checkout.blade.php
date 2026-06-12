@@ -5,7 +5,8 @@
         $adultCount = collect($rooms_request)->sum('Adults');
         $childrenCount = collect($rooms_request)->sum(fn($r) => count($r['ChildAges']));
         $groupedRooms = collect($selected_rooms)->groupBy(fn($room) => $room['room_name'] . '|' . $room['board_title']);
-        $walletBalance = Auth::user()->totalSpendableBalance();
+        $walletBalance = (float) Auth::user()->totalSpendableBalance();
+        $autoUseWallet = $walletBalance + 0.001 >= (float) $total_price;
     @endphp
 
     {{-- Price Update Modal --}}
@@ -309,7 +310,7 @@
                                 @if ($walletBalance > 0)
                                 <div class="hc-wallet-toggle" id="wallet-toggle-section">
                                     <label class="hc-wallet-toggle__label">
-                                        <input type="checkbox" id="use-wallet" name="use_wallet" value="1">
+                                        <input type="checkbox" id="use-wallet" name="use_wallet" value="1" @checked(old('use_wallet') !== null ? (bool) old('use_wallet') : $autoUseWallet)>
                                         <div class="hc-wallet-toggle__body">
                                             <div class="hc-wallet-toggle__left">
                                                 <div class="hc-payment-option__icon"><i class="bx bxs-wallet"></i></div>
@@ -335,11 +336,11 @@
                                             <span><span class="dirham">D</span> <span id="remaining-amount">0.00</span></span>
                                         </div>
                                     </div>
-                                    <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="0">
+                                    <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="{{ old('wallet_amount', $autoUseWallet ? number_format(min($walletBalance, $total_price), 2, '.', '') : '0') }}">
                                 </div>
                                 @endif
 
-                                <input type="hidden" name="payment_method" id="payment-method-input" value="payby">
+                                <input type="hidden" name="payment_method" id="payment-method-input" value="{{ old('payment_method', $autoUseWallet ? 'wallet' : 'payby') }}">
 
                                 {{-- Remaining Payment Method --}}
                                 <div class="hc-payment-remaining" id="remaining-payment-section">
@@ -657,6 +658,13 @@
             document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
                 radio.addEventListener('change', recalcWallet);
             });
+
+            const oldPaymentMethod = @json(old('payment_method', $autoUseWallet ? 'wallet' : 'payby'));
+            if (oldPaymentMethod && oldPaymentMethod !== 'wallet') {
+                document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
+                    radio.checked = radio.value === oldPaymentMethod;
+                });
+            }
 
             document.querySelectorAll('.hc-transfer-option__radio').forEach(r => r.addEventListener('change', recalcTotals));
 

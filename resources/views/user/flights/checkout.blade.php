@@ -19,6 +19,7 @@
         }
 
         $walletBalance = (float) ($walletBalance ?? 0);
+        $autoUseWallet = $walletBalance + 0.001 >= $totalAmount;
         $currency = $currency ?? 'AED';
         $from = strtoupper($searchParams['from'] ?? '');
         $to = strtoupper($searchParams['to'] ?? '');
@@ -385,7 +386,7 @@
                             @if ($walletBalance > 0)
                                 <div class="hcf-wallet-toggle" id="wallet-toggle-section">
                                     <label class="hcf-wallet-toggle__label">
-                                        <input type="checkbox" id="use-wallet" name="use_wallet" value="1" @checked(old('use_wallet'))>
+                                        <input type="checkbox" id="use-wallet" name="use_wallet" value="1" @checked(old('use_wallet') !== null ? (bool) old('use_wallet') : $autoUseWallet)>
                                         <div class="hcf-wallet-toggle__body">
                                             <div class="hcf-wallet-toggle__left">
                                                 <div class="hcf-pay-icon"><i class="bx bxs-wallet"></i></div>
@@ -411,11 +412,11 @@
                                             <span><span class="dirham">{{ $currency }}</span> <span id="remaining-amount">0.00</span></span>
                                         </div>
                                     </div>
-                                    <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="{{ old('wallet_amount', '0') }}">
+                                    <input type="hidden" name="wallet_amount" id="wallet-amount-input" value="{{ old('wallet_amount', $autoUseWallet ? number_format(min($walletBalance, $totalAmount), 2, '.', '') : '0') }}">
                                 </div>
                             @endif
 
-                            <input type="hidden" name="payment_method" id="payment-method-input" value="{{ old('payment_method', 'payby') }}">
+                            <input type="hidden" name="payment_method" id="payment-method-input" value="{{ old('payment_method', $autoUseWallet ? 'wallet' : 'payby') }}">
 
                             <div class="hcf-payment-remaining" id="remaining-payment-section">
                                 <div class="hcf-payment-remaining__title" id="remaining-payment-title">Select Payment Method</div>
@@ -754,7 +755,7 @@
                 radio.addEventListener('change', recalc);
             });
 
-            const oldPaymentMethod = @json(old('payment_method', 'payby'));
+            const oldPaymentMethod = @json(old('payment_method', $autoUseWallet ? 'wallet' : 'payby'));
             if (oldPaymentMethod && oldPaymentMethod !== 'wallet') {
                 document.querySelectorAll('.js-payment-method-option').forEach(function(radio) {
                     radio.checked = radio.value === oldPaymentMethod;
