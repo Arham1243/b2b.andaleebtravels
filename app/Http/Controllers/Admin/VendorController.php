@@ -13,6 +13,7 @@ use App\Services\AdminManualWalletTransactionService;
 use App\Services\AdminWalletLedgerAdjustmentService;
 use App\Services\VendorPricingService;
 use App\Support\B2bVendorValidation;
+use App\Support\CountryCatalog;
 use App\Support\VendorWalletCredit;
 use App\Support\WalletLedgerResolver;
 use App\Traits\UploadImageTrait;
@@ -195,7 +196,7 @@ class VendorController extends Controller
             'stats',
             'ledgerFilters',
             'ledgerTotalCount'
-        ));
+        ))->with('countries', CountryCatalog::forAutocomplete());
     }
 
     public function sendPaymentReminder(B2bVendor $vendor)

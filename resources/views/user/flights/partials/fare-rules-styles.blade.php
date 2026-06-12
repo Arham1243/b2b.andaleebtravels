@@ -77,7 +77,7 @@
     margin: .35rem 0 .55rem;
 }
 .fd-rules--page .fd-rules__full-toolbar {
-    margin: .5rem 1.1rem .65rem;
+    margin: .5rem 0 .65rem;
     padding: .65rem .75rem;
     background: #fff;
     border: 1px solid var(--c-line);
@@ -123,8 +123,6 @@
     box-shadow: 0 0 0 3px rgba(205, 27, 79, .1);
 }
 .fd-rules--page .fd-rules__full-body {
-    margin-left: 1.1rem;
-    margin-right: 1.1rem;
     margin-bottom: 1rem;
 }
 .fd-rules__full-body {

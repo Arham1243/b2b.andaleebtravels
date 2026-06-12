@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\PortalAdminController;
 use App\Http\Controllers\Admin\PortalRoleController;
 use App\Http\Controllers\Admin\VendorController;
+use App\Http\Controllers\Admin\VendorSavedPassengerController;
 use App\Http\Controllers\Admin\TerminalController;
 use App\Http\Controllers\Admin\AdminHotelController;
 use App\Http\Controllers\Admin\AdminFlightController;
@@ -74,6 +75,9 @@ Route::middleware(['admin', 'admin.staff_gate'])->prefix('admin')->name('admin.'
     Route::post('vendors/{vendor}/wallet-transactions', [VendorController::class, 'storeWalletTransaction'])->name('vendors.wallet-transactions.store');
     Route::put('vendors/{vendor}/wallet-transactions/{ledger}', [VendorController::class, 'updateWalletTransaction'])->name('vendors.wallet-transactions.update');
     Route::post('vendors/{vendor}/wallet-transactions/{ledger}/void', [VendorController::class, 'voidWalletTransaction'])->name('vendors.wallet-transactions.void');
+    Route::post('vendors/{vendor}/saved-passengers', [VendorSavedPassengerController::class, 'store'])->name('vendors.saved-passengers.store');
+    Route::put('vendors/{vendor}/saved-passengers/{passenger}', [VendorSavedPassengerController::class, 'update'])->name('vendors.saved-passengers.update');
+    Route::delete('vendors/{vendor}/saved-passengers/{passenger}', [VendorSavedPassengerController::class, 'destroy'])->name('vendors.saved-passengers.destroy');
     Route::resource('vendors', VendorController::class);
     Route::get('vendors/change-status/{vendor}', [VendorController::class, 'changeStatus'])->name('vendors.change-status');
 

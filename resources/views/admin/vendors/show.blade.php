@@ -773,68 +773,7 @@
             </div>
 
             {{-- Saved Passengers --}}
-            <div class="vs-tab-panel" id="panel-passengers">
-                @if ($savedPassengers->isNotEmpty())
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Name</th>
-                                    <th>Date of Birth</th>
-                                    <th>Passport</th>
-                                    <th>Passport Expiry</th>
-                                    <th>Nationality</th>
-                                    <th>Issuing Country</th>
-                                    <th>Saved</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($savedPassengers as $passenger)
-                                    @php
-                                        $typeNorm = \App\Models\B2bSavedPassenger::normalizeType($passenger->passenger_type);
-                                        $typeBadge = match ($typeNorm) {
-                                            \App\Models\B2bSavedPassenger::TYPE_CHILD => 'bg-warning text-dark',
-                                            \App\Models\B2bSavedPassenger::TYPE_INFANT => 'bg-info text-dark',
-                                            default => 'bg-primary',
-                                        };
-                                    @endphp
-                                    <tr>
-                                        <td>
-                                            <span class="badge rounded-pill {{ $typeBadge }}" style="font-size:10px;">
-                                                {{ $passenger->typeLabel() }}
-                                            </span>
-                                        </td>
-                                        <td class="fw-semibold">
-                                            {{ $passenger->title }} {{ $passenger->first_name }} {{ $passenger->last_name }}
-                                        </td>
-                                        <td style="white-space:nowrap; font-size:12px;">
-                                            @if ($passenger->dob)
-                                                {{ $passenger->dob->format('d M Y') }}
-                                                @if ($ageLabel = $passenger->ageLabel())
-                                                    <div class="text-muted" style="font-size:10px;">Age {{ $ageLabel }}</div>
-                                                @endif
-                                            @else
-                                                —
-                                            @endif
-                                        </td>
-                                        <td>{{ $passenger->passport_no ?: '—' }}</td>
-                                        <td style="white-space:nowrap; font-size:12px;">{{ $passenger->passport_exp?->format('d M Y') ?: '—' }}</td>
-                                        <td>{{ $passenger->nationality ?: '—' }}</td>
-                                        <td>{{ $passenger->issuing_country ?: '—' }}</td>
-                                        <td style="white-space:nowrap; font-size:12px;">{{ formatDateTime($passenger->created_at) }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="text-center py-5" style="color:#6b6573;">
-                        <i class="bx bxs-user-detail" style="font-size:40px; opacity:.35; display:block; margin-bottom:.5rem;"></i>
-                        <p class="mb-0">This vendor has not saved any passengers yet.</p>
-                    </div>
-                @endif
-            </div>
+            @include('admin.vendors.partials._saved-passengers-panel')
 
         </div>{{-- /vs-card --}}
     </div>
