@@ -324,12 +324,14 @@ class TravelportBookingService
             if (is_array($bookingResponse)) {
                 $bookingResponse['travelport_universal_locator'] = $locators['universal_locator'] ?? null;
                 $bookingResponse['travelport_universal_version'] = $locators['universal_version'] ?? null;
+                $bookingResponse['travelport_provider_locator'] = $locators['provider_locator'] ?? null;
                 $bookingResponse['raw'] = (string) ($holdResponse['raw'] ?? $bookingResponse['raw'] ?? '');
             } else {
                 $bookingResponse = [
                     'raw' => $holdResponse['raw'] ?? '',
                     'travelport_universal_locator' => $locators['universal_locator'] ?? null,
                     'travelport_universal_version' => $locators['universal_version'] ?? null,
+                    'travelport_provider_locator' => $locators['provider_locator'] ?? null,
                 ];
             }
 
@@ -340,6 +342,7 @@ class TravelportBookingService
                     'pricing_data' => $pricingData,
                     'travelers' => $travelers,
                     'hold_air_pricing_info_keys' => $holdPricingInfoKeys,
+                    'travelport_provider_locator' => $locators['provider_locator'] ?? null,
                 ],
                 'booking_response' => $bookingResponse,
                 'sabre_record_locator' => $locators['air_reservation_locator'],
@@ -400,14 +403,15 @@ class TravelportBookingService
             }
 
             $airPricingInfoKeys = $this->resolveAirPricingInfoKeys($booking);
-            $gdsCommissionPercentage = $this->resolveGdsCommissionPercentage();
-
             if ($airPricingInfoKeys === []) {
-                Log::warning('Travelport ticketing without stored AirPricingInfo keys; GDS will ticket all stored fares on PNR', [
-                    'booking_id' => $booking->id,
-                    'locator' => $locator,
-                ]);
+                throw new \RuntimeException(
+                    'Unable to resolve Travelport stored fare keys for PNR '
+                    . trim((string) ($booking->sabre_record_locator ?? ''))
+                    . '. Release the hold and rebook this itinerary.',
+                );
             }
+
+            $gdsCommissionPercentage = $this->resolveGdsCommissionPercentage();
 
             $ticketResponse = $this->client->airTicket(
                 $locator,
@@ -552,10 +556,20 @@ class TravelportBookingService
             $version = $m[1];
         }
 
+        $provider = data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.ProviderReservationInfo.@attributes.LocatorCode')
+            ?? data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.ProviderReservationInfo.LocatorCode')
+            ?? data_get($parsed, 'UniversalRecord.ProviderReservationInfo.@attributes.LocatorCode')
+            ?? data_get($parsed, 'UniversalRecord.ProviderReservationInfo.LocatorCode');
+
+        if (! $provider && preg_match('/<(?:[\w-]+:)?ProviderReservationInfo\b[^>]*\bLocatorCode="([^"]+)"/i', $raw, $m)) {
+            $provider = $m[1];
+        }
+
         return [
             'universal_locator' => is_string($universal) ? $universal : null,
             'air_reservation_locator' => is_string($air) ? $air : null,
             'universal_version' => is_string($version) ? $version : null,
+            'provider_locator' => is_string($provider) ? $provider : null,
         ];
     }
 
@@ -611,28 +625,121 @@ class TravelportBookingService
         }
 
         $universalLocator = $booking->travelportUniversalLocator();
-        if ($universalLocator === '') {
-            return [];
+        if ($universalLocator !== '') {
+            $keys = $this->keysFromUniversalRecordRetrieve(
+                $this->client->universalRecordRetrieve($universalLocator),
+                $bookingRequest,
+                $booking->id,
+                'universal_locator',
+                $universalLocator,
+            );
+            if ($keys !== []) {
+                $this->persistHoldPricingInfoKeys($booking, $keys);
+
+                return $keys;
+            }
         }
 
-        $retrieve = $this->client->universalRecordRetrieve($universalLocator);
-        if (! ($retrieve['success'] ?? false)) {
+        $providerLocator = trim((string) (
+            data_get($bookingResponse, 'travelport_provider_locator')
+            ?? data_get($bookingRequest, 'travelport_provider_locator')
+            ?? TravelportHoldPricingInfoParser::extractProviderLocatorCode($bookingResponse)
+            ?? ''
+        ));
+
+        $leadLastName = trim((string) (
+            data_get($booking->passengers_data, 'lead.last_name')
+            ?? data_get($booking->passengers_data, 'passengers.0.last_name')
+            ?? data_get($bookingRequest, 'travelers.0.last_name')
+            ?? ''
+        ));
+        if ($providerLocator !== '' && $leadLastName !== '') {
+            $keys = $this->keysFromUniversalRecordRetrieve(
+                $this->client->universalRecordRetrieveByProvider($providerLocator, $leadLastName),
+                $bookingRequest,
+                $booking->id,
+                'provider_locator',
+                $providerLocator,
+            );
+            if ($keys !== []) {
+                $this->persistHoldPricingInfoKeys($booking, $keys);
+
+                return $keys;
+            }
+        }
+
+        Log::warning('Travelport fare keys could not be resolved from booking data or live retrieve', [
+            'booking_id' => $booking->id,
+            'air_reservation_locator' => $booking->sabre_record_locator,
+            'universal_locator' => $universalLocator !== '' ? $universalLocator : null,
+            'provider_locator' => $providerLocator !== '' ? $providerLocator : null,
+            'has_booking_response_raw' => is_string($bookingResponse['raw'] ?? null) && ($bookingResponse['raw'] ?? '') !== '',
+        ]);
+
+        return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $retrieveResponse
+     * @return list<string>
+     */
+    private function keysFromUniversalRecordRetrieve(
+        array $retrieveResponse,
+        array $bookingRequest,
+        int $bookingId,
+        string $lookupType,
+        string $lookupValue,
+    ): array {
+        if (! ($retrieveResponse['success'] ?? false)) {
             Log::warning('Travelport universal record retrieve failed while resolving fare keys', [
-                'booking_id' => $booking->id,
-                'universal_locator' => $universalLocator,
-                'error' => $retrieve['error'] ?? null,
+                'booking_id' => $bookingId,
+                'lookup_type' => $lookupType,
+                'lookup_value' => $lookupValue,
+                'error' => $retrieveResponse['error'] ?? null,
             ]);
 
             return [];
         }
 
-        return TravelportHoldPricingInfoParser::resolveKeysForTicketing(
-            $bookingRequest,
+        $keys = TravelportHoldPricingInfoParser::extractKeysFromRetrieveResponse(
             [
-                'raw' => (string) ($retrieve['raw'] ?? ''),
-                'parsed' => is_array($retrieve['parsed'] ?? null) ? $retrieve['parsed'] : [],
+                'raw' => (string) ($retrieveResponse['raw'] ?? ''),
+                'parsed' => is_array($retrieveResponse['parsed'] ?? null) ? $retrieveResponse['parsed'] : [],
             ],
+            $bookingRequest,
         );
+
+        Log::info('Travelport fare keys resolved from universal record retrieve', [
+            'booking_id' => $bookingId,
+            'lookup_type' => $lookupType,
+            'lookup_value' => $lookupValue,
+            'air_pricing_info_keys' => $keys,
+        ]);
+
+        return $keys;
+    }
+
+    /**
+     * @param  list<string>  $keys
+     */
+    private function persistHoldPricingInfoKeys(B2bFlightBooking $booking, array $keys): void
+    {
+        if ($keys === []) {
+            return;
+        }
+
+        $bookingRequest = is_array($booking->booking_request) ? $booking->booking_request : [];
+        $existing = is_array($bookingRequest['hold_air_pricing_info_keys'] ?? null)
+            ? $bookingRequest['hold_air_pricing_info_keys']
+            : [];
+
+        if ($existing === $keys) {
+            return;
+        }
+
+        $bookingRequest['hold_air_pricing_info_keys'] = $keys;
+        $booking->update(['booking_request' => $bookingRequest]);
+        $booking->refresh();
     }
 
     /**

@@ -38,6 +38,51 @@ class TravelportHoldPricingInfoParser
     }
 
     /**
+     * @param  array<string, mixed>  $bookingResponse
+     */
+    public static function extractProviderLocatorCode(array $bookingResponse): string
+    {
+        $fromMeta = trim((string) ($bookingResponse['travelport_provider_locator'] ?? ''));
+        if ($fromMeta !== '') {
+            return $fromMeta;
+        }
+
+        $parsed = is_array($bookingResponse['parsed'] ?? null) ? $bookingResponse['parsed'] : [];
+        $candidates = [
+            data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.ProviderReservationInfo.@attributes.LocatorCode'),
+            data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.ProviderReservationInfo.LocatorCode'),
+            data_get($parsed, 'Body.UniversalRecordRetrieveRsp.UniversalRecord.ProviderReservationInfo.@attributes.LocatorCode'),
+            data_get($parsed, 'Body.UniversalRecordRetrieveRsp.UniversalRecord.ProviderReservationInfo.LocatorCode'),
+            data_get($bookingResponse, 'UniversalRecord.ProviderReservationInfo.@attributes.LocatorCode'),
+            data_get($bookingResponse, 'UniversalRecord.ProviderReservationInfo.LocatorCode'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                return trim($candidate);
+            }
+        }
+
+        $raw = (string) ($bookingResponse['raw'] ?? '');
+        if ($raw !== '' && preg_match('/<(?:[\w-]+:)?ProviderReservationInfo\b[^>]*\bLocatorCode="([^"]+)"/i', $raw, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $holdResponse
+     * @return list<string>
+     */
+    public static function extractKeysFromRetrieveResponse(array $holdResponse, array $bookingRequest = []): array
+    {
+        $airPriceKey = trim((string) data_get($bookingRequest, 'pricing_data.pricing_info_key', ''));
+
+        return self::filterQuoteKeys(self::extractKeys($holdResponse), $airPriceKey);
+    }
+
+    /**
      * @param  array<string, mixed>  $bookingRequest
      * @param  array<string, mixed>  $bookingResponse
      * @return list<string>

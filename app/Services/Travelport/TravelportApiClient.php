@@ -772,6 +772,44 @@ XML;
     }
 
     /**
+     * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
+     */
+    public function universalRecordRetrieveByProvider(
+        string $providerLocator,
+        string $travelerLastName,
+        string $providerCode = self::PROVIDER_CODE,
+    ): array {
+        $traceId = $this->generateTraceId();
+        $authorizedBy = self::AUTHORIZED_BY;
+        $targetBranch = self::TARGET_BRANCH;
+        $uniNs = self::UNI_NS;
+        $comNs = self::COM_NS;
+        $locator = $this->xmlEsc($providerLocator);
+        $lastName = $this->xmlEsc($travelerLastName);
+        $provider = $this->xmlEsc($providerCode);
+
+        $soap = <<<XML
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <universal:UniversalRecordRetrieveReq
+            TraceId="{$traceId}"
+            AuthorizedBy="{$authorizedBy}"
+            TargetBranch="{$targetBranch}"
+            TravelerLastName="{$lastName}"
+            xmlns:universal="{$uniNs}"
+            xmlns:com="{$comNs}">
+            <com:BillingPointOfSaleInfo OriginApplication="UAPI"/>
+            <universal:ProviderReservationInfo ProviderCode="{$provider}" ProviderLocatorCode="{$locator}"/>
+        </universal:UniversalRecordRetrieveReq>
+    </soapenv:Body>
+</soapenv:Envelope>
+XML;
+
+        return $this->sendRequest('UniversalRecordService', $soap);
+    }
+
+    /**
      * @param  array<string, mixed>  $searchData
      */
     private function buildSearchAirLegsXml(array $searchData): string
