@@ -184,11 +184,7 @@ class TravelportBookingService
             ];
         }
 
-        $passengerCounts = TravelportHoldPayloadBuilder::passengerCounts([
-            'adults' => (int) ($searchParams['adults'] ?? 1),
-            'children' => (int) ($searchParams['children'] ?? 0),
-            'infants' => (int) ($searchParams['infants'] ?? 0),
-        ]);
+        $searchParams = TravelportHoldPayloadBuilder::normalizeStoredSearchRequest($searchParams);
 
         if ($passengersData !== []) {
             $searchParams = TravelportHoldPayloadBuilder::enrichSearchDataWithPassengerAges(
@@ -196,6 +192,12 @@ class TravelportBookingService
                 $passengersData,
             );
         }
+
+        $passengerCounts = TravelportHoldPayloadBuilder::passengerCounts([
+            'adults' => (int) ($searchParams['adults'] ?? 1),
+            'children' => (int) ($searchParams['children'] ?? 0),
+            'infants' => (int) ($searchParams['infants'] ?? 0),
+        ]);
 
         $travelers = [];
         if ($passengersData !== []) {
@@ -1067,7 +1069,7 @@ class TravelportBookingService
         }
 
         if ($bookingInfoCount < $passengerCount || $hostTokenCount < 1 || $fareInfoCount < 1) {
-            Log::warning('Travelport hold pricing incomplete after expansion', [
+            Log::warning('Travelport hold pricing incomplete after alignment', [
                 'passenger_count' => $passengerCount,
                 'booking_info_count' => $bookingInfoCount,
                 'host_token_count' => $hostTokenCount,
@@ -1121,16 +1123,9 @@ class TravelportBookingService
                 continue;
             }
 
-            $fareInfoRef = (string) ($bookingInfo['fare_info_ref'] ?? '');
-            $hostTokenRef = (string) ($bookingInfo['host_token_ref'] ?? '');
-            $bookingKey = implode('|', [$fareInfoRef, $segmentRef, $hostTokenRef]);
-            if (isset($bookingInfos[$bookingKey])) {
-                continue;
-            }
-
-            $bookingInfos[$bookingKey] = $bookingInfo;
+            $bookingInfos[] = $bookingInfo;
         }
-        $pricingData['booking_infos'] = array_values($bookingInfos);
+        $pricingData['booking_infos'] = $bookingInfos;
 
         $fareRefs = array_unique(array_filter(array_column($pricingData['booking_infos'], 'fare_info_ref')));
         if ($fareRefs !== []) {

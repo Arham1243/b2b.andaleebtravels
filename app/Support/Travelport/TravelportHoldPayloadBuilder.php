@@ -303,12 +303,47 @@ class TravelportHoldPayloadBuilder
     }
 
     /**
+     * Bookings persist session `flight_search_payload`, which nests provider data:
+     * {"travelport": {"search_data": {...}, "passenger_counts": {...}}}.
+     *
+     * @param  array<string, mixed>  $searchRequest
+     * @return array<string, mixed>
+     */
+    public static function normalizeStoredSearchRequest(array $searchRequest): array
+    {
+        $travelport = is_array($searchRequest['travelport'] ?? null) ? $searchRequest['travelport'] : null;
+        if ($travelport === null) {
+            return $searchRequest;
+        }
+
+        if (is_array($travelport['search_data'] ?? null)) {
+            $searchRequest = array_merge($searchRequest, $travelport['search_data']);
+        }
+
+        $counts = is_array($travelport['passenger_counts'] ?? null) ? $travelport['passenger_counts'] : [];
+        if ($counts !== []) {
+            if (! array_key_exists('adults', $searchRequest) && isset($counts['ADT'])) {
+                $searchRequest['adults'] = (int) $counts['ADT'];
+            }
+            if (! array_key_exists('children', $searchRequest) && isset($counts['CNN'])) {
+                $searchRequest['children'] = (int) $counts['CNN'];
+            }
+            if (! array_key_exists('infants', $searchRequest) && isset($counts['INF'])) {
+                $searchRequest['infants'] = (int) $counts['INF'];
+            }
+        }
+
+        return $searchRequest;
+    }
+
+    /**
      * @param  array<string, mixed>  $searchData
      * @param  array<string, mixed>  $passengersData
      * @return array<string, mixed>
      */
     public static function enrichSearchDataWithPassengerAges(array $searchData, array $passengersData): array
     {
+        $searchData = self::normalizeStoredSearchRequest($searchData);
         $passengers = is_array($passengersData['passengers'] ?? null) ? $passengersData['passengers'] : [];
         $referenceDate = FlightPassengerDobValidator::resolveReferenceDate($searchData);
         $childAges = [];
@@ -345,6 +380,23 @@ class TravelportHoldPayloadBuilder
         }
 
         return self::ensureChildAgesInSearchData($searchData);
+    }
+
+    /**
+     * SearchPassenger / AirPrice PTC — age-qualified CNN (e.g. CNN04, CNN08) per Universal API.
+     */
+    public static function travelportSearchPassengerTypeCode(string $type, ?int $age = null): string
+    {
+        $normalized = self::normalizeHoldPassengerTypeCode($type);
+
+        if ($normalized === 'CNN' && $age !== null) {
+            return 'CNN' . sprintf('%02d', max(
+                FlightPassengerDobValidator::CHILD_MIN_AGE,
+                min(FlightPassengerDobValidator::CHILD_MAX_AGE, $age),
+            ));
+        }
+
+        return $normalized;
     }
 
     /**
