@@ -106,15 +106,25 @@ final class TravelportTicketDetailsPresenter
         $supplierCode = is_array($supplierLocator) ? self::attr($supplierLocator, 'SupplierCode') : '';
         $supplierPnr = is_array($supplierLocator) ? self::attr($supplierLocator, 'SupplierLocatorCode') : '';
 
+        $providerPnr = strtoupper(trim(self::attr($etr, 'ProviderLocatorCode')));
+        if ($providerPnr === '' && $booking->isTravelport()) {
+            $providerPnr = strtoupper(trim($booking->travelportProviderLocator()));
+        }
+
+        $airReservationLocator = strtoupper(trim(self::nodeText($etr, 'AirReservationLocatorCode') ?? ''));
+        if ($airReservationLocator === '' && $booking->isTravelport()) {
+            $airReservationLocator = strtoupper(trim($booking->travelportAirReservationLocator()));
+        }
+
         $shared = [
             'passenger_name' => $passengerName,
             'passenger_type' => $passengerType['label'],
             'passenger_type_code' => $passengerType['code'],
             'passenger_dob' => self::formatDate(self::attr($traveler, 'DOB')),
             'passenger_gender' => self::attr($traveler, 'Gender'),
-            'pnr' => self::attr($etr, 'ProviderLocatorCode') ?: ($booking->sabre_record_locator ?? ''),
-            'gds_pnr' => self::attr($etr, 'ProviderLocatorCode') ?: ($booking->sabre_record_locator ?? ''),
-            'air_reservation_locator' => self::nodeText($etr, 'AirReservationLocatorCode'),
+            'pnr' => $providerPnr !== '' ? $providerPnr : ($booking->isTravelport() ? '' : trim((string) ($booking->sabre_record_locator ?? ''))),
+            'gds_pnr' => $providerPnr,
+            'air_reservation_locator' => $airReservationLocator,
             'supplier_code' => strtoupper($supplierCode),
             'supplier_pnr' => strtoupper($supplierPnr),
             'provider_code' => self::attr($etr, 'ProviderCode'),

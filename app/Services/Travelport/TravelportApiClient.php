@@ -4,6 +4,7 @@ namespace App\Services\Travelport;
 
 use App\Support\FlightCabinPreference;
 use App\Support\Travelport\TravelportAirTicketingResult;
+use App\Support\Travelport\TravelportContactSsrBuilder;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 
 class TravelportApiClient
@@ -289,6 +290,8 @@ XML;
         }
 
         $travelersXml = '';
+        $contactSsrsAdded = false;
+        $contactCarrier = TravelportContactSsrBuilder::resolveCarrierFromPricingData($pricingData);
         foreach ($travelers as $traveler) {
             $key = $this->xmlEsc((string) ($traveler['key'] ?? ''));
             $type = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
@@ -321,6 +324,23 @@ XML;
                 $nameRemarksXml .= "\n                <NameRemark><RemarkData>{$this->xmlEsc($infantRemark)}</RemarkData></NameRemark>";
             }
 
+            $ssrsXml = '';
+            if (! $contactSsrsAdded && $type === 'ADT') {
+                foreach (TravelportContactSsrBuilder::contactSsrs($country, $area, $number, (string) ($traveler['email'] ?? '')) as $ssr) {
+                    $ssrType = $this->xmlEsc((string) ($ssr['type'] ?? ''));
+                    $freeText = $this->xmlEsc((string) ($ssr['free_text'] ?? ''));
+                    if ($ssrType === '' || $freeText === '') {
+                        continue;
+                    }
+
+                    $ssrsXml .= "\n                <SSR Type=\"{$ssrType}\" Status=\"HK\" FreeText=\"{$freeText}\" Carrier=\"{$this->xmlEsc($contactCarrier)}\"/>";
+                }
+
+                if ($ssrsXml !== '') {
+                    $contactSsrsAdded = true;
+                }
+            }
+
             $travelersXml .= <<<XML
 
             <BookingTraveler
@@ -331,7 +351,7 @@ XML;
                 Gender="{$gender}">
                 <BookingTravelerName First="{$first}" Last="{$last}"/>
                 <PhoneNumber CountryCode="{$country}" AreaCode="{$area}" Number="{$number}"/>
-                <Email EmailID="{$email}"/>{$nameRemarksXml}
+                <Email EmailID="{$email}"/>{$nameRemarksXml}{$ssrsXml}
             </BookingTraveler>
 XML;
         }

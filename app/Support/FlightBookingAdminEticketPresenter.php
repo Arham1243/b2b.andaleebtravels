@@ -41,21 +41,34 @@ final class FlightBookingAdminEticketPresenter
 
     /**
      * @param  list<array<string, mixed>>  $tickets
-     * @return array{gds_pnr: string, supplier_pnr: string, supplier_code: string}
+     * @return array{gds_pnr: string, supplier_pnr: string, supplier_code: string, air_reservation_locator: string}
      */
     public static function resolvePnrReferences(B2bFlightBooking $booking, array $tickets = []): array
     {
-        $gdsPnr = strtoupper(trim((string) ($booking->sabre_record_locator ?? '')));
         $supplierPnr = '';
         $supplierCode = '';
+        $gdsPnr = '';
+        $airReservationLocator = '';
+
+        if ($booking->isTravelport()) {
+            $airReservationLocator = strtoupper(trim($booking->travelportAirReservationLocator()));
+            $gdsPnr = strtoupper(trim($booking->travelportProviderLocator()));
+        } else {
+            $gdsPnr = strtoupper(trim((string) ($booking->sabre_record_locator ?? '')));
+        }
 
         foreach ($tickets as $ticket) {
             if (! is_array($ticket)) {
                 continue;
             }
 
-            if ($gdsPnr === '') {
-                $gdsPnr = strtoupper(trim((string) ($ticket['gds_pnr'] ?? $ticket['pnr'] ?? '')));
+            $ticketProviderPnr = strtoupper(trim((string) ($ticket['gds_pnr'] ?? '')));
+            if ($gdsPnr === '' && $ticketProviderPnr !== '' && $ticketProviderPnr !== $airReservationLocator) {
+                $gdsPnr = $ticketProviderPnr;
+            }
+
+            if ($airReservationLocator === '') {
+                $airReservationLocator = strtoupper(trim((string) ($ticket['air_reservation_locator'] ?? '')));
             }
 
             if ($supplierPnr === '') {
@@ -88,10 +101,18 @@ final class FlightBookingAdminEticketPresenter
             }
         }
 
+        if ($gdsPnr !== '' && $gdsPnr === $airReservationLocator && $booking->isTravelport()) {
+            $resolvedProvider = strtoupper(trim($booking->travelportProviderLocator()));
+            if ($resolvedProvider !== '' && $resolvedProvider !== $airReservationLocator) {
+                $gdsPnr = $resolvedProvider;
+            }
+        }
+
         return [
             'gds_pnr' => $gdsPnr,
             'supplier_pnr' => $supplierPnr,
             'supplier_code' => $supplierCode,
+            'air_reservation_locator' => $airReservationLocator,
         ];
     }
 

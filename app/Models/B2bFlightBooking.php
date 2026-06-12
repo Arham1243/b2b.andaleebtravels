@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\FlightBookingTicketResolver;
 use App\Support\Travelport\TravelportAirTicketingResult;
+use App\Support\Travelport\TravelportHoldPricingInfoParser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -197,6 +198,47 @@ class B2bFlightBooking extends Model
         }
 
         return '';
+    }
+
+    /**
+     * Travelport provider / GDS record locator (ProviderReservationInfo LocatorCode, e.g. GZVYKQ).
+     * Not the same as air reservation locator stored in sabre_record_locator.
+     */
+    public function travelportProviderLocator(): string
+    {
+        $bookingRequest = is_array($this->booking_request) ? $this->booking_request : [];
+        $fromRequest = trim((string) ($bookingRequest['travelport_provider_locator'] ?? ''));
+        if ($fromRequest !== '') {
+            return $fromRequest;
+        }
+
+        foreach ([
+            is_array($this->booking_response) ? $this->booking_response : null,
+            is_array($this->ticket_response) ? $this->ticket_response : null,
+        ] as $response) {
+            if (! is_array($response)) {
+                continue;
+            }
+
+            $code = TravelportHoldPricingInfoParser::extractProviderLocatorCode($response);
+            if ($code !== '') {
+                return $code;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Travelport air reservation locator (Universal Record air segment locator, e.g. 367FOD).
+     */
+    public function travelportAirReservationLocator(): string
+    {
+        if (! $this->isTravelport()) {
+            return '';
+        }
+
+        return trim((string) ($this->sabre_record_locator ?? ''));
     }
 
     public function travelportUniversalVersion(): string

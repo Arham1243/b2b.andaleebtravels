@@ -63,86 +63,7 @@
 @include('user.flights.partials.hold-confirm-styles')
 .bkp--admin .hp-fare-acc { margin-top: .65rem; }
 .bkp--admin .bkpd-fare__pax-breakdown { margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed var(--c-line); }
-.bkpd-eticket-admin__section { padding: .85rem 1rem; border-top: 1px solid var(--c-line-inner); }
-.bkpd-eticket-admin__section:first-of-type { border-top: 0; }
-.bkpd-eticket-admin__section-title {
-    font-size: .72rem;
-    font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: var(--c-muted);
-    margin-bottom: .55rem;
-}
-.bkpd-eticket-admin__table-wrap { overflow-x: auto; }
-.bkpd-eticket-admin__table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: .76rem;
-}
-.bkpd-eticket-admin__table th,
-.bkpd-eticket-admin__table td {
-    padding: .45rem .55rem;
-    border-bottom: 1px solid var(--c-line-inner);
-    text-align: left;
-    vertical-align: top;
-}
-.bkpd-eticket-admin__table th {
-    font-size: .68rem;
-    text-transform: uppercase;
-    letter-spacing: .03em;
-    color: var(--c-muted);
-    background: #fafbfd;
-}
-.bkpd-eticket-admin__fare-block,
-.bkpd-eticket-admin__ticket {
-    border-top: 1px solid var(--c-line-inner);
-}
-.bkpd-eticket-admin__fare-head {
-    display: flex;
-    align-items: center;
-    gap: .45rem;
-    flex-wrap: wrap;
-    padding: .75rem 1rem .35rem;
-    font-size: .84rem;
-}
-.bkpd-eticket-admin__subblock {
-    margin: .55rem 1rem .85rem;
-    padding: .65rem .75rem;
-    background: #fafbfd;
-    border: 1px solid var(--c-line-inner);
-    border-radius: 8px;
-    font-size: .76rem;
-    line-height: 1.45;
-}
-.bkpd-eticket-admin .bkpd-info-rows { padding: 0 1rem .75rem; }
-.bkpd-eticket-admin .bkpd-ticket__head { padding-left: 1rem; padding-right: 1rem; }
-.bkpd-eticket-admin .bkpd-ticket__coupons { padding: 0 1rem 1rem; }
-.bkpd-eticket-admin__pnr-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: .65rem;
-}
-.bkpd-eticket-admin__pnr-card {
-    padding: .65rem .75rem;
-    background: #fafbfd;
-    border: 1px solid var(--c-line-inner);
-    border-radius: 8px;
-}
-.bkpd-eticket-admin__pnr-label {
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    color: var(--c-muted);
-    margin-bottom: .25rem;
-}
-.bkpd-eticket-admin__pnr-value {
-    font-family: monospace;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: .06em;
-    color: #0f172a;
-}
+@include('admin.flight-bookings.partials.eticket-admin-styles')
 .bkpd-pnr-row--dual {
     display: flex;
     flex-wrap: wrap;
@@ -215,7 +136,8 @@
     $pnrRefs = is_array(($adminEticketDetails ?? [])['pnr_references'] ?? null)
         ? ($adminEticketDetails['pnr_references'] ?? [])
         : \App\Support\FlightBookingAdminEticketPresenter::resolvePnrReferences($booking);
-    $gdsPnr = strtoupper(trim((string) ($pnrRefs['gds_pnr'] ?? $booking->sabre_record_locator ?? '')));
+    $gdsPnr = strtoupper(trim((string) ($pnrRefs['gds_pnr'] ?? '')));
+    $airReservationLocator = strtoupper(trim((string) ($pnrRefs['air_reservation_locator'] ?? '')));
     $supplierPnr = strtoupper(trim((string) ($pnrRefs['supplier_pnr'] ?? '')));
     $supplierCode = strtoupper(trim((string) ($pnrRefs['supplier_code'] ?? '')));
     $needsFulfillmentRetry = $canEditBooking
