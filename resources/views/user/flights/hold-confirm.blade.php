@@ -736,11 +736,15 @@ document.addEventListener('DOMContentLoaded', function () {
         buttonSelector: '#pay-btn',
         resetOnErrors: @json($errors->any() ?? false),
         loadingHtml: '<i class="bx bx-loader-alt bx-spin"></i> Processing…',
+        loadingText: 'Processing…',
     });
 
-    document.getElementById('confirmPayForm').addEventListener('submit', function () {
-        recalc();
-    });
+    document.getElementById('confirmPayForm').addEventListener('submit', function (e) {
+        if (e.defaultPrevented) {
+            return;
+        }
+        syncPaymentMethodInput();
+    }, true);
 });
 </script>
 @endpush

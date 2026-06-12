@@ -830,6 +830,7 @@
                 buttonSelector: '#pay-btn',
                 resetOnErrors: @json($errors->any()),
                 loadingHtml: '<i class="bx bx-loader-alt bx-spin"></i> Processing…',
+                loadingText: 'Processing…',
             });
 
             @if ($errors->any())
@@ -841,9 +842,12 @@
 
             const form = document.getElementById('flightCheckoutForm');
             if (form) {
-                form.addEventListener('submit', function() {
-                    recalc();
-                });
+                form.addEventListener('submit', function (e) {
+                    if (e.defaultPrevented) {
+                        return;
+                    }
+                    syncPaymentMethodInput();
+                }, true);
             }
         });
     </script>

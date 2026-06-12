@@ -563,9 +563,9 @@
                             </div>
 
                             <div class="hp-summary__footer">
-                                <button type="submit" form="holdForm" class="hp-btn-hold">
+                                <button type="submit" form="holdForm" class="hp-btn-hold" id="hold-btn">
                                     <i class="bx bx-time-five"></i>
-                                    Hold Booking &nbsp;·&nbsp; <span class="dirham">AED</span> 0.00
+                                    <span id="hold-btn-text">Hold Booking &nbsp;·&nbsp; <span class="dirham">AED</span> 0.00</span>
                                 </button>
                                 <div class="hp-summary__secure">
                                     <i class="bx bxs-lock-alt"></i> Secure &amp; encrypted
@@ -1076,9 +1076,10 @@
 
     HpFormSubmit.bind({
         formSelector: '#holdForm',
-        buttonSelector: '.hp-btn-hold',
+        buttonSelector: '#hold-btn',
         resetOnErrors: @json($errors->any()),
         loadingHtml: '<i class="bx bx-loader-alt bx-spin"></i> Processing…',
+        loadingText: 'Processing…',
     });
 
     @if ($errors->any())
