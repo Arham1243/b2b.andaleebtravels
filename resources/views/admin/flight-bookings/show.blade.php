@@ -71,6 +71,25 @@
     flex-wrap: wrap;
     gap: 1.25rem;
 }
+.bkpd-ticket-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-top: .15rem;
+}
+.bkpd-ticket-chip {
+    display: inline-block;
+    padding: .2rem .45rem;
+    font-family: monospace;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: #1a2540;
+    background: #f4f6f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    line-height: 1.3;
+}
 </style>
 @endpush
 
@@ -218,8 +237,6 @@
                     <div>
                         @include('admin.hotel-bookings.partials.supplier-booking-details')
 
-                        @include('admin.partials.booking-vendor-detail-card', ['vendor' => $booking->vendor])
-
                         <div class="bkpd-card mb-3">
                             <div class="bkpd-card__head">
                                 <div>
@@ -278,9 +295,13 @@
                             @endif
                             @if (!empty($adminDetails['ticket_numbers']))
                                 <div class="bkpd-pnr-row">
-                                    <div>
+                                    <div style="width:100%;">
                                         <div class="bkpd-pnr-label">Ticket number{{ count($adminDetails['ticket_numbers']) > 1 ? 's' : '' }}</div>
-                                        <div class="bkpd-pnr-value">{{ implode(', ', $adminDetails['ticket_numbers']) }}</div>
+                                        <div class="bkpd-ticket-chips">
+                                            @foreach ($adminDetails['ticket_numbers'] as $ticketNo)
+                                                <span class="bkpd-ticket-chip">{{ $ticketNo }}</span>
+                                            @endforeach
+                                        </div>
                                     </div>
                                 </div>
                             @endif
@@ -466,6 +487,8 @@
                             ])
                         </div>
 
+                        @include('admin.partials.booking-vendor-detail-card', ['vendor' => $booking->vendor])
+
                         <div class="bkpd-card mb-3">
                             <div class="bkpd-card__section-head bkpd-card__section-head--slate"><i class="bx bx-info-circle"></i> Booking info</div>
                             <div class="bkpd-info-rows">
@@ -483,33 +506,10 @@
                                         <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $adminDetails['travelport_universal_locator'] }}</span>
                                     </div>
                                 @endif
-                                @if ($gdsPnr !== '')
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">GDS PNR</span>
-                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $gdsPnr }}</span>
-                                    </div>
-                                @endif
-                                @if ($booking->isTravelport() && $airReservationLocator !== '' && $airReservationLocator !== $gdsPnr)
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">Air reservation</span>
-                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $airReservationLocator }}</span>
-                                    </div>
-                                @endif
-                                @if ($supplierPnr !== '')
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">Supplier PNR{{ $supplierCode !== '' ? ' (' . $supplierCode . ')' : '' }}</span>
-                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $supplierPnr }}</span>
-                                    </div>
-                                @endif
-                                @if (!empty($adminDetails['ticket_numbers']))
+                                @if ($booking->ticket_status === 'issued' && $booking->isPaid() && empty($adminDetails['ticket_numbers']))
                                     <div class="bkpd-info-row">
                                         <span class="bkpd-info-row__label">Ticket number(s)</span>
-                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ implode(', ', $adminDetails['ticket_numbers']) }}</span>
-                                    </div>
-                                @elseif ($booking->ticket_status === 'issued' && $booking->isPaid())
-                                    <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">Ticket number(s)</span>
-                                        <span class="bkpd-info-row__val" style="color:#b45309;font-weight:600;">Not returned by Sabre yet — PNR {{ $booking->sabre_record_locator }} is confirmed; use Retry Booking to re-run ticketing or check Sabre for e-ticket document.</span>
+                                        <span class="bkpd-info-row__val" style="color:#b45309;font-weight:600;">Not returned by {{ $booking->providerLabel() }} yet — use Retry Booking or check the GDS for e-ticket documents.</span>
                                     </div>
                                 @endif
                                 @if ($nonRefundable !== null)
