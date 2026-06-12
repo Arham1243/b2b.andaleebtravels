@@ -89,10 +89,11 @@ final class TravelportTicketDetailsPresenter
      */
     private static function buildTicketsFromEtr(array $etr, B2bFlightBooking $booking): array
     {
-        $passengerName = self::passengerNameFromEtr($etr);
+        $traveler = self::primaryTravelerFromEtr($etr);
+        $passengerName = self::passengerNameFromTraveler($traveler);
         $passengerType = self::passengerTypeFromEtr($etr);
         $pricing = self::asList($etr['AirPricingInfo'] ?? null)[0] ?? null;
-        $pricingAttrs = is_array($pricing) ? ($pricing['@attributes'] ?? $pricing) : [];
+        $pricingDetails = is_array($pricing) ? self::pricingDetailsFromNode($pricing, $etr) : [];
 
         $totalPrice = self::moneyLabel(
             self::attr($pricing, 'TotalPrice') ?: self::attr($etr, 'TotalPrice'),
@@ -100,19 +101,35 @@ final class TravelportTicketDetailsPresenter
         $basePrice = self::moneyLabel(self::attr($pricing, 'BasePrice'));
         $taxes = self::moneyLabel(self::attr($pricing, 'Taxes') ?: self::attr($etr, 'Taxes'));
 
+        $supplierLocator = self::asList($etr['SupplierLocator'] ?? null)[0] ?? null;
+        $supplierCode = is_array($supplierLocator) ? self::attr($supplierLocator, 'SupplierCode') : '';
+        $supplierPnr = is_array($supplierLocator) ? self::attr($supplierLocator, 'SupplierLocatorCode') : '';
+
         $shared = [
             'passenger_name' => $passengerName,
             'passenger_type' => $passengerType['label'],
             'passenger_type_code' => $passengerType['code'],
+            'passenger_dob' => self::formatDate(self::attr($traveler, 'DOB')),
+            'passenger_gender' => self::attr($traveler, 'Gender'),
             'pnr' => self::attr($etr, 'ProviderLocatorCode') ?: ($booking->sabre_record_locator ?? ''),
             'air_reservation_locator' => self::nodeText($etr, 'AirReservationLocatorCode'),
+            'supplier_code' => strtoupper($supplierCode),
+            'supplier_pnr' => strtoupper($supplierPnr),
+            'provider_code' => self::attr($etr, 'ProviderCode'),
+            'iata_number' => self::attr($etr, 'IATANumber'),
+            'pseudo_city_code' => self::attr($etr, 'PseudoCityCode'),
             'plating_carrier' => strtoupper(self::attr($etr, 'PlatingCarrier', '')),
             'issued_date' => self::formatDateTime(self::attr($etr, 'IssuedDate')),
             'refundable' => self::boolLabel(self::attr($etr, 'Refundable')),
+            'exchangeable' => self::boolLabel(self::attr($etr, 'Exchangeable')),
             'total_price' => $totalPrice,
             'base_price' => $basePrice,
             'taxes' => $taxes,
             'fare_basis' => self::attr(self::asList($pricing['FareInfo'] ?? null)[0] ?? [], 'FareBasis'),
+            'fare_calculation' => self::nodeText($etr, 'FareCalc') ?: ($pricingDetails['fare_calculation'] ?? null),
+            'payment_amount' => self::moneyLabel(self::attr(self::asList($etr['Payment'] ?? null)[0] ?? [], 'Amount')),
+            'pricing' => $pricingDetails,
+            'ssrs' => self::ssrsFromEtr($etr),
         ];
 
         $ticketNodes = self::asList($etr['Ticket'] ?? null);
@@ -182,7 +199,130 @@ final class TravelportTicketDetailsPresenter
             'booking_class' => strtoupper(self::attr($coupon, 'BookingClass', '')),
             'fare_basis' => self::attr($coupon, 'FareBasis'),
             'status' => self::couponStatusLabel(self::attr($coupon, 'Status')),
+            'not_valid_before' => self::formatDate(self::attr($coupon, 'NotValidBefore')),
+            'not_valid_after' => self::formatDate(self::attr($coupon, 'NotValidAfter')),
+            'stopover' => self::attr($coupon, 'StopoverCode'),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $etr
+     * @return array<string, mixed>
+     */
+    private static function primaryTravelerFromEtr(array $etr): array
+    {
+        foreach (self::asList($etr['BookingTraveler'] ?? null) as $traveler) {
+            if (is_array($traveler)) {
+                return $traveler;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $traveler
+     */
+    private static function passengerNameFromTraveler(array $traveler): string
+    {
+        if ($traveler === []) {
+            return '';
+        }
+
+        $nameNode = $traveler['BookingTravelerName'] ?? null;
+        if (! is_array($nameNode)) {
+            return '';
+        }
+
+        $attrs = $nameNode['@attributes'] ?? $nameNode;
+        $first = trim((string) ($attrs['First'] ?? ''));
+        $last = trim((string) ($attrs['Last'] ?? ''));
+
+        return trim("{$first} {$last}");
+    }
+
+    /**
+     * @param  array<string, mixed>  $pricing
+     * @param  array<string, mixed>  $etr
+     * @return array<string, mixed>
+     */
+    private static function pricingDetailsFromNode(array $pricing, array $etr): array
+    {
+        $fareInfos = [];
+        foreach (self::asList($pricing['FareInfo'] ?? null) as $fareInfo) {
+            if (! is_array($fareInfo)) {
+                continue;
+            }
+
+            $attrs = $fareInfo['@attributes'] ?? $fareInfo;
+            $fareInfos[] = [
+                'fare_basis' => (string) ($attrs['FareBasis'] ?? ''),
+                'passenger_type_code' => (string) ($attrs['PassengerTypeCode'] ?? ''),
+                'origin' => strtoupper((string) ($attrs['Origin'] ?? '')),
+                'destination' => strtoupper((string) ($attrs['Destination'] ?? '')),
+                'effective_date' => self::formatDateTime((string) ($attrs['EffectiveDate'] ?? '')),
+                'not_valid_before' => self::formatDate((string) ($attrs['NotValidBefore'] ?? '')),
+                'not_valid_after' => self::formatDate((string) ($attrs['NotValidAfter'] ?? '')),
+                'endorsements' => FlightBookingAdminEticketPresenter::endorsementsFromFareInfo($fareInfo),
+                'baggage' => FlightBookingAdminEticketPresenter::baggageFromFareInfo($fareInfo),
+            ];
+        }
+
+        $bookingInfo = self::asList($pricing['BookingInfo'] ?? null)[0] ?? null;
+        $bookingAttrs = is_array($bookingInfo) ? ($bookingInfo['@attributes'] ?? $bookingInfo) : [];
+
+        return [
+            'pricing_info_key' => self::attr($pricing, 'Key'),
+            'pricing_method' => self::attr($pricing, 'PricingMethod'),
+            'pricing_type' => self::attr($pricing, 'PricingType'),
+            'e_ticketability' => self::attr($pricing, 'ETicketability'),
+            'fare_calculation_ind' => self::attr($pricing, 'FareCalculationInd'),
+            'latest_ticketing_time' => self::formatDateTime(self::attr($pricing, 'LatestTicketingTime')),
+            'true_last_date_to_ticket' => self::formatDateTime(self::attr($pricing, 'TrueLastDateToTicket')),
+            'approximate_base_price' => self::moneyLabel(self::attr($pricing, 'ApproximateBasePrice')),
+            'approximate_total_price' => self::moneyLabel(self::attr($pricing, 'ApproximateTotalPrice')),
+            'fare_calculation' => self::nodeText($pricing, 'FareCalc') ?: self::nodeText($etr, 'FareCalc'),
+            'booking_code' => strtoupper(self::attr($bookingAttrs, 'BookingCode')),
+            'cabin_class' => self::attr($bookingAttrs, 'CabinClass'),
+            'tax_items' => FlightBookingAdminEticketPresenter::taxItemsFromPricingInfo($pricing),
+            'fare_infos' => $fareInfos,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $etr
+     * @return list<array{type: string, status: string, free_text: string, carrier: string}>
+     */
+    private static function ssrsFromEtr(array $etr): array
+    {
+        $items = [];
+
+        foreach (self::asList($etr['BookingTraveler'] ?? null) as $traveler) {
+            if (! is_array($traveler)) {
+                continue;
+            }
+
+            foreach (self::asList($traveler['SSR'] ?? null) as $ssr) {
+                if (! is_array($ssr)) {
+                    continue;
+                }
+
+                $type = strtoupper(self::attr($ssr, 'Type'));
+                $freeText = self::attr($ssr, 'FreeText');
+                if ($type === '' && $freeText === '') {
+                    continue;
+                }
+
+                $items[] = [
+                    'type' => $type,
+                    'status' => self::attr($ssr, 'Status'),
+                    'free_text' => $freeText,
+                    'carrier' => strtoupper(self::attr($ssr, 'Carrier')),
+                ];
+            }
+        }
+
+        return $items;
     }
 
     /**
@@ -353,6 +493,20 @@ final class TravelportTicketDetailsPresenter
 
         try {
             return Carbon::parse($text)->format('d M Y, h:i A');
+        } catch (\Throwable) {
+            return $text;
+        }
+    }
+
+    private static function formatDate(mixed $raw): ?string
+    {
+        $text = trim((string) $raw);
+        if ($text === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($text)->format('d M Y');
         } catch (\Throwable) {
             return $text;
         }

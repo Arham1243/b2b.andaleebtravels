@@ -63,6 +63,60 @@
 @include('user.flights.partials.hold-confirm-styles')
 .bkp--admin .hp-fare-acc { margin-top: .65rem; }
 .bkp--admin .bkpd-fare__pax-breakdown { margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed var(--c-line); }
+.bkpd-eticket-admin__section { padding: .85rem 1rem; border-top: 1px solid var(--c-line-inner); }
+.bkpd-eticket-admin__section:first-of-type { border-top: 0; }
+.bkpd-eticket-admin__section-title {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin-bottom: .55rem;
+}
+.bkpd-eticket-admin__table-wrap { overflow-x: auto; }
+.bkpd-eticket-admin__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .76rem;
+}
+.bkpd-eticket-admin__table th,
+.bkpd-eticket-admin__table td {
+    padding: .45rem .55rem;
+    border-bottom: 1px solid var(--c-line-inner);
+    text-align: left;
+    vertical-align: top;
+}
+.bkpd-eticket-admin__table th {
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--c-muted);
+    background: #fafbfd;
+}
+.bkpd-eticket-admin__fare-block,
+.bkpd-eticket-admin__ticket {
+    border-top: 1px solid var(--c-line-inner);
+}
+.bkpd-eticket-admin__fare-head {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    flex-wrap: wrap;
+    padding: .75rem 1rem .35rem;
+    font-size: .84rem;
+}
+.bkpd-eticket-admin__subblock {
+    margin: .55rem 1rem .85rem;
+    padding: .65rem .75rem;
+    background: #fafbfd;
+    border: 1px solid var(--c-line-inner);
+    border-radius: 8px;
+    font-size: .76rem;
+    line-height: 1.45;
+}
+.bkpd-eticket-admin .bkpd-info-rows { padding: 0 1rem .75rem; }
+.bkpd-eticket-admin .bkpd-ticket__head { padding-left: 1rem; padding-right: 1rem; }
+.bkpd-eticket-admin .bkpd-ticket__coupons { padding: 0 1rem 1rem; }
 </style>
 @endpush
 
@@ -140,7 +194,7 @@
                 {{ Breadcrumbs::render('admin.flight-bookings.show', $booking) }}
             </div>
 
-            <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-2 bkpd-toolbar-actions">
                 @include('partials.flight-eticket-export', [
                     'booking' => $booking,
                     'exportRoute' => route('admin.flight-bookings.eticket-pdf', $booking->id),
@@ -150,8 +204,10 @@
 
                 @if ($booking->isTravelport() && is_array($booking->booking_response) && $booking->booking_response !== [])
                     <a href="{{ route('admin.flight-bookings.travelport-cert-logs', $booking->id) }}"
-                       class="btn btn-sm btn-outline-secondary">
-                        <i class="bx bx-archive-in me-1"></i>Travelport cert logs
+                       class="eticket-icon-btn eticket-icon-btn--muted eticket-icon-btn--link"
+                       title="Download Travelport certification logs">
+                        <i class="bx bx-archive-in"></i>
+                        <span>Travelport cert logs</span>
                     </a>
                 @endif
             </div>
@@ -201,9 +257,9 @@
                     <div>
                         @include('admin.hotel-bookings.partials.supplier-booking-details')
 
-                        @include('partials.flight-booking-ticket-details', [
+                        @include('partials.flight-booking-ticket-details-admin', [
                             'booking' => $booking,
-                            'ticketDetails' => $ticketDetails ?? ['tickets' => []],
+                            'adminEticketDetails' => $adminEticketDetails ?? ['has_content' => false],
                         ])
 
                         @include('admin.partials.booking-vendor-detail-card', ['vendor' => $booking->vendor])

@@ -592,6 +592,13 @@
     min-width: 0;
 }
 
+.bkpd-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
 .eticket-export--toolbar {
     flex: 0 0 auto;
     margin: 0;
@@ -604,7 +611,8 @@
     gap: 8px;
 }
 
-.eticket-export button.eticket-icon-btn {
+.eticket-export button.eticket-icon-btn,
+a.eticket-icon-btn.eticket-icon-btn--link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -626,31 +634,37 @@
     white-space: nowrap;
     box-shadow: 0 1px 3px rgba(16, 24, 40, .06);
     transition: border-color .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
+    text-decoration: none;
 }
 
-.eticket-export button.eticket-icon-btn i {
+.eticket-export button.eticket-icon-btn i,
+a.eticket-icon-btn.eticket-icon-btn--link i {
     font-size: 1rem;
     color: var(--c-brand, #cd1b4f);
     line-height: 1;
 }
 
-.eticket-export button.eticket-icon-btn:hover {
+.eticket-export button.eticket-icon-btn:hover,
+a.eticket-icon-btn.eticket-icon-btn--link:hover {
     border-color: var(--c-brand, #cd1b4f);
     background: #fff5f8;
     color: var(--c-brand, #cd1b4f);
     box-shadow: 0 2px 8px rgba(205, 27, 79, .14);
 }
 
-.eticket-export button.eticket-icon-btn--muted i {
+.eticket-export button.eticket-icon-btn--muted i,
+a.eticket-icon-btn.eticket-icon-btn--link.eticket-icon-btn--muted i {
     color: #64748b;
 }
 
-.eticket-export button.eticket-icon-btn--muted:hover i {
+.eticket-export button.eticket-icon-btn--muted:hover i,
+a.eticket-icon-btn.eticket-icon-btn--link.eticket-icon-btn--muted:hover i {
     color: var(--c-brand, #cd1b4f);
 }
 
 @media (max-width: 640px) {
-    .eticket-export button.eticket-icon-btn {
+    .eticket-export button.eticket-icon-btn,
+    a.eticket-icon-btn.eticket-icon-btn--link {
         flex: 1 1 auto;
         min-width: 0;
         padding: 0 12px;

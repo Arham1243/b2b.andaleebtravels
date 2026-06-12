@@ -11,7 +11,7 @@ use App\Services\Travelport\TravelportApiClient;
 use App\Services\Travelport\TravelportBookingService;
 use App\Support\BookingCancellationEligibility;
 use App\Support\FlightBookingAdminPresenter;
-use App\Support\FlightItineraryLegsNormalizer;
+use App\Support\FlightBookingAdminEticketPresenter;
 use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\SabreFareRulesRequestBuilder;
 use App\Support\SabrePricingResolver;
@@ -69,8 +69,9 @@ class AdminFlightBookingController extends Controller
         }
 
         $fareBreakdown = flightFareBreakdownForBooking($booking);
+        $adminEticketDetails = FlightBookingAdminEticketPresenter::present($booking, $ticketDetails, $fareBreakdown);
 
-        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails', 'ticketDetails', 'legs', 'fareBreakdown'))
+        return view('admin.flight-bookings.show', compact('booking', 'supplierBookingDetails', 'cancellation', 'adminDetails', 'ticketDetails', 'legs', 'fareBreakdown', 'adminEticketDetails'))
             ->with('title', 'Booking ' . $booking->booking_number);
     }
 
