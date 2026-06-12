@@ -146,6 +146,8 @@ final class TravelportHoldTravelerKeyResolver
     }
 
     /**
+     * Diagnostic: every BookingTraveler Key attribute found in the raw XML, unfiltered.
+     *
      * @param  array<string, mixed>  $holdResponse
      * @return list<string>
      */
@@ -159,7 +161,26 @@ final class TravelportHoldTravelerKeyResolver
             }
         }
 
-        return $keys;
+        if ($keys !== []) {
+            return $keys;
+        }
+
+        $raw = (string) ($holdResponse['raw'] ?? '');
+        if ($raw !== '' && preg_match_all(
+            '/<(?:[\w-]+:)?BookingTraveler\b[^>]*\bKey=(["\'])([^"\']+)\1/i',
+            $raw,
+            $matches,
+            PREG_SET_ORDER,
+        )) {
+            foreach ($matches as $match) {
+                $key = trim((string) ($match[2] ?? ''));
+                if ($key !== '') {
+                    $keys[] = 'unfiltered:' . $key;
+                }
+            }
+        }
+
+        return array_values(array_unique($keys));
     }
 
     /**

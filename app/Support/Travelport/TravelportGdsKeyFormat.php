@@ -3,7 +3,11 @@
 namespace App\Support\Travelport;
 
 /**
- * Distinguish reservation-scoped GDS keys (D1/, /NA, …) from shop-session keys (xYM…).
+ * Distinguish reservation-scoped GDS keys from request keys (traveler_1) and shop-session keys (xYM…).
+ *
+ * Key shape varies by environment (sandbox D1/…, production /NA… or plain base64), so callers must
+ * rely on XML structure (BookingTraveler elements, StoredFare pricing inside AirReservation) and only
+ * use this as a sanity filter.
  */
 final class TravelportGdsKeyFormat
 {
@@ -22,12 +26,7 @@ final class TravelportGdsKeyFormat
             return false;
         }
 
-        if (str_starts_with($key, 'D1/') || str_starts_with($key, '/NA')) {
-            return true;
-        }
-
-        // Reservation objects use a slash namespace (D1/…, /NA…). Shop quote keys do not.
-        return str_contains($key, '/');
+        return preg_match('#^[A-Za-z0-9+/=_.\-]{12,}$#', $key) === 1;
     }
 
     public static function isShopSessionKey(string $key): bool

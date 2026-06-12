@@ -44,9 +44,12 @@
     line-height: 1.45;
 }
 .hp-btn-pay.is-processing,
-.hp-btn-hold.is-processing {
+.hp-btn-hold.is-processing,
+button.is-processing {
+    opacity: .82;
     cursor: wait;
     pointer-events: none;
+    transform: none;
 }
 .hp-btn-pay:disabled,
 .hp-btn-hold:disabled {
@@ -135,11 +138,19 @@
                     showOverlay(loadingText);
                 }
 
+                // Don't set disabled yet: a disabled submitter can block the
+                // upcoming requestSubmit in some browsers. is-processing already
+                // blocks clicks via pointer-events.
                 buttons.forEach(function (btn) {
-                    btn.disabled = true;
                     btn.classList.add('is-processing');
                     btn.setAttribute('aria-busy', 'true');
                     btn.innerHTML = loadingHtml;
+                });
+            }
+
+            function lockButtons() {
+                buttons.forEach(function (btn) {
+                    btn.disabled = true;
                 });
             }
 
@@ -202,6 +213,7 @@
                 window.requestAnimationFrame(function () {
                     window.requestAnimationFrame(function () {
                         submitFormNatively();
+                        lockButtons();
                     });
                 });
             }
