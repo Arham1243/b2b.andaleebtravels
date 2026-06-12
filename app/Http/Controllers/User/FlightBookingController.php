@@ -1012,10 +1012,22 @@ class FlightBookingController extends Controller
             return FlightPassengerFareLinesPresenter::syncItineraryFareTotals($card);
         }
 
+        $selectedSupplierTotal = round(
+            (float) ($selected['supplierBasePrice'] ?? 0) + (float) ($selected['supplierTaxes'] ?? 0),
+            2,
+        );
+
         return FlightPassengerFareLinesPresenter::syncItineraryFareTotals(array_merge($card, [
             'totalPrice' => $selected['totalPrice'] ?? $card['totalPrice'] ?? null,
-            'supplierPrice' => $selected['supplierPrice'] ?? $card['supplierPrice'] ?? ($selected['totalPrice'] ?? $card['totalPrice'] ?? null),
-            'originalPrice' => $selected['originalPrice'] ?? $card['originalPrice'] ?? null,
+            'supplierPrice' => $selected['supplierPrice']
+                ?? $selected['originalPrice']
+                ?? ($selectedSupplierTotal > 0 ? $selectedSupplierTotal : null)
+                ?? $card['supplierPrice']
+                ?? null,
+            'originalPrice' => $selected['originalPrice']
+                ?? ($selectedSupplierTotal > 0 ? $selectedSupplierTotal : null)
+                ?? $card['originalPrice']
+                ?? null,
             'supplierBasePrice' => $selected['supplierBasePrice'] ?? $card['supplierBasePrice'] ?? null,
             'supplierTaxes' => $selected['supplierTaxes'] ?? $card['supplierTaxes'] ?? null,
             'basePrice' => $selected['basePrice'] ?? $card['basePrice'] ?? null,
@@ -1041,7 +1053,9 @@ class FlightBookingController extends Controller
             'travelport_fare_rule' => $selected['travelport_fare_rule'] ?? $card['travelport_fare_rule'] ?? null,
             'travelport_price_point_key' => $selected['travelport_price_point_key'] ?? $card['travelport_price_point_key'] ?? null,
             'travelport_pricing_index' => $selected['travelport_pricing_index'] ?? $card['travelport_pricing_index'] ?? 0,
-            'travelport_air_price_solution' => $selected['travelport_air_price_solution'] ?? $card['travelport_air_price_solution'] ?? null,
+            'travelport_air_price_solution' => $selected['travelport_air_price_solution']
+                ?? $card['travelport_air_price_solution']
+                ?? (! empty($selected['fare_basis']) && ! empty($selected['fare_brand']) ? true : null),
             'travelport_host_token' => $selected['travelport_host_token'] ?? $card['travelport_host_token'] ?? null,
             'sabre_pricing_index' => $selected['sabre_pricing_index'] ?? 0,
             'selected_fare_index' => $fareIndex,

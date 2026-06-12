@@ -127,6 +127,7 @@ class TravelportAirPricePresenter
             'travelport_air_price_solution' => true,
             'travelport_host_token' => $hostToken !== '' ? $hostToken : null,
             'totalPrice' => (float) $totalMoney['amount'],
+            'supplierPrice' => (float) $totalMoney['amount'],
             'supplierBasePrice' => $baseMoney['amount'],
             'supplierTaxes' => $taxMoney['amount'],
             'basePrice' => $baseMoney['amount'],

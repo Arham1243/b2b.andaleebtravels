@@ -245,6 +245,20 @@ class TravelportBookingService
             ];
         }
 
+        if (! $this->pricingDataMatchesSelectedFare($pricingData, $itineraryData)) {
+            $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
+            $requestedBasis = strtoupper(trim((string) ($itineraryData['fare_basis'] ?? '')));
+
+            return [
+                'success' => false,
+                'error' => $requestedClass !== ''
+                    ? 'Booking class ' . $requestedClass . ' is no longer available on this flight. Please search again.'
+                    : ($requestedBasis !== ''
+                        ? 'Selected fare ' . $requestedBasis . ' is no longer available. Please search again.'
+                        : 'Selected fare is no longer available. Please search again.'),
+            ];
+        }
+
         $requestedClass = strtoupper(trim((string) ($itineraryData['booking_code'] ?? '')));
         if (($pricingData['segments'] ?? []) === [] && $requestedClass !== '') {
             return [
@@ -266,6 +280,11 @@ class TravelportBookingService
             $searchParams,
             $itineraryData,
         );
+
+        $matchedSupplierTotal = round((float) ($itineraryUpdates['supplierPrice'] ?? 0), 2);
+        if ($matchedSupplierTotal > 0) {
+            $repricedTotal = $matchedSupplierTotal;
+        }
 
         return [
             'success' => true,
@@ -1837,15 +1856,15 @@ class TravelportBookingService
      */
     private function resolveQuotedSupplierTotal(array $itineraryData): float
     {
-        $supplierPrice = round((float) ($itineraryData['supplierPrice'] ?? 0), 2);
-        if ($supplierPrice > 0) {
-            return $supplierPrice;
-        }
-
         $supplierBase = round((float) ($itineraryData['supplierBasePrice'] ?? 0), 2);
         $supplierTax = round((float) ($itineraryData['supplierTaxes'] ?? 0), 2);
         if ($supplierBase > 0 || $supplierTax > 0) {
             return round($supplierBase + $supplierTax, 2);
+        }
+
+        $supplierPrice = round((float) ($itineraryData['supplierPrice'] ?? 0), 2);
+        if ($supplierPrice > 0) {
+            return $supplierPrice;
         }
 
         $originalPrice = round((float) ($itineraryData['originalPrice'] ?? 0), 2);
@@ -1862,13 +1881,44 @@ class TravelportBookingService
     }
 
     /**
+     * @param  array<string, mixed>  $pricingData
+     * @param  array<string, mixed>  $itineraryData
+     */
+    private function pricingDataMatchesSelectedFare(array $pricingData, array $itineraryData): bool
+    {
+        $requestedBasis = strtoupper(trim((string) ($itineraryData['fare_basis'] ?? '')));
+        if ($requestedBasis === '') {
+            return true;
+        }
+
+        foreach ($pricingData['fare_infos'] ?? [] as $fareInfo) {
+            if (! is_array($fareInfo)) {
+                continue;
+            }
+
+            if (strtoupper(trim((string) ($fareInfo['fare_basis'] ?? ''))) === $requestedBasis) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Branded tiers from "View More Fares" (AirPrice FareFamily) are not returned by plain airPrice.
      *
      * @param  array<string, mixed>  $itineraryData
      */
     private function itineraryUsesFareFamilyPricing(array $itineraryData): bool
     {
-        return ! empty($itineraryData['travelport_air_price_solution']);
+        if (! empty($itineraryData['travelport_air_price_solution'])) {
+            return true;
+        }
+
+        $fareBasis = strtoupper(trim((string) ($itineraryData['fare_basis'] ?? '')));
+        $fareBrand = strtoupper(trim((string) ($itineraryData['fare_brand'] ?? '')));
+
+        return $fareBasis !== '' && $fareBrand !== '' && ! in_array($fareBrand, ['ECONOMY', 'ECO'], true);
     }
 
     /**
