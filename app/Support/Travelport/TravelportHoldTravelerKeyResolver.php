@@ -165,17 +165,17 @@ final class TravelportHoldTravelerKeyResolver
             return $keys;
         }
 
-        $raw = (string) ($holdResponse['raw'] ?? '');
-        if ($raw !== '' && preg_match_all(
+        $universalBlock = self::extractUniversalRecordBlock((string) ($holdResponse['raw'] ?? ''));
+        if ($universalBlock !== '' && preg_match_all(
             '/<(?:[\w-]+:)?BookingTraveler\b[^>]*\bKey=(["\'])([^"\']+)\1/i',
-            $raw,
+            $universalBlock,
             $matches,
             PREG_SET_ORDER,
         )) {
             foreach ($matches as $match) {
                 $key = trim((string) ($match[2] ?? ''));
                 if ($key !== '') {
-                    $keys[] = 'unfiltered:' . $key;
+                    $keys[] = 'ur:' . $key;
                 }
             }
         }
@@ -301,28 +301,13 @@ final class TravelportHoldTravelerKeyResolver
      */
     public static function extractBookingTravelersFromHold(array $holdResponse): array
     {
-        $raw = self::scrubQuoteBlocks((string) ($holdResponse['raw'] ?? ''));
-
-        if ($raw !== '') {
-            $travelers = self::extractAllBookingTravelersFromRaw($raw);
-            if ($travelers !== []) {
-                return $travelers;
-            }
-
-            $travelers = self::extractTravelerRefsFromReservationRaw($raw);
-            if ($travelers !== []) {
-                return self::enrichTravelersFromParsed($travelers, $holdResponse);
-            }
-        }
-
         $parsed = is_array($holdResponse['parsed'] ?? null) ? $holdResponse['parsed'] : [];
-        $travelers = [];
-
         if ($parsed !== []) {
             $nodes = data_get($parsed, 'Body.AirCreateReservationRsp.UniversalRecord.BookingTraveler')
                 ?? data_get($parsed, 'Body.UniversalRecordRetrieveRsp.UniversalRecord.BookingTraveler')
                 ?? data_get($parsed, 'UniversalRecord.BookingTraveler');
 
+            $travelers = [];
             foreach (self::asList($nodes) as $node) {
                 if (! is_array($node)) {
                     continue;
@@ -333,9 +318,26 @@ final class TravelportHoldTravelerKeyResolver
                     $travelers[] = $normalized;
                 }
             }
+
+            if ($travelers !== []) {
+                return $travelers;
+            }
         }
 
-        return self::filterReservationTravelers($travelers);
+        $universalBlock = self::extractUniversalRecordBlock((string) ($holdResponse['raw'] ?? ''));
+        if ($universalBlock !== '') {
+            $travelers = self::extractAllBookingTravelersFromRaw($universalBlock);
+            if ($travelers !== []) {
+                return $travelers;
+            }
+
+            $travelers = self::extractTravelerRefsFromReservationRaw($universalBlock);
+            if ($travelers !== []) {
+                return self::enrichTravelersFromParsed($travelers, $holdResponse);
+            }
+        }
+
+        return [];
     }
 
     /**
@@ -477,17 +479,7 @@ final class TravelportHoldTravelerKeyResolver
      */
     private static function extractAllBookingTravelersFromRaw(string $raw): array
     {
-        $travelers = self::extractTravelersFromUniversalRecordRaw($raw);
-        if ($travelers !== []) {
-            return $travelers;
-        }
-
-        $travelers = self::extractBookingTravelerElementsFromRaw($raw);
-        if ($travelers !== []) {
-            return $travelers;
-        }
-
-        return [];
+        return self::extractBookingTravelerElementsFromRaw($raw);
     }
 
     /**
@@ -569,41 +561,31 @@ final class TravelportHoldTravelerKeyResolver
     /**
      * @return list<array{key: string, traveler_type: string, first: string, last: string}>
      */
+    private static function extractUniversalRecordBlock(string $raw): string
+    {
+        $scrubbed = self::scrubQuoteBlocks($raw);
+        if ($scrubbed === '') {
+            return '';
+        }
+
+        $patterns = [
+            '/<(?:[\w-]+:)?AirCreateReservationRsp\b[\s\S]*?<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
+            '/<(?:[\w-]+:)?UniversalRecordRetrieveRsp\b[\s\S]*?<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
+            '/<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $scrubbed, $match)) {
+                return (string) ($match[0] ?? '');
+            }
+        }
+
+        return '';
+    }
+
     private static function extractTravelersFromUniversalRecordRaw(string $raw): array
     {
-        if (! preg_match(
-            '/<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
-            $raw,
-            $universalMatch,
-        )) {
-            return [];
-        }
-
-        $universalBlock = $universalMatch[0];
-        $travelers = [];
-
-        if (! preg_match_all(
-            '/<(?:[\w-]+:)?BookingTraveler\b([^>]*)>([\s\S]*?)<\/(?:[\w-]+:)?BookingTraveler>/i',
-            $universalBlock,
-            $matches,
-            PREG_SET_ORDER,
-        )) {
-            return [];
-        }
-
-        foreach ($matches as $match) {
-            $attrs = (string) ($match[1] ?? '');
-            $body = (string) ($match[2] ?? '');
-
-            $traveler = self::travelerFromBookingTravelerAttributes($attrs, $body);
-            if ($traveler === null) {
-                continue;
-            }
-
-            $travelers[] = $traveler;
-        }
-
-        return $travelers;
+        return self::extractBookingTravelerElementsFromRaw($raw);
     }
 
     /**

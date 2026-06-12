@@ -258,12 +258,35 @@ class TravelportHoldPricingInfoParser
      */
     private static function extractStoredFareKeysFromRawXml(string $raw): array
     {
-        $scrubbed = self::scrubQuoteBlocks($raw);
+        $universalBlock = self::extractUniversalRecordBlock($raw);
+        $searchRaw = $universalBlock !== '' ? $universalBlock : self::scrubQuoteBlocks($raw);
         $keys = [];
 
         if (preg_match_all(
+            '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bPricingType=(["\'])StoredFare\1[^>]*\bKey=(["\'])([^"\']+)\2/i',
+            $searchRaw,
+            $matches,
+            PREG_SET_ORDER,
+        )) {
+            foreach ($matches as $match) {
+                $keys[] = (string) ($match[3] ?? '');
+            }
+        }
+
+        if (preg_match_all(
+            '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey=(["\'])([^"\']+)\1[^>]*\bPricingType=(["\'])StoredFare\3/i',
+            $searchRaw,
+            $matches,
+            PREG_SET_ORDER,
+        )) {
+            foreach ($matches as $match) {
+                $keys[] = (string) ($match[2] ?? '');
+            }
+        }
+
+        if (preg_match_all(
             '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bPricingType="StoredFare"[^>]*\bKey="([^"]+)"/i',
-            $scrubbed,
+            $searchRaw,
             $matches,
         )) {
             $keys = array_merge($keys, $matches[1] ?? []);
@@ -271,7 +294,7 @@ class TravelportHoldPricingInfoParser
 
         if (preg_match_all(
             '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey="([^"]+)"[^>]*\bPricingType="StoredFare"/i',
-            $scrubbed,
+            $searchRaw,
             $matches,
         )) {
             $keys = array_merge($keys, $matches[1] ?? []);
@@ -284,7 +307,7 @@ class TravelportHoldPricingInfoParser
 
         if (! preg_match_all(
             '/<(?:[\w-]+:)?AirReservation\b[\s\S]*?<\/(?:[\w-]+:)?AirReservation>/i',
-            $scrubbed,
+            $searchRaw,
             $reservationMatches,
         )) {
             return [];
@@ -292,17 +315,42 @@ class TravelportHoldPricingInfoParser
 
         foreach ($reservationMatches[0] as $reservationBlock) {
             if (! preg_match_all(
-                '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey="([^"]+)"/i',
+                '/<(?:[\w-]+:)?AirPricingInfo\b[^>]*\bKey=(["\'])([^"\']+)\1/i',
                 $reservationBlock,
                 $matches,
+                PREG_SET_ORDER,
             )) {
                 continue;
             }
 
-            $keys = array_merge($keys, self::filterToReservationKeys($matches[1] ?? []));
+            foreach ($matches as $match) {
+                $keys[] = (string) ($match[2] ?? '');
+            }
         }
 
-        return self::uniqueNonEmpty($keys);
+        return self::uniqueNonEmpty(self::filterToReservationKeys($keys));
+    }
+
+    private static function extractUniversalRecordBlock(string $raw): string
+    {
+        $scrubbed = self::scrubQuoteBlocks($raw);
+        if ($scrubbed === '') {
+            return '';
+        }
+
+        $patterns = [
+            '/<(?:[\w-]+:)?AirCreateReservationRsp\b[\s\S]*?<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
+            '/<(?:[\w-]+:)?UniversalRecordRetrieveRsp\b[\s\S]*?<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
+            '/<(?:[\w-]+:)?UniversalRecord\b[\s\S]*?<\/(?:[\w-]+:)?UniversalRecord>/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $scrubbed, $match)) {
+                return (string) ($match[0] ?? '');
+            }
+        }
+
+        return '';
     }
 
     private static function scrubQuoteBlocks(string $raw): string

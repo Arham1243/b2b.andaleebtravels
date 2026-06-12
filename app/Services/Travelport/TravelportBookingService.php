@@ -336,7 +336,9 @@ class TravelportBookingService
             $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
             $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($holdResponse);
             if ($holdPricingInfoKeys === []) {
-                $retrieveAfterHold = $this->client->universalRecordRetrieve((string) ($locators['universal_locator'] ?? ''));
+                $retrieveAfterHold = $this->retrieveUniversalRecordForHold(
+                    (string) ($locators['universal_locator'] ?? ''),
+                );
                 if ($retrieveAfterHold['success'] ?? false) {
                     $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($retrieveAfterHold);
                     if ($holdPricingInfoKeys !== []) {
@@ -346,6 +348,8 @@ class TravelportBookingService
                             'universal_locator' => $locators['universal_locator'] ?? null,
                             'air_pricing_info_keys' => $holdPricingInfoKeys,
                         ]);
+                    } else {
+                        $holdResponse = $retrieveAfterHold;
                     }
                 }
             }
@@ -856,6 +860,37 @@ class TravelportBookingService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function retrieveUniversalRecordForHold(string $universalLocator, int $maxAttempts = 3): array
+    {
+        $universalLocator = trim($universalLocator);
+        if ($universalLocator === '') {
+            return ['success' => false];
+        }
+
+        $lastResponse = ['success' => false];
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            if ($attempt > 0) {
+                usleep(750000);
+            }
+
+            $lastResponse = $this->client->universalRecordRetrieve($universalLocator);
+            if (! ($lastResponse['success'] ?? false)) {
+                continue;
+            }
+
+            $fareKeys = TravelportHoldPricingInfoParser::extractReservationKeys($lastResponse);
+            $travelerKeys = TravelportHoldTravelerKeyResolver::extractBookingTravelersFromHold($lastResponse);
+            if ($fareKeys !== [] || $travelerKeys !== []) {
+                return $lastResponse;
+            }
+        }
+
+        return $lastResponse;
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $travelers
      * @param  array<string, mixed>  $pricingData
      * @param  array<string, mixed>  $holdResponse
@@ -874,7 +909,7 @@ class TravelportBookingService
         }
 
         $keySourceResponse = $holdResponse;
-        $retrieveResponse = $this->client->universalRecordRetrieve($universalLocator);
+        $retrieveResponse = $this->retrieveUniversalRecordForHold($universalLocator);
         if ($retrieveResponse['success'] ?? false) {
             $keySourceResponse = $retrieveResponse;
             $retrievedVersion = data_get($retrieveResponse, 'parsed.Body.UniversalRecordRetrieveRsp.UniversalRecord.@attributes.Version')
@@ -895,6 +930,37 @@ class TravelportBookingService
             $keySourceResponse,
             $holdResponse,
         );
+
+        if ($keyMap === []) {
+            $providerLocator = TravelportHoldPricingInfoParser::extractProviderLocatorCode(
+                array_merge($holdResponse, ['parsed' => $keySourceResponse['parsed'] ?? $holdResponse['parsed'] ?? []]),
+            );
+            $leadLastName = trim((string) (
+                $travelers[0]['lastName']
+                ?? $travelers[0]['last_name']
+                ?? ''
+            ));
+
+            if ($providerLocator !== '' && $leadLastName !== '') {
+                $providerRetrieve = $this->client->universalRecordRetrieveByProvider($providerLocator, $leadLastName);
+                if ($providerRetrieve['success'] ?? false) {
+                    $keyMap = TravelportHoldTravelerKeyResolver::resolveRequestToGdsKeyMapFromSources(
+                        $travelers,
+                        $providerRetrieve,
+                        $keySourceResponse,
+                        $holdResponse,
+                    );
+                    if ($keyMap !== []) {
+                        $keySourceResponse = $providerRetrieve;
+                        Log::info('Travelport resolved GDS traveler keys from provider record retrieve', [
+                            'booking_id' => $bookingId,
+                            'provider_locator' => $providerLocator,
+                            'key_map' => $keyMap,
+                        ]);
+                    }
+                }
+            }
+        }
 
         if ($keyMap !== []) {
             Log::info('Travelport remapping passenger keys for fare storage', [
