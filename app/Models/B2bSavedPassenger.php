@@ -92,24 +92,39 @@ class B2bSavedPassenger extends Model
             return null;
         }
 
-        $asOf = Carbon::parse($asOf ?? now())->startOfDay();
-        $dob = $this->dob->copy()->startOfDay();
+        return self::ageLabelFromDob($this->dob->format('Y-m-d'), $asOf);
+    }
 
-        if ($dob->gt($asOf)) {
+    public static function ageLabelFromDob(?string $dob, ?DateTimeInterface $asOf = null): ?string
+    {
+        $dob = trim((string) $dob);
+        if ($dob === '') {
             return null;
         }
 
-        $years = (int) $dob->diffInYears($asOf);
+        try {
+            $dobDate = Carbon::parse($dob)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $asOf = Carbon::parse($asOf ?? now())->startOfDay();
+
+        if ($dobDate->gt($asOf)) {
+            return null;
+        }
+
+        $years = (int) $dobDate->diffInYears($asOf);
         if ($years >= 1) {
             return $years . ' yr' . ($years === 1 ? '' : 's');
         }
 
-        $months = (int) $dob->diffInMonths($asOf);
+        $months = (int) $dobDate->diffInMonths($asOf);
         if ($months >= 1) {
             return $months . ' mo' . ($months === 1 ? '' : 's');
         }
 
-        $days = (int) $dob->diffInDays($asOf);
+        $days = (int) $dobDate->diffInDays($asOf);
 
         return $days . ' day' . ($days === 1 ? '' : 's');
     }

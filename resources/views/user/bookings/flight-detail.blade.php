@@ -334,7 +334,12 @@
                                             {{ $paxType }}
                                             @if(!empty($pax['nationality'])) &bull; {{ strtoupper($pax['nationality']) }} @endif
                                             @if(!empty($pax['issuing_country'])) &bull; Issued {{ strtoupper($pax['issuing_country']) }} @endif
-                                            @if(!empty($pax['dob'])) &bull; DOB: {{ \Carbon\Carbon::parse($pax['dob'])->format('d M Y') }} @endif
+                                            @if(!empty($pax['dob']))
+                                                &bull; DOB: {{ \Carbon\Carbon::parse($pax['dob'])->format('d M Y') }}
+                                                @if ($ageLabel = \App\Models\B2bSavedPassenger::ageLabelFromDob($pax['dob']))
+                                                    &bull; Age {{ $ageLabel }}
+                                                @endif
+                                            @endif
                                         </div>
                                     </div>
                                     @if(!empty($pax['passport_no']))

@@ -197,7 +197,16 @@ class TravelportBookingService
             );
         }
 
-        $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchParams);
+        $travelers = [];
+        if ($passengersData !== []) {
+            try {
+                $travelers = TravelportHoldPayloadBuilder::buildTravelers($passengersData, $searchParams);
+            } catch (\Throwable) {
+                $travelers = [];
+            }
+        }
+
+        $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchParams, $travelers);
         if (! ($priceResponse['success'] ?? false)) {
             return [
                 'success' => false,
@@ -264,7 +273,13 @@ class TravelportBookingService
                 $searchRequest,
                 $passengersData,
             );
-            $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest);
+
+            $travelers = TravelportHoldPayloadBuilder::buildTravelers($passengersData, $searchRequest);
+            if ($travelers === []) {
+                throw new \RuntimeException('No passenger data for Travelport hold.');
+            }
+
+            $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest, $travelers);
             if (! ($priceResponse['success'] ?? false)) {
                 throw new \RuntimeException($priceResponse['error'] ?? 'Travelport airPrice failed.');
             }
@@ -288,13 +303,9 @@ class TravelportBookingService
                 $itineraryData = array_merge($itineraryData, $itineraryFare);
             }
 
-            $travelers = TravelportHoldPayloadBuilder::buildTravelers($passengersData, $searchRequest);
-            if ($travelers === []) {
-                throw new \RuntimeException('No passenger data for Travelport hold.');
-            }
-
             $pricingData['passenger_types'] = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
             $pricingData = $this->alignPricingToSegments($pricingData);
+            $this->assertHoldPricingDataComplete($pricingData, $travelers);
 
             $holdResponse = $this->client->airHold($travelers, $pricingData);
             if (! ($holdResponse['success'] ?? false)) {
@@ -320,11 +331,34 @@ class TravelportBookingService
             $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
             $holdPricingInfoKeys = TravelportHoldPricingInfoParser::extractReservationKeys($holdResponse);
             if ($holdPricingInfoKeys === []) {
-                Log::warning('Travelport hold succeeded but no reservation AirPricingInfo keys were extracted', [
+                Log::warning('Travelport hold succeeded but no reservation AirPricingInfo keys were extracted; attempting fare storage retry', [
                     'booking_id' => $booking->id,
                     'air_reservation_locator' => $locators['air_reservation_locator'] ?? null,
                     'raw_len' => strlen((string) ($holdResponse['raw'] ?? '')),
                 ]);
+
+                $holdPricingInfoKeys = $this->storeFaresAndExtractKeys(
+                    $booking->id,
+                    (string) ($locators['universal_locator'] ?? ''),
+                    (string) ($locators['universal_version'] ?? '0'),
+                    $pricingData,
+                    $travelers,
+                );
+
+                if ($holdPricingInfoKeys !== []) {
+                    $retrieve = $this->client->universalRecordRetrieve((string) ($locators['universal_locator'] ?? ''));
+                    if ($retrieve['success'] ?? false) {
+                        $holdResponse = $retrieve;
+                    }
+                }
+            }
+
+            if ($holdPricingInfoKeys === []) {
+                throw new \RuntimeException(
+                    'Travelport hold completed without stored fares on PNR '
+                    . trim((string) ($locators['air_reservation_locator'] ?? ''))
+                    . '. Release the hold and try again.',
+                );
             }
             $parsedHold = is_array($holdResponse['parsed'] ?? null) ? $holdResponse['parsed'] : [];
             $bookingResponse = $parsedHold['Body']['AirCreateReservationRsp'] ?? $parsedHold;
@@ -675,6 +709,13 @@ class TravelportBookingService
             }
         }
 
+        $keys = $this->attemptStoreFaresOnBooking($booking);
+        if ($keys !== []) {
+            $this->persistHoldPricingInfoKeys($booking, $keys);
+
+            return $keys;
+        }
+
         Log::warning('Travelport fare keys could not be resolved from booking data or live retrieve', [
             'booking_id' => $booking->id,
             'air_reservation_locator' => $booking->sabre_record_locator,
@@ -762,6 +803,149 @@ class TravelportBookingService
     }
 
     /**
+     * @param  list<array<string, mixed>>  $travelers
+     * @param  array<string, mixed>  $pricingData
+     * @return list<string>
+     */
+    private function storeFaresAndExtractKeys(
+        int $bookingId,
+        string $universalLocator,
+        string $version,
+        array $pricingData,
+        array $travelers,
+    ): array {
+        if ($universalLocator === '') {
+            return [];
+        }
+
+        $storeResponse = $this->client->storeFaresOnUniversalRecord(
+            $universalLocator,
+            $version,
+            $pricingData,
+            $travelers,
+        );
+
+        if (! ($storeResponse['success'] ?? false)) {
+            Log::warning('Travelport store fares on universal record failed', [
+                'booking_id' => $bookingId,
+                'universal_locator' => $universalLocator,
+                'error' => $storeResponse['error'] ?? null,
+            ]);
+
+            return [];
+        }
+
+        $keys = TravelportHoldPricingInfoParser::extractReservationKeys($storeResponse);
+        Log::info('Travelport store fares on universal record completed', [
+            'booking_id' => $bookingId,
+            'universal_locator' => $universalLocator,
+            'air_pricing_info_keys' => $keys,
+        ]);
+
+        return $keys;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function attemptStoreFaresOnBooking(B2bFlightBooking $booking): array
+    {
+        $bookingRequest = is_array($booking->booking_request) ? $booking->booking_request : [];
+        $universalLocator = $booking->travelportUniversalLocator();
+        if ($universalLocator === '') {
+            return [];
+        }
+
+        $travelers = is_array($bookingRequest['travelers'] ?? null) ? $bookingRequest['travelers'] : [];
+        if ($travelers === []) {
+            $passengersData = is_array($booking->passengers_data) ? $booking->passengers_data : [];
+            $searchRequest = is_array($booking->search_request) ? $booking->search_request : [];
+            $searchRequest = TravelportHoldPayloadBuilder::enrichSearchDataWithPassengerAges(
+                $searchRequest,
+                $passengersData,
+            );
+            try {
+                $travelers = TravelportHoldPayloadBuilder::buildTravelers($passengersData, $searchRequest);
+            } catch (\Throwable) {
+                return [];
+            }
+        }
+
+        $segments = is_array($bookingRequest['air_price_segments'] ?? null)
+            ? $bookingRequest['air_price_segments']
+            : TravelportHoldPayloadBuilder::buildAirPriceSegments(is_array($booking->itinerary_data) ? $booking->itinerary_data : []);
+        if ($segments === [] || $travelers === []) {
+            return [];
+        }
+
+        $passengerCounts = is_array($bookingRequest['passenger_counts'] ?? null)
+            ? $bookingRequest['passenger_counts']
+            : TravelportHoldPayloadBuilder::passengerCounts([
+                'adults' => $booking->adults,
+                'children' => $booking->children,
+                'infants' => $booking->infants,
+            ]);
+
+        $searchRequest = is_array($booking->search_request) ? $booking->search_request : [];
+        $searchRequest = TravelportHoldPayloadBuilder::enrichSearchDataWithPassengerAges(
+            $searchRequest,
+            is_array($booking->passengers_data) ? $booking->passengers_data : [],
+        );
+
+        $priceResponse = $this->client->airPrice($segments, $passengerCounts, $searchRequest, $travelers);
+        if (! ($priceResponse['success'] ?? false)) {
+            Log::warning('Travelport airPrice failed during fare storage recovery', [
+                'booking_id' => $booking->id,
+                'error' => $priceResponse['error'] ?? null,
+            ]);
+
+            return [];
+        }
+
+        $requestedClass = strtoupper(trim((string) data_get($booking->itinerary_data, 'booking_code', '')));
+        $pricingData = TravelportAirPriceParser::extract(
+            (string) ($priceResponse['raw'] ?? ''),
+            $requestedClass,
+        );
+        $pricingData['passenger_types'] = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
+        $pricingData = $this->alignPricingToSegments($pricingData);
+
+        $version = trim((string) (
+            data_get($booking->booking_response, 'travelport_universal_version')
+            ?? data_get($booking->booking_response, 'UniversalRecord.@attributes.Version')
+            ?? '0'
+        ));
+
+        return $this->storeFaresAndExtractKeys(
+            $booking->id,
+            $universalLocator,
+            $version,
+            $pricingData,
+            $travelers,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $pricingData
+     * @param  list<array<string, mixed>>  $travelers
+     */
+    private function assertHoldPricingDataComplete(array $pricingData, array $travelers): void
+    {
+        $passengerCount = count($travelers);
+        $passengerTypeCount = count($pricingData['passenger_types'] ?? []);
+        $bookingInfoCount = count($pricingData['booking_infos'] ?? []);
+        $hostTokenCount = count($pricingData['host_tokens'] ?? []);
+
+        if ($passengerTypeCount !== $passengerCount) {
+            throw new \RuntimeException('Travelport pricing does not match passenger count. Please search again.');
+        }
+
+        if ($bookingInfoCount < $passengerCount || $hostTokenCount < 1) {
+            throw new \RuntimeException('Travelport pricing is incomplete for this passenger mix. Please search again.');
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $pricingData
      * @return array<string, mixed>
      */
@@ -804,11 +988,15 @@ class TravelportBookingService
             if ($segmentRef === '' || ! in_array($segmentRef, $segmentKeys, true)) {
                 continue;
             }
+
             $fareInfoRef = (string) ($bookingInfo['fare_info_ref'] ?? '');
-            $bookingKey = $fareInfoRef !== '' ? $fareInfoRef : $segmentRef;
-            if (! isset($bookingInfos[$bookingKey])) {
-                $bookingInfos[$bookingKey] = $bookingInfo;
+            $hostTokenRef = (string) ($bookingInfo['host_token_ref'] ?? '');
+            $bookingKey = implode('|', [$fareInfoRef, $segmentRef, $hostTokenRef]);
+            if (isset($bookingInfos[$bookingKey])) {
+                continue;
             }
+
+            $bookingInfos[$bookingKey] = $bookingInfo;
         }
         $pricingData['booking_infos'] = array_values($bookingInfos);
 

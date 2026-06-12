@@ -124,8 +124,15 @@ XML;
      * @param  array<string, int>  $passengerCounts  e.g. ['ADT' => 1, 'CNN' => 0, 'INF' => 0]
      * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
      */
-    public function airPrice(array $segments, array $passengerCounts, array $searchData = []): array
-    {
+    /**
+     * @param  list<array<string, mixed>>  $travelers  When provided, SearchPassenger order matches hold travelers.
+     */
+    public function airPrice(
+        array $segments,
+        array $passengerCounts,
+        array $searchData = [],
+        array $travelers = [],
+    ): array {
         $searchData = TravelportHoldPayloadBuilder::ensureChildAgesInSearchData($searchData);
 
         if ($segments === []) {
@@ -146,7 +153,9 @@ XML;
 
         $airSegmentsXml = $this->buildAirPriceSegmentsXml($segments);
 
-        $passengersXml = $this->buildSearchPassengersXmlFromCounts($passengerCounts, $searchData);
+        $passengersXml = $travelers !== []
+            ? $this->buildSearchPassengersXmlFromTravelers($travelers)
+            : $this->buildSearchPassengersXmlFromCounts($passengerCounts, $searchData);
 
         $soap = <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -327,136 +336,20 @@ XML;
 XML;
         }
 
-        $segmentsXml = '';
-        $seenSegmentKeys = [];
-        foreach ($pricingData['segments'] as $segment) {
-            if (! is_array($segment)) {
-                continue;
-            }
-            $segKey = (string) ($segment['key'] ?? '');
-            if ($segKey === '' || isset($seenSegmentKeys[$segKey])) {
-                continue;
-            }
-            $seenSegmentKeys[$segKey] = true;
-            $segKey = $this->xmlEsc($segKey);
-            $group = $this->xmlEsc((string) ($segment['group'] ?? '0'));
-            $carrier = $this->xmlEsc((string) ($segment['carrier'] ?? ''));
-            $flightNumber = $this->xmlEsc((string) ($segment['flight_number'] ?? ''));
-            $segProvider = $this->xmlEsc((string) ($segment['provider_code'] ?? $providerCode));
-            $origin = $this->xmlEsc((string) ($segment['origin'] ?? ''));
-            $destination = $this->xmlEsc((string) ($segment['destination'] ?? ''));
-            $depTime = $this->xmlEsc($this->normalizeTravelportTime((string) ($segment['dep_time'] ?? '')));
-            $arrTime = $this->xmlEsc($this->normalizeTravelportTime((string) ($segment['arr_time'] ?? '')));
-            $flightTime = $this->xmlEsc((string) ($segment['flight_time'] ?? ''));
-            $travelTime = $this->xmlEsc((string) ($segment['travel_time'] ?? ''));
-            $bookingCode = $this->xmlEsc((string) ($segment['booking_code'] ?? ''));
+        $pricingSolutionXml = $this->buildAirPricingSolutionXml(
+            $pricingData,
+            $providerCode,
+            $solutionKey,
+            $totalPrice,
+            $basePrice,
+            $taxes,
+            $pricingInfoKey,
+            $pricingMethod,
+            $travelerAgeByRef,
+            $airNs,
+            $comNs,
+        );
 
-            $segmentsXml .= <<<XML
-
-                <AirSegment
-                    Key="{$segKey}"
-                    Group="{$group}"
-                    Carrier="{$carrier}"
-                    FlightNumber="{$flightNumber}"
-                    ProviderCode="{$segProvider}"
-                    Origin="{$origin}"
-                    Destination="{$destination}"
-                    DepartureTime="{$depTime}"
-                    ArrivalTime="{$arrTime}"
-                    FlightTime="{$flightTime}"
-                    TravelTime="{$travelTime}"
-                    ClassOfService="{$bookingCode}"
-                    Status="NN"/>
-XML;
-        }
-
-        $fareInfosXml = '';
-        $fareInfosByKey = [];
-        foreach ($pricingData['fare_infos'] ?? [] as $fareInfo) {
-            if (! is_array($fareInfo)) {
-                continue;
-            }
-            $fKey = (string) ($fareInfo['key'] ?? '');
-            if ($fKey === '' || isset($fareInfosByKey[$fKey])) {
-                continue;
-            }
-            $fareInfosByKey[$fKey] = true;
-            $fareKey = $this->xmlEsc($fKey);
-            $fareBasis = $this->xmlEsc((string) ($fareInfo['fare_basis'] ?? ''));
-            $paxType = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
-                (string) ($fareInfo['passenger_type_code'] ?? 'ADT'),
-            ));
-            $fareOrigin = $this->xmlEsc((string) ($fareInfo['origin'] ?? ''));
-            $fareDestination = $this->xmlEsc((string) ($fareInfo['destination'] ?? ''));
-            $departureDate = $this->xmlEsc((string) ($fareInfo['departure_date'] ?? ''));
-            $effectiveDate = $this->xmlEsc((string) ($fareInfo['effective_date'] ?? ''));
-            $fareRuleKey = (string) ($fareInfo['fare_rule_key'] ?? '');
-
-            $fareInfosXml .= <<<XML
-                    <FareInfo
-                        Key="{$fareKey}"
-                        FareBasis="{$fareBasis}"
-                        PassengerTypeCode="{$paxType}"
-                        Origin="{$fareOrigin}"
-                        Destination="{$fareDestination}"
-                        DepartureDate="{$departureDate}"
-                        EffectiveDate="{$effectiveDate}">
-                        <FareRuleKey FareInfoRef="{$fareKey}" ProviderCode="{$providerCode}">{$fareRuleKey}</FareRuleKey>
-                    </FareInfo>
-XML;
-        }
-
-        $bookingInfosXml = '';
-        foreach ($pricingData['booking_infos'] ?? [] as $bookingInfo) {
-            if (! is_array($bookingInfo)) {
-                continue;
-            }
-            $bookingCode = $this->xmlEsc((string) ($bookingInfo['booking_code'] ?? ''));
-            $cabinClass = $this->xmlEsc((string) ($bookingInfo['cabin_class'] ?? ''));
-            $fareInfoRef = $this->xmlEsc((string) ($bookingInfo['fare_info_ref'] ?? ''));
-            $segmentRef = $this->xmlEsc((string) ($bookingInfo['segment_ref'] ?? ''));
-            $hostTokenRef = $this->xmlEsc((string) ($bookingInfo['host_token_ref'] ?? ''));
-
-            $bookingInfosXml .= <<<XML
-                    <BookingInfo
-                        BookingCode="{$bookingCode}"
-                        CabinClass="{$cabinClass}"
-                        FareInfoRef="{$fareInfoRef}"
-                        SegmentRef="{$segmentRef}"
-                        HostTokenRef="{$hostTokenRef}"/>
-XML;
-        }
-
-        $passengerTypesXml = '';
-        foreach ($pricingData['passenger_types'] ?? [] as $passengerType) {
-            if (! is_array($passengerType)) {
-                continue;
-            }
-            $code = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
-                (string) ($passengerType['code'] ?? 'ADT'),
-            ));
-            $ref = $this->xmlEsc((string) ($passengerType['traveler_ref'] ?? ''));
-            $rawRef = (string) ($passengerType['traveler_ref'] ?? '');
-            $ageAttr = '';
-            if (in_array($code, ['CNN', 'INF'], true) && isset($travelerAgeByRef[$rawRef])) {
-                $ageAttr = ' Age="' . $travelerAgeByRef[$rawRef] . '"';
-            }
-            $passengerTypesXml .= "\n                    <PassengerType Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"{$ageAttr}/>";
-        }
-
-        $hostTokensXml = '';
-        foreach ($pricingData['host_tokens'] ?? [] as $hostToken) {
-            if (! is_array($hostToken)) {
-                continue;
-            }
-            $htKey = $this->xmlEsc((string) ($hostToken['key'] ?? ''));
-            $htValue = (string) ($hostToken['value'] ?? '');
-            if ($htKey !== '' && $htValue !== '') {
-                $hostTokensXml .= "\n                <HostToken xmlns=\"{$comNs}\" Key=\"{$htKey}\">{$htValue}</HostToken>";
-            }
-        }
-
-        $taxesXml = (string) ($pricingData['taxes_xml'] ?? '');
         $fopXml = $this->buildFormOfPaymentXml($comNs, 'FOP1', '            ');
 
         $soap = <<<XML
@@ -474,30 +367,98 @@ XML;
             <BillingPointOfSaleInfo xmlns="{$comNs}" OriginApplication="UAPI"/>
             {$travelersXml}
             {$fopXml}
+            {$pricingSolutionXml}
+            <ActionStatus xmlns="{$comNs}" Type="ACTIVE" TicketDate="T*" ProviderCode="{$providerCode}"/>
 
-            <AirPricingSolution
-                xmlns="{$airNs}"
-                Key="{$solutionKey}"
-                TotalPrice="{$totalPrice}"
-                BasePrice="{$basePrice}"
-                Taxes="{$taxes}">
-                {$segmentsXml}
+        </AirCreateReservationReq>
+    </soapenv:Body>
+</soapenv:Envelope>
+XML;
 
-                <AirPricingInfo
-                    Key="{$pricingInfoKey}"
-                    TotalPrice="{$totalPrice}"
-                    BasePrice="{$basePrice}"
-                    Taxes="{$taxes}"
-                    PricingMethod="{$pricingMethod}"
-                    ProviderCode="{$providerCode}">
-                    {$fareInfosXml}
-                    {$bookingInfosXml}
-                    {$taxesXml}{$passengerTypesXml}
-                </AirPricingInfo>
-                {$hostTokensXml}
+        return $this->sendRequest('AirService', $soap);
+    }
 
-            </AirPricingSolution>
+    /**
+     * Store priced fares on an existing universal record (PNR already held).
+     *
+     * @param  list<array<string, mixed>>  $travelers
+     * @param  array<string, mixed>  $pricingData
+     * @return array{success: bool, httpCode: int, raw: string, parsed: ?array, error: ?string}
+     */
+    public function storeFaresOnUniversalRecord(
+        string $universalLocator,
+        string $version,
+        array $pricingData,
+        array $travelers = [],
+    ): array {
+        $universalLocator = trim($universalLocator);
+        if ($universalLocator === '' || ($pricingData['solution_key'] ?? '') === '') {
+            return [
+                'success' => false,
+                'httpCode' => 0,
+                'raw' => '',
+                'parsed' => null,
+                'error' => 'Missing universal locator or pricing solution for fare storage.',
+            ];
+        }
 
+        $traceId = $this->generateTraceId();
+        $authorizedBy = self::AUTHORIZED_BY;
+        $targetBranch = self::TARGET_BRANCH;
+        $airNs = self::AIR_NS;
+        $comNs = self::COM_NS;
+        $uniNs = self::UNI_NS;
+        $providerCode = $this->xmlEsc((string) ($pricingData['provider_code'] ?? self::PROVIDER_CODE));
+        $solutionKey = $this->xmlEsc((string) ($pricingData['solution_key'] ?? ''));
+        $totalPrice = $this->xmlEsc((string) ($pricingData['total_price'] ?? ''));
+        $basePrice = $this->xmlEsc((string) ($pricingData['base_price'] ?? ''));
+        $taxes = $this->xmlEsc((string) ($pricingData['taxes'] ?? ''));
+        $pricingInfoKey = $this->xmlEsc((string) ($pricingData['pricing_info_key'] ?? ''));
+        $pricingMethod = $this->xmlEsc((string) ($pricingData['pricing_method'] ?? 'Auto'));
+        $locator = $this->xmlEsc($universalLocator);
+        $versionEsc = $this->xmlEsc($version !== '' ? $version : '0');
+
+        $travelerAgeByRef = [];
+        foreach ($travelers as $traveler) {
+            if (! is_array($traveler)) {
+                continue;
+            }
+            $travelerKey = (string) ($traveler['key'] ?? '');
+            if ($travelerKey !== '' && array_key_exists('age', $traveler) && $traveler['age'] !== null && $traveler['age'] !== '') {
+                $travelerAgeByRef[$travelerKey] = (int) $traveler['age'];
+            }
+        }
+
+        $pricingSolutionXml = $this->buildAirPricingSolutionXml(
+            $pricingData,
+            $providerCode,
+            $solutionKey,
+            $totalPrice,
+            $basePrice,
+            $taxes,
+            $pricingInfoKey,
+            $pricingMethod,
+            $travelerAgeByRef,
+            $airNs,
+            $comNs,
+        );
+
+        $soap = <<<XML
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+    <soapenv:Header/>
+    <soapenv:Body>
+        <AirCreateReservationReq
+            xmlns="{$uniNs}"
+            TraceId="{$traceId}"
+            AuthorizedBy="{$authorizedBy}"
+            TargetBranch="{$targetBranch}"
+            ProviderCode="{$providerCode}"
+            UniversalRecordLocatorCode="{$locator}"
+            Version="{$versionEsc}"
+            RetainReservation="Both">
+
+            <BillingPointOfSaleInfo xmlns="{$comNs}" OriginApplication="UAPI"/>
+            {$pricingSolutionXml}
             <ActionStatus xmlns="{$comNs}" Type="ACTIVE" TicketDate="T*" ProviderCode="{$providerCode}"/>
 
         </AirCreateReservationReq>
@@ -876,6 +837,218 @@ XML;
             TravelportHoldPayloadBuilder::passengerCounts($searchData),
             $searchData,
         );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $travelers
+     */
+    private function buildSearchPassengersXmlFromTravelers(array $travelers): string
+    {
+        $xml = '';
+
+        foreach ($travelers as $traveler) {
+            if (! is_array($traveler)) {
+                continue;
+            }
+
+            $ref = $this->xmlEsc((string) ($traveler['key'] ?? ''));
+            if ($ref === '') {
+                continue;
+            }
+
+            $code = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($traveler['traveler_type'] ?? $traveler['traveler_type_code'] ?? 'ADT'),
+            ));
+            $attrs = [
+                'BookingTravelerRef="' . $ref . '"',
+                'Code="' . $code . '"',
+            ];
+
+            if (in_array($code, ['CNN', 'INF'], true)
+                && array_key_exists('age', $traveler)
+                && $traveler['age'] !== null
+                && $traveler['age'] !== '') {
+                $attrs[] = 'Age="' . (int) $traveler['age'] . '"';
+            }
+
+            $xml .= "\n            <com:SearchPassenger " . implode(' ', $attrs) . '/>';
+        }
+
+        return $xml;
+    }
+
+    /**
+     * @param  array<string, mixed>  $pricingData
+     * @param  array<string, int>  $travelerAgeByRef
+     */
+    private function buildAirPricingSolutionXml(
+        array $pricingData,
+        string $providerCode,
+        string $solutionKey,
+        string $totalPrice,
+        string $basePrice,
+        string $taxes,
+        string $pricingInfoKey,
+        string $pricingMethod,
+        array $travelerAgeByRef,
+        string $airNs,
+        string $comNs,
+    ): string {
+        $segmentsXml = '';
+        $seenSegmentKeys = [];
+        foreach ($pricingData['segments'] ?? [] as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+            $segKey = (string) ($segment['key'] ?? '');
+            if ($segKey === '' || isset($seenSegmentKeys[$segKey])) {
+                continue;
+            }
+            $seenSegmentKeys[$segKey] = true;
+            $segKey = $this->xmlEsc($segKey);
+            $group = $this->xmlEsc((string) ($segment['group'] ?? '0'));
+            $carrier = $this->xmlEsc((string) ($segment['carrier'] ?? ''));
+            $flightNumber = $this->xmlEsc((string) ($segment['flight_number'] ?? ''));
+            $segProvider = $this->xmlEsc((string) ($segment['provider_code'] ?? $providerCode));
+            $origin = $this->xmlEsc((string) ($segment['origin'] ?? ''));
+            $destination = $this->xmlEsc((string) ($segment['destination'] ?? ''));
+            $depTime = $this->xmlEsc($this->normalizeTravelportTime((string) ($segment['dep_time'] ?? '')));
+            $arrTime = $this->xmlEsc($this->normalizeTravelportTime((string) ($segment['arr_time'] ?? '')));
+            $flightTime = $this->xmlEsc((string) ($segment['flight_time'] ?? ''));
+            $travelTime = $this->xmlEsc((string) ($segment['travel_time'] ?? ''));
+            $bookingCode = $this->xmlEsc((string) ($segment['booking_code'] ?? ''));
+
+            $segmentsXml .= <<<XML
+
+                <AirSegment
+                    Key="{$segKey}"
+                    Group="{$group}"
+                    Carrier="{$carrier}"
+                    FlightNumber="{$flightNumber}"
+                    ProviderCode="{$segProvider}"
+                    Origin="{$origin}"
+                    Destination="{$destination}"
+                    DepartureTime="{$depTime}"
+                    ArrivalTime="{$arrTime}"
+                    FlightTime="{$flightTime}"
+                    TravelTime="{$travelTime}"
+                    ClassOfService="{$bookingCode}"
+                    Status="NN"/>
+XML;
+        }
+
+        $fareInfosXml = '';
+        $fareInfosByKey = [];
+        foreach ($pricingData['fare_infos'] ?? [] as $fareInfo) {
+            if (! is_array($fareInfo)) {
+                continue;
+            }
+            $fKey = (string) ($fareInfo['key'] ?? '');
+            if ($fKey === '' || isset($fareInfosByKey[$fKey])) {
+                continue;
+            }
+            $fareInfosByKey[$fKey] = true;
+            $fareKey = $this->xmlEsc($fKey);
+            $fareBasis = $this->xmlEsc((string) ($fareInfo['fare_basis'] ?? ''));
+            $paxType = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($fareInfo['passenger_type_code'] ?? 'ADT'),
+            ));
+            $fareOrigin = $this->xmlEsc((string) ($fareInfo['origin'] ?? ''));
+            $fareDestination = $this->xmlEsc((string) ($fareInfo['destination'] ?? ''));
+            $departureDate = $this->xmlEsc((string) ($fareInfo['departure_date'] ?? ''));
+            $effectiveDate = $this->xmlEsc((string) ($fareInfo['effective_date'] ?? ''));
+            $fareRuleKey = (string) ($fareInfo['fare_rule_key'] ?? '');
+
+            $fareInfosXml .= <<<XML
+                    <FareInfo
+                        Key="{$fareKey}"
+                        FareBasis="{$fareBasis}"
+                        PassengerTypeCode="{$paxType}"
+                        Origin="{$fareOrigin}"
+                        Destination="{$fareDestination}"
+                        DepartureDate="{$departureDate}"
+                        EffectiveDate="{$effectiveDate}">
+                        <FareRuleKey FareInfoRef="{$fareKey}" ProviderCode="{$providerCode}">{$fareRuleKey}</FareRuleKey>
+                    </FareInfo>
+XML;
+        }
+
+        $bookingInfosXml = '';
+        foreach ($pricingData['booking_infos'] ?? [] as $bookingInfo) {
+            if (! is_array($bookingInfo)) {
+                continue;
+            }
+            $bookingCode = $this->xmlEsc((string) ($bookingInfo['booking_code'] ?? ''));
+            $cabinClass = $this->xmlEsc((string) ($bookingInfo['cabin_class'] ?? ''));
+            $fareInfoRef = $this->xmlEsc((string) ($bookingInfo['fare_info_ref'] ?? ''));
+            $segmentRef = $this->xmlEsc((string) ($bookingInfo['segment_ref'] ?? ''));
+            $hostTokenRef = $this->xmlEsc((string) ($bookingInfo['host_token_ref'] ?? ''));
+
+            $bookingInfosXml .= <<<XML
+                    <BookingInfo
+                        BookingCode="{$bookingCode}"
+                        CabinClass="{$cabinClass}"
+                        FareInfoRef="{$fareInfoRef}"
+                        SegmentRef="{$segmentRef}"
+                        HostTokenRef="{$hostTokenRef}"/>
+XML;
+        }
+
+        $passengerTypesXml = '';
+        foreach ($pricingData['passenger_types'] ?? [] as $passengerType) {
+            if (! is_array($passengerType)) {
+                continue;
+            }
+            $code = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($passengerType['code'] ?? 'ADT'),
+            ));
+            $ref = $this->xmlEsc((string) ($passengerType['traveler_ref'] ?? ''));
+            $rawRef = (string) ($passengerType['traveler_ref'] ?? '');
+            $ageAttr = '';
+            if (in_array($code, ['CNN', 'INF'], true) && isset($travelerAgeByRef[$rawRef])) {
+                $ageAttr = ' Age="' . $travelerAgeByRef[$rawRef] . '"';
+            }
+            $passengerTypesXml .= "\n                    <PassengerType Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"{$ageAttr}/>";
+        }
+
+        $hostTokensXml = '';
+        foreach ($pricingData['host_tokens'] ?? [] as $hostToken) {
+            if (! is_array($hostToken)) {
+                continue;
+            }
+            $htKey = $this->xmlEsc((string) ($hostToken['key'] ?? ''));
+            $htValue = (string) ($hostToken['value'] ?? '');
+            if ($htKey !== '' && $htValue !== '') {
+                $hostTokensXml .= "\n                <HostToken xmlns=\"{$comNs}\" Key=\"{$htKey}\">{$htValue}</HostToken>";
+            }
+        }
+
+        $taxesXml = (string) ($pricingData['taxes_xml'] ?? '');
+
+        return <<<XML
+            <AirPricingSolution
+                xmlns="{$airNs}"
+                Key="{$solutionKey}"
+                TotalPrice="{$totalPrice}"
+                BasePrice="{$basePrice}"
+                Taxes="{$taxes}">
+                {$segmentsXml}
+
+                <AirPricingInfo
+                    Key="{$pricingInfoKey}"
+                    TotalPrice="{$totalPrice}"
+                    BasePrice="{$basePrice}"
+                    Taxes="{$taxes}"
+                    PricingMethod="{$pricingMethod}"
+                    ProviderCode="{$providerCode}">
+                    {$fareInfosXml}
+                    {$bookingInfosXml}
+                    {$taxesXml}{$passengerTypesXml}
+                </AirPricingInfo>
+                {$hostTokensXml}
+
+            </AirPricingSolution>
+XML;
     }
 
     /**

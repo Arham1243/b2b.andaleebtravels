@@ -397,6 +397,9 @@
                                                     @endif
                                                     @if (!empty($pax['dob']))
                                                         · DOB: {{ \Carbon\Carbon::parse($pax['dob'])->format('d M Y') }}
+                                                        @if ($ageLabel = \App\Models\B2bSavedPassenger::ageLabelFromDob($pax['dob']))
+                                                            · Age {{ $ageLabel }}
+                                                        @endif
                                                     @endif
                                                 </div>
                                             </div>
