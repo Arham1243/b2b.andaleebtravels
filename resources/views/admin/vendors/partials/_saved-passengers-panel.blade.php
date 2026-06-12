@@ -20,11 +20,16 @@
 @push('css')
 <style>
     @include('user.flights.partials.hp-pax-autocomplete-styles')
+    @include('user.flights.partials.hp-date-picker-styles')
     .vs-ledger-modal .hp-ac-dropdown {
         z-index: 1060;
         border-color: #ebecf0;
     }
+    .vs-ledger-modal .hp-date-field .daterangepicker {
+        z-index: 1065;
+    }
 </style>
+<link rel="stylesheet" href="{{ asset('user/assets/css/daterangepicker.css') }}" />
 @endpush
 
 <div class="vs-tab-panel" id="panel-passengers">
@@ -183,8 +188,17 @@
                         </div>
                         <div class="col-sm-6">
                             <div class="vs-ledger-modal__field">
-                                <label for="vp_dob">Date of Birth</label>
-                                <input type="date" name="dob" id="vp_dob" class="field" value="{{ old('dob') }}">
+                                <label for="vp-dob-display">Date of Birth</label>
+                                @include('user.flights.partials.hp-dob-field', [
+                                    'name' => 'dob',
+                                    'id' => 'vp-dob',
+                                    'paxType' => old('passenger_type', 'ADT'),
+                                    'travelDate' => now()->format('Y-m-d'),
+                                    'required' => false,
+                                    'wrapperClass' => false,
+                                    'hideLabel' => true,
+                                    'inputClass' => 'field hp-date-field__display hp-date-picker-input js-hp-date-display',
+                                ])
                             </div>
                         </div>
                         <div class="col-sm-6">
@@ -234,6 +248,10 @@
 </div>
 
 @push('js')
+    <script src="{{ asset('user/assets/js/moment.min.js') }}"></script>
+    <script src="{{ asset('user/assets/js/daterangepicker.min.js') }}"></script>
+    @include('user.flights.partials.hp-date-picker-scripts')
+    @include('user.flights.partials.hp-passenger-dob-scripts')
     @include('user.flights.partials.hp-pax-autocomplete-scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -246,6 +264,7 @@
             const updateUrlTemplate = @json(route('admin.vendors.saved-passengers.update', [$vendor, '__ID__']));
             const passengersById = @json($passengersForJs);
             const countries = @json($countries ?? []);
+            const referenceDateIso = @json(now()->format('Y-m-d'));
 
             const modalEl = document.getElementById('vendorPassengerModal');
             const modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
@@ -256,12 +275,30 @@
             const titleEl = document.getElementById('vendorPassengerModalLabel');
             const typeEl = document.getElementById('vp_passenger_type');
             const titleSelect = document.getElementById('vp_title');
+            const dobInput = document.getElementById('vp-dob-value');
 
             HpPaxForm.init({
                 formSelector: '#vendor-passenger-form',
                 savedPassengers: [],
                 countries: countries,
             });
+
+            HpDatePicker.init({ maxDate: moment().startOf('day'), rootSelector: '#vendorPassengerModal .hp-date-field' });
+
+            HpPassengerDob.init({
+                formSelector: '#vendor-passenger-form',
+                travelDate: referenceDateIso,
+            });
+
+            function syncDobBoundsForType() {
+                if (!dobInput || !typeEl) return;
+                HpPassengerDob.applyBoundsForType(dobInput, typeEl.value, referenceDateIso);
+            }
+
+            function setDobValue(ymd) {
+                if (!dobInput || !window.HpDatePicker) return;
+                HpDatePicker.setValue(dobInput, ymd || '');
+            }
 
             function fillTitleOptions(type, selected) {
                 const options = titleOptions[type] || titleOptions.ADT;
@@ -305,6 +342,8 @@
                 fillTitleOptions(typeEl.value, null);
                 setCountryField('nationality', '');
                 setCountryField('issuing_country', '');
+                setDobValue('');
+                syncDobBoundsForType();
             }
 
             function openCreateModal(defaultType) {
@@ -327,7 +366,8 @@
                 fillTitleOptions(typeEl.value, data.title || null);
                 document.getElementById('vp_first_name').value = data.first_name || '';
                 document.getElementById('vp_last_name').value = data.last_name || '';
-                document.getElementById('vp_dob').value = data.dob || '';
+                syncDobBoundsForType();
+                setDobValue(data.dob || '');
                 document.getElementById('vp_passport_no').value = data.passport_no || '';
                 document.getElementById('vp_passport_exp').value = data.passport_exp || '';
                 setCountryField('nationality', data.nationality || '');
@@ -351,13 +391,15 @@
 
             typeEl?.addEventListener('change', function () {
                 fillTitleOptions(typeEl.value, null);
+                syncDobBoundsForType();
             });
 
             @if ($errors->any() && old('_passenger_form'))
                 fillTitleOptions(@json(old('passenger_type', 'ADT')), @json(old('title')));
                 document.getElementById('vp_first_name').value = @json(old('first_name', ''));
                 document.getElementById('vp_last_name').value = @json(old('last_name', ''));
-                document.getElementById('vp_dob').value = @json(old('dob', ''));
+                syncDobBoundsForType();
+                setDobValue(@json(old('dob', '')));
                 document.getElementById('vp_passport_no').value = @json(old('passport_no', ''));
                 document.getElementById('vp_passport_exp').value = @json(old('passport_exp', ''));
                 setCountryField('nationality', @json(old('nationality', '')));

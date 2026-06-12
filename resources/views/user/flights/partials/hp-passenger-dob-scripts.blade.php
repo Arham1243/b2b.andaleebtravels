@@ -62,6 +62,64 @@
         return 'Adult must be 12 years or older on the travel date' + label + '.';
     }
 
+    function computeBoundsForType(paxType, referenceDate) {
+        const today = moment().startOf('day');
+        const ref = (referenceDate || today).clone().startOf('day');
+        const type = normalizeType(paxType);
+        let minDate = null;
+        let maxDate = null;
+
+        if (type === 'INFANT') {
+            maxDate = earliestDate(ref.clone().subtract(INFANT_MIN_DAYS, 'days'), today);
+            minDate = ref.clone().subtract(2, 'years').add(1, 'day');
+        } else if (type === 'CHILD') {
+            maxDate = earliestDate(ref.clone().subtract(CHILD_MIN_AGE, 'years'), today);
+            minDate = ref.clone().subtract(CHILD_MAX_AGE + 1, 'years').add(1, 'day');
+        } else {
+            maxDate = earliestDate(ref.clone().subtract(ADULT_MIN_AGE, 'years'), today);
+        }
+
+        return {
+            minDob: minDate ? minDate.format('YYYY-MM-DD') : '',
+            maxDob: maxDate ? maxDate.format('YYYY-MM-DD') : '',
+            minYear: minDate ? minDate.year() : null,
+            maxYear: maxDate ? maxDate.year() : null,
+        };
+    }
+
+    function applyBoundsToInput(input, paxType, referenceDate) {
+        if (!input) return;
+
+        const bounds = computeBoundsForType(paxType, referenceDate);
+        input.dataset.paxType = String(paxType || 'ADT').toUpperCase();
+
+        if (bounds.minDob) {
+            input.dataset.minDob = bounds.minDob;
+        } else {
+            delete input.dataset.minDob;
+        }
+
+        if (bounds.maxDob) {
+            input.dataset.maxDob = bounds.maxDob;
+        } else {
+            delete input.dataset.maxDob;
+        }
+
+        if (bounds.minYear !== null) {
+            input.dataset.minYear = String(bounds.minYear);
+        } else {
+            delete input.dataset.minYear;
+        }
+
+        if (bounds.maxYear !== null) {
+            input.dataset.maxYear = String(bounds.maxYear);
+        } else {
+            delete input.dataset.maxYear;
+        }
+
+        applyPickerBounds(input, referenceDate || moment().startOf('day'));
+    }
+
     function applyPickerBounds(input, referenceDate) {
         if (typeof $ === 'undefined' || typeof moment === 'undefined') return;
 
@@ -73,21 +131,51 @@
         const picker = $display.data('daterangepicker');
         if (!picker) return;
 
-        const today = moment().startOf('day');
-        const type = normalizeType(input.dataset.paxType);
+        const minFromData = input.dataset.minDob;
+        const maxFromData = input.dataset.maxDob;
 
-        if (type === 'INFANT') {
-            const youngestDob = referenceDate.clone().subtract(INFANT_MIN_DAYS, 'days');
-            picker.maxDate = earliestDate(youngestDob, today);
-            picker.minDate = referenceDate.clone().subtract(2, 'years').add(1, 'day');
-        } else if (type === 'CHILD') {
-            const maxDob = referenceDate.clone().subtract(CHILD_MIN_AGE, 'years');
-            picker.maxDate = earliestDate(maxDob, today);
-            picker.minDate = referenceDate.clone().subtract(CHILD_MAX_AGE + 1, 'years').add(1, 'day');
+        if (minFromData || maxFromData) {
+            if (maxFromData) {
+                const maxMoment = parseYmd(maxFromData);
+                if (maxMoment) picker.maxDate = maxMoment;
+            }
+            if (minFromData) {
+                const minMoment = parseYmd(minFromData);
+                if (minMoment) picker.minDate = minMoment;
+            }
+
+            if (window.HpDatePicker && typeof window.HpDatePicker.syncPassengerDobBounds === 'function') {
+                window.HpDatePicker.syncPassengerDobBounds(picker, input, null);
+            } else {
+                if (picker.minDate) picker.minYear = picker.minDate.year();
+                if (picker.maxDate) picker.maxYear = picker.maxDate.year();
+                if (typeof picker.updateCalendars === 'function') picker.updateCalendars();
+            }
         } else {
-            const maxDob = referenceDate.clone().subtract(ADULT_MIN_AGE, 'years');
-            picker.maxDate = earliestDate(maxDob, today);
-            picker.minDate = false;
+            const today = moment().startOf('day');
+            const type = normalizeType(input.dataset.paxType);
+
+            if (type === 'INFANT') {
+                const youngestDob = referenceDate.clone().subtract(INFANT_MIN_DAYS, 'days');
+                picker.maxDate = earliestDate(youngestDob, today);
+                picker.minDate = referenceDate.clone().subtract(2, 'years').add(1, 'day');
+            } else if (type === 'CHILD') {
+                const maxDob = referenceDate.clone().subtract(CHILD_MIN_AGE, 'years');
+                picker.maxDate = earliestDate(maxDob, today);
+                picker.minDate = referenceDate.clone().subtract(CHILD_MAX_AGE + 1, 'years').add(1, 'day');
+            } else {
+                const maxDob = referenceDate.clone().subtract(ADULT_MIN_AGE, 'years');
+                picker.maxDate = earliestDate(maxDob, today);
+                picker.minDate = false;
+            }
+
+            if (window.HpDatePicker && typeof window.HpDatePicker.syncPassengerDobBounds === 'function') {
+                window.HpDatePicker.syncPassengerDobBounds(picker, input, null);
+            } else {
+                if (picker.minDate) picker.minYear = picker.minDate.year();
+                if (picker.maxDate) picker.maxYear = picker.maxDate.year();
+                if (typeof picker.updateCalendars === 'function') picker.updateCalendars();
+            }
         }
 
         const current = parseYmd(input.value);
@@ -103,6 +191,11 @@
     }
 
     window.HpPassengerDob = {
+        applyBoundsForType: function (input, paxType, referenceDateIso) {
+            const referenceDate = parseYmd(referenceDateIso) || moment().startOf('day');
+            applyBoundsToInput(input, paxType, referenceDate);
+        },
+
         init: function (config) {
             const form = document.querySelector(config.formSelector);
             if (!form || typeof moment === 'undefined') return;
@@ -111,9 +204,21 @@
             const travelDate = parseYmd(config.travelDate);
             const referenceDate = travelDate || today;
 
-            form.querySelectorAll('.js-hp-date-value[data-pax-type]').forEach(function (input) {
-                applyPickerBounds(input, referenceDate);
+            const applyAllBounds = function () {
+                form.querySelectorAll('.js-hp-date-value[data-pax-type]').forEach(function (input) {
+                    applyPickerBounds(input, referenceDate);
+                });
+            };
 
+            applyAllBounds();
+
+            if (typeof $ !== 'undefined') {
+                $(function () {
+                    applyAllBounds();
+                });
+            }
+
+            form.querySelectorAll('.js-hp-date-value[data-pax-type]').forEach(function (input) {
                 const validate = function () {
                     HpPassengerDob.validateField(input, today, referenceDate);
                 };

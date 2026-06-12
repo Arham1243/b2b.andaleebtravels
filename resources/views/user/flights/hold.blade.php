@@ -259,6 +259,7 @@
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'paxType' => 'ADT',
+                                        'travelDate' => $travelDateIso,
                                         'hint' => '12+ years on travel date',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
@@ -320,6 +321,7 @@
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'paxType' => 'C06',
+                                        'travelDate' => $travelDateIso,
                                         'hint' => '2–11 years on travel date',
                                     ])
                                     @include('user.flights.partials.hp-country-field', [
@@ -381,6 +383,7 @@
                                     @include('user.flights.partials.hp-dob-field', [
                                         'pIndex' => $pIndex,
                                         'paxType' => 'INF',
+                                        'travelDate' => $travelDateIso,
                                         'hint' => 'Under 2 years on travel date, at least 7 days old (1 week)',
                                     ])
                                     @if ($requireTravelportDob && $adults > 1)

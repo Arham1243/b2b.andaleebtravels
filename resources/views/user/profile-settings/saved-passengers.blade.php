@@ -342,8 +342,17 @@
                                    value="{{ old('last_name') }}">
                         </div>
                         <div class="ps-field">
-                            <label class="ps-field__label">Date of Birth</label>
-                            <input type="date" name="dob" id="passenger-dob" class="ps-field__input" value="{{ old('dob') }}">
+                            @include('user.flights.partials.hp-dob-field', [
+                                'name' => 'dob',
+                                'id' => 'passenger-dob',
+                                'paxType' => old('passenger_type', 'ADT'),
+                                'travelDate' => now()->format('Y-m-d'),
+                                'required' => false,
+                                'wrapperClass' => false,
+                                'labelClass' => 'ps-field__label',
+                                'inputClass' => 'ps-field__input hp-date-field__display hp-date-picker-input js-hp-date-display',
+                                'showRequired' => false,
+                            ])
                         </div>
                         <div class="ps-field">
                             <label class="ps-field__label">Passport Number</label>
@@ -386,6 +395,8 @@
 </div>
 @endsection
 
+@include('user.flights.partials.hp-dob-picker-assets')
+
 @push('js')
     @php
         $passengersForJs = $passengers->mapWithKeys(function ($passenger) {
@@ -422,6 +433,8 @@
             const titleEl = document.getElementById('passenger-modal-title');
             const typeEl = document.getElementById('passenger-type');
             const titleSelect = document.getElementById('passenger-title');
+            const dobInput = document.getElementById('passenger-dob-value');
+            const referenceDateIso = @json(now()->format('Y-m-d'));
             let modalMode = 'idle';
 
             HpPaxForm.init({
@@ -429,6 +442,23 @@
                 savedPassengers: [],
                 countries: @json($countries),
             });
+
+            HpDatePicker.init({ maxDate: moment().startOf('day'), rootSelector: '#passenger-form .hp-date-field' });
+
+            HpPassengerDob.init({
+                formSelector: '#passenger-form',
+                travelDate: referenceDateIso,
+            });
+
+            function syncDobBoundsForType() {
+                if (!dobInput || !typeEl) return;
+                HpPassengerDob.applyBoundsForType(dobInput, typeEl.value, referenceDateIso);
+            }
+
+            function setDobValue(ymd) {
+                if (!dobInput || !window.HpDatePicker) return;
+                HpDatePicker.setValue(dobInput, ymd || '');
+            }
 
             function fillTitleOptions(type, selected) {
                 const options = titleOptions[type] || titleOptions.ADT;
@@ -472,6 +502,8 @@
                 fillTitleOptions(typeEl.value, null);
                 setCountryField('nationality', '');
                 setCountryField('issuing_country', '');
+                setDobValue('');
+                syncDobBoundsForType();
             }
 
             function openCreateModal(defaultType) {
@@ -494,7 +526,8 @@
                 fillTitleOptions(typeEl.value, data.title);
                 document.getElementById('passenger-first-name').value = data.first_name || '';
                 document.getElementById('passenger-last-name').value = data.last_name || '';
-                document.getElementById('passenger-dob').value = data.dob || '';
+                syncDobBoundsForType();
+                setDobValue(data.dob || '');
                 document.getElementById('passenger-passport-no').value = data.passport_no || '';
                 document.getElementById('passenger-passport-exp').value = data.passport_exp || '';
                 setCountryField('nationality', data.nationality || '');
@@ -505,6 +538,7 @@
 
             typeEl && typeEl.addEventListener('change', function () {
                 fillTitleOptions(typeEl.value, null);
+                syncDobBoundsForType();
             });
 
             modalEl && modalEl.addEventListener('show.bs.modal', function (event) {
@@ -544,6 +578,8 @@
                 openCreateModal(@json(old('passenger_type', 'ADT')));
                 typeEl.value = @json(old('passenger_type', 'ADT'));
                 fillTitleOptions(typeEl.value, @json(old('title')));
+                syncDobBoundsForType();
+                setDobValue(@json(old('dob', '')));
             @endif
         });
     </script>

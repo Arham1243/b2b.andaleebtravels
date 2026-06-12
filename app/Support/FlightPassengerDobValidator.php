@@ -131,6 +131,74 @@ final class FlightPassengerDobValidator
         };
     }
 
+    /**
+     * Date-of-birth bounds for checkout/hold date pickers (Y-m-d).
+     *
+     * @return array{min: ?string, max: string}
+     */
+    public static function dobPickerBounds(string $type, ?Carbon $referenceDate = null): array
+    {
+        $reference = ($referenceDate ?? Carbon::today())->copy()->startOfDay();
+        $today = Carbon::today()->startOfDay();
+        $type = strtoupper(trim($type));
+
+        if (in_array($type, ['C06', 'CNN', 'CHD'], true)) {
+            $max = self::earliest($reference->copy()->subYears(self::CHILD_MIN_AGE), $today);
+
+            return [
+                'min' => $reference->copy()->subYears(self::CHILD_MAX_AGE + 1)->addDay()->format('Y-m-d'),
+                'max' => $max->format('Y-m-d'),
+            ];
+        }
+
+        if ($type === 'INF') {
+            $max = self::earliest($reference->copy()->subDays(self::INFANT_MIN_DAYS), $today);
+
+            return [
+                'min' => $reference->copy()->subYears(2)->addDay()->format('Y-m-d'),
+                'max' => $max->format('Y-m-d'),
+            ];
+        }
+
+        $max = self::earliest($reference->copy()->subYears(self::ADULT_MIN_AGE), $today);
+
+        return [
+            'min' => null,
+            'max' => $max->format('Y-m-d'),
+        ];
+    }
+
+    public static function validateDobForType(?string $dob, string $type, ?Carbon $referenceDate = null): ?string
+    {
+        $dob = trim((string) $dob);
+        if ($dob === '') {
+            return null;
+        }
+
+        $today = Carbon::today()->startOfDay();
+        $reference = ($referenceDate ?? $today)->copy()->startOfDay();
+
+        try {
+            $birthDate = Carbon::parse($dob)->startOfDay();
+        } catch (\Throwable) {
+            return 'Enter a valid date of birth.';
+        }
+
+        if ($birthDate->gt($today)) {
+            return 'Date of birth cannot be in the future.';
+        }
+
+        $age = self::ageOnDate($dob, $reference);
+        $daysOld = self::daysSinceBirth($birthDate, $reference);
+
+        return self::ageRuleMessage(strtoupper(trim($type)), $age, $daysOld, $reference);
+    }
+
+    private static function earliest(Carbon $a, Carbon $b): Carbon
+    {
+        return $a->lt($b) ? $a->copy() : $b->copy();
+    }
+
     private static function infantRuleMessage(int $age, int $daysOld, string $travelLabel): ?string
     {
         if ($daysOld < self::INFANT_MIN_DAYS) {

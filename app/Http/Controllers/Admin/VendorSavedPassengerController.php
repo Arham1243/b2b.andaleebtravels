@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\B2bSavedPassenger;
 use App\Models\B2bVendor;
+use App\Support\FlightPassengerDobValidator;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class VendorSavedPassengerController extends Controller
 {
@@ -66,6 +69,16 @@ class VendorSavedPassengerController extends Controller
         $validated['issuing_country'] = isset($validated['issuing_country'])
             ? strtoupper($validated['issuing_country'])
             : null;
+
+        $dobError = FlightPassengerDobValidator::validateDobForType(
+            $validated['dob'] ?? null,
+            $validated['passenger_type'],
+            Carbon::today(),
+        );
+
+        if ($dobError !== null) {
+            throw ValidationException::withMessages(['dob' => $dobError]);
+        }
 
         return $validated;
     }
