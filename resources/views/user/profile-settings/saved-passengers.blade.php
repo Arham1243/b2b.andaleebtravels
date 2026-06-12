@@ -237,10 +237,8 @@
                                                 <td>{{ $passenger->nationality ?: '—' }}</td>
                                                 <td>
                                                     <div class="ps-pax-actions">
-                                                        <button type="button"
-                                                            class="ps-pax-actions__btn js-edit-passenger"
-                                                            title="Edit"
-                                                            data-passenger='@json([
+                                                        @php
+                                                            $passengerPayload = [
                                                                 'id' => $passenger->id,
                                                                 'passenger_type' => $passenger->passenger_type,
                                                                 'title' => $passenger->title,
@@ -251,7 +249,12 @@
                                                                 'issuing_country' => $passenger->issuing_country,
                                                                 'passport_no' => $passenger->passport_no,
                                                                 'passport_exp' => $passenger->passport_exp?->format('Y-m-d'),
-                                                            ])'>
+                                                            ];
+                                                        @endphp
+                                                        <button type="button"
+                                                            class="ps-pax-actions__btn js-edit-passenger"
+                                                            title="Edit"
+                                                            data-passenger="@json($passengerPayload)">
                                                             <i class="bx bx-edit"></i>
                                                         </button>
                                                         <form action="{{ route('user.profile.savedPassengers.destroy', $passenger) }}" method="POST"
