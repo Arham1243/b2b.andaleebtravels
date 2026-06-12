@@ -856,23 +856,19 @@ XML;
                 continue;
             }
 
-            $normalizedType = TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+            $code = $this->xmlEsc(TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
                 (string) ($traveler['traveler_type'] ?? $traveler['traveler_type_code'] ?? 'ADT'),
-            );
-            $age = array_key_exists('age', $traveler) && $traveler['age'] !== null && $traveler['age'] !== ''
-                ? (int) $traveler['age']
-                : null;
-            $code = $this->xmlEsc(TravelportHoldPayloadBuilder::travelportSearchPassengerTypeCode(
-                $normalizedType,
-                $age,
             ));
             $attrs = [
                 'BookingTravelerRef="' . $ref . '"',
                 'Code="' . $code . '"',
             ];
 
-            if ($normalizedType === 'INF' && $age !== null) {
-                $attrs[] = 'Age="' . $age . '"';
+            if (in_array($code, ['CNN', 'INF'], true)
+                && array_key_exists('age', $traveler)
+                && $traveler['age'] !== null
+                && $traveler['age'] !== '') {
+                $attrs[] = 'Age="' . (int) $traveler['age'] . '"';
             }
 
             $xml .= "\n            <com:SearchPassenger " . implode(' ', $attrs) . '/>';
@@ -1078,10 +1074,8 @@ XML;
                 ];
 
                 if ($code === 'CNN') {
-                    $childAge = $this->childAgeForIndex($searchData, $childIdx);
-                    $attrs[] = 'Code="' . $this->xmlEsc(
-                        TravelportHoldPayloadBuilder::travelportSearchPassengerTypeCode('CNN', $childAge),
-                    ) . '"';
+                    $attrs[] = 'Code="CNN"';
+                    $attrs[] = 'Age="' . $this->childAgeForIndex($searchData, $childIdx) . '"';
                     $childIdx++;
                 } elseif ($code === 'INF') {
                     $attrs[] = 'Code="INF"';

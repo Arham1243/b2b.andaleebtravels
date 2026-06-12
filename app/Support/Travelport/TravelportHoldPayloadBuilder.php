@@ -383,23 +383,6 @@ class TravelportHoldPayloadBuilder
     }
 
     /**
-     * SearchPassenger / AirPrice PTC — age-qualified CNN (e.g. CNN04, CNN08) per Universal API.
-     */
-    public static function travelportSearchPassengerTypeCode(string $type, ?int $age = null): string
-    {
-        $normalized = self::normalizeHoldPassengerTypeCode($type);
-
-        if ($normalized === 'CNN' && $age !== null) {
-            return 'CNN' . sprintf('%02d', max(
-                FlightPassengerDobValidator::CHILD_MIN_AGE,
-                min(FlightPassengerDobValidator::CHILD_MAX_AGE, $age),
-            ));
-        }
-
-        return $normalized;
-    }
-
-    /**
      * PTC for AirCreateReservation — plain CNN/INF/ADT only (age is on BookingTraveler Age + DOB).
      * This PCC rejects age-qualified codes such as CNN04 or CNN08.
      */
