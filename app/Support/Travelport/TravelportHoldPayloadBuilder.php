@@ -63,7 +63,7 @@ class TravelportHoldPayloadBuilder
 
     /**
      * Build BookingTravelers in Travelport order: each adult, then their lap infant(s), then children.
-     * Uses plain CNN (never CHD or CNN{age}) with DOB for child/infant passengers.
+     * Uses plain CNN (never CHD or CNN{age}) with DOB and explicit Age on BookingTraveler.
      *
      * @param  array<string, mixed>  $passengersData
      * @return list<array<string, mixed>>
@@ -194,6 +194,11 @@ class TravelportHoldPayloadBuilder
             'phoneNumber' => $phone['number'],
             'email' => $email,
         ];
+
+        $age = self::passengerAgeForTravelport($type, $dob, $referenceDate);
+        if ($age !== null) {
+            $traveler['age'] = $age;
+        }
 
         if ($accompanyingAdultKey !== null && $accompanyingAdultKey !== '') {
             $traveler['accompanying_adult_key'] = $accompanyingAdultKey;
@@ -343,7 +348,7 @@ class TravelportHoldPayloadBuilder
     }
 
     /**
-     * PTC for AirCreateReservation — plain CNN/INF/ADT only (age is on BookingTraveler DOB).
+     * PTC for AirCreateReservation — plain CNN/INF/ADT only (age is on BookingTraveler Age + DOB).
      * This PCC rejects age-qualified codes such as CNN04 or CNN08.
      */
     public static function travelportHoldPassengerTypeCode(
@@ -383,6 +388,30 @@ class TravelportHoldPayloadBuilder
         }
 
         return $normalized !== '' ? $normalized : 'ADT';
+    }
+
+    public static function passengerAgeForTravelport(string $type, string $dob, Carbon $referenceDate): ?int
+    {
+        $normalized = match (strtoupper(trim($type))) {
+            'C06', 'CNN', 'CHD' => 'CNN',
+            'INF' => 'INF',
+            default => 'ADT',
+        };
+
+        if ($dob === '' || ! in_array($normalized, ['CNN', 'INF'], true)) {
+            return null;
+        }
+
+        $age = FlightPassengerDobValidator::ageOnDate($dob, $referenceDate);
+
+        return match ($normalized) {
+            'CNN' => max(
+                FlightPassengerDobValidator::CHILD_MIN_AGE,
+                min(FlightPassengerDobValidator::CHILD_MAX_AGE, $age),
+            ),
+            'INF' => max(0, min(1, $age)),
+            default => null,
+        };
     }
 
     /**

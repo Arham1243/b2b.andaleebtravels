@@ -267,6 +267,18 @@ XML;
         $pricingInfoKey = $this->xmlEsc((string) ($pricingData['pricing_info_key'] ?? ''));
         $pricingMethod = $this->xmlEsc((string) ($pricingData['pricing_method'] ?? 'Auto'));
 
+        $travelerAgeByRef = [];
+        foreach ($travelers as $traveler) {
+            if (! is_array($traveler)) {
+                continue;
+            }
+
+            $travelerKey = (string) ($traveler['key'] ?? '');
+            if ($travelerKey !== '' && array_key_exists('age', $traveler) && $traveler['age'] !== null && $traveler['age'] !== '') {
+                $travelerAgeByRef[$travelerKey] = (int) $traveler['age'];
+            }
+        }
+
         $travelersXml = '';
         foreach ($travelers as $traveler) {
             $key = $this->xmlEsc((string) ($traveler['key'] ?? ''));
@@ -274,6 +286,11 @@ XML;
                 (string) ($traveler['traveler_type'] ?? $traveler['traveler_type_code'] ?? 'ADT'),
             ));
             $dob = $this->xmlEsc($this->normalizeTravelportDob((string) ($traveler['dob'] ?? '')));
+            $ageAttr = '';
+            $rawKey = (string) ($traveler['key'] ?? '');
+            if (in_array($type, ['CNN', 'INF'], true) && isset($travelerAgeByRef[$rawKey])) {
+                $ageAttr = ' Age="' . $travelerAgeByRef[$rawKey] . '"';
+            }
             $gender = $this->xmlEsc((string) ($traveler['gender'] ?? 'M'));
             $first = $this->xmlEsc((string) ($traveler['firstName'] ?? ''));
             $last = $this->xmlEsc((string) ($traveler['lastName'] ?? ''));
@@ -301,7 +318,7 @@ XML;
                 xmlns="{$comNs}"
                 Key="{$key}"
                 TravelerType="{$type}"
-                DOB="{$dob}"
+                DOB="{$dob}"{$ageAttr}
                 Gender="{$gender}">
                 <BookingTravelerName First="{$first}" Last="{$last}"/>
                 <PhoneNumber CountryCode="{$country}" AreaCode="{$area}" Number="{$number}"/>
@@ -419,7 +436,12 @@ XML;
                 (string) ($passengerType['code'] ?? 'ADT'),
             ));
             $ref = $this->xmlEsc((string) ($passengerType['traveler_ref'] ?? ''));
-            $passengerTypesXml .= "\n                    <PassengerType Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"/>";
+            $rawRef = (string) ($passengerType['traveler_ref'] ?? '');
+            $ageAttr = '';
+            if (in_array($code, ['CNN', 'INF'], true) && isset($travelerAgeByRef[$rawRef])) {
+                $ageAttr = ' Age="' . $travelerAgeByRef[$rawRef] . '"';
+            }
+            $passengerTypesXml .= "\n                    <PassengerType Code=\"{$code}\" BookingTravelerRef=\"{$ref}\"{$ageAttr}/>";
         }
 
         $hostTokensXml = '';
