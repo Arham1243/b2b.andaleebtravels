@@ -45,7 +45,7 @@
                 @endif
                 @if($supplierPnr !== '')
                     <div class="bkpd-eticket-admin__pnr-card">
-                        <div class="bkpd-eticket-admin__pnr-label">Supplier PNR@if($supplierCode !== '') ({{ $supplierCode }})@endif</div>
+                        <div class="bkpd-eticket-admin__pnr-label">Supplier PNR{{ $supplierCode !== '' ? ' (' . $supplierCode . ')' : '' }}</div>
                         <div class="bkpd-eticket-admin__pnr-value">{{ $supplierPnr }}</div>
                     </div>
                 @endif

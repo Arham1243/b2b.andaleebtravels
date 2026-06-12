@@ -345,7 +345,7 @@
                                     @endif
                                     @if ($supplierPnr !== '')
                                         <div>
-                                            <div class="bkpd-pnr-label">Supplier PNR@if($supplierCode !== '') ({{ $supplierCode }})@endif</div>
+                                            <div class="bkpd-pnr-label">Supplier PNR{{ $supplierCode !== '' ? ' (' . $supplierCode . ')' : '' }}</div>
                                             <div class="bkpd-pnr-value">{{ $supplierPnr }}</div>
                                         </div>
                                     @endif
@@ -561,7 +561,7 @@
                                 @endif
                                 @if ($supplierPnr !== '')
                                     <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">Supplier PNR@if($supplierCode !== '') ({{ $supplierCode }})@endif</span>
+                                        <span class="bkpd-info-row__label">Supplier PNR{{ $supplierCode !== '' ? ' (' . $supplierCode . ')' : '' }}</span>
                                         <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $supplierPnr }}</span>
                                     </div>
                                 @endif
