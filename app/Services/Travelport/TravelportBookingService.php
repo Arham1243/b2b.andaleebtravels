@@ -304,6 +304,7 @@ class TravelportBookingService
             }
 
             $pricingData['passenger_types'] = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
+            $pricingData = $this->expandPricingDataForTravelers($pricingData, $travelers);
             $pricingData = $this->alignPricingToSegments($pricingData);
             $this->assertHoldPricingDataComplete($pricingData, $travelers);
 
@@ -908,6 +909,7 @@ class TravelportBookingService
             $requestedClass,
         );
         $pricingData['passenger_types'] = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
+        $pricingData = $this->expandPricingDataForTravelers($pricingData, $travelers);
         $pricingData = $this->alignPricingToSegments($pricingData);
 
         $version = trim((string) (
@@ -926,6 +928,97 @@ class TravelportBookingService
     }
 
     /**
+     * AirPrice often returns one BookingInfo per fare type, but hold needs one per traveler.
+     *
+     * @param  array<string, mixed>  $pricingData
+     * @param  list<array<string, mixed>>  $travelers
+     * @return array<string, mixed>
+     */
+    private function expandPricingDataForTravelers(array $pricingData, array $travelers): array
+    {
+        $passengerTypes = TravelportHoldPayloadBuilder::passengerTypesFromTravelers($travelers);
+        $pricingData['passenger_types'] = $passengerTypes;
+
+        $fareInfosByKey = [];
+        foreach ($pricingData['fare_infos'] ?? [] as $fareInfo) {
+            if (! is_array($fareInfo)) {
+                continue;
+            }
+            $key = (string) ($fareInfo['key'] ?? '');
+            if ($key !== '') {
+                $fareInfosByKey[$key] = $fareInfo;
+            }
+        }
+
+        $bookingInfosByType = [];
+        foreach ($pricingData['booking_infos'] ?? [] as $bookingInfo) {
+            if (! is_array($bookingInfo)) {
+                continue;
+            }
+
+            $fareRef = (string) ($bookingInfo['fare_info_ref'] ?? '');
+            $fareInfo = $fareInfosByKey[$fareRef] ?? null;
+            $typeCode = TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                is_array($fareInfo) ? (string) ($fareInfo['passenger_type_code'] ?? 'ADT') : 'ADT',
+            );
+            $bookingInfosByType[$typeCode][] = $bookingInfo;
+        }
+
+        if ($bookingInfosByType === [] && is_array($pricingData['booking_infos'] ?? null)) {
+            foreach ($pricingData['booking_infos'] as $bookingInfo) {
+                if (is_array($bookingInfo)) {
+                    $bookingInfosByType['ADT'][] = $bookingInfo;
+                }
+            }
+        }
+
+        $expandedBookingInfos = [];
+        $typeUseIndex = [];
+        foreach ($passengerTypes as $passengerType) {
+            $typeCode = TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($passengerType['code'] ?? 'ADT'),
+            );
+            $candidates = $bookingInfosByType[$typeCode] ?? [];
+            if ($candidates === []) {
+                continue;
+            }
+
+            $index = $typeUseIndex[$typeCode] ?? 0;
+            $expandedBookingInfos[] = $candidates[min($index, count($candidates) - 1)];
+            $typeUseIndex[$typeCode] = $index + 1;
+        }
+
+        if ($expandedBookingInfos !== []) {
+            $pricingData['booking_infos'] = $expandedBookingInfos;
+        }
+
+        $neededHostRefs = array_values(array_unique(array_filter(array_map(
+            static fn ($bookingInfo) => is_array($bookingInfo) ? (string) ($bookingInfo['host_token_ref'] ?? '') : '',
+            $pricingData['booking_infos'] ?? [],
+        ))));
+
+        if ($neededHostRefs !== []) {
+            $hostTokensByKey = [];
+            foreach ($pricingData['host_tokens'] ?? [] as $hostToken) {
+                if (! is_array($hostToken)) {
+                    continue;
+                }
+                $key = (string) ($hostToken['key'] ?? '');
+                if ($key !== '') {
+                    $hostTokensByKey[$key] = $hostToken;
+                }
+            }
+
+            $pricingData['host_tokens'] = array_values(array_filter(array_map(
+                static fn (string $ref) => $hostTokensByKey[$ref] ?? null,
+                $neededHostRefs,
+            )));
+        }
+
+        return $pricingData;
+    }
+
+    /**
      * @param  array<string, mixed>  $pricingData
      * @param  list<array<string, mixed>>  $travelers
      */
@@ -935,12 +1028,51 @@ class TravelportBookingService
         $passengerTypeCount = count($pricingData['passenger_types'] ?? []);
         $bookingInfoCount = count($pricingData['booking_infos'] ?? []);
         $hostTokenCount = count($pricingData['host_tokens'] ?? []);
+        $fareInfoCount = count($pricingData['fare_infos'] ?? []);
 
         if ($passengerTypeCount !== $passengerCount) {
             throw new \RuntimeException('Travelport pricing does not match passenger count. Please search again.');
         }
 
-        if ($bookingInfoCount < $passengerCount || $hostTokenCount < 1) {
+        $requiredTypes = [];
+        foreach ($travelers as $traveler) {
+            if (! is_array($traveler)) {
+                continue;
+            }
+            $typeCode = TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($traveler['traveler_type'] ?? $traveler['traveler_type_code'] ?? 'ADT'),
+            );
+            $requiredTypes[$typeCode] = true;
+        }
+
+        $availableFareTypes = [];
+        foreach ($pricingData['fare_infos'] ?? [] as $fareInfo) {
+            if (! is_array($fareInfo)) {
+                continue;
+            }
+            $typeCode = TravelportHoldPayloadBuilder::normalizeHoldPassengerTypeCode(
+                (string) ($fareInfo['passenger_type_code'] ?? 'ADT'),
+            );
+            $availableFareTypes[$typeCode] = true;
+        }
+
+        foreach (array_keys($requiredTypes) as $typeCode) {
+            if (! isset($availableFareTypes[$typeCode])) {
+                Log::warning('Travelport hold pricing missing fare for passenger type', [
+                    'missing_type' => $typeCode,
+                    'available_fare_types' => array_keys($availableFareTypes),
+                ]);
+                throw new \RuntimeException('Travelport pricing is incomplete for this passenger mix. Please search again.');
+            }
+        }
+
+        if ($bookingInfoCount < $passengerCount || $hostTokenCount < 1 || $fareInfoCount < 1) {
+            Log::warning('Travelport hold pricing incomplete after expansion', [
+                'passenger_count' => $passengerCount,
+                'booking_info_count' => $bookingInfoCount,
+                'host_token_count' => $hostTokenCount,
+                'fare_info_count' => $fareInfoCount,
+            ]);
             throw new \RuntimeException('Travelport pricing is incomplete for this passenger mix. Please search again.');
         }
     }
