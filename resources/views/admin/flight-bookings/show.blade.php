@@ -117,6 +117,37 @@
 .bkpd-eticket-admin .bkpd-info-rows { padding: 0 1rem .75rem; }
 .bkpd-eticket-admin .bkpd-ticket__head { padding-left: 1rem; padding-right: 1rem; }
 .bkpd-eticket-admin .bkpd-ticket__coupons { padding: 0 1rem 1rem; }
+.bkpd-eticket-admin__pnr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: .65rem;
+}
+.bkpd-eticket-admin__pnr-card {
+    padding: .65rem .75rem;
+    background: #fafbfd;
+    border: 1px solid var(--c-line-inner);
+    border-radius: 8px;
+}
+.bkpd-eticket-admin__pnr-label {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--c-muted);
+    margin-bottom: .25rem;
+}
+.bkpd-eticket-admin__pnr-value {
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: #0f172a;
+}
+.bkpd-pnr-row--dual {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+}
 </style>
 @endpush
 
@@ -181,6 +212,12 @@
     };
     $canEditBooking = \App\Support\B2bAdminPortalUi::can('flight_bookings_edit');
     $adminDetails = $adminDetails ?? [];
+    $pnrRefs = is_array(($adminEticketDetails ?? [])['pnr_references'] ?? null)
+        ? ($adminEticketDetails['pnr_references'] ?? [])
+        : \App\Support\FlightBookingAdminEticketPresenter::resolvePnrReferences($booking);
+    $gdsPnr = strtoupper(trim((string) ($pnrRefs['gds_pnr'] ?? $booking->sabre_record_locator ?? '')));
+    $supplierPnr = strtoupper(trim((string) ($pnrRefs['supplier_pnr'] ?? '')));
+    $supplierCode = strtoupper(trim((string) ($pnrRefs['supplier_code'] ?? '')));
     $needsFulfillmentRetry = $canEditBooking
         && $booking->needsTicketFulfillmentRetry()
         && ! $booking->isCancelled()
@@ -298,12 +335,20 @@
                                 </div>
                             </div>
 
-                            @if ($booking->sabre_record_locator)
-                                <div class="bkpd-pnr-row">
-                                    <div>
-                                        <div class="bkpd-pnr-label">PNR / Record Locator</div>
-                                        <div class="bkpd-pnr-value">{{ $booking->sabre_record_locator }}</div>
-                                    </div>
+                            @if ($gdsPnr !== '' || $supplierPnr !== '')
+                                <div class="bkpd-pnr-row bkpd-pnr-row--dual">
+                                    @if ($gdsPnr !== '')
+                                        <div>
+                                            <div class="bkpd-pnr-label">GDS PNR</div>
+                                            <div class="bkpd-pnr-value">{{ $gdsPnr }}</div>
+                                        </div>
+                                    @endif
+                                    @if ($supplierPnr !== '')
+                                        <div>
+                                            <div class="bkpd-pnr-label">Supplier PNR@if($supplierCode !== '') ({{ $supplierCode }})@endif</div>
+                                            <div class="bkpd-pnr-value">{{ $supplierPnr }}</div>
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
                             @if (!empty($adminDetails['ticket_numbers']))
@@ -508,10 +553,16 @@
                                         <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $adminDetails['travelport_universal_locator'] }}</span>
                                     </div>
                                 @endif
-                                @if ($booking->sabre_record_locator)
+                                @if ($gdsPnr !== '')
                                     <div class="bkpd-info-row">
-                                        <span class="bkpd-info-row__label">PNR</span>
-                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $booking->sabre_record_locator }}</span>
+                                        <span class="bkpd-info-row__label">GDS PNR</span>
+                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $gdsPnr }}</span>
+                                    </div>
+                                @endif
+                                @if ($supplierPnr !== '')
+                                    <div class="bkpd-info-row">
+                                        <span class="bkpd-info-row__label">Supplier PNR@if($supplierCode !== '') ({{ $supplierCode }})@endif</span>
+                                        <span class="bkpd-info-row__val" style="font-family:monospace;font-weight:700;">{{ $supplierPnr }}</span>
                                     </div>
                                 @endif
                                 @if (!empty($adminDetails['ticket_numbers']))

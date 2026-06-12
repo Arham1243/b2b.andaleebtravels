@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\B2bFlightBooking;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
+use App\Support\Travelport\TravelportHoldPricingInfoParser;
 use App\Support\Travelport\TravelportTicketDetailsPresenter;
 
 final class FlightBookingAdminEticketPresenter
@@ -17,6 +18,7 @@ final class FlightBookingAdminEticketPresenter
     {
         $tickets = is_array($ticketDetails['tickets'] ?? null) ? $ticketDetails['tickets'] : [];
         $storedFares = self::storedFaresFromBooking($booking);
+        $pnrReferences = self::resolvePnrReferences($booking, $tickets);
 
         return [
             'source' => $ticketDetails['source'] ?? null,
@@ -25,13 +27,149 @@ final class FlightBookingAdminEticketPresenter
             'stored_fares' => $storedFares,
             'fare_breakdown' => $fareBreakdown,
             'itinerary' => is_array($booking->itinerary_data) ? $booking->itinerary_data : [],
+            'pnr_references' => $pnrReferences,
             'has_tickets' => $tickets !== [],
             'has_stored_fares' => $storedFares !== [],
             'has_content' => $tickets !== []
                 || $storedFares !== []
                 || ($fareBreakdown['has_breakdown'] ?? false)
-                || ($fareBreakdown['has_pax_lines'] ?? false),
+                || ($fareBreakdown['has_pax_lines'] ?? false)
+                || ($pnrReferences['gds_pnr'] ?? '') !== ''
+                || ($pnrReferences['supplier_pnr'] ?? '') !== '',
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $tickets
+     * @return array{gds_pnr: string, supplier_pnr: string, supplier_code: string}
+     */
+    public static function resolvePnrReferences(B2bFlightBooking $booking, array $tickets = []): array
+    {
+        $gdsPnr = strtoupper(trim((string) ($booking->sabre_record_locator ?? '')));
+        $supplierPnr = '';
+        $supplierCode = '';
+
+        foreach ($tickets as $ticket) {
+            if (! is_array($ticket)) {
+                continue;
+            }
+
+            if ($gdsPnr === '') {
+                $gdsPnr = strtoupper(trim((string) ($ticket['gds_pnr'] ?? $ticket['pnr'] ?? '')));
+            }
+
+            if ($supplierPnr === '') {
+                $supplierPnr = strtoupper(trim((string) ($ticket['supplier_pnr'] ?? '')));
+            }
+
+            if ($supplierCode === '') {
+                $supplierCode = strtoupper(trim((string) ($ticket['supplier_code'] ?? '')));
+            }
+        }
+
+        foreach ([
+            is_array($booking->ticket_response) ? $booking->ticket_response : null,
+            is_array($booking->booking_response) ? $booking->booking_response : null,
+        ] as $source) {
+            if (! is_array($source)) {
+                continue;
+            }
+
+            if ($gdsPnr === '') {
+                $gdsPnr = strtoupper(trim(TravelportHoldPricingInfoParser::extractProviderLocatorCode($source)));
+            }
+
+            if ($supplierPnr === '') {
+                $supplierPnr = strtoupper(trim(self::extractSupplierLocatorCode($source)));
+            }
+
+            if ($supplierCode === '') {
+                $supplierCode = strtoupper(trim(self::extractSupplierCode($source)));
+            }
+        }
+
+        return [
+            'gds_pnr' => $gdsPnr,
+            'supplier_pnr' => $supplierPnr,
+            'supplier_code' => $supplierCode,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $source
+     */
+    private static function extractSupplierLocatorCode(array $source): string
+    {
+        foreach ([
+            'Body.AirTicketingRsp.ETR',
+            'AirTicketingRsp.ETR',
+            'ETR',
+            'Body.AirCreateReservationRsp.UniversalRecord.AirReservation.SupplierLocator',
+            'UniversalRecord.AirReservation.SupplierLocator',
+            'AirReservation.SupplierLocator',
+            'SupplierLocator',
+        ] as $path) {
+            foreach (self::asList(data_get($source, $path)) as $node) {
+                if (! is_array($node)) {
+                    continue;
+                }
+
+                $code = trim((string) (
+                    data_get($node, '@attributes.SupplierLocatorCode')
+                    ?? data_get($node, 'SupplierLocatorCode')
+                    ?? data_get($node, '@attributes.LocatorCode')
+                    ?? data_get($node, 'LocatorCode')
+                    ?? ''
+                ));
+
+                if ($code !== '') {
+                    return $code;
+                }
+            }
+        }
+
+        $raw = (string) ($source['raw'] ?? '');
+        if ($raw !== '' && preg_match('/<(?:[\w-]+:)?SupplierLocator\b[^>]*\bSupplierLocatorCode="([^"]+)"/i', $raw, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $source
+     */
+    private static function extractSupplierCode(array $source): string
+    {
+        foreach ([
+            'Body.AirTicketingRsp.ETR',
+            'AirTicketingRsp.ETR',
+            'ETR',
+            'SupplierLocator',
+        ] as $path) {
+            foreach (self::asList(data_get($source, $path)) as $node) {
+                if (! is_array($node)) {
+                    continue;
+                }
+
+                $code = trim((string) (
+                    data_get($node, '@attributes.SupplierCode')
+                    ?? data_get($node, 'SupplierCode')
+                    ?? ''
+                ));
+
+                if ($code !== '') {
+                    return strtoupper($code);
+                }
+            }
+        }
+
+        $raw = (string) ($source['raw'] ?? '');
+        if ($raw !== '' && preg_match('/<(?:[\w-]+:)?SupplierLocator\b[^>]*\bSupplierCode="([^"]+)"/i', $raw, $matches)) {
+            return strtoupper(trim($matches[1]));
+        }
+
+        return '';
     }
 
     /**

@@ -26,6 +26,33 @@
         </div>
     @endif
 
+    @php
+        $pnrRefs = is_array($details['pnr_references'] ?? null) ? $details['pnr_references'] : [];
+        $gdsPnr = strtoupper(trim((string) ($pnrRefs['gds_pnr'] ?? '')));
+        $supplierPnr = strtoupper(trim((string) ($pnrRefs['supplier_pnr'] ?? '')));
+        $supplierCode = strtoupper(trim((string) ($pnrRefs['supplier_code'] ?? '')));
+    @endphp
+
+    @if($gdsPnr !== '' || $supplierPnr !== '')
+        <div class="bkpd-eticket-admin__section bkpd-eticket-admin__section--pnr">
+            <div class="bkpd-eticket-admin__section-title">Record locators</div>
+            <div class="bkpd-eticket-admin__pnr-grid">
+                @if($gdsPnr !== '')
+                    <div class="bkpd-eticket-admin__pnr-card">
+                        <div class="bkpd-eticket-admin__pnr-label">GDS PNR</div>
+                        <div class="bkpd-eticket-admin__pnr-value">{{ $gdsPnr }}</div>
+                    </div>
+                @endif
+                @if($supplierPnr !== '')
+                    <div class="bkpd-eticket-admin__pnr-card">
+                        <div class="bkpd-eticket-admin__pnr-label">Supplier PNR@if($supplierCode !== '') ({{ $supplierCode }})@endif</div>
+                        <div class="bkpd-eticket-admin__pnr-value">{{ $supplierPnr }}</div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     {{-- Order-level fare breakdown --}}
     <div class="bkpd-eticket-admin__section">
         <div class="bkpd-eticket-admin__section-title">Booking fare summary</div>
@@ -266,8 +293,8 @@
 
             <div class="bkpd-info-rows bkpd-info-rows--compact">
                 @foreach([
-                    'pnr' => 'GDS PNR',
-                    'supplier_pnr' => 'Airline PNR',
+                    'gds_pnr' => 'GDS PNR',
+                    'supplier_pnr' => 'Supplier PNR',
                     'air_reservation_locator' => 'Air reservation locator',
                     'plating_carrier' => 'Plating carrier',
                     'provider_code' => 'Provider',
@@ -288,7 +315,7 @@
                     @if(!empty($ticket[$field]))
                         <div class="bkpd-info-row">
                             <span class="bkpd-info-row__label">{{ $label }}</span>
-                            <span class="bkpd-info-row__val" @if(in_array($field, ['pnr', 'supplier_pnr', 'air_reservation_locator', 'fare_basis', 'fare_calculation'], true)) style="font-family:monospace;font-size:.78rem;word-break:break-word;" @endif>{{ $ticket[$field] }}</span>
+                            <span class="bkpd-info-row__val" @if(in_array($field, ['gds_pnr', 'supplier_pnr', 'air_reservation_locator', 'fare_basis', 'fare_calculation'], true)) style="font-family:monospace;font-size:.78rem;word-break:break-word;" @endif>{{ $ticket[$field] }}</span>
                         </div>
                     @endif
                 @endforeach

@@ -284,7 +284,7 @@ Locators
 --------
 Universal Record: {$universal}
 Air Reservation:  {$airReservation}
-Provider PNR:     {$providerPnr}
+GDS PNR:          {$providerPnr}
 Supplier ({$supplierCode}):    {$supplierPnr}
 
 TXT;

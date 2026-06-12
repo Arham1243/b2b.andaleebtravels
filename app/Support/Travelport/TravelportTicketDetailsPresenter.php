@@ -3,6 +3,7 @@
 namespace App\Support\Travelport;
 
 use App\Models\B2bFlightBooking;
+use App\Support\FlightBookingAdminEticketPresenter;
 use Carbon\Carbon;
 
 final class TravelportTicketDetailsPresenter
@@ -112,6 +113,7 @@ final class TravelportTicketDetailsPresenter
             'passenger_dob' => self::formatDate(self::attr($traveler, 'DOB')),
             'passenger_gender' => self::attr($traveler, 'Gender'),
             'pnr' => self::attr($etr, 'ProviderLocatorCode') ?: ($booking->sabre_record_locator ?? ''),
+            'gds_pnr' => self::attr($etr, 'ProviderLocatorCode') ?: ($booking->sabre_record_locator ?? ''),
             'air_reservation_locator' => self::nodeText($etr, 'AirReservationLocatorCode'),
             'supplier_code' => strtoupper($supplierCode),
             'supplier_pnr' => strtoupper($supplierPnr),
