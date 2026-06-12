@@ -64,26 +64,17 @@
         return document.getElementById('hp-submit-overlay');
     }
 
-    function setOverlayText(text) {
-        const overlay = overlayEl();
-        if (!overlay) {
-            return;
-        }
-        const textEl = overlay.querySelector('.hp-submit-overlay__text');
-        if (textEl) {
-            textEl.textContent = text;
-        }
-    }
-
     function showOverlay(text) {
         const overlay = overlayEl();
         if (!overlay) {
             return;
         }
-        if (text) {
-            setOverlayText(text);
+        const textEl = overlay.querySelector('.hp-submit-overlay__text');
+        if (textEl && text) {
+            textEl.textContent = text;
         }
         overlay.hidden = false;
+        void overlay.offsetHeight;
     }
 
     function hideOverlay() {
@@ -132,6 +123,7 @@
 
             function hideLoading() {
                 form.removeAttribute('data-hp-submitting');
+                form.removeAttribute('data-hp-allow-native-submit');
                 hideOverlay();
                 resetButtons();
             }
@@ -141,10 +133,6 @@
 
                 if (useOverlay) {
                     showOverlay(loadingText);
-                    const el = overlayEl();
-                    if (el) {
-                        void el.offsetHeight;
-                    }
                 }
 
                 buttons.forEach(function (btn) {
@@ -155,14 +143,7 @@
                 });
             }
 
-            if (config.resetOnErrors) {
-                hideLoading();
-            }
-
-            function shouldBlockSubmit() {
-                if (form.getAttribute('data-hp-submitting') === '1') {
-                    return true;
-                }
+            function validationBlocksSubmit() {
                 if (form.querySelector('.is-invalid')) {
                     return true;
                 }
@@ -173,7 +154,32 @@
                 return false;
             }
 
+            function submitFormNatively() {
+                form.setAttribute('data-hp-allow-native-submit', '1');
+                if (typeof form.requestSubmit === 'function') {
+                    const active = document.activeElement;
+                    if (active && buttons.indexOf(active) !== -1) {
+                        form.requestSubmit(active);
+                    } else if (buttons[0]) {
+                        form.requestSubmit(buttons[0]);
+                    } else {
+                        form.requestSubmit();
+                    }
+                    return;
+                }
+                HTMLFormElement.prototype.submit.call(form);
+            }
+
+            if (config.resetOnErrors) {
+                hideLoading();
+            }
+
             function onSubmit(e) {
+                if (form.getAttribute('data-hp-allow-native-submit') === '1') {
+                    form.removeAttribute('data-hp-allow-native-submit');
+                    return;
+                }
+
                 if (form.getAttribute('data-hp-submitting') === '1') {
                     e.preventDefault();
                     return;
@@ -184,16 +190,23 @@
                     return;
                 }
 
-                if (shouldBlockSubmit()) {
+                if (validationBlocksSubmit()) {
                     e.preventDefault();
                     hideLoading();
                     return;
                 }
 
+                e.preventDefault();
                 showLoading();
+
+                window.requestAnimationFrame(function () {
+                    window.requestAnimationFrame(function () {
+                        submitFormNatively();
+                    });
+                });
             }
 
-            // Capture runs after DOB/passport validators (they register earlier).
+            // Capture — runs after DOB/passport validators registered earlier.
             form.addEventListener('submit', onSubmit, true);
 
             form.addEventListener('invalid', function () {
