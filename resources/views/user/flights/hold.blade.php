@@ -1078,6 +1078,7 @@
         formSelector: '#holdForm',
         buttonSelector: '#hold-btn',
         resetOnErrors: @json($errors->any()),
+        overlay: false,
     });
 
     @if ($errors->any())

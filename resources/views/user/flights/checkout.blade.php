@@ -829,6 +829,7 @@
                 formSelector: '#flightCheckoutForm',
                 buttonSelector: '#pay-btn',
                 resetOnErrors: @json($errors->any()),
+                overlay: false,
             });
 
             @if ($errors->any())

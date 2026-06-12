@@ -735,6 +735,7 @@ document.addEventListener('DOMContentLoaded', function () {
         formSelector: '#confirmPayForm',
         buttonSelector: '#pay-btn',
         resetOnErrors: @json($errors->any() ?? false),
+        overlay: false,
     });
 
     document.getElementById('confirmPayForm').addEventListener('submit', function (e) {
