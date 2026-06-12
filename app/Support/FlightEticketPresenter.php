@@ -64,17 +64,18 @@ final class FlightEticketPresenter
         $legs = is_array($itinerary['legs'] ?? null) ? $itinerary['legs'] : [];
         $baggage = is_array($itinerary['baggage_details'] ?? null) ? $itinerary['baggage_details'] : [];
         $coupons = self::referenceCoupons(is_array($ticketDetails['tickets'] ?? null) ? $ticketDetails['tickets'] : []);
+        $refs = self::resolveReferenceLocators($booking, $ticketDetails);
 
-        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary, $coupons);
+        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary, $coupons, $refs);
 
         return [
             'agency' => self::agencyBlock(),
             'booking' => [
                 'ref' => $booking->booking_number,
                 'date' => $booking->created_at?->format('d M Y') ?? '—',
-                'pnr' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
-                'airline_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
-                'crs_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
+                'pnr' => $refs['crs_ref'],
+                'airline_ref' => $refs['airline_ref'],
+                'crs_ref' => $refs['crs_ref'],
             ],
             'include_fare' => $includeFare,
             'directions' => $directions,
@@ -122,7 +123,9 @@ final class FlightEticketPresenter
         array $baggage,
         array $itinerary,
         array $coupons = [],
+        array $refs = [],
     ): array {
+        $refs = $refs !== [] ? $refs : self::resolveReferenceLocators($booking, []);
         $directions = [];
 
         foreach (FlightItineraryLegsNormalizer::normalize($legs, $booking, $coupons) as $index => $leg) {
@@ -147,8 +150,8 @@ final class FlightEticketPresenter
                 'label' => $index === 0 ? 'ONWARD' : 'RETURN',
                 'route_title' => self::routeTitle($first, $last),
                 'meta_line' => self::directionMetaLine($departureDate, $stops, $durMins),
-                'airline_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
-                'crs_ref' => strtoupper(trim((string) ($booking->sabre_record_locator ?? ''))),
+                'airline_ref' => $refs['airline_ref'],
+                'crs_ref' => $refs['crs_ref'],
                 'airline' => self::airlineLabel($first),
                 'travel_class' => trim((string) ($first['cabin_code'] ?? $itinerary['cabin'] ?? 'Economy')),
                 'check_in_baggage' => self::baggageLine($baggage, false),
@@ -547,12 +550,13 @@ final class FlightEticketPresenter
         $passengers = is_array($booking->passengers_data['passengers'] ?? null)
             ? $booking->passengers_data['passengers']
             : [];
-        $pnr = strtoupper(trim((string) ($booking->sabre_record_locator ?? '')));
+        $refs = self::resolveReferenceLocators($booking, $ticketDetails);
+        $pnr = $refs['crs_ref'] !== '' ? $refs['crs_ref'] : strtoupper(trim((string) ($booking->sabre_record_locator ?? '')));
         $itinerary = is_array($booking->itinerary_data) ? $booking->itinerary_data : [];
         $legs = is_array($itinerary['legs'] ?? null) ? $itinerary['legs'] : [];
         $baggage = is_array($itinerary['baggage_details'] ?? null) ? $itinerary['baggage_details'] : [];
         $referenceCoupons = self::referenceCoupons($tickets);
-        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary, $referenceCoupons);
+        $directions = self::buildDirections($booking, $legs, $baggage, $itinerary, $referenceCoupons, $refs);
 
         $travelers = [];
 
@@ -598,6 +602,30 @@ final class FlightEticketPresenter
         }
 
         return $travelers;
+    }
+
+    /**
+     * CRS Ref = GDS / provider PNR. Airline Ref = supplier (airline) PNR.
+     *
+     * @param  array{source: ?string, error: ?string, tickets: list<array<string, mixed>>}  $ticketDetails
+     * @return array{crs_ref: string, airline_ref: string}
+     */
+    private static function resolveReferenceLocators(B2bFlightBooking $booking, array $ticketDetails): array
+    {
+        $tickets = is_array($ticketDetails['tickets'] ?? null) ? $ticketDetails['tickets'] : [];
+        $pnrRefs = FlightBookingAdminEticketPresenter::resolvePnrReferences($booking, $tickets);
+
+        $crsRef = strtoupper(trim((string) ($pnrRefs['gds_pnr'] ?? '')));
+        $airlineRef = strtoupper(trim((string) ($pnrRefs['supplier_pnr'] ?? '')));
+
+        if ($crsRef === '' && ! $booking->isTravelport()) {
+            $crsRef = strtoupper(trim((string) ($booking->sabre_record_locator ?? '')));
+        }
+
+        return [
+            'crs_ref' => $crsRef,
+            'airline_ref' => $airlineRef,
+        ];
     }
 
     /**
