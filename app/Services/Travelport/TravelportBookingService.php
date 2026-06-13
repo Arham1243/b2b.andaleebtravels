@@ -13,6 +13,7 @@ use App\Support\Travelport\TravelportHoldExpiryResolver;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use App\Support\Travelport\TravelportHoldPricingInfoParser;
 use App\Support\Travelport\TravelportHoldTravelerKeyResolver;
+use App\Support\Travelport\TravelportVendorRemarksParser;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -770,91 +771,169 @@ class TravelportBookingService
     private const HOLD_EXPIRY_API_MIN_AGE_MINUTES = 10;
     private const HOLD_EXPIRY_SYNC_THROTTLE_MINUTES = 5;
     private const HOLD_EXPIRY_API_MAX_HOURS = 72;
+    private const PNR_METADATA_SYNC_THROTTLE_MINUTES = 5;
 
     /**
-     * Refresh hold_expires_at from the live Travelport PNR when the airline publishes TicketDate.
-     *
-     * Until then, and for the first ~10 minutes after hold, keep the 1-hour estimate shown at booking time.
+     * Refresh live PNR metadata (vendor remarks, hold expiry) from Travelport on booking detail pages.
      */
-    public function syncHoldExpiryFromTravelport(B2bFlightBooking $booking): void
+    public function syncPnrMetadataFromTravelport(B2bFlightBooking $booking): void
     {
-        if (! $booking->isTravelport() || ! $booking->isOnHold() || $booking->isPaid()) {
+        if (! $booking->isTravelport()) {
             return;
         }
 
-        $meta = $booking->holdExpiresMeta();
-        if (($meta['source'] ?? '') === 'api') {
-            return;
-        }
-
-        $heldAt = $booking->created_at ?? now();
-        if ($heldAt->gt(now()->subMinutes(self::HOLD_EXPIRY_API_MIN_AGE_MINUTES))) {
-            return;
-        }
-
-        $lastAttemptRaw = trim((string) ($meta['last_attempt_at'] ?? ''));
-        if ($lastAttemptRaw !== '') {
-            try {
-                if (Carbon::parse($lastAttemptRaw)->gt(now()->subMinutes(self::HOLD_EXPIRY_SYNC_THROTTLE_MINUTES))) {
-                    return;
-                }
-            } catch (\Throwable) {
-                // continue and retry
-            }
-        }
+        $this->seedVendorRemarksFromStoredResponse($booking);
 
         $universalLocator = $booking->travelportUniversalLocator();
         if ($universalLocator === '') {
             return;
         }
 
+        if (! $this->shouldRetrievePnrMetadata($booking)) {
+            return;
+        }
+
         $expiry = null;
+        $remarks = [];
+        $expirySource = null;
+
         try {
             $retrieve = $this->client->universalRecordRetrieve($universalLocator);
             if ($retrieve['success'] ?? false) {
-                $expiry = TravelportHoldExpiryResolver::ticketDateFromResponse($retrieve);
+                $remarks = TravelportVendorRemarksParser::fromTravelportResponse($retrieve);
+
+                if ($this->shouldSyncHoldExpiryFromTravelport($booking)) {
+                    $heldAt = $booking->created_at ?? now();
+                    $expiry = TravelportHoldExpiryResolver::ticketDateFromResponse($retrieve)
+                        ?? TravelportVendorRemarksParser::adtkDeadlineFromResponse($retrieve, $heldAt);
+
+                    if ($expiry !== null && ! $this->isPlausibleHoldExpiry($expiry, $booking)) {
+                        $expiry = null;
+                    }
+
+                    if ($expiry !== null) {
+                        $expirySource = 'api';
+                    }
+                }
             }
         } catch (\Throwable $e) {
-            Log::warning('Travelport hold expiry sync failed', [
+            Log::warning('Travelport PNR metadata sync failed', [
                 'booking_id' => $booking->id,
                 'universal_locator' => $universalLocator,
                 'error' => $e->getMessage(),
             ]);
         }
 
-        if ($expiry !== null && ! $this->isPlausibleHoldExpiry($expiry, $booking)) {
-            $expiry = null;
-        }
-
-        $this->recordHoldExpirySyncAttempt($booking, $expiry, $expiry !== null ? 'api' : null);
+        $this->recordPnrMetadataSyncAttempt($booking, $remarks, $expiry, $expirySource);
     }
 
-    private function isPlausibleHoldExpiry(Carbon $expiry, B2bFlightBooking $booking): bool
+    /**
+     * @deprecated Use syncPnrMetadataFromTravelport()
+     */
+    public function syncHoldExpiryFromTravelport(B2bFlightBooking $booking): void
     {
-        $heldAt = $booking->created_at ?? now();
+        $this->syncPnrMetadataFromTravelport($booking);
+    }
 
-        if ($expiry->lte(now()->copy()->subMinutes(5))) {
+    private function shouldRetrievePnrMetadata(B2bFlightBooking $booking): bool
+    {
+        if ($this->isPnrMetadataSyncThrottled($booking)) {
             return false;
         }
 
-        return $expiry->lte($heldAt->copy()->addHours(self::HOLD_EXPIRY_API_MAX_HOURS));
-    }
-
-    private function recordHoldExpirySyncAttempt(
-        B2bFlightBooking $booking,
-        ?Carbon $expiry = null,
-        ?string $source = null,
-    ): void {
-        $response = is_array($booking->booking_response) ? $booking->booking_response : [];
-        $meta = is_array($response['hold_expires_meta'] ?? null) ? $response['hold_expires_meta'] : [];
-        $meta['last_attempt_at'] = now()->toIso8601String();
-
-        if ($expiry !== null && $source !== null) {
-            $meta['source'] = $source;
-            $meta['synced_at'] = now()->toIso8601String();
+        if ($booking->travelportVendorRemarks() === [] && ($booking->isOnHold() || $this->shouldSyncHoldExpiryFromTravelport($booking))) {
+            return true;
         }
 
-        $response['hold_expires_meta'] = $meta;
+        return $this->shouldSyncHoldExpiryFromTravelport($booking);
+    }
+
+    private function shouldSyncHoldExpiryFromTravelport(B2bFlightBooking $booking): bool
+    {
+        if (! $booking->isOnHold() || $booking->isPaid()) {
+            return false;
+        }
+
+        $meta = $booking->holdExpiresMeta();
+        if (($meta['source'] ?? '') === 'api') {
+            return false;
+        }
+
+        $heldAt = $booking->created_at ?? now();
+
+        return $heldAt->lte(now()->subMinutes(self::HOLD_EXPIRY_API_MIN_AGE_MINUTES));
+    }
+
+    private function isPnrMetadataSyncThrottled(B2bFlightBooking $booking): bool
+    {
+        $lastAttemptRaw = trim((string) ($booking->pnrMetadataMeta()['last_attempt_at'] ?? ''));
+        if ($lastAttemptRaw === '') {
+            $lastAttemptRaw = trim((string) ($booking->holdExpiresMeta()['last_attempt_at'] ?? ''));
+        }
+
+        if ($lastAttemptRaw === '') {
+            return false;
+        }
+
+        try {
+            return Carbon::parse($lastAttemptRaw)->gt(now()->subMinutes(self::PNR_METADATA_SYNC_THROTTLE_MINUTES));
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function seedVendorRemarksFromStoredResponse(B2bFlightBooking $booking): void
+    {
+        if ($booking->travelportVendorRemarks() !== []) {
+            return;
+        }
+
+        $response = is_array($booking->booking_response) ? $booking->booking_response : [];
+        $remarks = TravelportVendorRemarksParser::fromTravelportResponse($response);
+        if ($remarks === []) {
+            return;
+        }
+
+        $response['travelport_vendor_remarks'] = $remarks;
+        $meta = is_array($response['pnr_metadata_meta'] ?? null) ? $response['pnr_metadata_meta'] : [];
+        $meta['remarks_synced_at'] = now()->toIso8601String();
+        $meta['remarks_source'] = 'hold_response';
+        $response['pnr_metadata_meta'] = $meta;
+
+        $booking->update(['booking_response' => $response]);
+        $booking->booking_response = $response;
+    }
+
+    /**
+     * @param  list<string>  $remarks
+     */
+    private function recordPnrMetadataSyncAttempt(
+        B2bFlightBooking $booking,
+        array $remarks = [],
+        ?Carbon $expiry = null,
+        ?string $expirySource = null,
+    ): void {
+        $response = is_array($booking->booking_response) ? $booking->booking_response : [];
+        $meta = is_array($response['pnr_metadata_meta'] ?? null) ? $response['pnr_metadata_meta'] : [];
+        $meta['last_attempt_at'] = now()->toIso8601String();
+
+        if ($remarks !== []) {
+            $response['travelport_vendor_remarks'] = $remarks;
+            $meta['remarks_synced_at'] = now()->toIso8601String();
+            $meta['remarks_source'] = 'api';
+        }
+
+        $response['pnr_metadata_meta'] = $meta;
+
+        $holdMeta = is_array($response['hold_expires_meta'] ?? null) ? $response['hold_expires_meta'] : [];
+        $holdMeta['last_attempt_at'] = now()->toIso8601String();
+
+        if ($expiry !== null && $expirySource !== null) {
+            $holdMeta['source'] = $expirySource;
+            $holdMeta['synced_at'] = now()->toIso8601String();
+        }
+
+        $response['hold_expires_meta'] = $holdMeta;
         $update = ['booking_response' => $response];
 
         if ($expiry !== null) {
@@ -867,6 +946,17 @@ class TravelportBookingService
             $booking->hold_expires_at = $expiry;
         }
         $booking->booking_response = $response;
+    }
+
+    private function isPlausibleHoldExpiry(Carbon $expiry, B2bFlightBooking $booking): bool
+    {
+        $heldAt = $booking->created_at ?? now();
+
+        if ($expiry->lte(now()->copy()->subMinutes(5))) {
+            return false;
+        }
+
+        return $expiry->lte($heldAt->copy()->addHours(self::HOLD_EXPIRY_API_MAX_HOURS));
     }
 
     private function resolvePlatingCarrier(B2bFlightBooking $booking): string

@@ -229,6 +229,8 @@
                     </div>
                 @endif
 
+                @include('partials.travelport-vendor-remarks', ['booking' => $booking])
+
                 <div class="bkpd-grid">
                     <div>
                         @include('admin.hotel-bookings.partials.supplier-booking-details')

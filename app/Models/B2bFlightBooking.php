@@ -127,6 +127,37 @@ class B2bFlightBooking extends Model
         return is_array($meta) ? $meta : [];
     }
 
+    /**
+     * @return list<string>
+     */
+    public function travelportVendorRemarks(): array
+    {
+        $remarks = data_get($this->booking_response, 'travelport_vendor_remarks');
+        if (! is_array($remarks)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($remarks as $remark) {
+            $text = trim((string) $remark);
+            if ($text !== '') {
+                $normalized[] = $text;
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @return array{last_attempt_at?: string|null, remarks_synced_at?: string|null}
+     */
+    public function pnrMetadataMeta(): array
+    {
+        $meta = data_get($this->booking_response, 'pnr_metadata_meta');
+
+        return is_array($meta) ? $meta : [];
+    }
+
     public function holdExpiryIsEstimate(): bool
     {
         if (! $this->isOnHold()) {

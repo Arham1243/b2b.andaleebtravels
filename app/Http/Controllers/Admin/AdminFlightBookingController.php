@@ -69,7 +69,7 @@ class AdminFlightBookingController extends Controller
             }
 
             if ($booking->isOnHold() && ! $booking->isPaid()) {
-                $travelportBookingService->syncHoldExpiryFromTravelport($booking);
+                $travelportBookingService->syncPnrMetadataFromTravelport($booking);
                 $booking->refresh();
             }
         }
