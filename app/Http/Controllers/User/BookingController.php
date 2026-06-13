@@ -85,6 +85,11 @@ class BookingController extends Controller
                 $travelportBookingService->refreshBookingFareBreakdown($booking);
                 $booking->refresh();
             }
+
+            if ($booking->isOnHold() && ! $booking->isPaid()) {
+                $travelportBookingService->syncHoldExpiryFromTravelport($booking);
+                $booking->refresh();
+            }
         }
 
         $counts  = $this->bookingCounts();

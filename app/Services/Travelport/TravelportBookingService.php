@@ -9,6 +9,7 @@ use App\Support\FlightPassengerFareLinesPresenter;
 use App\Support\Travelport\TravelportAirPriceParser;
 use App\Support\Travelport\TravelportAirPricePresenter;
 use App\Support\Travelport\TravelportAirTicketingResult;
+use App\Support\Travelport\TravelportHoldExpiryResolver;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use App\Support\Travelport\TravelportHoldPricingInfoParser;
 use App\Support\Travelport\TravelportHoldTravelerKeyResolver;
@@ -477,7 +478,14 @@ class TravelportBookingService
                 }
             }
 
-            $holdExpiresAt = $this->parseHoldExpiry($pricingData['latest_ticketing_time'] ?? null);
+            $holdExpiresAt = TravelportHoldExpiryResolver::fromTravelportResponse($holdResponse);
+            if ($holdExpiresAt === null && ($locators['universal_locator'] ?? '') !== '') {
+                $retrieveForExpiry = $this->client->universalRecordRetrieve((string) $locators['universal_locator']);
+                if ($retrieveForExpiry['success'] ?? false) {
+                    $holdExpiresAt = TravelportHoldExpiryResolver::fromTravelportResponse($retrieveForExpiry);
+                }
+            }
+            $holdExpiresAt ??= $this->parseHoldExpiry(null);
             $parsedHold = is_array($holdResponse['parsed'] ?? null) ? $holdResponse['parsed'] : [];
             $bookingResponse = $parsedHold['Body']['AirCreateReservationRsp'] ?? $parsedHold;
             if (is_array($bookingResponse)) {
@@ -758,6 +766,54 @@ class TravelportBookingService
         }
 
         return now()->addHour();
+    }
+
+    /**
+     * Refresh hold_expires_at from the live Travelport PNR (Universal Record retrieve).
+     */
+    public function syncHoldExpiryFromTravelport(B2bFlightBooking $booking): void
+    {
+        if (! $booking->isTravelport() || ! $booking->isOnHold() || $booking->isPaid()) {
+            return;
+        }
+
+        $expiry = null;
+        $bookingResponse = is_array($booking->booking_response) ? $booking->booking_response : [];
+
+        if ($bookingResponse !== []) {
+            $expiry = TravelportHoldExpiryResolver::fromTravelportResponse([
+                'parsed' => $bookingResponse,
+                'raw' => (string) ($bookingResponse['raw'] ?? ''),
+            ]);
+        }
+
+        $universalLocator = $booking->travelportUniversalLocator();
+        if ($universalLocator !== '') {
+            try {
+                $retrieve = $this->client->universalRecordRetrieve($universalLocator);
+                if ($retrieve['success'] ?? false) {
+                    $expiry = TravelportHoldExpiryResolver::fromTravelportResponse($retrieve) ?? $expiry;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Travelport hold expiry sync failed', [
+                    'booking_id' => $booking->id,
+                    'universal_locator' => $universalLocator,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($expiry === null) {
+            return;
+        }
+
+        $current = $booking->hold_expires_at;
+        if ($current instanceof Carbon && $current->equalTo($expiry)) {
+            return;
+        }
+
+        $booking->update(['hold_expires_at' => $expiry]);
+        $booking->hold_expires_at = $expiry;
     }
 
     private function resolvePlatingCarrier(B2bFlightBooking $booking): string
