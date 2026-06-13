@@ -23,19 +23,9 @@
     if ($booking->children) $paxStr .= ', ' . $booking->children . ' Child' . ($booking->children > 1 ? 'ren' : '');
     if ($booking->infants)  $paxStr .= ', ' . $booking->infants . ' Infant' . ($booking->infants > 1 ? 's' : '');
 
-    // Resolve hold expiry: prefer the dedicated column, fall back to created_at + 1h for old records
-    $ttlIsEstimate = false;
-    $ttl           = null;
-
-    if ($isHold) {
-        if ($booking->hold_expires_at) {
-            $ttl = $booking->hold_expires_at; // already a Carbon instance (cast: datetime)
-        } else {
-            // Legacy records created before the hold_expires_at column was added
-            $ttl           = $booking->created_at->copy()->addHour();
-            $ttlIsEstimate = true;
-        }
-    }
+    // Hold expiry: 1-hour estimate at creation; Travelport API updates on detail page after ~10 min
+    $ttlIsEstimate = $booking->holdExpiryIsEstimate();
+    $ttl           = $booking->displayHoldExpiresAt();
 
     $ttlFormatted  = null;
     $ttlRemaining  = null;
@@ -110,7 +100,8 @@
                                 Hold Expired  -  ticketing window has passed
                             @elseif($ttlFormatted)
                                 @if($ttlIsEstimate)
-                                    Estimated hold expiry: <strong>{{ $ttlFormatted }}</strong>
+                                    Hold estimated to expire in about 1 hour (airline deadline pending):
+                                    <strong>{{ $ttlFormatted }}</strong>
                                 @else
                                     This hold expires on <strong>{{ $ttlFormatted }}</strong>
                                 @endif

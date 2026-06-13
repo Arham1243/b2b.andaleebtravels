@@ -478,14 +478,7 @@ class TravelportBookingService
                 }
             }
 
-            $holdExpiresAt = TravelportHoldExpiryResolver::fromTravelportResponse($holdResponse);
-            if ($holdExpiresAt === null && ($locators['universal_locator'] ?? '') !== '') {
-                $retrieveForExpiry = $this->client->universalRecordRetrieve((string) $locators['universal_locator']);
-                if ($retrieveForExpiry['success'] ?? false) {
-                    $holdExpiresAt = TravelportHoldExpiryResolver::fromTravelportResponse($retrieveForExpiry);
-                }
-            }
-            $holdExpiresAt ??= $this->parseHoldExpiry(null);
+            $holdExpiresAt = ($booking->created_at ?? now())->copy()->addHour();
             $parsedHold = is_array($holdResponse['parsed'] ?? null) ? $holdResponse['parsed'] : [];
             $bookingResponse = $parsedHold['Body']['AirCreateReservationRsp'] ?? $parsedHold;
             if (is_array($bookingResponse)) {
@@ -501,6 +494,11 @@ class TravelportBookingService
                     'travelport_provider_locator' => $locators['provider_locator'] ?? null,
                 ];
             }
+            $bookingResponse['hold_expires_meta'] = [
+                'source' => 'estimate',
+                'synced_at' => null,
+                'last_attempt_at' => null,
+            ];
 
             $bookingUpdate = [
                 'booking_request' => [
@@ -768,8 +766,15 @@ class TravelportBookingService
         return now()->addHour();
     }
 
+    private const HOLD_EXPIRY_ESTIMATE_MINUTES = 60;
+    private const HOLD_EXPIRY_API_MIN_AGE_MINUTES = 10;
+    private const HOLD_EXPIRY_SYNC_THROTTLE_MINUTES = 5;
+    private const HOLD_EXPIRY_API_MAX_HOURS = 72;
+
     /**
-     * Refresh hold_expires_at from the live Travelport PNR (Universal Record retrieve).
+     * Refresh hold_expires_at from the live Travelport PNR when the airline publishes TicketDate.
+     *
+     * Until then, and for the first ~10 minutes after hold, keep the 1-hour estimate shown at booking time.
      */
     public function syncHoldExpiryFromTravelport(B2bFlightBooking $booking): void
     {
@@ -777,43 +782,91 @@ class TravelportBookingService
             return;
         }
 
-        $expiry = null;
-        $bookingResponse = is_array($booking->booking_response) ? $booking->booking_response : [];
-
-        if ($bookingResponse !== []) {
-            $expiry = TravelportHoldExpiryResolver::fromTravelportResponse([
-                'parsed' => $bookingResponse,
-                'raw' => (string) ($bookingResponse['raw'] ?? ''),
-            ]);
+        $meta = $booking->holdExpiresMeta();
+        if (($meta['source'] ?? '') === 'api') {
+            return;
         }
 
-        $universalLocator = $booking->travelportUniversalLocator();
-        if ($universalLocator !== '') {
+        $heldAt = $booking->created_at ?? now();
+        if ($heldAt->gt(now()->subMinutes(self::HOLD_EXPIRY_API_MIN_AGE_MINUTES))) {
+            return;
+        }
+
+        $lastAttemptRaw = trim((string) ($meta['last_attempt_at'] ?? ''));
+        if ($lastAttemptRaw !== '') {
             try {
-                $retrieve = $this->client->universalRecordRetrieve($universalLocator);
-                if ($retrieve['success'] ?? false) {
-                    $expiry = TravelportHoldExpiryResolver::fromTravelportResponse($retrieve) ?? $expiry;
+                if (Carbon::parse($lastAttemptRaw)->gt(now()->subMinutes(self::HOLD_EXPIRY_SYNC_THROTTLE_MINUTES))) {
+                    return;
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Travelport hold expiry sync failed', [
-                    'booking_id' => $booking->id,
-                    'universal_locator' => $universalLocator,
-                    'error' => $e->getMessage(),
-                ]);
+            } catch (\Throwable) {
+                // continue and retry
             }
         }
 
-        if ($expiry === null) {
+        $universalLocator = $booking->travelportUniversalLocator();
+        if ($universalLocator === '') {
             return;
         }
 
-        $current = $booking->hold_expires_at;
-        if ($current instanceof Carbon && $current->equalTo($expiry)) {
-            return;
+        $expiry = null;
+        try {
+            $retrieve = $this->client->universalRecordRetrieve($universalLocator);
+            if ($retrieve['success'] ?? false) {
+                $expiry = TravelportHoldExpiryResolver::ticketDateFromResponse($retrieve);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Travelport hold expiry sync failed', [
+                'booking_id' => $booking->id,
+                'universal_locator' => $universalLocator,
+                'error' => $e->getMessage(),
+            ]);
         }
 
-        $booking->update(['hold_expires_at' => $expiry]);
-        $booking->hold_expires_at = $expiry;
+        if ($expiry !== null && ! $this->isPlausibleHoldExpiry($expiry, $booking)) {
+            $expiry = null;
+        }
+
+        $this->recordHoldExpirySyncAttempt($booking, $expiry, $expiry !== null ? 'api' : null);
+    }
+
+    private function isPlausibleHoldExpiry(Carbon $expiry, B2bFlightBooking $booking): bool
+    {
+        $heldAt = $booking->created_at ?? now();
+
+        if ($expiry->lte(now()->copy()->subMinutes(5))) {
+            return false;
+        }
+
+        return $expiry->lte($heldAt->copy()->addHours(self::HOLD_EXPIRY_API_MAX_HOURS));
+    }
+
+    private function recordHoldExpirySyncAttempt(
+        B2bFlightBooking $booking,
+        ?Carbon $expiry = null,
+        ?string $source = null,
+    ): void {
+        $response = is_array($booking->booking_response) ? $booking->booking_response : [];
+        $meta = is_array($response['hold_expires_meta'] ?? null) ? $response['hold_expires_meta'] : [];
+        $meta['last_attempt_at'] = now()->toIso8601String();
+
+        if ($expiry !== null && $source !== null) {
+            $meta['source'] = $source;
+            $meta['synced_at'] = now()->toIso8601String();
+        }
+
+        $response['hold_expires_meta'] = $meta;
+        $update = ['booking_response' => $response];
+
+        if ($expiry !== null) {
+            $update['hold_expires_at'] = $expiry;
+        }
+
+        $booking->update($update);
+
+        if ($expiry !== null) {
+            $booking->hold_expires_at = $expiry;
+        }
+        $booking->booking_response = $response;
     }
 
     private function resolvePlatingCarrier(B2bFlightBooking $booking): string

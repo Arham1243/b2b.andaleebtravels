@@ -238,14 +238,17 @@ final class SupplierFlightBookingDetailsPresenter
             return null;
         }
 
-        $expiry = $booking->hold_expires_at ?? $booking->created_at?->copy()->addHour();
+        $expiry = $booking->displayHoldExpiresAt();
         if ($expiry === null) {
             return null;
         }
 
         $label = $expiry->format('d M Y, h:i A');
+        $estimateSuffix = $booking->holdExpiryIsEstimate() ? ' (estimated)' : '';
 
-        return $expiry->isPast() ? "{$label} (expired)" : $label;
+        return $expiry->isPast()
+            ? "{$label}{$estimateSuffix} (expired)"
+            : "{$label}{$estimateSuffix}";
     }
 
     private static function formatTravelportDateTime(mixed $value): ?string

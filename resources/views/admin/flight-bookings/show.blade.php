@@ -124,12 +124,8 @@
     $ttl = null;
     $ttlIsEstimate = false;
     if ($isHold) {
-        if ($booking->hold_expires_at) {
-            $ttl = $booking->hold_expires_at;
-        } else {
-            $ttl = $booking->created_at->copy()->addHour();
-            $ttlIsEstimate = true;
-        }
+        $ttlIsEstimate = $booking->holdExpiryIsEstimate();
+        $ttl = $booking->displayHoldExpiresAt();
     }
 
     $nonRefundable = null;
@@ -222,7 +218,7 @@
                                 @if ($ttl->isPast())
                                     Hold expired
                                 @else
-                                    {{ $ttlIsEstimate ? 'Estimated hold expiry' : 'Hold expires' }}:
+                                    {{ $ttlIsEstimate ? 'Estimated hold expiry (1 hour)' : 'Hold expires' }}:
                                     <strong>{{ $ttl->format('D, d M Y \a\t h:i A') }}</strong>
                                 @endif
                             </div>

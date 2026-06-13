@@ -118,6 +118,52 @@ class B2bFlightBooking extends Model
     }
 
     /**
+     * @return array{source?: string, synced_at?: string|null, last_attempt_at?: string|null}
+     */
+    public function holdExpiresMeta(): array
+    {
+        $meta = data_get($this->booking_response, 'hold_expires_meta');
+
+        return is_array($meta) ? $meta : [];
+    }
+
+    public function holdExpiryIsEstimate(): bool
+    {
+        if (! $this->isOnHold()) {
+            return false;
+        }
+
+        return ($this->holdExpiresMeta()['source'] ?? 'estimate') !== 'api';
+    }
+
+    public function estimatedHoldExpiresAt(): \Carbon\Carbon
+    {
+        $base = $this->created_at ?? now();
+
+        return $base->copy()->addHour();
+    }
+
+    public function displayHoldExpiresAt(): ?\Carbon\Carbon
+    {
+        if (! $this->isOnHold()) {
+            return null;
+        }
+
+        $estimate = $this->estimatedHoldExpiresAt();
+        $stored = $this->hold_expires_at;
+
+        if ($this->holdExpiryIsEstimate()) {
+            if ($stored instanceof \Carbon\Carbon && $stored->gt($estimate->copy()->addHours(71))) {
+                return $estimate;
+            }
+
+            return $stored ?? $estimate;
+        }
+
+        return $stored ?? $estimate;
+    }
+
+    /**
      * Persist confirmed status after a hold booking is paid via Confirm & Pay.
      */
     public function reconcileStatusAfterHoldPayment(): bool

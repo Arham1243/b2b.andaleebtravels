@@ -34,6 +34,27 @@ class TravelportHoldExpiryResolver
     }
 
     /**
+     * PNR hold window only — ActionStatus TicketDate (excludes fare-rule LatestTicketingTime).
+     *
+     * @param  array<string, mixed>  $response
+     */
+    public static function ticketDateFromResponse(array $response): ?Carbon
+    {
+        $parsed = is_array($response['parsed'] ?? null) ? $response['parsed'] : [];
+        $raw = (string) ($response['raw'] ?? '');
+
+        if ($parsed === [] && is_array($response['Body'] ?? null)) {
+            $parsed = $response;
+        }
+
+        if ($raw === '' && is_string($parsed['raw'] ?? null)) {
+            $raw = (string) $parsed['raw'];
+        }
+
+        return self::fromActionStatusTicketDate($parsed, $raw);
+    }
+
+    /**
      * @param  array<string, mixed>  $parsed
      */
     private static function fromActionStatusTicketDate(array $parsed, string $raw): ?Carbon
