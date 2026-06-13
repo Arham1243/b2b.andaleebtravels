@@ -1,10 +1,6 @@
 @php
-    $travelportExpanded = ($cardSupplier ?? '') === 'travelport' && ($result['travelport_fares_expanded'] ?? false);
-    $travelportNeedsLoad = ($cardSupplier ?? '') === 'travelport' && ! $travelportExpanded;
-    $defaultVisibleFares = $travelportExpanded
-        ? count($fareOptions)
-        : ((($cardSupplier ?? '') === 'travelport') ? 2 : 3);
-    $extraFareCount = $travelportNeedsLoad ? 0 : max(0, count($fareOptions) - $defaultVisibleFares);
+    $defaultVisibleFares = 3;
+    $extraFareCount = max(0, count($fareOptions) - $defaultVisibleFares);
 @endphp
 
 @foreach ($fareOptions as $fi => $fare)
@@ -81,16 +77,7 @@
     </div>
 @endforeach
 
-@if($travelportNeedsLoad)
-    <button type="button"
-        class="rc__more-fares rc__more-fares--travelport"
-        data-rc-travelport-more-fares
-        data-itinerary-id="{{ $lid }}"
-        aria-expanded="false">
-        <span class="rc__more-fares__label">View More Fares</span>
-        <i class="bx bx-chevron-down"></i>
-    </button>
-@elseif($extraFareCount > 0)
+@if($extraFareCount > 0)
     <button type="button"
         class="rc__more-fares"
         data-rc-more-fares

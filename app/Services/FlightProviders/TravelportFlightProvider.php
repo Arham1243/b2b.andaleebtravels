@@ -9,6 +9,7 @@ use App\Support\FlightCabinPreference;
 use App\Support\Travelport\TravelportAirPricePresenter;
 use App\Support\Travelport\TravelportHoldPayloadBuilder;
 use App\Support\Travelport\TravelportSearchPresenter;
+use Illuminate\Support\Facades\Log;
 
 class TravelportFlightProvider implements FlightProviderInterface
 {
@@ -27,7 +28,25 @@ class TravelportFlightProvider implements FlightProviderInterface
      */
     public function search(array $searchData): FlightProviderSearchResult
     {
-        return $this->executeSearch($searchData, lite: true);
+        $result = $this->executeSearch($searchData, lite: false);
+        if (! $result->success || $result->results === []) {
+            return $result;
+        }
+
+        $enriched = [];
+        foreach ($result->results as $card) {
+            $enriched[] = $this->expandCardWithAllFares($searchData, $card, refreshNdc: false);
+        }
+
+        return new FlightProviderSearchResult(
+            provider: $result->provider,
+            results: $enriched,
+            messages: $result->messages,
+            itineraryCount: count($enriched),
+            rawResponse: $result->rawResponse,
+            requestPayload: $result->requestPayload,
+            success: true,
+        );
     }
 
     /**
@@ -39,42 +58,60 @@ class TravelportFlightProvider implements FlightProviderInterface
      */
     public function loadMoreFares(array $searchData, array $card): array
     {
-        $signature = TravelportSearchPresenter::routingSignature($card);
-        $cabins = $this->moreFaresCabins($searchData);
-        $cardLists = [];
+        return $this->expandCardWithAllFares($searchData, $card, refreshNdc: true);
+    }
 
-        foreach ($cabins as $cabin) {
-            $cabinSearch = array_merge($searchData, ['onward_cabin_class' => $cabin]);
-            // NDC branded upsell tiers (Saver, Flex). Flex Plus is not in LFS upsell for EK.
-            $ndcResponse = $this->client->lowFareSearch($cabinSearch, true, true);
+    /**
+     * Merge branded GDS tiers (AirPrice FareFamily) and any missing NDC upsell into one card.
+     *
+     * @param  array<string, mixed>  $searchData
+     * @param  array<string, mixed>  $card
+     */
+    private function expandCardWithAllFares(array $searchData, array $card, bool $refreshNdc = true): array
+    {
+        if ($refreshNdc) {
+            $signature = TravelportSearchPresenter::routingSignature($card);
+            $cardLists = [];
 
-            $ndcCards = ($ndcResponse['success'] ?? false)
-                ? TravelportSearchPresenter::toResultCards($ndcResponse['parsed'], $cabinSearch)
-                : [];
+            foreach ($this->moreFaresCabins($searchData) as $cabin) {
+                $cabinSearch = array_merge($searchData, ['onward_cabin_class' => $cabin]);
+                $ndcResponse = $this->client->lowFareSearch($cabinSearch, true, true);
 
-            if ($ndcCards !== []) {
-                $cardLists[] = $this->filterCardsFareOptionsByTag($ndcCards, 'ndc');
+                $ndcCards = ($ndcResponse['success'] ?? false)
+                    ? TravelportSearchPresenter::toResultCards($ndcResponse['parsed'], $cabinSearch)
+                    : [];
+
+                if ($ndcCards !== []) {
+                    $cardLists[] = $this->filterCardsFareOptionsByTag($ndcCards, 'ndc');
+                }
+            }
+
+            if ($cardLists !== []) {
+                $allCards = TravelportSearchPresenter::mergeResultCardLists(...$cardLists);
+                $matched = TravelportSearchPresenter::findCardByRoutingSignature($allCards, $signature);
+
+                if ($matched !== null) {
+                    $incoming = $this->filterFareOptionsBySearchCabins($matched['fare_options'] ?? [], $searchData);
+                    $card = TravelportSearchPresenter::enrichCardFareOptions($card, $incoming);
+                }
             }
         }
 
-        if ($cardLists !== []) {
-            $allCards = TravelportSearchPresenter::mergeResultCardLists(...$cardLists);
-            $matched = TravelportSearchPresenter::findCardByRoutingSignature($allCards, $signature);
+        try {
+            $airPriceOptions = $this->fetchAirPriceFamilyOptions($searchData, $card);
 
-            if ($matched !== null) {
-                $incoming = $this->filterFareOptionsBySearchCabins($matched['fare_options'] ?? [], $searchData);
-                $card = TravelportSearchPresenter::enrichCardFareOptions($card, $incoming);
+            if ($airPriceOptions !== []) {
+                $card = TravelportSearchPresenter::enrichCardFareOptions($card, $airPriceOptions);
+                $card = TravelportSearchPresenter::enrichCardFareOptions(
+                    $card,
+                    $this->ndcSupplementFromAirPrice($card, $airPriceOptions),
+                );
             }
-        }
-
-        $airPriceOptions = $this->fetchAirPriceFamilyOptions($searchData, $card);
-
-        if ($airPriceOptions !== []) {
-            $card = TravelportSearchPresenter::enrichCardFareOptions($card, $airPriceOptions);
-            $card = TravelportSearchPresenter::enrichCardFareOptions(
-                $card,
-                $this->ndcSupplementFromAirPrice($card, $airPriceOptions),
-            );
+        } catch (\Throwable $e) {
+            Log::warning('Travelport fare-family preload failed for itinerary card', [
+                'error' => $e->getMessage(),
+                'routing' => TravelportSearchPresenter::routingSignature($card),
+            ]);
         }
 
         $filtered = TravelportSearchPresenter::collapseRedundantGdsEconomyFares(
@@ -82,7 +119,6 @@ class TravelportFlightProvider implements FlightProviderInterface
         );
         $card['fare_options'] = [];
         $card = TravelportSearchPresenter::enrichCardFareOptions($card, $filtered);
-
         $card['travelport_fares_expanded'] = true;
 
         return $card;
@@ -100,13 +136,12 @@ class TravelportFlightProvider implements FlightProviderInterface
         ];
         $messages = [];
 
-        // Lite search: published GDS + one branded NDC fare per routing (fast initial list).
-        // Additional upsell fares for the same cabin load on demand via loadMoreFares().
+        // Full NDC upsell from LFS; branded GDS tiers are merged per card after search.
         $gdsResponse = $this->client->lowFareSearch($searchData, false, false);
         $ndcResponse = $this->client->lowFareSearch(
             $searchData,
             true,
-            $lite ? false : true,
+            ! $lite,
         );
 
         if (! ($gdsResponse['success'] ?? false) && ! ($ndcResponse['success'] ?? false)) {
