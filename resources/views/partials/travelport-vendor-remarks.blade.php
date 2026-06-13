@@ -6,7 +6,7 @@
     <div class="bkpd-vendor-remarks mb-3">
         <div class="bkpd-vendor-remarks__head">
             <i class="bx bx-info-circle"></i>
-            <span>Airline notices (vendor remarks)</span>
+            <span>Airline notices (Ticket Time LImit)</span>
         </div>
         <ul class="bkpd-vendor-remarks__list">
             @foreach ($vendorRemarks as $remark)
